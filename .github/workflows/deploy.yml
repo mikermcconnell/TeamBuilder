@@ -35,10 +35,16 @@ jobs:
           version: 8
           
       - name: Install dependencies
-        run: pnpm install
+        run: |
+          pnpm install
+          echo "Node version: $(node -v)"
+          echo "PNPM version: $(pnpm -v)"
         
       - name: Build
-        run: pnpm build
+        run: |
+          pnpm build
+          echo "Build output contents:"
+          ls -la dist/
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
