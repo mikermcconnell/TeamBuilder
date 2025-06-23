@@ -15,16 +15,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Users, Settings, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
-import './App.css';
-
-// Import logo
-import logoUrl from '/public/logo.svg';
-
-// Update document favicon
-const favicon = document.querySelector('link[rel="icon"]');
-if (favicon) {
-  favicon.setAttribute('href', logoUrl);
-}
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
