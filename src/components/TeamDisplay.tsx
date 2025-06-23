@@ -275,135 +275,337 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
   };
 
   return (
-    <div className="space-y-4">
-      {/* Unassigned Players Section */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Unassigned Players ({unassignedPlayers.length})
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Drag players to teams or use the dropdown to assign
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div 
-            className="grid grid-cols-3 gap-2"
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, null)}
-          >
-            {unassignedPlayers.map((player) => (
-              <PlayerCard
-                key={player.id}
-                player={player}
-                moveOptions={getMoveOptions(player)}
-                onMove={onPlayerMove}
-                onDragStart={() => handleDragStart(player)}
-                onDragEnd={handleDragEnd}
-                playerGroups={playerGroups}
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      {/* Team Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{teams.length}</div>
+            <div className="text-sm text-gray-600">Teams Created</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {teams.reduce((sum, team) => sum + team.players.length, 0)}
+            </div>
+            <div className="text-sm text-gray-600">Players Assigned</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-orange-600">{unassignedPlayers.length}</div>
+            <div className="text-sm text-gray-600">Unassigned</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-purple-600">
+              {teams.filter(team => getTeamConstraintViolations(team).violations.length === 0).length}
+            </div>
+            <div className="text-sm text-gray-600">Valid Teams</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Unassigned Players */}
+      {unassignedPlayers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserMinus className="h-5 w-5" />
+              Unassigned Players ({unassignedPlayers.length})
+            </CardTitle>
+            <CardDescription>
+              Players who couldn't be assigned due to constraints or moved manually
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div 
+              className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-24"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, null)}
+            >
+              {unassignedPlayers.length === 0 ? (
+                <div className="text-center text-gray-500">
+                  Drop players here to unassign them
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Unassigned Male Players */}
+                  {unassignedPlayers.filter(p => p.gender === 'M').length > 0 && (
+                    <div>
+                      <div className="text-sm font-medium text-gray-600 mb-2">Males ({unassignedPlayers.filter(p => p.gender === 'M').length})</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {unassignedPlayers
+                          .filter(player => player.gender === 'M')
+                          .map((player) => (
+                            <PlayerCard
+                              key={player.id}
+                              player={player}
+                              moveOptions={getMoveOptions(player)}
+                              onMove={onPlayerMove}
+                              onDragStart={() => handleDragStart(player)}
+                              onDragEnd={handleDragEnd}
+                              playerGroups={playerGroups}
+                            />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Unassigned Female Players */}
+                  {unassignedPlayers.filter(p => p.gender === 'F').length > 0 && (
+                    <div>
+                      <div className="text-sm font-medium text-gray-600 mb-2">Females ({unassignedPlayers.filter(p => p.gender === 'F').length})</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {unassignedPlayers
+                          .filter(player => player.gender === 'F')
+                          .map((player) => (
+                            <PlayerCard
+                              key={player.id}
+                              player={player}
+                              moveOptions={getMoveOptions(player)}
+                              onMove={onPlayerMove}
+                              onDragStart={() => handleDragStart(player)}
+                              onDragEnd={handleDragEnd}
+                              playerGroups={playerGroups}
+                            />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Unassigned Other Gender Players */}
+                  {unassignedPlayers.filter(p => p.gender === 'Other').length > 0 && (
+                    <div>
+                      <div className="text-sm font-medium text-gray-600 mb-2">Other ({unassignedPlayers.filter(p => p.gender === 'Other').length})</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {unassignedPlayers
+                          .filter(player => player.gender === 'Other')
+                          .map((player) => (
+                            <PlayerCard
+                              key={player.id}
+                              player={player}
+                              moveOptions={getMoveOptions(player)}
+                              onMove={onPlayerMove}
+                              onDragStart={() => handleDragStart(player)}
+                              onDragEnd={handleDragEnd}
+                              playerGroups={playerGroups}
+                            />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Teams Grid */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {teams.map((team) => {
-          const { violations, sizeIssues } = getTeamConstraintViolations(team);
-          const hasViolations = violations.length > 0;
-          const hasSizeIssues = sizeIssues.length > 0;
-          
+          const constraintCheck = getTeamConstraintViolations(team);
+          const violations = constraintCheck.violations;
+          const sizeIssues = constraintCheck.sizeIssues;
+          const isValid = violations.length === 0;
+          const isOverCapacity = isTeamOverCapacity(team);
+          const isUnderCapacity = isTeamUnderCapacity(team);
+
+          // Determine border color based on team status
+          let borderClass = 'border-green-200';
+          if (!isValid) borderClass = 'border-orange-200';
+          if (isOverCapacity) borderClass = 'border-red-300';
+
           return (
             <Card 
               key={team.id}
-              className={`${hasViolations ? 'border-red-500' : hasSizeIssues ? 'border-yellow-500' : ''}`}
+              className={borderClass}
             >
-              <CardHeader className="pb-3 space-y-1">
-                <CardTitle className="text-base flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4" />
-                    {editingTeamId === team.id ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={tempTeamName}
-                          onChange={(e) => setTempTeamName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveTeamName(team.id);
-                            if (e.key === 'Escape') cancelEditingTeamName();
-                          }}
-                          className="h-7 text-sm"
-                          autoFocus
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => saveTeamName(team.id)}
-                          className="h-7 px-2"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    {isValid && !isOverCapacity && !isUnderCapacity ? (
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    ) : isOverCapacity ? (
+                      <ArrowUp className="h-5 w-5 text-red-600" />
+                    ) : isUnderCapacity ? (
+                      <ArrowDown className="h-5 w-5 text-blue-600" />
                     ) : (
-                      <span 
-                        className="cursor-pointer hover:underline"
-                        onClick={() => startEditingTeamName(team.id, team.name)}
-                      >
-                        {team.name}
-                      </span>
+                      <AlertTriangle className="h-5 w-5 text-orange-600" />
                     )}
+                    {editingTeamId === team.id ? (
+                       <Input
+                         value={tempTeamName}
+                         onChange={(e) => setTempTeamName(e.target.value)}
+                         onBlur={() => saveTeamName(team.id)}
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter') {
+                             saveTeamName(team.id);
+                           } else if (e.key === 'Escape') {
+                             cancelEditingTeamName();
+                           }
+                         }}
+                         className="h-7 w-32 text-lg font-semibold"
+                         autoFocus
+                       />
+                     ) : (
+                       <span 
+                         className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                         onClick={() => startEditingTeamName(team.id, team.name)}
+                         title="Click to edit team name"
+                       >
+                         {team.name}
+                       </span>
+                     )}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {/* Size badge with color coding */}
+                    <Badge 
+                      variant={isOverCapacity ? 'destructive' : isUnderCapacity ? 'secondary' : 'default'}
+                      className={isOverCapacity ? 'bg-red-600' : isUnderCapacity ? 'bg-blue-100 text-blue-800' : ''}
+                    >
+                      {team.players.length}/{config.maxTeamSize}
+                    </Badge>
                   </div>
-                  <div className="flex items-center gap-1 text-sm">
-                    <Target className="h-4 w-4" />
-                    {team.averageSkill.toFixed(1)}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <Trophy className="h-4 w-4 text-yellow-600" />
+                      <span>Avg Skill: {team.averageSkill.toFixed(1)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Target className="h-4 w-4 text-blue-600" />
+                      <span>
+                        {team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O
+                      </span>
+                    </div>
                   </div>
-                </CardTitle>
-                <CardDescription className="text-xs flex items-center justify-between">
-                  <span>Players: {team.players.length}/{config.maxTeamSize}</span>
-                  <span>Total Skill: {team.players.reduce((sum, p) => sum + p.skillRating, 0)}</span>
-                </CardDescription>
+                  
+                  {/* Size Issues Alert */}
+                  {sizeIssues.length > 0 && (
+                    <Alert variant={isOverCapacity ? "destructive" : "default"} className={isUnderCapacity ? "border-blue-200 bg-blue-50" : ""}>
+                      {isOverCapacity ? (
+                        <ArrowUp className="h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="h-4 w-4 text-blue-600" />
+                      )}
+                      <AlertDescription>
+                        <ul className="list-disc list-inside space-y-1">
+                          {sizeIssues.map((issue, index) => (
+                            <li key={index} className="text-xs">{issue}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Constraint Violations Alert */}
+                  {violations.length > 0 && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <ul className="list-disc list-inside space-y-1">
+                          {violations.map((violation, index) => (
+                            <li key={index} className="text-xs">{violation}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
               </CardHeader>
               
               <CardContent>
                 <div 
-                  className="space-y-2"
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-32"
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, team.id)}
                 >
-                  {team.players.map((player) => (
-                    <PlayerCard
-                      key={player.id}
-                      player={player}
-                      moveOptions={getMoveOptions(player)}
-                      onMove={onPlayerMove}
-                      onDragStart={() => handleDragStart(player, team.id)}
-                      onDragEnd={handleDragEnd}
-                      playerGroups={playerGroups}
-                    />
-                  ))}
-                </div>
+                  {team.players.length === 0 ? (
+                    <div className="text-center text-gray-500 h-20 flex items-center justify-center">
+                      <div>
+                        <UserPlus className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        Drop players here
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-6">
+                      {/* Male Players */}
+                      {team.players.filter(p => p.gender === 'M').length > 0 && (
+                        <div>
+                          <div className="text-sm font-medium text-gray-600 mb-2">Males ({team.players.filter(p => p.gender === 'M').length})</div>
+                          <div className="grid grid-cols-1 gap-3">
+                            {team.players
+                              .filter(player => player.gender === 'M')
+                              .map((player) => (
+                                <PlayerCard
+                                  key={player.id}
+                                  player={player}
+                                  moveOptions={getMoveOptions(player)}
+                                  onMove={onPlayerMove}
+                                  onDragStart={() => handleDragStart(player, team.id)}
+                                  onDragEnd={handleDragEnd}
+                                  playerGroups={playerGroups}
+                                />
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                {(hasViolations || hasSizeIssues) && (
-                  <div className="mt-3 space-y-2">
-                    {violations.map((violation, index) => (
-                      <Alert key={index} variant="destructive" className="py-2">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription className="text-xs ml-2">
-                          {violation}
-                        </AlertDescription>
-                      </Alert>
-                    ))}
-                    {sizeIssues.map((issue, index) => (
-                      <Alert key={index} variant="default" className="py-2 border-yellow-500 bg-yellow-50">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription className="text-xs ml-2">
-                          {issue}
-                        </AlertDescription>
-                      </Alert>
-                    ))}
-                  </div>
-                )}
+                      {/* Female Players */}
+                      {team.players.filter(p => p.gender === 'F').length > 0 && (
+                        <div>
+                          <div className="text-sm font-medium text-gray-600 mb-2">Females ({team.players.filter(p => p.gender === 'F').length})</div>
+                          <div className="grid grid-cols-1 gap-3">
+                            {team.players
+                              .filter(player => player.gender === 'F')
+                              .map((player) => (
+                                <PlayerCard
+                                  key={player.id}
+                                  player={player}
+                                  moveOptions={getMoveOptions(player)}
+                                  onMove={onPlayerMove}
+                                  onDragStart={() => handleDragStart(player, team.id)}
+                                  onDragEnd={handleDragEnd}
+                                  playerGroups={playerGroups}
+                                />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Other Gender Players */}
+                      {team.players.filter(p => p.gender === 'Other').length > 0 && (
+                        <div>
+                          <div className="text-sm font-medium text-gray-600 mb-2">Other ({team.players.filter(p => p.gender === 'Other').length})</div>
+                          <div className="grid grid-cols-1 gap-3">
+                            {team.players
+                              .filter(player => player.gender === 'Other')
+                              .map((player) => (
+                                <PlayerCard
+                                  key={player.id}
+                                  player={player}
+                                  moveOptions={getMoveOptions(player)}
+                                  onMove={onPlayerMove}
+                                  onDragStart={() => handleDragStart(player, team.id)}
+                                  onDragEnd={handleDragEnd}
+                                  playerGroups={playerGroups}
+                                />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           );
@@ -424,62 +626,92 @@ interface PlayerCardProps {
 
 function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playerGroups }: PlayerCardProps) {
   const getSkillLevelColor = (skill: number): string => {
-    if (skill >= 8) return 'bg-green-100 text-green-800';
-    if (skill >= 6) return 'bg-blue-100 text-blue-800';
-    if (skill >= 4) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+    if (skill >= 8) return 'text-green-600 bg-green-50';
+    if (skill >= 6) return 'text-blue-600 bg-blue-50';
+    if (skill >= 4) return 'text-yellow-600 bg-yellow-50';
+    return 'text-red-600 bg-red-50';
   };
 
   const playerGroup = getPlayerGroup(playerGroups, player.id);
-  const groupColor = playerGroup ? getPlayerGroupColor(playerGroups, player.id) : null;
-  const groupLabel = playerGroup ? getPlayerGroupLabel(playerGroups, player.id) : null;
+  const groupColor = getPlayerGroupColor(playerGroups, player.id);
+  const groupLabel = getPlayerGroupLabel(playerGroups, player.id);
+  const isInGroup = playerGroup !== null;
 
   return (
     <div
+      className="bg-white border rounded-lg p-3 cursor-move hover:shadow-md transition-shadow relative"
+      style={isInGroup ? { 
+        borderColor: groupColor, 
+        borderWidth: '2px',
+        backgroundColor: `${groupColor}08` 
+      } : {}}
       draggable
-      onDragStart={onDragStart}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart();
+      }}
       onDragEnd={onDragEnd}
-      className={`
-        p-2 rounded-lg border cursor-move
-        hover:shadow-md transition-shadow
-        ${groupColor ? `border-[${groupColor}30] bg-[${groupColor}08]` : 'border-gray-200 bg-white'}
-      `}
     >
-      <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1">
-            {groupLabel && (
-              <div 
-                className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-                style={{ backgroundColor: groupColor || undefined }}
-              >
-                {groupLabel}
-              </div>
-            )}
-            <div className="text-sm font-medium truncate">{player.name}</div>
-          </div>
-          <div className="flex items-center gap-1 mt-1">
-            <Badge variant="secondary" className={`text-[10px] px-1 py-0 ${getSkillLevelColor(player.skillRating)}`}>
-              Skill: {player.skillRating}
-            </Badge>
-          </div>
-        </div>
-        <Select
-          value={player.groupId || 'unassigned'}
-          onValueChange={(value) => onMove(player.id, value === 'unassigned' ? null : value)}
+      {/* Group label in top corner */}
+      {isInGroup && groupLabel && (
+        <div 
+          className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs"
+          style={{ backgroundColor: groupColor }}
         >
-          <SelectTrigger className="h-6 w-6 px-0">
-            <SelectValue>
-              <Move className="h-3 w-3" />
-            </SelectValue>
+          {groupLabel}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-2">
+        <div className="font-medium truncate flex items-center gap-1">
+          {player.name}
+          {isInGroup && (
+            <span title={`Group ${groupLabel} - ${playerGroup?.players.length} players`}>
+              <Link className="h-3 w-3" style={{ color: groupColor }} />
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          <Badge variant="outline" className="text-xs">{player.gender}</Badge>
+          <Badge className={`text-xs ${getSkillLevelColor(player.skillRating)}`}>
+            {player.skillRating}
+          </Badge>
+        </div>
+      </div>
+      
+      {(player.teammateRequests.length > 0 || player.avoidRequests.length > 0 || isInGroup) && (
+        <div className="text-xs text-gray-600 mb-2">
+          {isInGroup && playerGroup && (
+            <div className="font-medium flex items-center gap-1 mb-1" style={{ color: groupColor }}>
+              <Link className="h-3 w-3" />
+              Group {groupLabel}: {playerGroup.players.map(p => p.name).join(', ')}
+            </div>
+          )}
+          {player.teammateRequests.length > 0 && (
+            <div className="text-green-600">
+              Wants: {player.teammateRequests.join(', ')}
+            </div>
+          )}
+          {player.avoidRequests.length > 0 && (
+            <div className="text-red-600">
+              Avoid: {player.avoidRequests.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
+      
+      <div className="flex items-center gap-2">
+        <Move className="h-3 w-3 text-gray-400" />
+        <Select onValueChange={(value) => onMove(player.id, value === 'null' ? null : value)}>
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue placeholder="Move to..." />
           </SelectTrigger>
           <SelectContent>
-            {moveOptions.map((option) => (
-              <SelectItem
-                key={option.value || 'unassigned'}
-                value={option.value || 'unassigned'}
+            {moveOptions.map((option, index) => (
+              <SelectItem 
+                key={index} 
+                value={option.value || 'null'}
                 disabled={option.disabled}
-                className="text-xs"
               >
                 {option.label}
               </SelectItem>
