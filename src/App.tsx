@@ -408,13 +408,16 @@ function App() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center gap-4">
+        <header className="bg-gradient-to-r from-blue-50 to-white shadow-md">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-center gap-6">
               <img src={logoUrl} alt="TeamBuilder Logo" className="h-10 w-10" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">TeamBuilder</h1>
-                <p className="text-sm text-gray-600">Automatically generate teams from player rosters</p>
+              <div className="text-center">
+                <h1 className="text-4xl font-semibold relative">
+                  <span className="text-gray-800">Team</span>
+                  <span className="text-blue-600">Builder</span>
+                </h1>
+                <p className="text-sm text-gray-600 mt-1.5">Automatically generate teams from player rosters</p>
               </div>
             </div>
           </div>
@@ -554,6 +557,7 @@ function App() {
                 </CardContent>
               </Card>
             </TabsContent>
+
             {/* Teams Tab */}
             <TabsContent value="teams" className="space-y-6">
               <TeamDisplay 
