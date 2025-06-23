@@ -36,30 +36,63 @@ function namesMatch(name1: string, name2: string): boolean {
   
   // Common nickname patterns
   const commonNicknames: { [key: string]: string[] } = {
-    'alexander': ['alex', 'xander', 'al'],
-    'alexandra': ['alex', 'alexa', 'sandra'],
-    'anthony': ['tony', 'ant'],
-    'benjamin': ['ben', 'benny'],
-    'christopher': ['chris', 'topher'],
-    'daniel': ['dan', 'danny'],
-    'elizabeth': ['liz', 'beth', 'betty', 'ellie'],
-    'jennifer': ['jen', 'jenny'],
-    'jonathan': ['jon', 'johnny'],
-    'matthew': ['matt', 'matty'],
-    'michael': ['mike', 'micky'],
-    'nicholas': ['nick', 'nicky'],
-    'patricia': ['pat', 'patty', 'tricia'],
-    'rebecca': ['becca', 'becky'],
-    'robert': ['rob', 'bob', 'bobby'],
-    'stephanie': ['steph', 'steffi'],
-    'thomas': ['tom', 'tommy'],
-    'william': ['will', 'bill', 'billy'],
+    'alexander': ['alex', 'xander', 'al', 'alec', 'sandy'],
+    'alexandra': ['alex', 'alexa', 'sandra', 'lexi', 'ally'],
+    'andrew': ['andy', 'drew', 'anders'],
+    'anthony': ['tony', 'ant', 'toni'],
+    'benjamin': ['ben', 'benny', 'benji'],
+    'catherine': ['cathy', 'kate', 'katie', 'cat'],
+    'charles': ['charlie', 'chuck', 'chas'],
+    'christopher': ['chris', 'topher', 'kit'],
+    'daniel': ['dan', 'danny', 'dani'],
+    'david': ['dave', 'davey', 'day'],
+    'edward': ['ed', 'eddie', 'ted', 'ned'],
+    'elizabeth': ['liz', 'beth', 'betty', 'ellie', 'lisa', 'lizzy', 'libby', 'eli'],
+    'frederick': ['fred', 'freddy', 'rick'],
+    'gregory': ['greg', 'gregg', 'gregor'],
+    'james': ['jim', 'jimmy', 'jamie'],
+    'jennifer': ['jen', 'jenny', 'jenna'],
+    'john': ['johnny', 'jack', 'jj'],
+    'jonathan': ['jon', 'johnny', 'jona', 'nathan'],
+    'joseph': ['joe', 'joey', 'jos'],
+    'katherine': ['kate', 'kathy', 'katie', 'kat'],
+    'kenneth': ['ken', 'kenny', 'kent'],
+    'margaret': ['maggie', 'meg', 'peggy', 'marge'],
+    'matthew': ['matt', 'matty', 'thew'],
+    'michael': ['mike', 'micky', 'mikey', 'mick'],
+    'nicholas': ['nick', 'nicky', 'nico', 'cole'],
+    'patricia': ['pat', 'patty', 'tricia', 'trish'],
+    'patrick': ['pat', 'paddy', 'rick'],
+    'peter': ['pete', 'petey'],
+    'rebecca': ['becca', 'becky', 'reba'],
+    'richard': ['rick', 'dick', 'richie', 'rich'],
+    'robert': ['rob', 'bob', 'bobby', 'bert'],
+    'ronald': ['ron', 'ronnie', 'ronny'],
+    'samantha': ['sam', 'sammy', 'mantha'],
+    'samuel': ['sam', 'sammy', 'sami'],
+    'stephanie': ['steph', 'steffi', 'stephy'],
+    'steven': ['steve', 'stevie', 'stevo'],
+    'theodore': ['ted', 'teddy', 'theo'],
+    'thomas': ['tom', 'tommy', 'thom'],
+    'timothy': ['tim', 'timmy', 'timo'],
+    'victoria': ['vicky', 'tori', 'vic'],
+    'william': ['will', 'bill', 'billy', 'liam', 'willy'],
+    'zachary': ['zach', 'zack', 'zac']
   };
   
   // Check against common nicknames
   for (const [fullName, nicknames] of Object.entries(commonNicknames)) {
-    if ((norm1 === fullName && nicknames.includes(norm2)) ||
-        (norm2 === fullName && nicknames.includes(norm1))) {
+    // Check if either name matches the full name or any of its nicknames
+    const isName1Match = norm1 === fullName || nicknames.includes(norm1);
+    const isName2Match = norm2 === fullName || nicknames.includes(norm2);
+    
+    // If both names are related to the same full name
+    if (isName1Match && isName2Match) {
+      return true;
+    }
+    
+    // Check if nicknames are directly related
+    if (nicknames.includes(norm1) && nicknames.includes(norm2)) {
       return true;
     }
   }
