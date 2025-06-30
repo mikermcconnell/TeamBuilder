@@ -6,7 +6,7 @@
   
   <!-- Main application page -->
   <url>
-    <loc>https://teambuilder.vercel.app</loc>
+    <loc>https://teambuilder-mu.vercel.app</loc>
     <lastmod>2024-12-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -14,7 +14,7 @@
   
   <!-- Upload section -->
   <url>
-    <loc>https://teambuilder.vercel.app#upload</loc>
+    <loc>https://teambuilder-mu.vercel.app#upload</loc>
     <lastmod>2024-12-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -22,7 +22,7 @@
   
   <!-- Tutorial -->
   <url>
-    <loc>https://teambuilder.vercel.app#tutorial</loc>
+    <loc>https://teambuilder-mu.vercel.app#tutorial</loc>
     <lastmod>2024-12-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
