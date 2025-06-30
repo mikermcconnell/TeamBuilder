@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Users, Settings, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2, Play, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
+import { Analytics } from '@vercel/analytics/react';
 import logoUrl from '@/assets/logo.svg';
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
@@ -664,6 +665,7 @@ function App() {
           </Tabs>
         </main>
       </div>
+      <Analytics />
     </ErrorBoundary>
   );
 }
