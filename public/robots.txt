@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://teambuilder.vercel.app/sitemap.xml
+Sitemap: https://teambuilder-mu.vercel.app/sitemap.xml
 
 # Crawl delay for better server performance
 Crawl-delay: 1

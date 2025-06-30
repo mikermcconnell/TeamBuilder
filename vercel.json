@@ -10,7 +10,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!sitemap\\.xml|robots\\.txt|manifest\\.json|.*\\.).*)$",
+      "source": "^(?!/sitemap\\.xml)(?!/robots\\.txt)(?!/manifest\\.json)(?!.*\\.)(.*)$",
       "destination": "/index.html"
     }
   ],
@@ -37,7 +37,7 @@
       "headers": [
         {
           "key": "Content-Type",
-          "value": "application/xml"
+          "value": "application/xml; charset=utf-8"
         },
         {
           "key": "Cache-Control",
