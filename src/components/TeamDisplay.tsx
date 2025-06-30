@@ -320,7 +320,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
               Unassigned Players ({unassignedPlayers.length})
             </CardTitle>
             <CardDescription>
-              Players who couldn't be assigned due to constraints or moved manually
+              Players who couldn't be assigned due to constraints or to be moved manually onto a team
             </CardDescription>
           </CardHeader>
           <CardContent>

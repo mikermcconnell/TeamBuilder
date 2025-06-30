@@ -1,0 +1,355 @@
+/* Tutorial Landing Page Custom Animations */
+
+/* Glassmorphism effects */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.1);
+}
+
+/* Floating animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+.float-delay-1 {
+  animation-delay: 0.5s;
+}
+
+.float-delay-2 {
+  animation-delay: 1s;
+}
+
+.float-delay-3 {
+  animation-delay: 1.5s;
+}
+
+/* Gradient animations */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient {
+  background: linear-gradient(270deg, #2B5D3A, #4A90E2, #F5A623);
+  background-size: 600% 600%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Pulse effects */
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.soft-pulse {
+  animation: soft-pulse 4s ease-in-out infinite;
+}
+
+/* Shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Progress bar animations */
+@keyframes progress-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(43, 93, 58, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(43, 93, 58, 0.8);
+  }
+}
+
+.progress-glow {
+  animation: progress-glow 2s ease-in-out infinite;
+}
+
+/* Text animations */
+@keyframes text-glow {
+  from {
+    text-shadow: 0 0 10px rgba(43, 93, 58, 0.5);
+  }
+  to {
+    text-shadow: 0 0 20px rgba(43, 93, 58, 0.8), 0 0 30px rgba(74, 144, 226, 0.6);
+  }
+}
+
+.text-glow {
+  animation: text-glow 2s ease-in-out infinite alternate;
+}
+
+/* Particle effects */
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(43, 93, 58, 0.4);
+  border-radius: 50%;
+}
+
+@keyframes particle-float {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) translateX(50px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.particle-1 {
+  animation: particle-float 4s linear infinite;
+  animation-delay: 0s;
+}
+
+.particle-2 {
+  animation: particle-float 4s linear infinite;
+  animation-delay: 1s;
+}
+
+.particle-3 {
+  animation: particle-float 4s linear infinite;
+  animation-delay: 2s;
+}
+
+.particle-4 {
+  animation: particle-float 4s linear infinite;
+  animation-delay: 3s;
+}
+
+/* Card reveal animations */
+@keyframes card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Fade in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+.card-reveal {
+  animation: card-reveal 0.6s ease-out forwards;
+}
+
+.card-reveal-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.card-reveal-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.card-reveal-delay-3 {
+  animation-delay: 0.3s;
+}
+
+/* Loading spinner with custom colors */
+@keyframes custom-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.custom-spinner {
+  border: 3px solid rgba(43, 93, 58, 0.1);
+  border-left: 3px solid #2B5D3A;
+  border-radius: 50%;
+  animation: custom-spin 1s linear infinite;
+}
+
+/* Interactive button effects */
+.interactive-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.interactive-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.interactive-button:hover::before {
+  left: 100%;
+}
+
+.interactive-button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Step indicator animations */
+@keyframes step-complete {
+  0% {
+    transform: scale(0.8);
+    background-color: #ccc;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    background-color: #10b981;
+  }
+}
+
+.step-complete {
+  animation: step-complete 0.5s ease-out forwards;
+}
+
+/* Backdrop blur enhancements */
+.enhanced-backdrop {
+  backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+/* Custom scrollbar for tutorial content */
+.tutorial-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tutorial-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.tutorial-scroll::-webkit-scrollbar-thumb {
+  background: rgba(43, 93, 58, 0.5);
+  border-radius: 3px;
+}
+
+.tutorial-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(43, 93, 58, 0.7);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .glass-card {
+    border-radius: 16px;
+    margin: 10px;
+  }
+  
+  .float-animation {
+    animation-duration: 4s;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .glass-effect,
+  .glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #000;
+  }
+  
+  .text-glow {
+    animation: none;
+    text-shadow: none;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .float-animation,
+  .soft-pulse,
+  .shimmer,
+  .animated-gradient,
+  .progress-glow,
+  .text-glow,
+  .particle-1,
+  .particle-2,
+  .particle-3,
+  .particle-4 {
+    animation: none;
+  }
+  
+  .hover-lift {
+    transition: none;
+  }
+} 

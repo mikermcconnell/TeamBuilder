@@ -16,9 +16,10 @@ import {
 
 interface GenerationStatsProps {
   stats: TeamGenerationStats;
+  totalTeams?: number;
 }
 
-export function GenerationStats({ stats }: GenerationStatsProps) {
+export function GenerationStats({ stats, totalTeams = 0 }: GenerationStatsProps) {
   const assignmentRate = stats.totalPlayers > 0 
     ? (stats.assignedPlayers / stats.totalPlayers) * 100 
     : 0;
@@ -41,50 +42,62 @@ export function GenerationStats({ stats }: GenerationStatsProps) {
   };
 
   return (
-    <Card>
+    <Card className="bg-white/90 backdrop-blur-xl border-green-200 shadow-lg">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          Team Generation Statistics
+        <CardTitle className="flex items-center gap-2 text-gray-800">
+          <BarChart3 className="h-5 w-5 text-primary" />
+          📊 Team Generation Statistics
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-gray-600">
           Analysis of team balancing, custom group placement, and constraint satisfaction
         </CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-6">
         {/* Overall Performance */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="bg-white border-green-200 shadow-sm">
             <CardContent className="p-4 text-center">
-              <div className={`text-2xl font-bold ${getPerformanceColor(assignmentRate)}`}>
+              <div className="text-2xl font-bold text-blue-600">
+                {totalTeams}
+              </div>
+              <div className="text-sm text-gray-600 mb-2 font-medium">Teams Created</div>
+              <Badge variant="default">
+                Success
+              </Badge>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white border-green-200 shadow-sm">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-primary">
                 {assignmentRate.toFixed(1)}%
               </div>
-              <div className="text-sm text-gray-600 mb-2">Player Assignment Rate</div>
+              <div className="text-sm text-gray-600 mb-2 font-medium">Player Assignment Rate</div>
               <Badge {...getPerformanceBadge(assignmentRate)}>
                 {getPerformanceBadge(assignmentRate).label}
               </Badge>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-white border-green-200 shadow-sm">
             <CardContent className="p-4 text-center">
-              <div className={`text-2xl font-bold ${getPerformanceColor(mutualRequestsRate)}`}>
+              <div className="text-2xl font-bold text-secondary">
                 {mutualRequestsRate.toFixed(1)}%
               </div>
-              <div className="text-sm text-gray-600 mb-2">Requests Honored</div>
+              <div className="text-sm text-gray-600 mb-2 font-medium">Requests Honored</div>
               <Badge {...getPerformanceBadge(mutualRequestsRate)}>
                 {getPerformanceBadge(mutualRequestsRate).label}
               </Badge>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-white border-green-200 shadow-sm">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-accent">
                 {stats.generationTime}ms
               </div>
-              <div className="text-sm text-gray-600 mb-2">Processing Time</div>
+              <div className="text-sm text-gray-600 mb-2 font-medium">Processing Time</div>
               <Badge variant="secondary">
                 {stats.generationTime < 1000 ? 'Fast' : 'Normal'}
               </Badge>
@@ -96,66 +109,66 @@ export function GenerationStats({ stats }: GenerationStatsProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Player Assignment */}
           <div className="space-y-4">
-            <h4 className="font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Player Assignment
+            <h4 className="font-semibold flex items-center gap-2 text-gray-800">
+              <Users className="h-4 w-4 text-primary" />
+              ⚽ Player Assignment
             </h4>
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">Assigned Players</span>
+                  <CheckCircle className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-gray-700 font-medium">Assigned Players</span>
                 </div>
                 <Badge variant="default">{stats.assignedPlayers}</Badge>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  <span className="text-sm">Unassigned Players</span>
+                  <AlertTriangle className="h-4 w-4 text-accent" />
+                  <span className="text-sm text-gray-700 font-medium">Unassigned Players</span>
                 </div>
                 <Badge variant="secondary">{stats.unassignedPlayers}</Badge>
               </div>
               
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between items-center text-sm text-gray-700 font-medium">
                   <span>Assignment Progress</span>
                   <span>{assignmentRate.toFixed(1)}%</span>
                 </div>
-                <Progress value={assignmentRate} className="h-2" />
+                <Progress value={assignmentRate} className="h-2 w-full" />
               </div>
             </div>
           </div>
 
           {/* Constraint Satisfaction */}
           <div className="space-y-4">
-            <h4 className="font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Constraint Satisfaction
+            <h4 className="font-semibold flex items-center gap-2 text-gray-800">
+              <TrendingUp className="h-4 w-4 text-secondary" />
+              📈 Constraint Satisfaction
             </h4>
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">Group Requests Honored</span>
+                  <UserCheck className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-gray-700 font-medium">Group Requests Honored</span>
                 </div>
                 <Badge variant="default">{stats.mutualRequestsHonored}</Badge>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <UserX className="h-4 w-4 text-red-600" />
-                  <span className="text-sm">Group Requests Broken</span>
+                  <UserX className="h-4 w-4 text-red-500" />
+                  <span className="text-sm text-gray-700 font-medium">Group Requests Broken</span>
                 </div>
                 <Badge variant="destructive">{stats.mutualRequestsBroken}</Badge>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  <span className="text-sm">Avoid Violations</span>
+                  <AlertTriangle className="h-4 w-4 text-accent" />
+                  <span className="text-sm text-gray-700 font-medium">Avoid Violations</span>
                 </div>
                 <Badge variant={stats.avoidRequestsViolated > 0 ? 'destructive' : 'default'}>
                   {stats.avoidRequestsViolated}
@@ -164,11 +177,11 @@ export function GenerationStats({ stats }: GenerationStatsProps) {
               
               {mutualRequestsTotal > 0 && (
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between items-center text-sm text-gray-700 font-medium">
                     <span>Group Success Rate</span>
                     <span>{mutualRequestsRate.toFixed(1)}%</span>
                   </div>
-                  <Progress value={mutualRequestsRate} className="h-2" />
+                  <Progress value={mutualRequestsRate} className="h-2 w-full" />
                 </div>
               )}
             </div>
@@ -177,29 +190,29 @@ export function GenerationStats({ stats }: GenerationStatsProps) {
 
         {/* Summary Insights */}
         <div className="border-t pt-4">
-          <h4 className="font-semibold mb-3">Generation Summary</h4>
+          <h4 className="font-semibold mb-3 text-gray-800">🏆 Generation Summary</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <div className="font-semibold text-blue-600">{stats.totalPlayers}</div>
-              <div className="text-blue-600">Total Players</div>
+            <div className="text-center p-4 bg-white border border-blue-200 rounded-lg shadow-sm">
+              <div className="text-2xl font-bold text-gray-800">{stats.totalPlayers}</div>
+              <div className="text-gray-600 font-medium">Total Players</div>
             </div>
             
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="font-semibold text-green-600">{stats.assignedPlayers}</div>
-              <div className="text-green-600">Successfully Assigned</div>
+            <div className="text-center p-4 bg-white border border-green-200 rounded-lg shadow-sm">
+              <div className="text-2xl font-bold text-primary">{stats.assignedPlayers}</div>
+              <div className="text-gray-600 font-medium">Successfully Assigned</div>
             </div>
             
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <div className="font-semibold text-orange-600">{stats.unassignedPlayers}</div>
-              <div className="text-orange-600">Need Manual Assignment</div>
+            <div className="text-center p-4 bg-white border border-orange-200 rounded-lg shadow-sm">
+              <div className="text-2xl font-bold text-accent">{stats.unassignedPlayers}</div>
+              <div className="text-gray-600 font-medium">Need Manual Assignment</div>
             </div>
             
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <div className="font-semibold text-purple-600 flex items-center justify-center gap-1">
-                <Clock className="h-3 w-3" />
+            <div className="text-center p-4 bg-white border border-purple-200 rounded-lg shadow-sm">
+              <div className="text-2xl font-bold text-secondary flex items-center justify-center gap-1">
+                <Clock className="h-4 w-4" />
                 {stats.generationTime}ms
               </div>
-              <div className="text-purple-600">Processing Time</div>
+              <div className="text-gray-600 font-medium">Processing Time</div>
             </div>
           </div>
         </div>
@@ -207,9 +220,9 @@ export function GenerationStats({ stats }: GenerationStatsProps) {
         {/* Recommendations */}
         {(stats.unassignedPlayers > 0 || stats.avoidRequestsViolated > 0 || mutualRequestsRate < 80) && (
           <div className="border-t pt-4">
-            <h4 className="font-semibold mb-3 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-600" />
-              Recommendations
+            <h4 className="font-semibold mb-3 flex items-center gap-2 text-gray-800">
+              <AlertTriangle className="h-4 w-4 text-accent" />
+              💡 Recommendations
             </h4>
             <div className="space-y-2 text-sm">
               {stats.unassignedPlayers > 0 && (

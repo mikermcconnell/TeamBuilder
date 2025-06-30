@@ -87,7 +87,8 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
   };
 
   const getDetailedPreview = () => {
-    const rows: Array<Array<string>> = [];
+    const headers = ['Team', 'Player', 'Gender', 'Skill', 'Avg Skill', 'Size', 'M', 'F', 'Other'];
+    const rows = [headers];
     
     teams.forEach(team => {
       team.players.forEach((player, index) => {
@@ -95,8 +96,8 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
           team.name,
           player.name,
           player.gender,
-          player.skillRating.toString(),
-          index === 0 ? team.averageSkill.toFixed(2) : '',
+          player.skillRating?.toString() || 'N/A',
+          index === 0 ? team.averageSkill.toFixed(1) : '',
           index === 0 ? team.players.length.toString() : '',
           index === 0 ? team.genderBreakdown.M.toString() : '',
           index === 0 ? team.genderBreakdown.F.toString() : '',
@@ -105,41 +106,41 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
       });
     });
 
-    if (unassignedPlayers.length > 0) {
-      unassignedPlayers.forEach(player => {
-        rows.push([
-          'UNASSIGNED',
-          player.name,
-          player.gender,
-          player.skillRating.toString(),
-          '',
-          '',
-          '',
-          '',
-          ''
-        ]);
-      });
-    }
+    unassignedPlayers.forEach(player => {
+      rows.push([
+        'Unassigned',
+        player.name,
+        player.gender,
+                 player.skillRating?.toString() || 'N/A',
+        '',
+        '',
+        '',
+        '',
+        ''
+      ]);
+    });
 
     return rows;
   };
 
   const getSummaryPreview = () => {
+    const headers = ['Team', 'Players', 'Avg Skill', 'M', 'F', 'Other', 'Player Names'];
+    
     return teams.map(team => [
       team.name,
       team.players.length.toString(),
-      team.averageSkill.toFixed(2),
+      team.averageSkill.toFixed(1),
       team.genderBreakdown.M.toString(),
       team.genderBreakdown.F.toString(),
       team.genderBreakdown.Other.toString(),
-      team.players.map(p => p.name).join('; ')
+      team.players.map(p => p.name).join(', ')
     ]);
   };
 
   return (
     <div className="space-y-6">
       {/* Export Options */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -358,7 +359,7 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-3 bg-green-50 rounded-lg">
+              <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center justify-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <span className="font-semibold text-green-600">
@@ -368,17 +369,17 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
                 <div className="text-sm text-green-600">Assignment Rate</div>
               </div>
               
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <div className="text-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="font-semibold text-blue-600">{stats.mutualRequestsHonored}</div>
                 <div className="text-sm text-blue-600">Requests Honored</div>
               </div>
               
-              <div className="text-center p-3 bg-orange-50 rounded-lg">
+              <div className="text-center p-3 bg-orange-50 border border-orange-200 rounded-lg">
                 <div className="font-semibold text-orange-600">{stats.avoidRequestsViolated}</div>
                 <div className="text-sm text-orange-600">Violations</div>
               </div>
               
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
+              <div className="text-center p-3 bg-purple-50 border border-purple-200 rounded-lg">
                 <div className="font-semibold text-purple-600">{stats.generationTime}ms</div>
                 <div className="text-sm text-purple-600">Process Time</div>
               </div>

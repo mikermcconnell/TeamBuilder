@@ -66,7 +66,7 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
     const headers = Object.keys(firstRow);
     
     const requiredColumns = ['name'];
-    const optionalColumns = ['gender', 'skill rating', 'teammate requests', 'avoid requests'];
+    const optionalColumns = ['gender', 'skill rating', 'teammate requests', 'avoid requests', 'email'];
     
     const missingRequired = requiredColumns.filter(col => 
       !headers.some(h => h.includes(col.split(' ')[0]))
@@ -83,6 +83,7 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
     const skillCol = headers.find(h => h.includes('skill')) || '';
     const teammateCol = headers.find(h => h.includes('teammate')) || '';
     const avoidCol = headers.find(h => h.includes('avoid')) || '';
+    const emailCol = headers.find(h => h.includes('email')) || '';
 
     const seenNames = new Set<string>();
     const players: Player[] = [];
@@ -140,13 +141,29 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
       const teammateRequests = parsePlayerList(row[teammateCol] || '');
       const avoidRequests = parsePlayerList(row[avoidCol] || '');
 
+      // Handle email (optional)
+      let email: string | undefined;
+      if (emailCol) {
+        const emailStr = row[emailCol]?.trim();
+        if (emailStr) {
+          // Basic email validation
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (emailRegex.test(emailStr)) {
+            email = emailStr;
+          } else {
+            result.warnings.push(`Row ${rowNum}: Invalid email format "${emailStr}"`);
+          }
+        }
+      }
+
       const player: Player = {
         id: generatePlayerId(name),
         name,
         gender,
         skillRating,
         teammateRequests,
-        avoidRequests
+        avoidRequests,
+        ...(email && { email })
       };
 
       players.push(player);
@@ -212,21 +229,21 @@ function generatePlayerId(name: string): string {
 }
 
 export function generateSampleCSV(): string {
-  const headers = ['Name', 'Gender (Optional)', 'Skill Rating (Optional)', 'Teammate Requests', 'Avoid Requests'];
+  const headers = ['Name', 'Gender (Optional)', 'Skill Rating (Optional)', 'Teammate Requests', 'Avoid Requests', 'Email (Optional)'];
   
   const sampleData = [
-    ['Alice Johnson', 'F', '8', 'Bob Smith', ''],
-    ['Bob Smith', 'M', '7', 'Alice Johnson', 'Charlie Brown'],
-    ['Charlie Brown', 'M', '6', '', 'Bob Smith'],
-    ['Diana Prince', 'F', '', '', ''],
-    ['Eve Adams', '', '5', 'Frank Miller', ''],
-    ['Frank Miller', 'M', '7', 'Eve Adams', ''],
-    ['Grace Lee', '', '', '', ''],
-    ['Henry Wilson', 'M', '6', '', ''],
-    ['Iris Chen', 'F', '7', '', ''],
-    ['Jack Davis', 'M', '8', '', ''],
-    ['Karen Taylor', 'F', '6', '', ''],
-    ['Luke Martinez', 'M', '9', '', '']
+    ['Alice Johnson', 'F', '8', 'Bob Smith', '', 'alice.johnson@email.com'],
+    ['Bob Smith', 'M', '7', 'Alice Johnson', 'Charlie Brown', 'bob.smith@email.com'],
+    ['Charlie Brown', 'M', '6', '', 'Bob Smith', ''],
+    ['Diana Prince', 'F', '', '', '', 'diana.prince@email.com'],
+    ['Eve Adams', '', '5', 'Frank Miller', '', ''],
+    ['Frank Miller', 'M', '7', 'Eve Adams', '', 'frank.miller@email.com'],
+    ['Grace Lee', '', '', '', '', 'grace.lee@email.com'],
+    ['Henry Wilson', 'M', '6', '', '', ''],
+    ['Iris Chen', 'F', '7', '', '', 'iris.chen@email.com'],
+    ['Jack Davis', 'M', '8', '', '', 'jack.davis@email.com'],
+    ['Karen Taylor', 'F', '6', '', '', ''],
+    ['Luke Martinez', 'M', '9', '', '', 'luke.martinez@email.com']
   ];
 
   return [headers.join(',')].concat(sampleData.map(row => row.join(','))).join('\n');

@@ -127,6 +127,10 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
                 <Badge variant="secondary">Optional</Badge>
                 <span className="text-sm font-medium">Avoid Requests</span>
               </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Optional</Badge>
+                <span className="text-sm font-medium">Email (for individual player emails)</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -274,6 +278,7 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
                         <TableHead>Name</TableHead>
                         <TableHead>Gender</TableHead>
                         <TableHead>Skill</TableHead>
+                        <TableHead>Email</TableHead>
                         <TableHead>Teammate Requests</TableHead>
                         <TableHead>Avoid Requests</TableHead>
                       </TableRow>
@@ -286,6 +291,18 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
                             <Badge variant="outline">{player.gender}</Badge>
                           </TableCell>
                           <TableCell>{player.skillRating}</TableCell>
+                          <TableCell className="text-sm">
+                            {player.email ? (
+                              <a 
+                                href={`mailto:${player.email}`}
+                                className="text-blue-600 hover:underline"
+                              >
+                                {player.email}
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-sm">
                             {player.teammateRequests.length > 0 
                               ? player.teammateRequests.join(', ')

@@ -9,27 +9,39 @@ import { TeamDisplay } from '@/components/TeamDisplay';
 import { GenerationStats } from '@/components/GenerationStats';
 import { ExportPanel } from '@/components/ExportPanel';
 import { PlayerGroups } from '@/components/PlayerGroups';
+import PlayerEmail from '@/components/PlayerEmail';
+import TutorialLanding from '@/components/TutorialLanding';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Settings, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2 } from 'lucide-react';
+import { Users, Settings, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2, Play, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import logoUrl from '@/assets/logo.svg';
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-4 p-6 bg-white rounded-lg shadow-lg">
-        <h2 className="text-xl font-bold text-red-600">Something went wrong</h2>
-        <pre className="text-sm bg-gray-100 p-4 rounded overflow-auto">{error.message}</pre>
-        <Button onClick={resetErrorBoundary}>Try again</Button>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
+      <div className="max-w-md w-full space-y-4 p-6 bg-white/90 backdrop-blur-xl rounded-lg shadow-xl border border-red-200">
+        <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5" />
+          Oops! Something went wrong
+        </h2>
+        <pre className="text-sm bg-red-50 p-4 rounded overflow-auto text-red-700 border border-red-200">{error.message}</pre>
+        <Button onClick={resetErrorBoundary} className="bg-primary hover:bg-primary/90 text-white font-semibold">
+          🔄 Try again
+        </Button>
       </div>
     </div>
   );
 }
 
 function App() {
+  // Check if user has seen the tutorial before
+  const [showTutorial, setShowTutorial] = useState(() => {
+    return !localStorage.getItem('tutorialCompleted');
+  });
+
   const [appState, setAppState] = useState<AppState>(() => {
     // Try to load saved state from localStorage
     const savedState = localStorage.getItem('teamBuilderState');
@@ -50,6 +62,11 @@ function App() {
       savedConfigs: []
     };
   });
+
+  const handleStartApp = useCallback(() => {
+    localStorage.setItem('tutorialCompleted', 'true');
+    setShowTutorial(false);
+  }, []);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
@@ -86,7 +103,7 @@ function App() {
     }));
     
     if (players.length > 0) {
-      setActiveTab('config');
+      setActiveTab('roster');
       const groupedPlayerCount = playerGroups.reduce((sum, group) => sum + group.players.length, 0);
       if (groupedPlayerCount > 0) {
         toast.success(`Loaded ${players.length} players with ${playerGroups.length} groups`);
@@ -405,19 +422,28 @@ function App() {
   const hasPlayers = appState.players.length > 0;
   const hasTeams = appState.teams.length > 0;
 
+  // Show tutorial landing page if user hasn't completed it
+  if (showTutorial) {
+    return (
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <TutorialLanding onStartApp={handleStartApp} />
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-gradient-to-r from-blue-50 to-white shadow-md">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
+        <header className="bg-white/95 backdrop-blur-xl shadow-xl border-b border-green-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex items-center justify-center gap-6">
               <img src={logoUrl} alt="TeamBuilder Logo" className="h-10 w-10" />
               <div className="text-center">
-                <h1 className="text-4xl font-semibold relative">
+                <h1 className="text-4xl font-bold relative">
                   <span className="text-gray-800">Team</span>
-                  <span className="text-blue-600">Builder</span>
+                  <span className="text-primary">Builder</span>
                 </h1>
-                <p className="text-sm text-gray-600 mt-1.5">Automatically generate teams from player rosters</p>
+                <p className="text-sm text-gray-600 mt-1.5">⚽ Automatically generate balanced sports teams ⚽</p>
               </div>
             </div>
           </div>
@@ -426,40 +452,61 @@ function App() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Main Navigation Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-6">
-              <TabsTrigger value="upload" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-7 mb-6 bg-white/80 backdrop-blur-xl border border-green-200 shadow-lg">
+              <TabsTrigger value="upload" className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary font-medium">
                 <FileSpreadsheet className="h-4 w-4" />
                 Upload
               </TabsTrigger>
-              <TabsTrigger value="groups" disabled={!hasPlayers} className="flex items-center gap-2">
-                <UserCheck className="h-4 w-4" />
-                Groups
-              </TabsTrigger>
-              <TabsTrigger value="roster" disabled={!hasPlayers} className="flex items-center gap-2">
+              <TabsTrigger value="roster" disabled={!hasPlayers} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
                 <Users className="h-4 w-4" />
                 Roster
               </TabsTrigger>
-              <TabsTrigger value="config" disabled={!hasPlayers} className="flex items-center gap-2">
+              <TabsTrigger value="groups" disabled={!hasPlayers} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
+                <UserCheck className="h-4 w-4" />
+                Groups
+              </TabsTrigger>
+              <TabsTrigger value="config" disabled={!hasPlayers} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
                 <Zap className="h-4 w-4" />
                 Generate Teams
               </TabsTrigger>
-              <TabsTrigger value="teams" disabled={!hasTeams} className="flex items-center gap-2">
+              <TabsTrigger value="teams" disabled={!hasTeams} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
                 <BarChart3 className="h-4 w-4" />
                 Teams
               </TabsTrigger>
-              <TabsTrigger value="export" disabled={!hasTeams} className="flex items-center gap-2">
+              <TabsTrigger value="export" disabled={!hasTeams} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
                 <Download className="h-4 w-4" />
                 Export
+              </TabsTrigger>
+              <TabsTrigger value="email" disabled={!hasTeams || appState.players.filter(p => p.email).length === 0} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
+                <Users className="h-4 w-4" />
+                Email
               </TabsTrigger>
             </TabsList>
 
             {/* Upload Tab */}
             <TabsContent value="upload" className="space-y-6">
-              <Card>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">🏆 Get Started</h2>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    localStorage.removeItem('tutorialCompleted');
+                    window.location.reload();
+                  }}
+                  className="flex items-center gap-2 text-secondary hover:text-secondary/80 border-green-200 hover:bg-green-50"
+                >
+                  <Play className="h-4 w-4" />
+                  View Tutorial Again
+                </Button>
+              </div>
+              <Card className="bg-white/90 backdrop-blur-xl border-green-200 shadow-lg">
                 <CardHeader>
-                  <CardTitle>Upload Player Roster</CardTitle>
-                  <CardDescription>
-                    Upload a CSV file with player information to get started
+                  <CardTitle className="text-gray-800 flex items-center gap-2">
+                    <FileSpreadsheet className="h-5 w-5 text-primary" />
+                    Upload Player Roster
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Upload a CSV file with player information to get started building your teams
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -483,11 +530,22 @@ function App() {
 
             {/* Roster Tab */}
             <TabsContent value="roster" className="space-y-6">
-              <div className="flex justify-end mb-4">
+              <div className="flex justify-between mb-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    localStorage.removeItem('tutorialCompleted');
+                    window.location.reload();
+                  }}
+                  className="flex items-center gap-2 text-secondary hover:text-secondary/80 border-green-200 hover:bg-green-50"
+                >
+                  <Play className="h-4 w-4" />
+                  View Tutorial Again
+                </Button>
                 <Button
                   variant="outline"
                   onClick={handleClearSavedData}
-                  className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                  className="flex items-center gap-2 text-red-500 hover:text-red-600 border-red-200 hover:bg-red-50"
                 >
                   <Trash2 className="h-4 w-4" />
                   Clear Saved Data
@@ -501,11 +559,14 @@ function App() {
 
             {/* Generate Teams Tab */}
             <TabsContent value="config" className="space-y-6">
-              <Card>
+              <Card className="bg-white/90 backdrop-blur-xl border-green-200 shadow-lg">
                 <CardHeader>
-                  <CardTitle>Team Generation Settings</CardTitle>
-                  <CardDescription>
-                    Configure team size limits and gender requirements, then generate balanced teams
+                  <CardTitle className="text-gray-800 flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-primary" />
+                    Team Generation Settings
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Configure team size limits and gender requirements for fair, balanced teams
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -518,10 +579,12 @@ function App() {
               </Card>
 
               {/* Generate Teams Section */}
-              <Card>
+              <Card className="bg-white/90 backdrop-blur-xl border-green-200 shadow-lg">
                 <CardHeader>
-                  <CardTitle>Generate Teams</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-gray-800 flex items-center gap-2">
+                    ⚡ Generate Teams
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
                     Create balanced teams based on your configuration and player constraints
                   </CardDescription>
                 </CardHeader>
@@ -530,36 +593,45 @@ function App() {
                     <Button 
                       onClick={() => handleGenerateTeams(false)}
                       disabled={isGenerating || !hasPlayers}
-                      className="flex-1 flex items-center gap-2"
+                      className="flex-1 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg"
                       size="lg"
                     >
                       <Zap className="h-4 w-4" />
-                      {isGenerating ? 'Generating...' : 'Generate Balanced Teams'}
+                      {isGenerating ? 'Generating...' : '🏆 Generate Balanced Teams'}
                     </Button>
                     
                     <Button 
                       onClick={() => handleGenerateTeams(true)}
                       disabled={isGenerating || !hasPlayers}
                       variant="outline"
-                      className="flex-1 flex items-center gap-2"
+                      className="flex-1 flex items-center gap-2 border-secondary text-secondary hover:bg-secondary hover:text-white"
                       size="lg"
                     >
                       <Shuffle className="h-4 w-4" />
-                      Generate Random Teams
+                      🎲 Generate Random Teams
                     </Button>
                   </div>
                   
-                  <p className="text-sm text-gray-600">
-                    <strong>Balanced Teams:</strong> Honors teammate/avoid requests and balances skill levels
-                    <br />
-                    <strong>Random Teams:</strong> Ignores preferences and randomly distributes players
-                  </p>
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      <strong>🏆 Balanced Teams:</strong> Honors teammate/avoid requests and balances skill levels
+                      <br />
+                      <strong>🎲 Random Teams:</strong> Ignores preferences and randomly distributes players
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             {/* Teams Tab */}
             <TabsContent value="teams" className="space-y-6">
+              {/* Team Generation Statistics */}
+              {appState.stats && (
+                <div className="mb-6">
+                  <GenerationStats stats={appState.stats} totalTeams={appState.teams.length} />
+                </div>
+              )}
+              
               <TeamDisplay 
                 teams={appState.teams}
                 unassignedPlayers={appState.unassignedPlayers}
@@ -569,10 +641,6 @@ function App() {
                 players={appState.players}
                 playerGroups={appState.playerGroups}
               />
-              
-              {appState.stats && (
-                <GenerationStats stats={appState.stats} />
-              )}
             </TabsContent>
 
             {/* Export Tab */}
@@ -583,6 +651,14 @@ function App() {
                 config={appState.config}
                 stats={appState.stats}
                 playerGroups={appState.playerGroups}
+              />
+            </TabsContent>
+
+            {/* Email Tab */}
+            <TabsContent value="email" className="space-y-6">
+              <PlayerEmail 
+                teams={appState.teams}
+                unassignedPlayers={appState.unassignedPlayers}
               />
             </TabsContent>
           </Tabs>

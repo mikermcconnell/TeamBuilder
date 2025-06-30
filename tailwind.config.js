@@ -23,16 +23,22 @@ module.exports = {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#2B5D3A',
+					DEFAULT: '#22C55E', // Vibrant grass green
 					foreground: 'hsl(var(--primary-foreground))',
 				},
 				secondary: {
-					DEFAULT: '#4A90E2',
+					DEFAULT: '#0EA5E9', // Sky blue
 					foreground: 'hsl(var(--secondary-foreground))',
 				},
 				accent: {
-					DEFAULT: '#F5A623',
+					DEFAULT: '#F97316', // Sports orange
 					foreground: 'hsl(var(--accent-foreground))',
+				},
+				sport: {
+					field: '#16A34A', // Deep field green
+					sky: '#3B82F6', // Bright sky blue
+					energy: '#EF4444', // Energetic red
+					sun: '#FBBF24', // Sunny yellow
 				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',

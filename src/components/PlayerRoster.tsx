@@ -22,7 +22,8 @@ import {
   SortAsc,
   SortDesc,
   UserCheck,
-  UserX
+  UserX,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,7 +32,7 @@ interface PlayerRosterProps {
   onPlayerUpdate: (player: Player) => void;
 }
 
-type SortField = 'name' | 'gender' | 'skillRating';
+type SortField = 'name' | 'gender' | 'skillRating' | 'email';
 type SortDirection = 'asc' | 'desc';
 
 export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
@@ -67,6 +68,10 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
         case 'skillRating':
           aValue = a.skillRating;
           bValue = b.skillRating;
+          break;
+        case 'email':
+          aValue = (a.email || '').toLowerCase();
+          bValue = (b.email || '').toLowerCase();
           break;
         default:
           aValue = a.name.toLowerCase();
@@ -118,8 +123,70 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
     return { min, max, avg: Math.round(avg * 10) / 10 };
   };
 
+  const getSkillGroup = (player: Player) => {
+    if (players.length === 0) return 'Unknown';
+    
+    const skills = players.map(p => p.skillRating).sort((a, b) => b - a);
+    const playerSkill = player.skillRating;
+    const playerRank = skills.findIndex(skill => skill <= playerSkill) + 1;
+    const percentile = (playerRank / skills.length) * 100;
+    
+    if (percentile <= 10) return 'Elite';
+    if (percentile <= 30) return 'Good';
+    if (percentile <= 60) return 'Mid';
+    if (percentile <= 80) return 'Beginner';
+    return 'Learning';
+  };
+
+  const getSkillGroupColor = (group: string) => {
+    switch (group) {
+      case 'Elite': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Good': return 'bg-green-100 text-green-800 border-green-200';
+      case 'Mid': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Beginner': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Learning': return 'bg-orange-100 text-orange-800 border-orange-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getSkillGradientStyle = (skillRating: number) => {
+    const normalizedSkill = Math.max(0, Math.min(10, skillRating)) / 10;
+    const red = Math.round(255 * (1 - normalizedSkill));
+    const green = Math.round(255 * normalizedSkill);
+    return {
+      backgroundColor: `rgb(${red}, ${green}, 0)`,
+      color: normalizedSkill > 0.5 ? 'white' : 'black'
+    };
+  };
+
   const genderStats = getGenderStats();
   const skillStats = getSkillStats();
+
+  const handleExportRosters = () => {
+    const headers = ['Name', 'Gender', 'Skill Rating', 'Skill Group', 'Teammate Requests', 'Avoid Requests'];
+    const csvContent = [
+      headers.join(','),
+      ...players.map(player => [
+        `"${player.name}"`,
+        player.gender,
+        player.skillRating,
+        getSkillGroup(player),
+        `"${player.teammateRequests.join('; ')}"`,
+        `"${player.avoidRequests.join('; ')}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `player_roster_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Player roster exported successfully');
+  };
 
   const handleSkillEdit = (player: Player, newValue: string) => {
     const skillRating = Math.min(10, Math.max(0, parseFloat(newValue) || 0));
@@ -176,13 +243,25 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
       {/* Search and Filter Controls */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Player Roster ({filteredAndSortedPlayers.length} of {players.length})
-          </CardTitle>
-          <CardDescription>
-            View and edit player information
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Player Roster ({filteredAndSortedPlayers.length} of {players.length})
+              </CardTitle>
+              <CardDescription>
+                View and edit player information
+              </CardDescription>
+            </div>
+            <Button
+              onClick={handleExportRosters}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+              disabled={players.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              Export Rosters
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -242,6 +321,16 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
                       {getSortIcon('skillRating')}
                     </div>
                   </TableHead>
+                  <TableHead>Skill Group</TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-gray-50 select-none"
+                    onClick={() => handleSort('email')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Email
+                      {getSortIcon('email')}
+                    </div>
+                  </TableHead>
                   <TableHead>Teammate Requests</TableHead>
                   <TableHead>Avoid Requests</TableHead>
                   <TableHead>Actions</TableHead>
@@ -269,13 +358,32 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
                         />
                       ) : (
                         <Badge 
-                          variant={player.skillRating >= 8 ? 'default' : 
-                                  player.skillRating >= 6 ? 'secondary' : 'outline'}
-                          className="cursor-pointer hover:bg-gray-100"
+                          className="cursor-pointer hover:opacity-80 border-0"
+                          style={getSkillGradientStyle(player.skillRating)}
                           onClick={() => setEditingSkill(player.id)}
                         >
                           {player.skillRating}
                         </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant="outline"
+                        className={getSkillGroupColor(getSkillGroup(player))}
+                      >
+                        {getSkillGroup(player)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {player.email ? (
+                        <a 
+                          href={`mailto:${player.email}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {player.email}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">No email</span>
                       )}
                     </TableCell>
                     <TableCell className="text-sm">

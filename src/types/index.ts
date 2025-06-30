@@ -7,6 +7,7 @@ export interface Player {
   avoidRequests: string[];
   teamId?: string;
   groupId?: string;
+  email?: string;
 }
 
 export interface PlayerGroup {
