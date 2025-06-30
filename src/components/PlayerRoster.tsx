@@ -151,11 +151,14 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
 
   const getSkillGradientStyle = (skillRating: number) => {
     const normalizedSkill = Math.max(0, Math.min(10, skillRating)) / 10;
-    const red = Math.round(255 * (1 - normalizedSkill));
-    const green = Math.round(255 * normalizedSkill);
+    // Dark green (high skill) to white (low skill) gradient
+    // Dark green: rgb(22, 101, 52) -> White: rgb(255, 255, 255)
+    const red = Math.round(22 + (255 - 22) * (1 - normalizedSkill));
+    const green = Math.round(101 + (255 - 101) * (1 - normalizedSkill));
+    const blue = Math.round(52 + (255 - 52) * (1 - normalizedSkill));
     return {
-      backgroundColor: `rgb(${red}, ${green}, 0)`,
-      color: normalizedSkill > 0.5 ? 'white' : 'black'
+      backgroundColor: `rgb(${red}, ${green}, ${blue})`,
+      color: normalizedSkill > 0.4 ? 'white' : 'black'
     };
   };
 

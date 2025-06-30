@@ -49,10 +49,10 @@ export function PlayerGroups({
   const ungroupedPlayers = players.filter(p => !p.groupId);
 
   const getSkillLevelColor = (skill: number): string => {
-    if (skill >= 8) return 'text-green-600 bg-green-50';
-    if (skill >= 6) return 'text-blue-600 bg-blue-50';
-    if (skill >= 4) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (skill >= 8) return 'text-white bg-green-800';
+    if (skill >= 6) return 'text-white bg-green-600';
+    if (skill >= 4) return 'text-black bg-green-200';
+    return 'text-black bg-gray-100';
   };
 
   // Helper functions for group management
