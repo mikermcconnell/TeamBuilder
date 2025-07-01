@@ -10,7 +10,8 @@ export function parseCSV(csvText: string): CSVRow[] {
 
   for (let i = 1; i < lines.length; i++) {
     const values = parseCSVLine(lines[i]);
-    if (values.length === 0) continue;
+    // Skip completely empty rows or rows with only whitespace
+    if (values.length === 0 || values.every(val => !val.trim())) continue;
 
     const row: CSVRow = {};
     headers.forEach((header, index) => {
@@ -26,22 +27,22 @@ function parseCSVLine(line: string): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
-
+  
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
     
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
+      result.push(current);
       current = '';
     } else {
       current += char;
     }
   }
   
-  result.push(current.trim());
-  return result;
+  result.push(current);
+  return result.map(val => val.trim());
 }
 
 export function validateAndProcessCSV(csvText: string): CSVValidationResult {
@@ -91,6 +92,12 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const rowNum = i + 2; // +2 for header row and 0-based index
+
+      // Skip rows that are completely empty or only have whitespace
+      const hasAnyContent = Object.values(row).some(val => val && val.trim());
+      if (!hasAnyContent) {
+        continue;
+      }
 
       // Validate name
       const name = row[nameCol]?.trim();
@@ -204,7 +211,7 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
 
     // Add info about mutual requests processing
     const groupedPlayerCount = playerGroups.reduce((sum, group) => sum + group.players.length, 0);
-    if (groupedPlayerCount > 0) {
+    if (groupedPlayerCount > 0 && !result.warnings.some(w => w.includes('player groups'))) {
       result.warnings.push(`Found ${playerGroups.length} player groups with ${groupedPlayerCount} players. Non-mutual requests have been removed.`);
     }
 
