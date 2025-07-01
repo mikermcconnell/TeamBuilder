@@ -148,9 +148,10 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
   const getSkillGroup = (player: Player) => {
     const skill = player.skillRating;
     if (skill >= 8) return 'Elite';
-    if (skill >= 6) return 'Advanced';
-    if (skill >= 4) return 'Intermediate';
-    return 'Beginner';
+    if (skill >= 6) return 'Good';
+    if (skill >= 4) return 'Mid';
+    if (skill >= 2) return 'Beginner';
+    return 'Learning';
   };
 
   const getSkillGroupInfo = (group: string) => {
@@ -163,17 +164,17 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
           textColor: 'text-purple-800',
           borderColor: 'border-purple-200'
         };
-      case 'Advanced':
+      case 'Good':
         return {
-          name: 'Advanced',
+          name: 'Good',
           description: 'Highly skilled players with strong fundamentals (6.0-7.9)',
           bgColor: 'bg-blue-100',
           textColor: 'text-blue-800',
           borderColor: 'border-blue-200'
         };
-      case 'Intermediate':
+      case 'Mid':
         return {
-          name: 'Intermediate',
+          name: 'Mid',
           description: 'Solid players with good basic skills (4.0-5.9)',
           bgColor: 'bg-green-100',
           textColor: 'text-green-800',
@@ -182,7 +183,15 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       case 'Beginner':
         return {
           name: 'Beginner',
-          description: 'New or developing players building foundational skills (0.0-3.9)',
+          description: 'Developing players building foundational skills (2.0-3.9)',
+          bgColor: 'bg-yellow-100',
+          textColor: 'text-yellow-800',
+          borderColor: 'border-yellow-200'
+        };
+      case 'Learning':
+        return {
+          name: 'Learning',
+          description: 'New players just starting their journey (0.0-1.9)',
           bgColor: 'bg-orange-100',
           textColor: 'text-orange-800',
           borderColor: 'border-orange-200'
