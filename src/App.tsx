@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Player, Team, LeagueConfig, AppState, TeamGenerationStats, PlayerGroup } from '@/types';
 import { getDefaultConfig, saveDefaultConfig } from '@/utils/configManager';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
+import { validateAndProcessCSV } from '@/utils/csvProcessor';
 import { CSVUploader } from '@/components/CSVUploader';
 import { ConfigurationPanel } from '@/components/ConfigurationPanel';
 import { PlayerRoster } from '@/components/PlayerRoster';
@@ -73,6 +74,41 @@ function App() {
   useEffect(() => {
     localStorage.setItem('teamBuilderState', JSON.stringify(appState));
   }, [appState]);
+
+  // Auto-load sample roster if no players are loaded
+  useEffect(() => {
+    const autoLoadSampleRoster = async () => {
+      // Only load if no players are currently loaded and tutorial is complete
+      if (appState.players.length === 0 && !showTutorial) {
+        try {
+          const response = await fetch('/sample_players.csv');
+          if (response.ok) {
+            const csvText = await response.text();
+            const result = validateAndProcessCSV(csvText);
+            
+            if (result.isValid && result.players.length > 0) {
+              setAppState(prev => ({
+                ...prev,
+                players: result.players,
+                playerGroups: result.playerGroups || [],
+                teams: [],
+                unassignedPlayers: [],
+                stats: undefined
+              }));
+              
+              setActiveTab('roster');
+              toast.success(`Auto-loaded ${result.players.length} sample players`);
+            }
+          }
+        } catch (error) {
+          console.log('Could not auto-load sample roster:', error);
+          // Silently fail - this is just a convenience feature
+        }
+      }
+    };
+
+    autoLoadSampleRoster();
+  }, [appState.players.length, showTutorial]);
 
   // Add a function to clear saved data
   const handleClearSavedData = useCallback(() => {
