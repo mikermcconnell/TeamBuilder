@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Dialog, 
   DialogContent, 
@@ -146,21 +147,80 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
 
   const getSkillGroup = (player: Player) => {
     const skill = player.skillRating;
-    if (skill >= 8) return 'Elite (8-10)';
-    if (skill >= 6) return 'Advanced (6-7)';
-    if (skill >= 4) return 'Intermediate (4-5)';
-    return 'Beginner (0-3)';
+    if (skill >= 8) return 'Elite';
+    if (skill >= 6) return 'Advanced';
+    if (skill >= 4) return 'Intermediate';
+    return 'Beginner';
   };
 
-  const getSkillGroupColor = (group: string) => {
+  const getSkillGroupInfo = (group: string) => {
     switch (group) {
-      case 'Elite': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Good': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Mid': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Beginner': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Learning': return 'bg-orange-100 text-orange-800 border-orange-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'Elite':
+        return {
+          name: 'Elite',
+          description: 'Top-tier players with exceptional skills (8.0-10.0)',
+          bgColor: 'bg-purple-100',
+          textColor: 'text-purple-800',
+          borderColor: 'border-purple-200'
+        };
+      case 'Advanced':
+        return {
+          name: 'Advanced',
+          description: 'Highly skilled players with strong fundamentals (6.0-7.9)',
+          bgColor: 'bg-blue-100',
+          textColor: 'text-blue-800',
+          borderColor: 'border-blue-200'
+        };
+      case 'Intermediate':
+        return {
+          name: 'Intermediate',
+          description: 'Solid players with good basic skills (4.0-5.9)',
+          bgColor: 'bg-green-100',
+          textColor: 'text-green-800',
+          borderColor: 'border-green-200'
+        };
+      case 'Beginner':
+        return {
+          name: 'Beginner',
+          description: 'New or developing players building foundational skills (0.0-3.9)',
+          bgColor: 'bg-orange-100',
+          textColor: 'text-orange-800',
+          borderColor: 'border-orange-200'
+        };
+      default:
+        return {
+          name: group,
+          description: 'Unknown skill level',
+          bgColor: 'bg-gray-100',
+          textColor: 'text-gray-800',
+          borderColor: 'border-gray-200'
+        };
     }
+  };
+
+  const SkillGroupBadge = ({ player }: { player: Player }) => {
+    const group = getSkillGroup(player);
+    const groupInfo = getSkillGroupInfo(group);
+    
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge 
+              className={`${groupInfo.bgColor} ${groupInfo.textColor} ${groupInfo.borderColor} border cursor-help font-medium`}
+            >
+              {groupInfo.name}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-sm">
+              <div className="font-semibold">{groupInfo.name}</div>
+              <div className="text-gray-600">{groupInfo.description}</div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   const getSkillGradientStyle = (skillRating: number) => {
@@ -549,18 +609,13 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                             setSkillValue(player.skillRating.toString());
                           }}
                         >
-                                                     <span className="font-medium">{player.skillRating}</span>
-                           <Edit2 className="h-3 w-3 opacity-60" />
+                          <span className="font-medium">{player.skillRating}</span>
+                          <Edit2 className="h-3 w-3 opacity-60" />
                         </div>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant="outline"
-                        className={getSkillGroupColor(getSkillGroup(player))}
-                      >
-                        {getSkillGroup(player)}
-                      </Badge>
+                      <SkillGroupBadge player={player} />
                     </TableCell>
                     <TableCell className="text-sm">
                       {player.email ? (
