@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Download, AlertCircle, CheckCircle2, FileText, Users } from 'lucide-react';
+import { Upload, Download, AlertCircle, CheckCircle2, FileText, Users, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CSVUploaderProps {
@@ -72,9 +72,14 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
   };
 
   const handleConfirmLoad = () => {
-    if (validationResult?.isValid && validationResult.players) {
+    if (validationResult && validationResult.players.length > 0) {
       onPlayersLoaded(validationResult.players, validationResult.playerGroups);
       setValidationResult(null);
+      if (validationResult.isValid) {
+        toast.success(`Loaded ${validationResult.players.length} players successfully`);
+      } else {
+        toast.warning(`Loaded ${validationResult.players.length} players with warnings (errors ignored)`);
+      }
     }
   };
 
@@ -229,12 +234,20 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
                   {validationResult.isValid ? 'Valid' : 'Has Errors'}
                 </Badge>
               </div>
-              {validationResult.isValid && (
-                <Button onClick={handleConfirmLoad}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Load {validationResult.players.length} Players
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {validationResult.isValid && (
+                  <Button onClick={handleConfirmLoad}>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Load {validationResult.players.length} Players
+                  </Button>
+                )}
+                {!validationResult.isValid && validationResult.players.length > 0 && (
+                  <Button onClick={handleConfirmLoad} variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Upload Anyway ({validationResult.players.length} players)
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Errors */}
@@ -248,6 +261,11 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
                       <li key={index} className="text-sm">{error}</li>
                     ))}
                   </ul>
+                  {validationResult.players.length > 0 && (
+                    <div className="mt-2 text-sm">
+                      <strong>Note:</strong> You can still upload {validationResult.players.length} valid players by clicking "Upload Anyway".
+                    </div>
+                  )}
                 </AlertDescription>
               </Alert>
             )}

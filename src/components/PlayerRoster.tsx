@@ -11,7 +11,9 @@ import {
   DialogContent, 
   DialogDescription, 
   DialogHeader, 
-  DialogTitle 
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { 
   Users, 
@@ -23,19 +25,27 @@ import {
   SortDesc,
   UserCheck,
   UserX,
-  Download
+  Download,
+  Plus,
+  Trash2,
+  Check,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface PlayerRosterProps {
   players: Player[];
   onPlayerUpdate: (player: Player) => void;
+  onPlayerAdd?: (player: Player) => void;
+  onPlayerRemove?: (playerId: string) => void;
 }
 
 type SortField = 'name' | 'gender' | 'skillRating' | 'email';
 type SortDirection = 'asc' | 'desc';
 
-export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
+export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRemove }: PlayerRosterProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [genderFilter, setGenderFilter] = useState<Gender | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('name');
@@ -43,6 +53,16 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
+  const [skillValue, setSkillValue] = useState('');
+  const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
+  const [newPlayer, setNewPlayer] = useState({
+    name: '',
+    gender: 'Other' as Gender,
+    skillRating: 5,
+    teammateRequests: '',
+    avoidRequests: '',
+    email: ''
+  });
 
   // Filter and sort players
   const filteredAndSortedPlayers = useMemo(() => {
@@ -124,18 +144,11 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
   };
 
   const getSkillGroup = (player: Player) => {
-    if (players.length === 0) return 'Unknown';
-    
-    const skills = players.map(p => p.skillRating).sort((a, b) => b - a);
-    const playerSkill = player.skillRating;
-    const playerRank = skills.findIndex(skill => skill <= playerSkill) + 1;
-    const percentile = (playerRank / skills.length) * 100;
-    
-    if (percentile <= 10) return 'Elite';
-    if (percentile <= 30) return 'Good';
-    if (percentile <= 60) return 'Mid';
-    if (percentile <= 80) return 'Beginner';
-    return 'Learning';
+    const skill = player.skillRating;
+    if (skill >= 8) return 'Elite (8-10)';
+    if (skill >= 6) return 'Advanced (6-7)';
+    if (skill >= 4) return 'Intermediate (4-5)';
+    return 'Beginner (0-3)';
   };
 
   const getSkillGroupColor = (group: string) => {
@@ -206,6 +219,61 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
     }
   };
 
+  const generatePlayerId = (name: string): string => {
+    return name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substr(2, 5);
+  };
+
+  const handleAddPlayer = () => {
+    if (!newPlayer.name.trim()) {
+      toast.error('Player name is required');
+      return;
+    }
+
+    // Check for duplicate names
+    const nameExists = players.some(p => p.name.toLowerCase() === newPlayer.name.toLowerCase());
+    if (nameExists) {
+      toast.error('A player with this name already exists');
+      return;
+    }
+
+    const player: Player = {
+      id: generatePlayerId(newPlayer.name),
+      name: newPlayer.name.trim(),
+      gender: newPlayer.gender,
+      skillRating: newPlayer.skillRating,
+      teammateRequests: newPlayer.teammateRequests
+        .split(',')
+        .map(name => name.trim())
+        .filter(name => name.length > 0),
+      avoidRequests: newPlayer.avoidRequests
+        .split(',')
+        .map(name => name.trim())
+        .filter(name => name.length > 0),
+      ...(newPlayer.email.trim() && { email: newPlayer.email.trim() })
+    };
+
+    if (onPlayerAdd) {
+      onPlayerAdd(player);
+      setIsAddPlayerOpen(false);
+      setNewPlayer({
+        name: '',
+        gender: 'Other',
+        skillRating: 5,
+        teammateRequests: '',
+        avoidRequests: '',
+        email: ''
+      });
+      toast.success('Player added successfully');
+    }
+  };
+
+  const handleRemovePlayer = (player: Player) => {
+    if (onPlayerRemove) {
+      onPlayerRemove(player.id);
+      toast.success(`${player.name} removed from roster`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Player Statistics */}
@@ -256,14 +324,106 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
                 View and edit player information
               </CardDescription>
             </div>
-            <Button
-              onClick={handleExportRosters}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
-              disabled={players.length === 0}
-            >
-              <Download className="h-4 w-4" />
-              Export Rosters
-            </Button>
+            <div className="flex gap-2">
+              <Dialog open={isAddPlayerOpen} onOpenChange={setIsAddPlayerOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Roster Player
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Add New Player</DialogTitle>
+                    <DialogDescription>
+                      Add a new player to your roster manually.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="name">Name *</Label>
+                      <Input
+                        id="name"
+                        value={newPlayer.name}
+                        onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
+                        placeholder="Enter player name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="gender">Gender</Label>
+                      <Select value={newPlayer.gender} onValueChange={(value: Gender) => setNewPlayer({ ...newPlayer, gender: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="M">Male</SelectItem>
+                          <SelectItem value="F">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="skill">Skill Rating (0-10)</Label>
+                      <Input
+                        id="skill"
+                        type="number"
+                        min="0"
+                        max="10"
+                        step="0.1"
+                        value={newPlayer.skillRating}
+                        onChange={(e) => setNewPlayer({ ...newPlayer, skillRating: parseFloat(e.target.value) || 5 })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email (Optional)</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={newPlayer.email}
+                        onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
+                        placeholder="player@example.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="teammates">Teammate Requests (Optional)</Label>
+                      <Textarea
+                        id="teammates"
+                        value={newPlayer.teammateRequests}
+                        onChange={(e) => setNewPlayer({ ...newPlayer, teammateRequests: e.target.value })}
+                        placeholder="Comma-separated list of player names"
+                        rows={2}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="avoid">Avoid Requests (Optional)</Label>
+                      <Textarea
+                        id="avoid"
+                        value={newPlayer.avoidRequests}
+                        onChange={(e) => setNewPlayer({ ...newPlayer, avoidRequests: e.target.value })}
+                        placeholder="Comma-separated list of player names"
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddPlayerOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddPlayer}>
+                      Add Player
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Button
+                onClick={handleExportRosters}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                disabled={players.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                Export Rosters
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -348,25 +508,49 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
                     </TableCell>
                     <TableCell>
                       {editingSkill === player.id ? (
-                        <Input
-                          type="number"
-                          min="0"
-                          max="10"
-                          step="0.1"
-                          className="w-20 h-8 text-sm"
-                          defaultValue={player.skillRating}
-                          autoFocus
-                          onBlur={(e) => handleSkillEdit(player, e.target.value)}
-                          onKeyDown={(e) => handleSkillKeyDown(e, player, (e.target as HTMLInputElement).value)}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="10"
+                            step="0.1"
+                            value={skillValue}
+                            onChange={(e) => setSkillValue(e.target.value)}
+                            className="w-20"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleSkillEdit(player, skillValue);
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleSkillEdit(player, skillValue)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingSkill(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       ) : (
-                        <Badge 
-                          className="cursor-pointer hover:opacity-80 border-0"
+                        <div 
+                          className="flex items-center gap-2 cursor-pointer p-1 rounded"
                           style={getSkillGradientStyle(player.skillRating)}
-                          onClick={() => setEditingSkill(player.id)}
+                          onClick={() => {
+                            setEditingSkill(player.id);
+                            setSkillValue(player.skillRating.toString());
+                          }}
                         >
-                          {player.skillRating}
-                        </Badge>
+                                                     <span className="font-medium">{player.skillRating}</span>
+                           <Edit2 className="h-3 w-3 opacity-60" />
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
@@ -425,6 +609,16 @@ export function PlayerRoster({ players, onPlayerUpdate }: PlayerRosterProps) {
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
+                        {onPlayerRemove && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleRemovePlayer(player)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

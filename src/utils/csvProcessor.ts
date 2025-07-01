@@ -9,9 +9,13 @@ export function parseCSV(csvText: string): CSVRow[] {
   const rows: CSVRow[] = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
-    // Skip completely empty rows or rows with only whitespace
-    if (values.length === 0 || values.every(val => !val.trim())) continue;
+    const line = lines[i].trim();
+    // Skip completely empty lines
+    if (!line) continue;
+    
+    const values = parseCSVLine(line);
+    // Skip rows with only empty/whitespace values
+    if (values.every(val => !val.trim())) continue;
 
     const row: CSVRow = {};
     headers.forEach((header, index) => {
@@ -88,10 +92,10 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
 
     const seenNames = new Set<string>();
     const players: Player[] = [];
+    let actualRowNumber = 2; // Start from row 2 (after header)
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const rowNum = i + 2; // +2 for header row and 0-based index
 
       // Skip rows that are completely empty or only have whitespace
       const hasAnyContent = Object.values(row).some(val => val && val.trim());
@@ -102,12 +106,14 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
       // Validate name
       const name = row[nameCol]?.trim();
       if (!name) {
-        result.errors.push(`Row ${rowNum}: Missing player name`);
+        result.errors.push(`Row ${actualRowNumber}: Missing player name`);
+        actualRowNumber++;
         continue;
       }
 
       if (seenNames.has(name.toLowerCase())) {
-        result.errors.push(`Row ${rowNum}: Duplicate player name "${name}"`);
+        result.errors.push(`Row ${actualRowNumber}: Duplicate player name "${name}"`);
+        actualRowNumber++;
         continue;
       }
       seenNames.add(name.toLowerCase());
@@ -119,10 +125,8 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
         if (genderStr === 'M' || genderStr === 'MALE') gender = 'M';
         else if (genderStr === 'F' || genderStr === 'FEMALE') gender = 'F';
         else if (genderStr && genderStr !== 'OTHER') {
-          result.warnings.push(`Row ${rowNum}: Unknown gender "${genderStr}", defaulting to "Other"`);
+          result.warnings.push(`Row ${actualRowNumber}: Unknown gender "${genderStr}", defaulting to "Other"`);
         }
-      } else {
-        result.warnings.push(`Gender column not found, defaulting to "Other" for all players`);
       }
 
       // Handle skill rating (optional)
@@ -132,16 +136,14 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
         if (skillStr) {
           const skill = parseFloat(skillStr);
           if (isNaN(skill)) {
-            result.warnings.push(`Row ${rowNum}: Invalid skill rating "${skillStr}", defaulting to 5`);
+            result.warnings.push(`Row ${actualRowNumber}: Invalid skill rating "${skillStr}", defaulting to 5`);
           } else {
             if (skill < 0 || skill > 10) {
-              result.warnings.push(`Row ${rowNum}: Skill rating ${skill} outside typical range (0-10)`);
+              result.warnings.push(`Row ${actualRowNumber}: Skill rating ${skill} outside typical range (0-10)`);
             }
             skillRating = skill;
           }
         }
-      } else {
-        result.warnings.push(`Skill rating column not found, defaulting to 5 for all players`);
       }
 
       // Parse teammate requests
@@ -158,7 +160,7 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
           if (emailRegex.test(emailStr)) {
             email = emailStr;
           } else {
-            result.warnings.push(`Row ${rowNum}: Invalid email format "${emailStr}"`);
+            result.warnings.push(`Row ${actualRowNumber}: Invalid email format "${emailStr}"`);
           }
         }
       }
@@ -174,6 +176,7 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
       };
 
       players.push(player);
+      actualRowNumber++;
     }
 
     // Validate teammate/avoid requests reference existing players

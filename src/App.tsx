@@ -208,6 +208,80 @@ function App() {
     });
   }, []);
 
+  const handlePlayerAdd = useCallback((newPlayer: Player) => {
+    setAppState(prev => ({
+      ...prev,
+      players: [...prev.players, newPlayer],
+      // Clear teams when adding new players to force regeneration
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined
+    }));
+  }, []);
+
+  const handlePlayerRemove = useCallback((playerId: string) => {
+    setAppState(prev => {
+      const removedPlayer = prev.players.find(p => p.id === playerId);
+      if (!removedPlayer) return prev;
+
+      // Remove from main players array
+      const updatedPlayers = prev.players.filter(p => p.id !== playerId);
+
+      // Remove from teams and recalculate team stats
+      const updatedTeams = prev.teams.map(team => {
+        const playerInTeam = team.players.find(p => p.id === playerId);
+        if (playerInTeam) {
+          const updatedTeamPlayers = team.players.filter(p => p.id !== playerId);
+          
+          // Calculate new team stats
+          const totalSkill = updatedTeamPlayers.reduce((sum, p) => sum + p.skillRating, 0);
+          const averageSkill = updatedTeamPlayers.length > 0 ? totalSkill / updatedTeamPlayers.length : 0;
+          
+          const genderBreakdown = { M: 0, F: 0, Other: 0 };
+          updatedTeamPlayers.forEach(p => {
+            genderBreakdown[p.gender]++;
+          });
+
+          return {
+            ...team,
+            players: updatedTeamPlayers,
+            averageSkill,
+            genderBreakdown
+          };
+        }
+        return team;
+      });
+
+      // Remove from unassigned players
+      const updatedUnassigned = prev.unassignedPlayers.filter(p => p.id !== playerId);
+
+      // Remove from player groups
+      const updatedPlayerGroups = prev.playerGroups.map(group => ({
+        ...group,
+        players: group.players.filter(p => p.id !== playerId)
+      })).filter(group => group.players.length > 0); // Remove empty groups
+
+      // Clean up teammate/avoid requests that reference the removed player
+      const cleanedPlayers = updatedPlayers.map(player => ({
+        ...player,
+        teammateRequests: player.teammateRequests.filter(name => 
+          name.toLowerCase() !== removedPlayer.name.toLowerCase()
+        ),
+        avoidRequests: player.avoidRequests.filter(name => 
+          name.toLowerCase() !== removedPlayer.name.toLowerCase()
+        )
+      }));
+
+      return {
+        ...prev,
+        players: cleanedPlayers,
+        teams: updatedTeams,
+        unassignedPlayers: updatedUnassigned,
+        playerGroups: updatedPlayerGroups
+      };
+    });
+  }, []);
+
   const handlePlayerMove = useCallback((playerId: string, targetTeamId: string | null) => {
     setAppState(prev => {
       const updatedTeams = prev.teams.map(team => ({
@@ -555,6 +629,8 @@ function App() {
               <PlayerRoster 
                 players={appState.players}
                 onPlayerUpdate={handlePlayerUpdate}
+                onPlayerAdd={handlePlayerAdd}
+                onPlayerRemove={handlePlayerRemove}
               />
             </TabsContent>
 
