@@ -20,6 +20,7 @@ import {
   Search, 
   Filter, 
   Edit, 
+  Edit2,
   Eye,
   SortAsc,
   SortDesc,
