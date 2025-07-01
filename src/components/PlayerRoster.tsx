@@ -145,21 +145,44 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
     return { min, max, avg: Math.round(avg * 10) / 10 };
   };
 
+  // Calculate skill group thresholds based on player percentiles
+  const getSkillGroupThresholds = (players: Player[]) => {
+    if (players.length === 0) return { elite: 8, good: 6, mid: 4, beginner: 2 };
+    
+    const sortedSkills = players.map(p => p.skillRating).sort((a, b) => b - a);
+    const getPercentile = (percentile: number) => {
+      const index = Math.floor((percentile / 100) * sortedSkills.length);
+      return sortedSkills[Math.min(index, sortedSkills.length - 1)];
+    };
+    
+    return {
+      elite: getPercentile(10),    // Top 10% (90th percentile)
+      good: getPercentile(30),     // 70th-90th percentile  
+      mid: getPercentile(60),      // 40th-70th percentile
+      beginner: getPercentile(80)  // 20th-40th percentile
+      // Learning: Bottom 20% (0th-20th percentile)
+    };
+  };
+
   const getSkillGroup = (player: Player) => {
+    const thresholds = getSkillGroupThresholds(players);
     const skill = player.skillRating;
-    if (skill >= 8) return 'Elite';
-    if (skill >= 6) return 'Good';
-    if (skill >= 4) return 'Mid';
-    if (skill >= 2) return 'Beginner';
+    
+    if (skill >= thresholds.elite) return 'Elite';
+    if (skill >= thresholds.good) return 'Good';
+    if (skill >= thresholds.mid) return 'Mid';
+    if (skill >= thresholds.beginner) return 'Beginner';
     return 'Learning';
   };
 
   const getSkillGroupInfo = (group: string) => {
+    const thresholds = getSkillGroupThresholds(players);
+    
     switch (group) {
       case 'Elite':
         return {
           name: 'Elite',
-          description: 'Top-tier players with exceptional skills (8.0-10.0)',
+          description: `Top 10% of players (${thresholds.elite.toFixed(1)}+ rating)`,
           bgColor: 'bg-purple-100',
           textColor: 'text-purple-800',
           borderColor: 'border-purple-200'
@@ -167,7 +190,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       case 'Good':
         return {
           name: 'Good',
-          description: 'Highly skilled players with strong fundamentals (6.0-7.9)',
+          description: `70th-90th percentile (${thresholds.good.toFixed(1)}-${(thresholds.elite - 0.1).toFixed(1)} rating)`,
           bgColor: 'bg-blue-100',
           textColor: 'text-blue-800',
           borderColor: 'border-blue-200'
@@ -175,7 +198,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       case 'Mid':
         return {
           name: 'Mid',
-          description: 'Solid players with good basic skills (4.0-5.9)',
+          description: `40th-70th percentile (${thresholds.mid.toFixed(1)}-${(thresholds.good - 0.1).toFixed(1)} rating)`,
           bgColor: 'bg-green-100',
           textColor: 'text-green-800',
           borderColor: 'border-green-200'
@@ -183,7 +206,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       case 'Beginner':
         return {
           name: 'Beginner',
-          description: 'Developing players building foundational skills (2.0-3.9)',
+          description: `20th-40th percentile (${thresholds.beginner.toFixed(1)}-${(thresholds.mid - 0.1).toFixed(1)} rating)`,
           bgColor: 'bg-yellow-100',
           textColor: 'text-yellow-800',
           borderColor: 'border-yellow-200'
@@ -191,7 +214,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       case 'Learning':
         return {
           name: 'Learning',
-          description: 'New players just starting their journey (0.0-1.9)',
+          description: `Bottom 20% of players (below ${thresholds.beginner.toFixed(1)} rating)`,
           bgColor: 'bg-orange-100',
           textColor: 'text-orange-800',
           borderColor: 'border-orange-200'
