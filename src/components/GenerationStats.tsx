@@ -36,7 +36,7 @@ export function GenerationStats({ stats, totalTeams = 0 }: GenerationStatsProps)
   };
 
   const getPerformanceBadge = (percentage: number): { variant: 'default' | 'secondary' | 'destructive'; label: string } => {
-    if (percentage >= 90) return { variant: 'default', label: 'Excellent' };
+    if (percentage === 100) return { variant: 'default', label: 'Excellent' };
     if (percentage >= 75) return { variant: 'secondary', label: 'Good' };
     return { variant: 'destructive', label: 'Needs Improvement' };
   };

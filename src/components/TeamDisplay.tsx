@@ -276,41 +276,6 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
 
   return (
     <div className="space-y-6">
-      {/* Team Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{teams.length}</div>
-            <div className="text-sm text-gray-600">Teams Created</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {teams.reduce((sum, team) => sum + team.players.length, 0)}
-            </div>
-            <div className="text-sm text-gray-600">Players Assigned</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">{unassignedPlayers.length}</div>
-            <div className="text-sm text-gray-600">Unassigned</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {teams.filter(team => getTeamConstraintViolations(team).violations.length === 0).length}
-            </div>
-            <div className="text-sm text-gray-600">Valid Teams</div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Unassigned Players */}
       {unassignedPlayers.length > 0 && (
         <Card>
