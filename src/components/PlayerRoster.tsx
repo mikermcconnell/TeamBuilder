@@ -381,7 +381,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-lg font-semibold text-green-600">
-              {genderStats.M}M / {genderStats.F}F / {genderStats.Other}O
+              {genderStats.M}M / {genderStats.F}F
             </div>
             <div className="text-sm text-gray-600">Gender Split</div>
           </CardContent>
