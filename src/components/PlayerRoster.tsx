@@ -7,6 +7,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { 
   Dialog, 
   DialogContent, 
@@ -31,7 +44,8 @@ import {
   Plus,
   Trash2,
   Check,
-  X
+  X,
+  ChevronsUpDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
@@ -65,6 +79,10 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
     avoidRequests: '',
     email: ''
   });
+
+  // Autocomplete state for editing player
+  const [teammateSearchOpen, setTeammateSearchOpen] = useState(false);
+  const [avoidSearchOpen, setAvoidSearchOpen] = useState(false);
 
   // Filter and sort players
   const filteredAndSortedPlayers = useMemo(() => {
@@ -364,6 +382,59 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
     if (onPlayerRemove) {
       onPlayerRemove(player.id);
       toast.success(`${player.name} removed from roster`);
+    }
+  };
+
+  // Helper functions for autocomplete
+  const getAvailablePlayersForTeammate = (currentPlayer: Player) => {
+    return players.filter(p => 
+      p.id !== currentPlayer.id && 
+      !currentPlayer.teammateRequests.includes(p.name)
+    );
+  };
+
+  const getAvailablePlayersForAvoid = (currentPlayer: Player) => {
+    return players.filter(p => 
+      p.id !== currentPlayer.id && 
+      !currentPlayer.avoidRequests.includes(p.name)
+    );
+  };
+
+  const addTeammateRequest = (playerName: string) => {
+    if (editingPlayer && !editingPlayer.teammateRequests.includes(playerName)) {
+      setEditingPlayer({
+        ...editingPlayer,
+        teammateRequests: [...editingPlayer.teammateRequests, playerName]
+      });
+    }
+    setTeammateSearchOpen(false);
+  };
+
+  const removeTeammateRequest = (playerName: string) => {
+    if (editingPlayer) {
+      setEditingPlayer({
+        ...editingPlayer,
+        teammateRequests: editingPlayer.teammateRequests.filter(name => name !== playerName)
+      });
+    }
+  };
+
+  const addAvoidRequest = (playerName: string) => {
+    if (editingPlayer && !editingPlayer.avoidRequests.includes(playerName)) {
+      setEditingPlayer({
+        ...editingPlayer,
+        avoidRequests: [...editingPlayer.avoidRequests, playerName]
+      });
+    }
+    setAvoidSearchOpen(false);
+  };
+
+  const removeAvoidRequest = (playerName: string) => {
+    if (editingPlayer) {
+      setEditingPlayer({
+        ...editingPlayer,
+        avoidRequests: editingPlayer.avoidRequests.filter(name => name !== playerName)
+      });
     }
   };
 
@@ -823,33 +894,109 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
               </div>
               
               <div>
-                <label className="text-sm font-medium text-gray-600">Teammate Requests (comma-separated)</label>
-                <Input
-                  placeholder="Enter names separated by commas"
-                  value={editingPlayer.teammateRequests.join(', ')}
-                  onChange={(e) => setEditingPlayer({
-                    ...editingPlayer,
-                    teammateRequests: e.target.value
-                      .split(',')
-                      .map(name => name.trim())
-                      .filter(name => name.length > 0)
-                  })}
-                />
+                <label className="text-sm font-medium text-gray-600">Teammate Requests</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {editingPlayer.teammateRequests.map((name, index) => (
+                    <Badge key={index} variant="secondary" className="cursor-pointer">
+                      {name}
+                      <X 
+                        className="h-3 w-3 ml-1 hover:text-red-600" 
+                        onClick={() => removeTeammateRequest(name)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+                <Popover open={teammateSearchOpen} onOpenChange={setTeammateSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={teammateSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      Add teammate request...
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search players..." />
+                      <CommandList>
+                        <CommandEmpty>No players found.</CommandEmpty>
+                        <CommandGroup>
+                          {getAvailablePlayersForTeammate(editingPlayer).map((player) => (
+                            <CommandItem
+                              key={player.id}
+                              value={player.name}
+                              onSelect={() => addTeammateRequest(player.name)}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 opacity-0`}
+                              />
+                              {player.name}
+                              <Badge variant="outline" className="ml-auto">
+                                {player.gender}
+                              </Badge>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               
               <div>
-                <label className="text-sm font-medium text-gray-600">Avoid Requests (comma-separated)</label>
-                <Input
-                  placeholder="Enter names separated by commas"
-                  value={editingPlayer.avoidRequests.join(', ')}
-                  onChange={(e) => setEditingPlayer({
-                    ...editingPlayer,
-                    avoidRequests: e.target.value
-                      .split(',')
-                      .map(name => name.trim())
-                      .filter(name => name.length > 0)
-                  })}
-                />
+                <label className="text-sm font-medium text-gray-600">Avoid Requests</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {editingPlayer.avoidRequests.map((name, index) => (
+                    <Badge key={index} variant="destructive" className="cursor-pointer">
+                      {name}
+                      <X 
+                        className="h-3 w-3 ml-1 hover:text-red-800" 
+                        onClick={() => removeAvoidRequest(name)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+                <Popover open={avoidSearchOpen} onOpenChange={setAvoidSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={avoidSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      Add avoid request...
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search players..." />
+                      <CommandList>
+                        <CommandEmpty>No players found.</CommandEmpty>
+                        <CommandGroup>
+                          {getAvailablePlayersForAvoid(editingPlayer).map((player) => (
+                            <CommandItem
+                              key={player.id}
+                              value={player.name}
+                              onSelect={() => addAvoidRequest(player.name)}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 opacity-0`}
+                              />
+                              {player.name}
+                              <Badge variant="outline" className="ml-auto">
+                                {player.gender}
+                              </Badge>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               
               <div className="flex gap-2 pt-4">
