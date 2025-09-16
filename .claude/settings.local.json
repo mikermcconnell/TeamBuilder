@@ -46,7 +46,11 @@
       "Bash(start \"\" \"http://localhost:5183/\")",
       "Bash(git add:*)",
       "Bash(del nul)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git push:*)",
+      "Bash(findstr:*)",
+      "Bash(vercel env add:*)",
+      "Bash(vercel:*)"
     ],
     "deny": [],
     "ask": []
