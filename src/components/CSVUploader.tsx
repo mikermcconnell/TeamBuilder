@@ -6,11 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Download, AlertCircle, CheckCircle2, FileText, Users, AlertTriangle, Cloud } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Upload, Download, AlertCircle, CheckCircle2, FileText, Users, AlertTriangle, Cloud, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { SavedRostersList } from './SavedRostersList';
 import { auth } from '@/config/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { saveRoster } from '@/services/rosterService';
 
 interface CSVUploaderProps {
   onPlayersLoaded: (players: Player[], playerGroups?: PlayerGroup[]) => void;
@@ -22,6 +26,9 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentCSVContent, setCurrentCSVContent] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [rosterName, setRosterName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -99,13 +106,59 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
   const handleConfirmLoad = () => {
     if (validationResult && validationResult.players.length > 0) {
       onPlayersLoaded(validationResult.players, validationResult.playerGroups);
-      setValidationResult(null);
+
+      // Show save dialog if user is authenticated
+      if (isAuthenticated) {
+        setShowSaveDialog(true);
+        // Generate default name from timestamp
+        const now = new Date();
+        const defaultName = `Roster ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        setRosterName(defaultName);
+      } else {
+        setValidationResult(null);
+      }
+
       if (validationResult.isValid) {
         toast.success(`Loaded ${validationResult.players.length} players successfully`);
       } else {
         toast.warning(`Loaded ${validationResult.players.length} players with warnings (errors ignored)`);
       }
     }
+  };
+
+  const handleSaveRoster = async () => {
+    if (!validationResult || !auth.currentUser || !rosterName.trim()) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await saveRoster({
+        userId: auth.currentUser.uid,
+        name: rosterName.trim(),
+        description: `Imported on ${new Date().toLocaleDateString()}`,
+        players: validationResult.players,
+        playerGroups: validationResult.playerGroups || [],
+        tags: ['imported']
+      });
+
+      toast.success(`Roster "${rosterName}" saved successfully!`);
+      setShowSaveDialog(false);
+      setValidationResult(null);
+      setRosterName('');
+    } catch (error) {
+      console.error('Error saving roster:', error);
+      toast.error('Failed to save roster. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSkipSave = () => {
+    setShowSaveDialog(false);
+    setValidationResult(null);
+    setRosterName('');
+    toast.info('Roster loaded without saving');
   };
 
   const downloadSampleCSV = () => {
@@ -124,6 +177,7 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
   };
 
   return (
+    <>
     <Tabs defaultValue="upload" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="upload">Upload New</TabsTrigger>
@@ -403,5 +457,63 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
         />
       </TabsContent>
     </Tabs>
+
+    {/* Save Roster Dialog */}
+    <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Save className="h-5 w-5" />
+            Save Roster to Cloud
+          </DialogTitle>
+          <DialogDescription>
+            Give your roster a name to save it to your cloud storage. You can access it anytime from the Saved Rosters tab.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="roster-name">Roster Name</Label>
+            <Input
+              id="roster-name"
+              value={rosterName}
+              onChange={(e) => setRosterName(e.target.value)}
+              placeholder="Enter roster name..."
+              className="w-full"
+            />
+          </div>
+          {validationResult && (
+            <div className="text-sm text-gray-600">
+              This roster contains {validationResult.players.length} players
+              {validationResult.playerGroups && validationResult.playerGroups.length > 0 &&
+                ` and ${validationResult.playerGroups.length} groups`
+              }.
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleSkipSave} disabled={isSaving}>
+            Skip Saving
+          </Button>
+          <Button
+            onClick={handleSaveRoster}
+            disabled={!rosterName.trim() || isSaving}
+            className="flex items-center gap-2"
+          >
+            {isSaving ? (
+              <>
+                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Roster
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

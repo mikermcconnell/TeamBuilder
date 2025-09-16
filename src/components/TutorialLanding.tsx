@@ -782,8 +782,8 @@ const TeamGenerationDemo: React.FC = () => {
                       newTeams[1].players.push(alexPlayer);
                       
                       // Recalculate averages
-                      newTeams[0].averageSkill = Number((newTeams[0].players.reduce((sum, p) => sum + p.skillRating, 0) / newTeams[0].players.length).toFixed(1));
-                      newTeams[1].averageSkill = Number((newTeams[1].players.reduce((sum, p) => sum + p.skillRating, 0) / newTeams[1].players.length).toFixed(1));
+                      newTeams[0].averageSkill = Number((newTeams[0].players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0) / newTeams[0].players.length).toFixed(1));
+                      newTeams[1].averageSkill = Number((newTeams[1].players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0) / newTeams[1].players.length).toFixed(1));
                       
                       setTeams(newTeams);
                       setDragPhase('none');

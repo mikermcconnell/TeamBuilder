@@ -81,3 +81,9 @@ export interface DragItem {
   playerId: string;
   sourceTeamId?: string;
 }
+
+// Helper function to get the effective skill rating for a player
+// When exec skill is available (not null), it overrides the regular skill
+export function getEffectiveSkillRating(player: Player): number {
+  return player.execSkillRating !== null ? player.execSkillRating : player.skillRating;
+}

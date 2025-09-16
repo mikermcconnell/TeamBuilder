@@ -162,70 +162,19 @@ function generateManualTeams(
     teams.push(createEmptyTeam(`Team ${i + 1}`));
   }
 
-  // Separate grouped and non-grouped players
-  const groupedPlayerIds = new Set<string>();
-  playerGroups.forEach(group => {
-    group.players.forEach(player => {
-      groupedPlayerIds.add(player.id);
-    });
-  });
-
-  // Assign player groups to teams using average skill for balance
-  const assignedGroups = new Set<string>();
-  const groupsWithAvgSkill = playerGroups.map(group => ({
-    ...group,
-    averageSkill: group.players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0) / group.players.length
-  }));
-
-  // Sort groups by average skill (descending) for better balance distribution
-  groupsWithAvgSkill.sort((a, b) => b.averageSkill - a.averageSkill);
-
-  // Assign groups to teams in round-robin fashion for skill balance
-  for (let i = 0; i < groupsWithAvgSkill.length; i++) {
-    const group = groupsWithAvgSkill[i];
-    const teamIndex = i % teams.length;
-    const targetTeam = teams[teamIndex];
-
-    // Check if group can fit in the target team without violating constraints
-    const canAssign = canAssignGroupToTeam(group.players, targetTeam, config) &&
-                     !group.players.some(player => hasAvoidConflict(player, targetTeam, playerMap));
-
-    if (canAssign) {
-      // Assign all players in the group to the team
-      group.players.forEach(player => {
-        player.teamId = targetTeam.id;
-        targetTeam.players.push(player);
-      });
-      updateTeamStats(targetTeam);
-      assignedGroups.add(group.id);
-    }
-  }
-
-  // Collect unassigned players (individual players + any group members that couldn't be assigned)
+  // In manual mode, leave ALL players unassigned for manual assignment
+  // Clear any existing team assignments and add all players to unassigned
   const unassignedPlayers: Player[] = [];
 
-  // Add individual players (not in groups) to unassigned
   players.forEach(player => {
-    if (!groupedPlayerIds.has(player.id)) {
-      player.teamId = undefined; // Clear any existing team assignment
-      unassignedPlayers.push(player);
-    }
-  });
-
-  // Add any group members whose groups couldn't be assigned
-  playerGroups.forEach(group => {
-    if (!assignedGroups.has(group.id)) {
-      group.players.forEach(player => {
-        player.teamId = undefined;
-        unassignedPlayers.push(player);
-      });
-    }
+    player.teamId = undefined; // Clear any existing team assignment
+    unassignedPlayers.push(player);
   });
 
   const stats = calculateStats(players, teams, unassignedPlayers, [], playerGroups, startTime);
 
   return {
-    teams: teams.filter(t => t.players.length > 0),
+    teams: teams,
     unassignedPlayers,
     stats
   };

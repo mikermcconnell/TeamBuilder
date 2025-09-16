@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
-import { Player, Team, LeagueConfig, AppState, TeamGenerationStats, PlayerGroup } from '@/types';
+import { Player, Team, LeagueConfig, AppState, TeamGenerationStats, PlayerGroup, getEffectiveSkillRating } from '@/types';
 import { getDefaultConfig, saveDefaultConfig } from '@/utils/configManager';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { validateAndProcessCSV } from '@/utils/csvProcessor';
@@ -346,9 +346,9 @@ function App() {
           const updatedTeamPlayers = team.players.map(p =>
             p.id === updatedPlayer.id ? updatedPlayer : p
           );
-          
+
           // Calculate new team stats
-          const totalSkill = updatedTeamPlayers.reduce((sum, p) => sum + p.skillRating, 0);
+          const totalSkill = updatedTeamPlayers.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
           const averageSkill = updatedTeamPlayers.length > 0 ? totalSkill / updatedTeamPlayers.length : 0;
           
           const genderBreakdown = { M: 0, F: 0, Other: 0 };
@@ -404,9 +404,9 @@ function App() {
         const playerInTeam = team.players.find(p => p.id === playerId);
         if (playerInTeam) {
           const updatedTeamPlayers = team.players.filter(p => p.id !== playerId);
-          
+
           // Calculate new team stats
-          const totalSkill = updatedTeamPlayers.reduce((sum, p) => sum + p.skillRating, 0);
+          const totalSkill = updatedTeamPlayers.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
           const averageSkill = updatedTeamPlayers.length > 0 ? totalSkill / updatedTeamPlayers.length : 0;
           
           const genderBreakdown = { M: 0, F: 0, Other: 0 };
@@ -505,11 +505,11 @@ function App() {
       return {
         ...prev,
         players: updatedPlayers,
-        teams: updatedTeams.filter(t => t.players.length > 0),
+        teams: isManualMode ? updatedTeams : updatedTeams.filter(t => t.players.length > 0),
         unassignedPlayers: updatedUnassigned
       };
     });
-  }, []);
+  }, [isManualMode]);
 
   // Create debounced team name change handler
   const debouncedTeamNameChangeRef = useRef(
@@ -712,6 +712,31 @@ function App() {
       setIsFullScreenMode(false);
     }
   }, [activeTab, isFullScreenMode]);
+
+  // Recalculate team stats when switching to teams tab (in case players were edited)
+  useEffect(() => {
+    if (activeTab === 'teams' && appState.teams.length > 0) {
+      setAppState(prev => ({
+        ...prev,
+        teams: prev.teams.map(team => {
+          // Recalculate team stats with current player data
+          const totalSkill = team.players.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
+          const averageSkill = team.players.length > 0 ? totalSkill / team.players.length : 0;
+
+          const genderBreakdown = { M: 0, F: 0, Other: 0 };
+          team.players.forEach(p => {
+            genderBreakdown[p.gender]++;
+          });
+
+          return {
+            ...team,
+            averageSkill,
+            genderBreakdown
+          };
+        })
+      }));
+    }
+  }, [activeTab, appState.players]);
 
   // Show tutorial landing page if user hasn't completed it
   if (showTutorial) {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Player, Team, LeagueConfig, PlayerGroup } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, getEffectiveSkillRating } from '@/types';
 import { Button } from '@/components/ui/button';
 import { SavedTeamsManager } from '@/components/SavedTeamsManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +45,7 @@ export function FullScreenTeamBuilder({
   onLoadTeams
 }: FullScreenTeamBuilderProps) {
   const [draggedPlayer, setDraggedPlayer] = useState<Player | null>(null);
+  const [draggedGroup, setDraggedGroup] = useState<PlayerGroup | null>(null);
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [tempTeamName, setTempTeamName] = useState<string>('');
 
@@ -109,10 +110,17 @@ export function FullScreenTeamBuilder({
 
   const handleDragStart = (player: Player) => {
     setDraggedPlayer(player);
+    setDraggedGroup(null);
+  };
+
+  const handleGroupDragStart = (group: PlayerGroup) => {
+    setDraggedGroup(group);
+    setDraggedPlayer(null);
   };
 
   const handleDragEnd = () => {
     setDraggedPlayer(null);
+    setDraggedGroup(null);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -123,31 +131,117 @@ export function FullScreenTeamBuilder({
     e.preventDefault();
 
     if (draggedPlayer) {
-      // Check avoid conflicts
+      // Check if the player is part of a group
+      const playerGroup = getPlayerGroup(playerGroups, draggedPlayer.id);
+
+      if (playerGroup) {
+        // Player is in a group - move the entire group
+        const groupPlayers = playerGroup.players.filter(p =>
+          unassignedPlayers.some(up => up.id === p.id) ||
+          teams.some(t => t.players.some(tp => tp.id === p.id))
+        );
+
+        // Check avoid conflicts for all players in the group
+        if (targetTeamId) {
+          const targetTeam = teams.find(t => t.id === targetTeamId);
+          if (targetTeam) {
+            for (const player of groupPlayers) {
+              const avoidCheck = hasAvoidConflict(player, targetTeam);
+              if (avoidCheck.hasConflict) {
+                toast.error(`Cannot move group: ${player.name} has avoid conflict with ${avoidCheck.conflictPlayer}`);
+                return;
+              }
+            }
+          }
+        }
+
+        // Move all players in the group
+        groupPlayers.forEach(player => {
+          onPlayerMove(player.id, targetTeamId);
+        });
+
+        // Show appropriate message
+        const groupLabel = getPlayerGroupLabel(playerGroups, draggedPlayer.id);
+        if (targetTeamId) {
+          const targetTeam = teams.find(t => t.id === targetTeamId);
+          const willExceedCapacity = targetTeam && (targetTeam.players.length + groupPlayers.length) > config.maxTeamSize;
+
+          if (willExceedCapacity) {
+            toast.warning(`Moved Group ${groupLabel} (${groupPlayers.length} players) - Team now exceeds size limit`);
+          } else {
+            toast.success(`Moved Group ${groupLabel} (${groupPlayers.length} players) to team`);
+          }
+        } else {
+          toast.success(`Moved Group ${groupLabel} (${groupPlayers.length} players) to unassigned`);
+        }
+      } else {
+        // Player is not in a group - move individual player
+        // Check avoid conflicts
+        if (targetTeamId) {
+          const targetTeam = teams.find(t => t.id === targetTeamId);
+          if (targetTeam) {
+            const avoidCheck = hasAvoidConflict(draggedPlayer, targetTeam);
+            if (avoidCheck.hasConflict) {
+              toast.error(`Cannot move ${draggedPlayer.name}: avoid conflict with ${avoidCheck.conflictPlayer}`);
+              return;
+            }
+          }
+        }
+
+        // Move player
+        onPlayerMove(draggedPlayer.id, targetTeamId);
+
+        // Show appropriate message
+        if (targetTeamId) {
+          const targetTeam = teams.find(t => t.id === targetTeamId);
+          if (targetTeam && isTeamOverCapacity({...targetTeam, players: [...targetTeam.players, draggedPlayer]})) {
+            toast.warning(`Moved ${draggedPlayer.name} - Team now exceeds size limit`);
+          } else {
+            toast.success(`Moved ${draggedPlayer.name} to team`);
+          }
+        } else {
+          toast.success(`Moved ${draggedPlayer.name} to unassigned`);
+        }
+      }
+    } else if (draggedGroup) {
+      // Handle group movement
+      const groupPlayers = draggedGroup.players.filter(p =>
+        unassignedPlayers.some(up => up.id === p.id) ||
+        teams.some(t => t.players.some(tp => tp.id === p.id))
+      );
+
+      // Check avoid conflicts for all players in the group
       if (targetTeamId) {
         const targetTeam = teams.find(t => t.id === targetTeamId);
         if (targetTeam) {
-          const avoidCheck = hasAvoidConflict(draggedPlayer, targetTeam);
-          if (avoidCheck.hasConflict) {
-            toast.error(`Cannot move ${draggedPlayer.name}: avoid conflict with ${avoidCheck.conflictPlayer}`);
-            return;
+          for (const player of groupPlayers) {
+            const avoidCheck = hasAvoidConflict(player, targetTeam);
+            if (avoidCheck.hasConflict) {
+              toast.error(`Cannot move group: ${player.name} has avoid conflict with ${avoidCheck.conflictPlayer}`);
+              return;
+            }
           }
         }
       }
 
-      // Move player
-      onPlayerMove(draggedPlayer.id, targetTeamId);
+      // Move all players in the group
+      groupPlayers.forEach(player => {
+        onPlayerMove(player.id, targetTeamId);
+      });
 
       // Show appropriate message
+      const groupLabel = getPlayerGroupLabel(playerGroups, groupPlayers[0]?.id);
       if (targetTeamId) {
         const targetTeam = teams.find(t => t.id === targetTeamId);
-        if (targetTeam && isTeamOverCapacity({...targetTeam, players: [...targetTeam.players, draggedPlayer]})) {
-          toast.warning(`Moved ${draggedPlayer.name} - Team now exceeds size limit`);
+        const willExceedCapacity = targetTeam && (targetTeam.players.length + groupPlayers.length) > config.maxTeamSize;
+
+        if (willExceedCapacity) {
+          toast.warning(`Moved Group ${groupLabel} (${groupPlayers.length} players) - Team now exceeds size limit`);
         } else {
-          toast.success(`Moved ${draggedPlayer.name} to team`);
+          toast.success(`Moved Group ${groupLabel} (${groupPlayers.length} players) to team`);
         }
       } else {
-        toast.success(`Moved ${draggedPlayer.name} to unassigned`);
+        toast.success(`Moved Group ${groupLabel} (${groupPlayers.length} players) to unassigned`);
       }
     }
   };
@@ -254,62 +348,25 @@ export function FullScreenTeamBuilder({
       </div>
 
       {/* Main content - scrollable */}
-      <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-12 gap-6 p-6 min-h-full">
-          {/* Left Panel - Female Players and Unassigned Groups */}
-          <div className="col-span-2 sticky top-0 h-[calc(100vh-120px)] flex flex-col gap-4">
-            {/* Female Players Card */}
-            <Card className="flex flex-col" style={{height: unassignedGroupedPlayers.length > 0 ? '50%' : '100%'}}>
-              <CardHeader className="pb-3 flex-shrink-0">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="h-5 w-5 text-pink-600" />
-                  Females ({femaleNonGroupedPlayers.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 flex-1 overflow-hidden">
-                <div
-                  className="border-2 border-dashed border-pink-200 rounded-lg p-3 h-full space-y-2 overflow-y-auto"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, null)}
-                >
-                  {femaleNonGroupedPlayers.map((player) => (
-                    <FullScreenPlayerCard
-                      key={player.id}
-                      player={player}
-                      moveOptions={getMoveOptions(player)}
-                      onMove={onPlayerMove}
-                      onDragStart={() => handleDragStart(player)}
-                      onDragEnd={handleDragEnd}
-                      playerGroups={playerGroups}
-                    />
-                  ))}
-                  {femaleNonGroupedPlayers.length === 0 && (
-                    <div className="text-center text-gray-500 text-sm mt-20">
-                      No unassigned female players
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Unassigned Groups Card */}
-            {unassignedGroupedPlayers.length > 0 && (
-              <Card className="flex-1 flex flex-col">
+      <div className="flex-1 overflow-auto flex flex-col">
+        <div className="flex-1 p-6 pb-0">
+          <div className="grid grid-cols-12 gap-6 h-full">
+            {/* Left Panel - Female Players Only */}
+            <div className="col-span-2 sticky top-0 h-[calc(100vh-160px)]">
+              <Card className="h-full flex flex-col">
                 <CardHeader className="pb-3 flex-shrink-0">
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <Link className="h-5 w-5 text-purple-600" />
-                    Groups ({playerGroups.filter(g =>
-                      g.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id))
-                    ).length})
+                    <Users className="h-5 w-5 text-pink-600" />
+                    Females ({femaleNonGroupedPlayers.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 flex-1 overflow-hidden">
                   <div
-                    className="border-2 border-dashed border-purple-200 rounded-lg p-3 h-full space-y-2 overflow-y-auto"
+                    className="border-2 border-dashed border-pink-200 rounded-lg p-3 h-full space-y-2 overflow-y-auto"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, null)}
                   >
-                    {unassignedGroupedPlayers.map((player) => (
+                    {femaleNonGroupedPlayers.map((player) => (
                       <FullScreenPlayerCard
                         key={player.id}
                         player={player}
@@ -320,15 +377,19 @@ export function FullScreenTeamBuilder({
                         playerGroups={playerGroups}
                       />
                     ))}
+                    {femaleNonGroupedPlayers.length === 0 && (
+                      <div className="text-center text-gray-500 text-sm mt-20">
+                        No unassigned female players
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </div>
+            </div>
 
-          {/* Center - Teams Grid */}
-          <div className="col-span-8">
-            <div className="grid grid-cols-4 gap-4">
+            {/* Center - Teams Grid */}
+            <div className="col-span-8">
+            <div className="grid grid-cols-5 gap-3">
               {teams
                 .slice()
                 .sort((a, b) => {
@@ -340,7 +401,15 @@ export function FullScreenTeamBuilder({
                 const constraintCheck = getTeamConstraintViolations(team);
                 const violations = constraintCheck.violations;
                 const sizeIssues = constraintCheck.sizeIssues;
-                const hasGenderIssues = team.genderBreakdown.F < config.minFemales || team.genderBreakdown.M < config.minMales;
+                // Calculate reasonable max gender limits based on team size and mins
+                const maxFemales = config.maxTeamSize - config.minMales;
+                const maxMales = config.maxTeamSize - config.minFemales;
+
+                const hasGenderIssues =
+                  team.genderBreakdown.F < config.minFemales ||
+                  team.genderBreakdown.M < config.minMales ||
+                  team.genderBreakdown.F > maxFemales ||
+                  team.genderBreakdown.M > maxMales;
                 const isValid = violations.length === 0 && !hasGenderIssues;
                 const isOverCapacity = isTeamOverCapacity(team);
                 const isUnderCapacity = isTeamUnderCapacity(team);
@@ -404,30 +473,38 @@ export function FullScreenTeamBuilder({
                       <div className="text-xs mt-1 space-y-0.5">
                         {/* Female requirement */}
                         <div className="flex items-center gap-1">
-                          {team.genderBreakdown.F >= config.minFemales ? (
-                            <span className="text-green-600 flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" />
-                              F: {team.genderBreakdown.F}/{config.minFemales}
+                          {team.genderBreakdown.F < config.minFemales ? (
+                            <span className="text-red-600 flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              F: {team.genderBreakdown.F}/{config.minFemales} (Need {config.minFemales - team.genderBreakdown.F})
+                            </span>
+                          ) : team.genderBreakdown.F > maxFemales ? (
+                            <span className="text-orange-600 flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              F: {team.genderBreakdown.F} (Max {maxFemales})
                             </span>
                           ) : (
-                            <span className="text-red-600">
-                              F: {team.genderBreakdown.F}/{config.minFemales}
-                              (Need {config.minFemales - team.genderBreakdown.F} more)
+                            <span className="text-gray-600">
+                              F: {team.genderBreakdown.F}/{config.minFemales}+
                             </span>
                           )}
                         </div>
 
                         {/* Male requirement */}
                         <div className="flex items-center gap-1">
-                          {team.genderBreakdown.M >= config.minMales ? (
-                            <span className="text-green-600 flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" />
-                              M: {team.genderBreakdown.M}/{config.minMales}
+                          {team.genderBreakdown.M < config.minMales ? (
+                            <span className="text-red-600 flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              M: {team.genderBreakdown.M}/{config.minMales} (Need {config.minMales - team.genderBreakdown.M})
+                            </span>
+                          ) : team.genderBreakdown.M > maxMales ? (
+                            <span className="text-orange-600 flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              M: {team.genderBreakdown.M} (Max {maxMales})
                             </span>
                           ) : (
-                            <span className="text-red-600">
-                              M: {team.genderBreakdown.M}/{config.minMales}
-                              (Need {config.minMales - team.genderBreakdown.M} more)
+                            <span className="text-gray-600">
+                              M: {team.genderBreakdown.M}/{config.minMales}+
                             </span>
                           )}
                         </div>
@@ -486,45 +563,101 @@ export function FullScreenTeamBuilder({
             </div>
           </div>
 
-          {/* Right Panel - Male Players */}
-          <div className="col-span-2 sticky top-0 h-[calc(100vh-120px)]">
-            <Card className="h-full flex flex-col">
-              <CardHeader className="pb-3 flex-shrink-0">
+            {/* Right Panel - Male Players */}
+            <div className="col-span-2 sticky top-0 h-[calc(100vh-160px)]">
+              <Card className="h-full flex flex-col">
+                <CardHeader className="pb-3 flex-shrink-0">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    Males ({maleNonGroupedPlayers.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 flex-1 overflow-hidden">
+                  <div
+                    className="border-2 border-dashed border-blue-200 rounded-lg p-3 h-full space-y-2 overflow-y-auto"
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, null)}
+                  >
+                    {maleNonGroupedPlayers.map((player) => (
+                      <FullScreenPlayerCard
+                        key={player.id}
+                        player={player}
+                        moveOptions={getMoveOptions(player)}
+                        onMove={onPlayerMove}
+                        onDragStart={() => handleDragStart(player)}
+                        onDragEnd={handleDragEnd}
+                        playerGroups={playerGroups}
+                      />
+                    ))}
+                    {maleNonGroupedPlayers.length === 0 && (
+                      <div className="text-center text-gray-500 text-sm mt-20">
+                        No unassigned male players
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Panel - Unassigned Groups */}
+        {unassignedGroupedPlayers.length > 0 && (
+          <div className="border-t border-gray-200 bg-white p-6">
+            <Card>
+              <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  Males ({maleNonGroupedPlayers.length})
+                  <Link className="h-5 w-5 text-purple-600" />
+                  Groups ({playerGroups.filter(g =>
+                    g.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id))
+                  ).length})
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0 flex-1 overflow-hidden">
+              <CardContent className="pt-0">
                 <div
-                  className="border-2 border-dashed border-blue-200 rounded-lg p-3 h-full space-y-2 overflow-y-auto"
+                  className="border-2 border-dashed border-purple-200 rounded-lg p-4 min-h-[160px] max-h-[280px] overflow-y-auto"
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, null)}
                 >
-                  {maleNonGroupedPlayers.map((player) => (
-                    <FullScreenPlayerCard
-                      key={player.id}
-                      player={player}
-                      moveOptions={getMoveOptions(player)}
-                      onMove={onPlayerMove}
-                      onDragStart={() => handleDragStart(player)}
-                      onDragEnd={handleDragEnd}
-                      playerGroups={playerGroups}
-                    />
-                  ))}
-                  {maleNonGroupedPlayers.length === 0 && (
-                    <div className="text-center text-gray-500 text-sm mt-20">
-                      No unassigned male players
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {playerGroups
+                      .filter(group => group.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id)))
+                      .map((group) => (
+                        <FullScreenGroupCard
+                          key={group.id}
+                          group={group}
+                          players={group.players.filter(p => unassignedGroupedPlayers.some(up => up.id === p.id))}
+                          moveOptions={getMoveOptions(group.players[0])} // Use first player for move options
+                          onMove={onPlayerMove}
+                          onDragStart={() => handleGroupDragStart(group)} // Drag the entire group
+                          onDragEnd={handleDragEnd}
+                          playerGroups={playerGroups}
+                        />
+                      ))}
+                  </div>
+                  {playerGroups.filter(g => g.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id))).length === 0 && (
+                    <div className="text-center text-gray-500 text-sm py-12">
+                      No unassigned player groups
                     </div>
                   )}
                 </div>
               </CardContent>
             </Card>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
+}
+
+interface FullScreenGroupCardProps {
+  group: PlayerGroup;
+  players: Player[];
+  moveOptions: Array<{ value: string | null; label: string; disabled: boolean }>;
+  onMove: (playerId: string, targetTeamId: string | null) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  playerGroups: PlayerGroup[];
 }
 
 interface FullScreenPlayerCardProps {
@@ -534,6 +667,107 @@ interface FullScreenPlayerCardProps {
   onDragStart: () => void;
   onDragEnd: () => void;
   playerGroups: PlayerGroup[];
+}
+
+function FullScreenGroupCard({ group, players, moveOptions, onMove, onDragStart, onDragEnd, playerGroups }: FullScreenGroupCardProps) {
+  const groupLabel = getPlayerGroupLabel(playerGroups, players[0]?.id);
+  const groupColor = getPlayerGroupColor(playerGroups, players[0]?.id);
+
+  const getSkillLevelColor = (skill: number): string => {
+    if (skill >= 8) return 'text-white bg-green-800';
+    if (skill >= 6) return 'text-white bg-green-600';
+    if (skill >= 4) return 'text-black bg-green-200';
+    return 'text-black bg-gray-100';
+  };
+
+  // Calculate average skill rating for the group
+  const calculateAverageSkill = (): number => {
+    if (players.length === 0) return 0;
+    const totalSkill = players.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0);
+    return Math.round((totalSkill / players.length) * 10) / 10; // Round to 1 decimal place
+  };
+
+  const averageSkill = calculateAverageSkill();
+
+  return (
+    <div
+      className="bg-white border-2 rounded-lg cursor-move hover:shadow-md transition-shadow relative p-2"
+      style={{
+        borderColor: groupColor,
+        backgroundColor: `${groupColor}08`
+      }}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
+    >
+      {/* Group label in top corner */}
+      <div
+        className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-xs"
+        style={{ backgroundColor: groupColor }}
+      >
+        {groupLabel}
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div className="font-bold text-xs" style={{ color: groupColor }}>
+            Group {groupLabel} ({players.length})
+          </div>
+          <Badge className={`text-xs ${getSkillLevelColor(averageSkill)}`}>
+            {averageSkill}
+          </Badge>
+        </div>
+
+        {/* Condensed player list */}
+        <div className="text-xs text-gray-600">
+          {players.slice(0, 3).map((player, index) => (
+            <div key={player.id} className="flex items-center justify-between py-0.5">
+              <span className="truncate flex-1 pr-1" title={player.name}>
+                {player.name}
+              </span>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className="text-xs">{player.gender}</span>
+                <span className="text-xs font-medium">{getEffectiveSkillRating(player)}</span>
+              </div>
+            </div>
+          ))}
+          {players.length > 3 && (
+            <div className="text-xs text-gray-500 py-0.5">
+              +{players.length - 3} more...
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 pt-0.5">
+          <Move className="h-3 w-3 text-gray-400 flex-shrink-0" />
+          <Select onValueChange={(value) => {
+            // Move all players in the group
+            players.forEach(player => {
+              onMove(player.id, value === 'null' ? null : value);
+            });
+          }}>
+            <SelectTrigger className="h-6 text-xs">
+              <SelectValue placeholder="Move..." />
+            </SelectTrigger>
+            <SelectContent>
+              {moveOptions.map((option, index) => (
+                <SelectItem
+                  key={index}
+                  value={option.value || 'null'}
+                  disabled={option.disabled}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function FullScreenPlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playerGroups }: FullScreenPlayerCardProps) {
@@ -551,7 +785,7 @@ function FullScreenPlayerCard({ player, moveOptions, onMove, onDragStart, onDrag
 
   return (
     <div
-      className="bg-white border rounded-lg cursor-move hover:shadow-md transition-shadow relative p-2"
+      className="bg-white border rounded-lg cursor-move hover:shadow-md transition-shadow relative p-1.5"
       style={isInGroup ? {
         borderColor: groupColor,
         borderWidth: '2px',
@@ -574,8 +808,8 @@ function FullScreenPlayerCard({ player, moveOptions, onMove, onDragStart, onDrag
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-1">
-        <div className="font-medium flex items-center gap-1 text-sm break-words min-w-0 flex-1 pr-2">
+      <div className="flex items-center justify-between mb-0.5">
+        <div className="font-medium flex items-center gap-1 text-xs break-words min-w-0 flex-1 pr-1">
           {player.name}
           {isInGroup && (
             <span title={`Group ${groupLabel} - ${playerGroup?.players.length} players`}>
@@ -583,18 +817,29 @@ function FullScreenPlayerCard({ player, moveOptions, onMove, onDragStart, onDrag
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <Badge variant="outline" className="text-xs">{player.gender}</Badge>
-          <Badge className={`text-xs ${getSkillLevelColor(player.skillRating)}`}>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          <Badge variant="outline" className="text-xs px-1 py-0">{player.gender}</Badge>
+          <Badge className={`text-xs px-1 py-0 ${getSkillLevelColor(player.skillRating)}`}>
             {player.skillRating}
           </Badge>
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
-        <Move className="h-3 w-3 text-gray-400 flex-shrink-0" />
-        <Select onValueChange={(value) => onMove(player.id, value === 'null' ? null : value)}>
-          <SelectTrigger className="h-6 text-xs">
+      <div className="flex items-center gap-0.5">
+        <Move className="h-2.5 w-2.5 text-gray-400 flex-shrink-0" />
+        <Select onValueChange={(value) => {
+          const playerGroup = getPlayerGroup(playerGroups, player.id);
+          if (playerGroup) {
+            // Move entire group
+            playerGroup.players.forEach(groupPlayer => {
+              onMove(groupPlayer.id, value === 'null' ? null : value);
+            });
+          } else {
+            // Move individual player
+            onMove(player.id, value === 'null' ? null : value);
+          }
+        }}>
+          <SelectTrigger className="h-5 text-xs px-1">
             <SelectValue placeholder="Move to..." />
           </SelectTrigger>
           <SelectContent>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
-import { Player, Gender } from '@/types';
+import { Player, Gender, getEffectiveSkillRating } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -60,7 +60,7 @@ interface PlayerRosterProps {
   onPlayerRemove?: (playerId: string) => void;
 }
 
-type SortField = 'name' | 'gender' | 'skillRating' | 'execSkillRating' | 'email';
+type SortField = 'name' | 'gender' | 'skillRating' | 'email';
 type SortDirection = 'asc' | 'desc';
 
 export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRemove }: PlayerRosterProps) {
@@ -88,6 +88,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
   // Autocomplete state for editing player
   const [teammateSearchOpen, setTeammateSearchOpen] = useState(false);
   const [avoidSearchOpen, setAvoidSearchOpen] = useState(false);
+  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
 
   // Create debounced search handler
   const debouncedSearchRef = useRef(
@@ -126,12 +127,8 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
           bValue = b.gender;
           break;
         case 'skillRating':
-          aValue = a.skillRating;
-          bValue = b.skillRating;
-          break;
-        case 'execSkillRating':
-          aValue = a.execSkillRating;
-          bValue = b.execSkillRating;
+          aValue = getEffectiveSkillRating(a);
+          bValue = getEffectiveSkillRating(b);
           break;
         case 'email':
           aValue = (a.email || '').toLowerCase();
@@ -204,7 +201,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
     
     // Use exec rating if available, otherwise use skill rating for percentile calculations
     const sortedSkills = players
-      .map(p => p.execSkillRating !== null ? p.execSkillRating : p.skillRating)
+      .map(p => getEffectiveSkillRating(p))
       .sort((a, b) => b - a);
     const getPercentile = (percentile: number) => {
       const index = Math.floor((percentile / 100) * sortedSkills.length);
@@ -223,7 +220,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
   const getSkillGroup = (player: Player) => {
     const thresholds = getSkillGroupThresholds(players);
     // Use exec rating if available, otherwise use skill rating
-    const skill = player.execSkillRating !== null ? player.execSkillRating : player.skillRating;
+    const skill = getEffectiveSkillRating(player);
     
     if (skill >= thresholds.elite) return 'Elite';
     if (skill >= thresholds.good) return 'Good';
@@ -449,6 +446,17 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
     }
   }, [onPlayerRemove]);
 
+  const handleDeleteAllPlayers = useCallback(() => {
+    if (onPlayerRemove && players.length > 0) {
+      // Remove all players one by one
+      players.forEach(player => {
+        onPlayerRemove(player.id);
+      });
+      setIsDeleteAllOpen(false);
+      toast.success(`All ${players.length} players removed from roster`);
+    }
+  }, [onPlayerRemove, players]);
+
   // Helper functions for autocomplete
   const getAvailablePlayersForTeammate = (currentPlayer: Player) => {
     return players.filter(p => 
@@ -651,6 +659,36 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                 <Download className="h-4 w-4" />
                 Export Rosters
               </Button>
+              {onPlayerRemove && (
+                <Dialog open={isDeleteAllOpen} onOpenChange={setIsDeleteAllOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      disabled={players.length === 0}
+                      className="flex items-center gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete All Players
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Delete All Players</DialogTitle>
+                      <DialogDescription>
+                        Are you sure you want to delete all {players.length} players from the roster? This action cannot be undone.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsDeleteAllOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button variant="destructive" onClick={handleDeleteAllPlayers}>
+                        Delete All Players
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -714,15 +752,9 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                       {getSortIcon('skillRating')}
                     </div>
                   </TableHead>
-                  <TableHead
-                    className="cursor-pointer hover:bg-gray-50 select-none w-[8%] px-2"
-                    onClick={() => handleSort('execSkillRating')}
-                  >
-                    <div className="flex items-center gap-1 text-xs">
-                      <span className="hidden sm:inline">Exec</span>
-                      <span className="sm:hidden">Ex</span>
-                      {getSortIcon('execSkillRating')}
-                    </div>
+                  <TableHead className="w-[8%] px-2 text-xs">
+                    <span className="hidden sm:inline">Exec</span>
+                    <span className="sm:hidden">Ex</span>
                   </TableHead>
                   <TableHead className="w-[8%] px-2 text-xs">
                     <span className="hidden sm:inline">Group</span>
@@ -789,7 +821,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                           </Button>
                         </div>
                       ) : (
-                        <div 
+                        <div
                           className="flex items-center gap-2 cursor-pointer p-1 rounded"
                           style={getSkillGradientStyle(player.skillRating)}
                           onClick={() => {
@@ -798,7 +830,16 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                           }}
                         >
                           <span className="font-medium">{player.skillRating}</span>
-                          <Edit2 className="h-3 w-3 opacity-60" />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Edit2 className="h-3 w-3 opacity-60" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Skill: {player.skillRating} | Exec: {player.execSkillRating ?? 'N/A'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       )}
                     </TableCell>
@@ -837,16 +878,11 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                         </div>
                       ) : (
                         <div
-                          className="flex items-center gap-2 cursor-pointer p-1 rounded"
+                          className="flex items-center gap-2 cursor-pointer p-1 rounded min-h-[32px]"
                           style={player.execSkillRating !== null ? getSkillGradientStyle(player.execSkillRating) : {}}
                           onClick={() => {
-                            if (player.execSkillRating !== null) {
-                              setEditingExecSkill(player.id);
-                              setExecSkillValue(player.execSkillRating.toString());
-                            } else {
-                              setEditingExecSkill(player.id);
-                              setExecSkillValue(player.skillRating.toString());
-                            }
+                            setEditingExecSkill(player.id);
+                            setExecSkillValue(player.execSkillRating !== null ? player.execSkillRating.toString() : '');
                           }}
                         >
                           <span className="font-medium">

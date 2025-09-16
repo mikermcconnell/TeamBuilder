@@ -1,6 +1,15 @@
 import { Player, CSVValidationResult, CSVRow, Gender, PlayerGroup } from '@/types';
 import { processMutualRequests } from './playerGrouping';
 
+// CSV format types for automatic detection
+type CSVFormat = 'legacy' | 'registration';
+
+interface FormatDetectionResult {
+  format: CSVFormat;
+  confidence: number;
+  detectedColumns: string[];
+}
+
 export function parseCSV(csvText: string): CSVRow[] {
   const lines = csvText.trim().split('\n');
   if (lines.length < 2) return [];
@@ -49,6 +58,49 @@ function parseCSVLine(line: string): string[] {
   return result.map(val => val.trim());
 }
 
+/**
+ * Detect CSV format by analyzing column headers
+ */
+function detectCSVFormat(headers: string[]): FormatDetectionResult {
+  const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+
+  // Registration format indicators
+  const hasFirstName = normalizedHeaders.some(h => h.includes('first') && h.includes('name'));
+  const hasLastName = normalizedHeaders.some(h => h.includes('last') && h.includes('name'));
+  const hasStatus = normalizedHeaders.some(h => h.includes('status'));
+  const hasPlayerRequests = normalizedHeaders.some(h => h.includes('player_request') || h.includes('player request'));
+  const hasSkillOnly = normalizedHeaders.some(h => h === 'skill' && !h.includes('rating'));
+
+  // Legacy format indicators
+  const hasSingleName = normalizedHeaders.some(h => h === 'name' || (h.includes('name') && !h.includes('first') && !h.includes('last')));
+  const hasTeammateRequests = normalizedHeaders.some(h => h.includes('teammate'));
+  const hasAvoidRequests = normalizedHeaders.some(h => h.includes('avoid'));
+
+  // Calculate confidence scores
+  const registrationScore = (hasFirstName ? 1 : 0) + (hasLastName ? 1 : 0) + (hasStatus ? 1 : 0) + (hasPlayerRequests ? 1 : 0) + (hasSkillOnly ? 0.5 : 0);
+  const legacyScore = (hasSingleName ? 1 : 0) + (hasTeammateRequests ? 1 : 0) + (hasAvoidRequests ? 0.5 : 0);
+
+  if (registrationScore > legacyScore && registrationScore >= 2) {
+    return {
+      format: 'registration',
+      confidence: Math.min(registrationScore / 4, 1),
+      detectedColumns: normalizedHeaders.filter(h =>
+        h.includes('first') || h.includes('last') || h.includes('status') ||
+        h.includes('player_request') || h.includes('player request') || h === 'skill'
+      )
+    };
+  } else {
+    return {
+      format: 'legacy',
+      confidence: Math.min(Math.max(legacyScore / 2.5, 0.5), 1), // Minimum confidence for legacy
+      detectedColumns: normalizedHeaders.filter(h =>
+        h.includes('name') || h.includes('teammate') || h.includes('avoid') ||
+        h.includes('skill') || h.includes('gender') || h.includes('email')
+      )
+    };
+  }
+}
+
 export function validateAndProcessCSV(csvText: string): CSVValidationResult {
   const result: CSVValidationResult = {
     isValid: false,
@@ -60,186 +112,367 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
 
   try {
     const rows = parseCSV(csvText);
-    
+
     if (rows.length === 0) {
       result.errors.push('CSV file is empty or contains no data rows');
       return result;
     }
 
-    // Check required columns
+    // Detect CSV format
     const firstRow = rows[0];
     const headers = Object.keys(firstRow);
-    
-    const requiredColumns = ['name'];
-    const optionalColumns = ['gender', 'skill rating', 'exec skill rating', 'teammate requests', 'avoid requests', 'email'];
-    
-    const missingRequired = requiredColumns.filter(col => 
-      !headers.some(h => h.includes(col.split(' ')[0]))
-    );
-    
-    if (missingRequired.length > 0) {
-      result.errors.push(`Missing required columns: ${missingRequired.join(', ')}`);
-      return result;
-    }
+    const formatDetection = detectCSVFormat(headers);
 
-    // Find column mappings
-    const nameCol = headers.find(h => h.includes('name')) || '';
-    const genderCol = headers.find(h => h.includes('gender')) || '';
-    const skillCol = headers.find(h => h.includes('skill') && !h.includes('exec')) || '';
-    const execSkillCol = headers.find(h => h.includes('exec') && h.includes('skill')) || '';
-    const teammateCol = headers.find(h => h.includes('teammate')) || '';
-    const avoidCol = headers.find(h => h.includes('avoid')) || '';
-    const emailCol = headers.find(h => h.includes('email')) || '';
+    // Add format detection info to warnings (informational)
+    result.warnings.push(`Detected ${formatDetection.format} CSV format (confidence: ${Math.round(formatDetection.confidence * 100)}%)`);
 
-    const seenNames = new Set<string>();
-    const players: Player[] = [];
-    let actualRowNumber = 2; // Start from row 2 (after header)
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-
-      // Skip rows that are completely empty or only have whitespace
-      const hasAnyContent = Object.values(row).some(val => val && val.trim());
-      if (!hasAnyContent) {
-        continue;
-      }
-
-      // Validate name
-      const name = row[nameCol]?.trim();
-      if (!name) {
-        result.errors.push(`Row ${actualRowNumber}: Missing player name`);
-        actualRowNumber++;
-        continue;
-      }
-
-      if (seenNames.has(name.toLowerCase())) {
-        result.errors.push(`Row ${actualRowNumber}: Duplicate player name "${name}"`);
-        actualRowNumber++;
-        continue;
-      }
-      seenNames.add(name.toLowerCase());
-
-      // Handle gender (optional)
-      let gender: Gender = 'Other';
-      if (genderCol) {
-        const genderStr = row[genderCol]?.trim().toUpperCase();
-        if (genderStr === 'M' || genderStr === 'MALE') gender = 'M';
-        else if (genderStr === 'F' || genderStr === 'FEMALE') gender = 'F';
-        else if (genderStr && genderStr !== 'OTHER') {
-          result.warnings.push(`Row ${actualRowNumber}: Unknown gender "${genderStr}", defaulting to "Other"`);
-        }
-      }
-
-      // Handle skill rating (optional)
-      let skillRating = 5; // Default to middle value
-      if (skillCol) {
-        const skillStr = row[skillCol]?.trim();
-        if (skillStr) {
-          const skill = parseFloat(skillStr);
-          if (isNaN(skill)) {
-            result.warnings.push(`Row ${actualRowNumber}: Invalid skill rating "${skillStr}", defaulting to 5`);
-          } else {
-            if (skill < 0 || skill > 10) {
-              result.warnings.push(`Row ${actualRowNumber}: Skill rating ${skill} outside typical range (0-10)`);
-            }
-            skillRating = skill;
-          }
-        }
-      }
-
-      // Handle exec skill rating (optional)
-      let execSkillRating: number | null = null; // Default to null (N/A) for new players
-      if (execSkillCol) {
-        const execSkillStr = row[execSkillCol]?.trim();
-        if (execSkillStr && execSkillStr.toLowerCase() !== 'n/a') {
-          const execSkill = parseFloat(execSkillStr);
-          if (isNaN(execSkill)) {
-            result.warnings.push(`Row ${actualRowNumber}: Invalid exec skill rating "${execSkillStr}", setting to N/A`);
-            execSkillRating = null;
-          } else {
-            if (execSkill < 0 || execSkill > 10) {
-              result.warnings.push(`Row ${actualRowNumber}: Exec skill rating ${execSkill} outside typical range (0-10)`);
-            }
-            execSkillRating = execSkill;
-          }
-        }
-      }
-
-      // Parse teammate requests
-      const teammateRequests = parsePlayerList(row[teammateCol] || '');
-      const avoidRequests = parsePlayerList(row[avoidCol] || '');
-
-      // Handle email (optional)
-      let email: string | undefined;
-      if (emailCol) {
-        const emailStr = row[emailCol]?.trim();
-        if (emailStr) {
-          // Basic email validation
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (emailRegex.test(emailStr)) {
-            email = emailStr;
-          } else {
-            result.warnings.push(`Row ${actualRowNumber}: Invalid email format "${emailStr}"`);
-          }
-        }
-      }
-
-      const player: Player = {
-        id: generatePlayerId(name),
-        name,
-        gender,
-        skillRating,
-        execSkillRating,
-        teammateRequests,
-        avoidRequests,
-        ...(email && { email })
-      };
-
-      players.push(player);
-      actualRowNumber++;
-    }
-
-    // Validate teammate/avoid requests reference existing players
-    const playerNames = new Set(players.map(p => p.name.toLowerCase()));
-    
-    players.forEach(player => {
-      player.teammateRequests = player.teammateRequests.filter(name => {
-        const exists = playerNames.has(name.toLowerCase());
-        if (!exists) {
-          result.warnings.push(`Player "${player.name}": Teammate request "${name}" not found in roster`);
-        }
-        return exists;
-      });
-
-      player.avoidRequests = player.avoidRequests.filter(name => {
-        const exists = playerNames.has(name.toLowerCase());
-        if (!exists) {
-          result.warnings.push(`Player "${player.name}": Avoid request "${name}" not found in roster`);
-        }
-        return exists;
-      });
-    });
-
-    // Process mutual requests and create player groups
-    const { cleanedPlayers, playerGroups } = processMutualRequests(players);
-    
-    result.players = cleanedPlayers;
-    result.playerGroups = playerGroups;
-    result.isValid = result.errors.length === 0;
-
-    if (result.isValid && cleanedPlayers.length === 0) {
-      result.errors.push('No valid players found in CSV');
-      result.isValid = false;
-    }
-
-    // Add info about mutual requests processing
-    const groupedPlayerCount = playerGroups.reduce((sum, group) => sum + group.players.length, 0);
-    if (groupedPlayerCount > 0 && !result.warnings.some(w => w.includes('player groups'))) {
-      result.warnings.push(`Found ${playerGroups.length} player groups with ${groupedPlayerCount} players. Non-mutual requests have been removed.`);
+    // Process based on detected format
+    if (formatDetection.format === 'registration') {
+      return processRegistrationFormat(rows, result);
+    } else {
+      return processLegacyFormat(rows, result);
     }
 
   } catch (error) {
     result.errors.push(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+
+  return result;
+}
+
+/**
+ * Process legacy CSV format (existing format)
+ */
+function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVValidationResult {
+  const headers = Object.keys(rows[0]);
+
+  // Check required columns for legacy format
+  const requiredColumns = ['name'];
+  const missingRequired = requiredColumns.filter(col =>
+    !headers.some(h => h.toLowerCase().includes(col.split(' ')[0]))
+  );
+
+  if (missingRequired.length > 0) {
+    result.errors.push(`Missing required columns: ${missingRequired.join(', ')}`);
+    return result;
+  }
+
+  // Find column mappings
+  const nameCol = headers.find(h => h.toLowerCase().includes('name')) || '';
+  const genderCol = headers.find(h => h.toLowerCase().includes('gender')) || '';
+  const skillCol = headers.find(h => h.toLowerCase().includes('skill') && !h.toLowerCase().includes('exec')) || '';
+  const execSkillCol = headers.find(h => h.toLowerCase().includes('exec') && h.toLowerCase().includes('skill')) || '';
+  const teammateCol = headers.find(h => h.toLowerCase().includes('teammate')) || '';
+  const avoidCol = headers.find(h => h.toLowerCase().includes('avoid')) || '';
+  const emailCol = headers.find(h => h.toLowerCase().includes('email')) || '';
+
+  const seenNames = new Set<string>();
+  const players: Player[] = [];
+  let actualRowNumber = 2; // Start from row 2 (after header)
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
+    // Skip rows that are completely empty or only have whitespace
+    const hasAnyContent = Object.values(row).some(val => val && val.trim());
+    if (!hasAnyContent) {
+      continue;
+    }
+
+    // Validate name
+    const name = row[nameCol]?.trim();
+    if (!name) {
+      result.errors.push(`Row ${actualRowNumber}: Missing player name`);
+      actualRowNumber++;
+      continue;
+    }
+
+    if (seenNames.has(name.toLowerCase())) {
+      result.errors.push(`Row ${actualRowNumber}: Duplicate player name "${name}"`);
+      actualRowNumber++;
+      continue;
+    }
+    seenNames.add(name.toLowerCase());
+
+    // Handle gender (optional)
+    let gender: Gender = 'Other';
+    if (genderCol) {
+      const genderStr = row[genderCol]?.trim().toUpperCase();
+      if (genderStr === 'M' || genderStr === 'MALE') gender = 'M';
+      else if (genderStr === 'F' || genderStr === 'FEMALE') gender = 'F';
+      else if (genderStr && genderStr !== 'OTHER') {
+        result.warnings.push(`Row ${actualRowNumber}: Unknown gender "${genderStr}", defaulting to "Other"`);
+      }
+    }
+
+    // Handle skill rating (optional)
+    let skillRating = 5; // Default to middle value
+    if (skillCol) {
+      const skillStr = row[skillCol]?.trim();
+      if (skillStr) {
+        const skill = parseFloat(skillStr);
+        if (isNaN(skill)) {
+          result.warnings.push(`Row ${actualRowNumber}: Invalid skill rating "${skillStr}", defaulting to 5`);
+        } else {
+          if (skill < 0 || skill > 10) {
+            result.warnings.push(`Row ${actualRowNumber}: Skill rating ${skill} outside typical range (0-10)`);
+          }
+          skillRating = skill;
+        }
+      }
+    }
+
+    // Handle exec skill rating (optional)
+    let execSkillRating: number | null = null; // Default to null (N/A) for new players
+    if (execSkillCol) {
+      const execSkillStr = row[execSkillCol]?.trim();
+      if (execSkillStr && execSkillStr.toLowerCase() !== 'n/a') {
+        const execSkill = parseFloat(execSkillStr);
+        if (isNaN(execSkill)) {
+          result.warnings.push(`Row ${actualRowNumber}: Invalid exec skill rating "${execSkillStr}", setting to N/A`);
+          execSkillRating = null;
+        } else {
+          if (execSkill < 0 || execSkill > 10) {
+            result.warnings.push(`Row ${actualRowNumber}: Exec skill rating ${execSkill} outside typical range (0-10)`);
+          }
+          execSkillRating = execSkill;
+        }
+      }
+    }
+
+    // Parse teammate requests
+    const teammateRequests = parsePlayerList(row[teammateCol] || '');
+    const avoidRequests = parsePlayerList(row[avoidCol] || '');
+
+    // Handle email (optional)
+    let email: string | undefined;
+    if (emailCol) {
+      const emailStr = row[emailCol]?.trim();
+      if (emailStr) {
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailRegex.test(emailStr)) {
+          email = emailStr;
+        } else {
+          result.warnings.push(`Row ${actualRowNumber}: Invalid email format "${emailStr}"`);
+        }
+      }
+    }
+
+    const player: Player = {
+      id: generatePlayerId(name),
+      name,
+      gender,
+      skillRating,
+      execSkillRating,
+      teammateRequests,
+      avoidRequests,
+      ...(email && { email })
+    };
+
+    players.push(player);
+    actualRowNumber++;
+  }
+
+  return finalizePlayers(players, result);
+}
+
+/**
+ * Process new registration CSV format
+ */
+function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult): CSVValidationResult {
+  const headers = Object.keys(rows[0]);
+
+  // Check required columns for registration format
+  const requiredColumns = ['first_name', 'last_name'];
+  const missingRequired = requiredColumns.filter(col =>
+    !headers.some(h => h.toLowerCase().includes(col.split('_').join(' ')) || h.toLowerCase().includes(col))
+  );
+
+  if (missingRequired.length > 0) {
+    result.errors.push(`Missing required columns for registration format: ${missingRequired.join(', ')}`);
+    return result;
+  }
+
+  // Find column mappings for registration format
+  const firstNameCol = headers.find(h => h.toLowerCase().includes('first') && h.toLowerCase().includes('name')) || '';
+  const lastNameCol = headers.find(h => h.toLowerCase().includes('last') && h.toLowerCase().includes('name')) || '';
+  const statusCol = headers.find(h => h.toLowerCase().includes('status')) || '';
+  const genderCol = headers.find(h => h.toLowerCase().includes('gender')) || '';
+  const skillCol = headers.find(h => h.toLowerCase() === 'skill') || '';
+  const execCol = headers.find(h => h.toLowerCase() === 'exec') || '';
+
+  // Find player request columns (Player_Request_#1, Player_Request_#2, Player_Request_#3)
+  const playerRequestCols = headers.filter(h =>
+    h.toLowerCase().includes('player') &&
+    (h.toLowerCase().includes('request') || h.toLowerCase().includes('_request'))
+  );
+
+  const seenNames = new Set<string>();
+  const players: Player[] = [];
+  let actualRowNumber = 2; // Start from row 2 (after header)
+  let filteredOutCount = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
+    // Skip rows that are completely empty or only have whitespace
+    const hasAnyContent = Object.values(row).some(val => val && val.trim());
+    if (!hasAnyContent) {
+      continue;
+    }
+
+    // Filter by status if status column exists
+    if (statusCol) {
+      const status = row[statusCol]?.trim().toLowerCase();
+      if (status && status !== 'accepted') {
+        filteredOutCount++;
+        actualRowNumber++;
+        continue;
+      }
+    }
+
+    // Combine first and last name
+    const firstName = row[firstNameCol]?.trim() || '';
+    const lastName = row[lastNameCol]?.trim() || '';
+    const name = `${firstName} ${lastName}`.trim();
+
+    if (!name || name === ' ') {
+      result.errors.push(`Row ${actualRowNumber}: Missing player name (both first_name and last_name are empty)`);
+      actualRowNumber++;
+      continue;
+    }
+
+    if (seenNames.has(name.toLowerCase())) {
+      result.errors.push(`Row ${actualRowNumber}: Duplicate player name "${name}"`);
+      actualRowNumber++;
+      continue;
+    }
+    seenNames.add(name.toLowerCase());
+
+    // Handle gender - convert from "male"/"female" to "M"/"F"
+    let gender: Gender = 'Other';
+    if (genderCol) {
+      const genderStr = row[genderCol]?.trim().toLowerCase();
+      if (genderStr === 'male' || genderStr === 'm') gender = 'M';
+      else if (genderStr === 'female' || genderStr === 'f') gender = 'F';
+      else if (genderStr && genderStr !== 'other') {
+        result.warnings.push(`Row ${actualRowNumber}: Unknown gender "${genderStr}", defaulting to "Other"`);
+      }
+    }
+
+    // Handle skill rating - always use the Skill column for player skill display
+    let skillRating = 5; // Default to middle value
+    if (skillCol) {
+      const skillStr = row[skillCol]?.trim();
+      if (skillStr) {
+        const skill = parseFloat(skillStr);
+        if (isNaN(skill)) {
+          result.warnings.push(`Row ${actualRowNumber}: Invalid skill rating "${skillStr}", defaulting to 5`);
+        } else {
+          if (skill < 0 || skill > 10) {
+            result.warnings.push(`Row ${actualRowNumber}: Skill rating ${skill} outside typical range (0-10)`);
+          }
+          skillRating = skill;
+        }
+      }
+    }
+
+    // Handle exec skill rating separately
+    let execSkillRating: number | null = null;
+    if (execCol) {
+      const execStr = row[execCol]?.trim();
+      if (execStr) {
+        const exec = parseFloat(execStr);
+        if (!isNaN(exec) && exec > 0) {
+          execSkillRating = exec;
+          if (exec < 0 || exec > 10) {
+            result.warnings.push(`Row ${actualRowNumber}: Exec rating ${exec} outside typical range (0-10)`);
+          }
+        }
+        // If exec = 0 or invalid, execSkillRating remains null
+      }
+    }
+
+    // Combine player requests from multiple columns
+    const teammateRequests: string[] = [];
+    playerRequestCols.forEach(col => {
+      const request = row[col]?.trim();
+      if (request) {
+        teammateRequests.push(request);
+      }
+    });
+
+    const player: Player = {
+      id: generatePlayerId(name),
+      name,
+      gender,
+      skillRating,
+      execSkillRating, // Will be set to exec value if exec > 0, otherwise null
+      teammateRequests,
+      avoidRequests: [], // Not provided in registration format
+      // email not provided in registration format
+    };
+
+    players.push(player);
+    actualRowNumber++;
+  }
+
+  // Add info about filtering
+  if (filteredOutCount > 0) {
+    result.warnings.push(`Filtered out ${filteredOutCount} players with status other than "accepted"`);
+  }
+
+  if (playerRequestCols.length > 0) {
+    result.warnings.push(`Combined ${playerRequestCols.length} player request columns into teammate requests`);
+  }
+
+  result.warnings.push('Registration format detected - avoid requests and email not available');
+
+  return finalizePlayers(players, result);
+}
+
+/**
+ * Shared logic for finalizing player processing
+ */
+function finalizePlayers(players: Player[], result: CSVValidationResult): CSVValidationResult {
+  // Validate teammate/avoid requests reference existing players
+  const playerNames = new Set(players.map(p => p.name.toLowerCase()));
+
+  players.forEach(player => {
+    player.teammateRequests = player.teammateRequests.filter(name => {
+      const exists = playerNames.has(name.toLowerCase());
+      if (!exists) {
+        result.warnings.push(`Player "${player.name}": Teammate request "${name}" not found in roster`);
+      }
+      return exists;
+    });
+
+    player.avoidRequests = player.avoidRequests.filter(name => {
+      const exists = playerNames.has(name.toLowerCase());
+      if (!exists) {
+        result.warnings.push(`Player "${player.name}": Avoid request "${name}" not found in roster`);
+      }
+      return exists;
+    });
+  });
+
+  // Process mutual requests and create player groups
+  const { cleanedPlayers, playerGroups } = processMutualRequests(players);
+
+  result.players = cleanedPlayers;
+  result.playerGroups = playerGroups;
+  result.isValid = result.errors.length === 0;
+
+  if (result.isValid && cleanedPlayers.length === 0) {
+    result.errors.push('No valid players found in CSV');
+    result.isValid = false;
+  }
+
+  // Add info about mutual requests processing
+  const groupedPlayerCount = playerGroups.reduce((sum, group) => sum + group.players.length, 0);
+  if (groupedPlayerCount > 0 && !result.warnings.some(w => w.includes('player groups'))) {
+    result.warnings.push(`Found ${playerGroups.length} player groups with ${groupedPlayerCount} players. Non-mutual requests have been removed.`);
   }
 
   return result;

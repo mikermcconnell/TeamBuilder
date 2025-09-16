@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Player, Team, LeagueConfig, PlayerGroup } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, getEffectiveSkillRating } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -280,7 +280,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
   const getSortedPlayersByGender = (gender: 'M' | 'F'): Player[] => {
     return getNonGroupedPlayers()
       .filter(player => player.gender === gender)
-      .sort((a, b) => b.skillRating - a.skillRating); // Sort by skill rating descending
+      .sort((a, b) => getEffectiveSkillRating(b) - getEffectiveSkillRating(a)); // Sort by effective skill rating descending
   };
 
   // Manual mode layout
@@ -341,18 +341,21 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, null)}
                   >
-                    {unassignedGroupedPlayers.map((player) => (
-                      <PlayerCard
-                        key={player.id}
-                        player={player}
-                        moveOptions={getMoveOptions(player)}
-                        onMove={onPlayerMove}
-                        onDragStart={() => handleDragStart(player)}
-                        onDragEnd={handleDragEnd}
-                        playerGroups={playerGroups}
-                        compact={true}
-                      />
-                    ))}
+                    {playerGroups
+                      .filter(group => group.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id)))
+                      .map((group) => (
+                        <GroupCard
+                          key={group.id}
+                          group={group}
+                          players={group.players.filter(p => unassignedGroupedPlayers.some(up => up.id === p.id))}
+                          moveOptions={getMoveOptions(group.players[0])} // Use first player for move options
+                          onMove={onPlayerMove}
+                          onDragStart={() => handleDragStart(group.players[0])} // Drag first player, which will move whole group
+                          onDragEnd={handleDragEnd}
+                          playerGroups={playerGroups}
+                          compact={true}
+                        />
+                      ))}
                   </div>
                 </CardContent>
               </Card>
@@ -882,6 +885,17 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
   );
 }
 
+interface GroupCardProps {
+  group: PlayerGroup;
+  players: Player[];
+  moveOptions: Array<{ value: string | null; label: string; disabled: boolean }>;
+  onMove: (playerId: string, targetTeamId: string | null) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  playerGroups: PlayerGroup[];
+  compact?: boolean;
+}
+
 interface PlayerCardProps {
   player: Player;
   moveOptions: Array<{ value: string | null; label: string; disabled: boolean }>;
@@ -890,6 +904,110 @@ interface PlayerCardProps {
   onDragEnd: () => void;
   playerGroups: PlayerGroup[];
   compact?: boolean;
+}
+
+function GroupCard({ group, players, moveOptions, onMove, onDragStart, onDragEnd, playerGroups, compact = false }: GroupCardProps) {
+  const groupLabel = getPlayerGroupLabel(playerGroups, players[0]?.id);
+  const groupColor = getPlayerGroupColor(playerGroups, players[0]?.id);
+
+  const getSkillLevelColor = (skill: number): string => {
+    if (skill >= 8) return 'text-white bg-green-800';
+    if (skill >= 6) return 'text-white bg-green-600';
+    if (skill >= 4) return 'text-black bg-green-200';
+    return 'text-black bg-gray-100';
+  };
+
+  // Calculate average skill rating for the group
+  const calculateAverageSkill = (): number => {
+    if (players.length === 0) return 0;
+    const totalSkill = players.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0);
+    return Math.round((totalSkill / players.length) * 10) / 10; // Round to 1 decimal place
+  };
+
+  const averageSkill = calculateAverageSkill();
+
+  return (
+    <div
+      className={`bg-white border-2 rounded-lg cursor-move hover:shadow-md transition-shadow relative ${compact ? 'p-2' : 'p-3'}`}
+      style={{
+        borderColor: groupColor,
+        backgroundColor: `${groupColor}08`
+      }}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
+    >
+      {/* Group label in top corner */}
+      <div
+        className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs"
+        style={{ backgroundColor: groupColor }}
+      >
+        {groupLabel}
+      </div>
+
+      <div className={compact ? 'space-y-1' : 'space-y-2'}>
+        <div className={`flex items-center justify-between ${compact ? 'gap-1' : 'gap-2'}`}>
+          <div className={`font-bold ${compact ? 'text-xs' : 'text-sm'}`} style={{ color: groupColor }}>
+            Group {groupLabel} ({players.length} players)
+          </div>
+          <div className={`flex items-center gap-1 ${compact ? 'text-xs' : 'text-sm'}`}>
+            <Badge className={`${compact ? "text-[10px] h-4 px-1" : "text-xs"} ${getSkillLevelColor(averageSkill)}`}>
+              Avg: {averageSkill}
+            </Badge>
+          </div>
+        </div>
+
+        {/* List all players in the group */}
+        <div className="space-y-1">
+          {players.map((player, index) => (
+            <div key={player.id} className={`flex items-center justify-between ${compact ? 'text-xs' : 'text-sm'} p-1 rounded`}>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="font-medium truncate" title={player.name}>
+                  {player.name}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Badge variant="outline" className={compact ? "text-[10px] h-4 px-1" : "text-xs"}>{player.gender}</Badge>
+                <Badge className={`${compact ? "text-[10px] h-4 px-1" : "text-xs"} ${getSkillLevelColor(getEffectiveSkillRating(player))}`}>
+                  {getEffectiveSkillRating(player)}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {!compact && (
+          <div className="flex items-center gap-2 pt-1">
+            <Move className="h-3 w-3 text-gray-400 flex-shrink-0" />
+            <Select onValueChange={(value) => {
+              // Move all players in the group
+              players.forEach(player => {
+                onMove(player.id, value === 'null' ? null : value);
+              });
+            }}>
+              <SelectTrigger className="h-7 text-xs">
+                <SelectValue placeholder="Move group to..." />
+              </SelectTrigger>
+              <SelectContent>
+                {moveOptions.map((option, index) => (
+                  <SelectItem
+                    key={index}
+                    value={option.value || 'null'}
+                    disabled={option.disabled}
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playerGroups, compact = false }: PlayerCardProps) {
@@ -937,8 +1055,8 @@ function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playe
           </div>
           <div className="flex items-center gap-0.5 flex-shrink-0">
             <Badge variant="outline" className={compact ? "text-[10px] h-5 px-1" : "text-xs"}>{player.gender}</Badge>
-            <Badge className={`${compact ? "text-[10px] h-5 px-1" : "text-xs"} ${getSkillLevelColor(player.skillRating)}`}>
-              {player.skillRating}
+            <Badge className={`${compact ? "text-[10px] h-5 px-1" : "text-xs"} ${getSkillLevelColor(getEffectiveSkillRating(player))}`}>
+              {getEffectiveSkillRating(player)}
             </Badge>
           </div>
         </div>
