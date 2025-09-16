@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
 import { Player, Gender } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,6 +50,8 @@ import {
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { debounce } from '@/utils/performance';
+import { validatePlayerName, validateSkillRating } from '@/utils/validation';
 
 interface PlayerRosterProps {
   players: Player[];
@@ -58,11 +60,12 @@ interface PlayerRosterProps {
   onPlayerRemove?: (playerId: string) => void;
 }
 
-type SortField = 'name' | 'gender' | 'skillRating' | 'email';
+type SortField = 'name' | 'gender' | 'skillRating' | 'execSkillRating' | 'email';
 type SortDirection = 'asc' | 'desc';
 
 export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRemove }: PlayerRosterProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [internalSearchTerm, setInternalSearchTerm] = useState('');
   const [genderFilter, setGenderFilter] = useState<Gender | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -70,6 +73,8 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
   const [skillValue, setSkillValue] = useState('');
+  const [editingExecSkill, setEditingExecSkill] = useState<string | null>(null);
+  const [execSkillValue, setExecSkillValue] = useState('');
   const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
   const [newPlayer, setNewPlayer] = useState({
     name: '',
@@ -84,15 +89,30 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
   const [teammateSearchOpen, setTeammateSearchOpen] = useState(false);
   const [avoidSearchOpen, setAvoidSearchOpen] = useState(false);
 
-  // Filter and sort players
-  const filteredAndSortedPlayers = useMemo(() => {
-    let filtered = players.filter(player => {
+  // Create debounced search handler
+  const debouncedSearchRef = useRef(
+    debounce((value: string) => {
+      setSearchTerm(value);
+    }, 300)
+  );
+
+  // Handle search input change with debouncing
+  const handleSearchChange = useCallback((value: string) => {
+    setInternalSearchTerm(value);
+    debouncedSearchRef.current(value);
+  }, []);
+
+  // Split filtering and sorting into separate memos for better performance
+  const filteredPlayers = useMemo(() => {
+    return players.filter(player => {
       const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesGender = genderFilter === 'all' || player.gender === genderFilter;
       return matchesSearch && matchesGender;
     });
+  }, [players, searchTerm, genderFilter]);
 
-    return filtered.sort((a, b) => {
+  const filteredAndSortedPlayers = useMemo(() => {
+    return [...filteredPlayers].sort((a, b) => {
       let aValue: string | number;
       let bValue: string | number;
 
@@ -108,6 +128,10 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
         case 'skillRating':
           aValue = a.skillRating;
           bValue = b.skillRating;
+          break;
+        case 'execSkillRating':
+          aValue = a.execSkillRating;
+          bValue = b.execSkillRating;
           break;
         case 'email':
           aValue = (a.email || '').toLowerCase();
@@ -128,46 +152,60 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
           : (bValue as number) - (aValue as number);
       }
     });
-  }, [players, searchTerm, genderFilter, sortField, sortDirection]);
+  }, [filteredPlayers, sortField, sortDirection]);
 
-  const handleSort = (field: SortField) => {
+  const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
-  };
+  }, [sortField, sortDirection]);
 
-  const getSortIcon = (field: SortField) => {
+  const getSortIcon = useCallback((field: SortField) => {
     if (sortField !== field) return null;
     return sortDirection === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />;
-  };
+  }, [sortField, sortDirection]);
 
-  const getGenderStats = () => {
+  const getGenderStats = useMemo(() => {
     const stats = { M: 0, F: 0, Other: 0 };
     players.forEach(player => {
       stats[player.gender]++;
     });
     return stats;
-  };
+  }, [players]);
 
   const getSkillStats = () => {
-    if (players.length === 0) return { min: 0, max: 0, avg: 0 };
-    
+    if (players.length === 0) return { min: 0, max: 0, avg: 0, execMin: 0, execMax: 0, execAvg: 0 };
+
     const skills = players.map(p => p.skillRating);
+    const execSkills = players.map(p => p.execSkillRating).filter(rating => rating !== null) as number[];
     const min = Math.min(...skills);
     const max = Math.max(...skills);
     const avg = skills.reduce((sum, skill) => sum + skill, 0) / skills.length;
-    
-    return { min, max, avg: Math.round(avg * 10) / 10 };
+
+    // Only calculate exec stats if we have any exec ratings
+    const execMin = execSkills.length > 0 ? Math.min(...execSkills) : 0;
+    const execMax = execSkills.length > 0 ? Math.max(...execSkills) : 0;
+    const execAvg = execSkills.length > 0
+      ? execSkills.reduce((sum, skill) => sum + skill, 0) / execSkills.length
+      : 0;
+
+    return {
+      min, max, avg: Math.round(avg * 10) / 10,
+      execMin, execMax, execAvg: Math.round(execAvg * 10) / 10
+    };
   };
 
   // Calculate skill group thresholds based on player percentiles
   const getSkillGroupThresholds = (players: Player[]) => {
     if (players.length === 0) return { elite: 8, good: 6, mid: 4, beginner: 2 };
     
-    const sortedSkills = players.map(p => p.skillRating).sort((a, b) => b - a);
+    // Use exec rating if available, otherwise use skill rating for percentile calculations
+    const sortedSkills = players
+      .map(p => p.execSkillRating !== null ? p.execSkillRating : p.skillRating)
+      .sort((a, b) => b - a);
     const getPercentile = (percentile: number) => {
       const index = Math.floor((percentile / 100) * sortedSkills.length);
       return sortedSkills[Math.min(index, sortedSkills.length - 1)];
@@ -184,7 +222,8 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
 
   const getSkillGroup = (player: Player) => {
     const thresholds = getSkillGroupThresholds(players);
-    const skill = player.skillRating;
+    // Use exec rating if available, otherwise use skill rating
+    const skill = player.execSkillRating !== null ? player.execSkillRating : player.skillRating;
     
     if (skill >= thresholds.elite) return 'Elite';
     if (skill >= thresholds.good) return 'Good';
@@ -286,17 +325,18 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
     };
   };
 
-  const genderStats = getGenderStats();
+  const genderStats = getGenderStats;
   const skillStats = getSkillStats();
 
   const handleExportRosters = () => {
-    const headers = ['Name', 'Gender', 'Skill Rating', 'Skill Group', 'Teammate Requests', 'Avoid Requests'];
+    const headers = ['Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Skill Group', 'Teammate Requests', 'Avoid Requests'];
     const csvContent = [
       headers.join(','),
       ...players.map(player => [
         `"${player.name}"`,
         player.gender,
         player.skillRating,
+        player.execSkillRating,
         getSkillGroup(player),
         `"${player.teammateRequests.join('; ')}"`,
         `"${player.avoidRequests.join('; ')}"`
@@ -315,26 +355,49 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
     toast.success('Player roster exported successfully');
   };
 
-  const handleSkillEdit = (player: Player, newValue: string) => {
-    const skillRating = Math.min(10, Math.max(0, parseFloat(newValue) || 0));
-    onPlayerUpdate({ ...player, skillRating });
-    setEditingSkill(null);
-    toast.success('Skill rating updated');
-  };
+  // Create debounced skill update handler
+  const debouncedSkillUpdateRef = useRef(
+    debounce((player: Player, skillRating: number) => {
+      onPlayerUpdate({ ...player, skillRating });
+      toast.success('Skill rating updated');
+    }, 500)
+  );
 
-  const handleSkillKeyDown = (e: React.KeyboardEvent, player: Player, value: string) => {
+  // Create debounced exec skill update handler
+  const debouncedExecSkillUpdateRef = useRef(
+    debounce((player: Player, execSkillRating: number | null) => {
+      onPlayerUpdate({ ...player, execSkillRating });
+      toast.success('Exec skill rating updated');
+    }, 500)
+  );
+
+  const handleSkillEdit = useCallback((player: Player, newValue: string) => {
+    const skillRating = validateSkillRating(parseFloat(newValue) || 0);
+    setSkillValue(skillRating.toString());
+    debouncedSkillUpdateRef.current(player, skillRating);
+    setEditingSkill(null);
+  }, []);
+
+  const handleExecSkillEdit = useCallback((player: Player, newValue: string) => {
+    const execSkillRating = newValue ? validateSkillRating(parseFloat(newValue) || 0) : null;
+    setExecSkillValue(execSkillRating !== null ? execSkillRating.toString() : '');
+    debouncedExecSkillUpdateRef.current(player, execSkillRating);
+    setEditingExecSkill(null);
+  }, []);
+
+  const handleSkillKeyDown = useCallback((e: React.KeyboardEvent, player: Player, value: string) => {
     if (e.key === 'Enter') {
       handleSkillEdit(player, value);
     } else if (e.key === 'Escape') {
       setEditingSkill(null);
     }
-  };
+  }, [handleSkillEdit]);
 
   const generatePlayerId = (name: string): string => {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substr(2, 5);
   };
 
-  const handleAddPlayer = () => {
+  const handleAddPlayer = useCallback(() => {
     if (!newPlayer.name.trim()) {
       toast.error('Player name is required');
       return;
@@ -352,6 +415,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       name: newPlayer.name.trim(),
       gender: newPlayer.gender,
       skillRating: newPlayer.skillRating,
+      execSkillRating: null, // New players start with N/A
       teammateRequests: newPlayer.teammateRequests
         .split(',')
         .map(name => name.trim())
@@ -376,14 +440,14 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       });
       toast.success('Player added successfully');
     }
-  };
+  }, [newPlayer, players, onPlayerAdd]);
 
-  const handleRemovePlayer = (player: Player) => {
+  const handleRemovePlayer = useCallback((player: Player) => {
     if (onPlayerRemove) {
       onPlayerRemove(player.id);
       toast.success(`${player.name} removed from roster`);
     }
-  };
+  }, [onPlayerRemove]);
 
   // Helper functions for autocomplete
   const getAvailablePlayersForTeammate = (currentPlayer: Player) => {
@@ -596,8 +660,8 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
               <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
               <Input
                 placeholder="Search players..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={internalSearchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -617,50 +681,71 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
           </div>
 
           {/* Player Table */}
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
+          <div className="border rounded-lg overflow-x-auto">
+            <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-gray-50 select-none"
+                  <TableHead
+                    className="cursor-pointer hover:bg-gray-50 select-none w-[20%] px-2"
                     onClick={() => handleSort('name')}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 text-xs">
                       Name
                       {getSortIcon('name')}
                     </div>
                   </TableHead>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-gray-50 select-none"
+                  <TableHead
+                    className="cursor-pointer hover:bg-gray-50 select-none w-[8%] px-2"
                     onClick={() => handleSort('gender')}
                   >
-                    <div className="flex items-center gap-2">
-                      Gender
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="hidden sm:inline">Gender</span>
+                      <span className="sm:hidden">Gen</span>
                       {getSortIcon('gender')}
                     </div>
                   </TableHead>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-gray-50 select-none"
+                  <TableHead
+                    className="cursor-pointer hover:bg-gray-50 select-none w-[8%] px-2"
                     onClick={() => handleSort('skillRating')}
                   >
-                    <div className="flex items-center gap-2">
-                      Skill Rating
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="hidden sm:inline">Skill</span>
+                      <span className="sm:hidden">Skl</span>
                       {getSortIcon('skillRating')}
                     </div>
                   </TableHead>
-                  <TableHead>Skill Group</TableHead>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-gray-50 select-none"
+                  <TableHead
+                    className="cursor-pointer hover:bg-gray-50 select-none w-[8%] px-2"
+                    onClick={() => handleSort('execSkillRating')}
+                  >
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="hidden sm:inline">Exec</span>
+                      <span className="sm:hidden">Ex</span>
+                      {getSortIcon('execSkillRating')}
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[8%] px-2 text-xs">
+                    <span className="hidden sm:inline">Group</span>
+                    <span className="sm:hidden">Grp</span>
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-gray-50 select-none w-[14%] px-2 hidden md:table-cell"
                     onClick={() => handleSort('email')}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 text-xs">
                       Email
                       {getSortIcon('email')}
                     </div>
                   </TableHead>
-                  <TableHead>Teammate Requests</TableHead>
-                  <TableHead>Avoid Requests</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="w-[12%] px-2 text-xs">
+                    <span className="hidden sm:inline">Teammates</span>
+                    <span className="sm:hidden">TM</span>
+                  </TableHead>
+                  <TableHead className="w-[10%] px-2 text-xs">
+                    <span className="hidden sm:inline">Avoid</span>
+                    <span className="sm:hidden">Av</span>
+                  </TableHead>
+                  <TableHead className="w-[12%] px-2 text-xs">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -713,6 +798,60 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                           }}
                         >
                           <span className="font-medium">{player.skillRating}</span>
+                          <Edit2 className="h-3 w-3 opacity-60" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingExecSkill === player.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="10"
+                            step="0.1"
+                            value={execSkillValue}
+                            onChange={(e) => setExecSkillValue(e.target.value)}
+                            className="w-20"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleExecSkillEdit(player, execSkillValue);
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleExecSkillEdit(player, execSkillValue)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingExecSkill(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div
+                          className="flex items-center gap-2 cursor-pointer p-1 rounded"
+                          style={player.execSkillRating !== null ? getSkillGradientStyle(player.execSkillRating) : {}}
+                          onClick={() => {
+                            if (player.execSkillRating !== null) {
+                              setEditingExecSkill(player.id);
+                              setExecSkillValue(player.execSkillRating.toString());
+                            } else {
+                              setEditingExecSkill(player.id);
+                              setExecSkillValue(player.skillRating.toString());
+                            }
+                          }}
+                        >
+                          <span className="font-medium">
+                            {player.execSkillRating !== null ? player.execSkillRating : 'N/A'}
+                          </span>
                           <Edit2 className="h-3 w-3 opacity-60" />
                         </div>
                       )}
@@ -889,6 +1028,21 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                   onChange={(e) => setEditingPlayer({
                     ...editingPlayer,
                     skillRating: parseFloat(e.target.value) || 0
+                  })}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600">Exec Skill Rating (0-10)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={editingPlayer.execSkillRating !== null ? editingPlayer.execSkillRating : ''}
+                  onChange={(e) => setEditingPlayer({
+                    ...editingPlayer,
+                    execSkillRating: e.target.value ? parseFloat(e.target.value) : null
                   })}
                 />
               </div>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Player, CSVValidationResult, PlayerGroup } from '@/types';
 import { validateAndProcessCSV, generateSampleCSV } from '@/utils/csvProcessor';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Download, AlertCircle, CheckCircle2, FileText, Users, AlertTriangle } from 'lucide-react';
+import { Upload, Download, AlertCircle, CheckCircle2, FileText, Users, AlertTriangle, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
+import { SavedRostersList } from './SavedRostersList';
+import { auth } from '@/config/firebase';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface CSVUploaderProps {
   onPlayersLoaded: (players: Player[], playerGroups?: PlayerGroup[]) => void;
@@ -17,7 +20,16 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
   const [validationResult, setValidationResult] = useState<CSVValidationResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentCSVContent, setCurrentCSVContent] = useState<string>('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsAuthenticated(!!user);
+    });
+    return unsubscribe;
+  }, []);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -52,9 +64,10 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
     }
 
     setIsProcessing(true);
-    
+
     try {
       const text = await file.text();
+      setCurrentCSVContent(text);
       const result = validateAndProcessCSV(text);
       setValidationResult(result);
 
@@ -68,6 +81,18 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
       console.error('File reading error:', error);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleLoadFromCloud = (csvContent: string, rosterName: string) => {
+    setCurrentCSVContent(csvContent);
+    const result = validateAndProcessCSV(csvContent);
+    setValidationResult(result);
+
+    if (result.isValid) {
+      toast.success(`Loaded roster: ${rosterName}`);
+    } else {
+      toast.warning(`Loaded roster with warnings: ${rosterName}`);
     }
   };
 
@@ -99,7 +124,16 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="upload" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="upload">Upload New</TabsTrigger>
+        <TabsTrigger value="saved" disabled={!isAuthenticated}>
+          <Cloud className="h-4 w-4 mr-2" />
+          Saved Rosters
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="upload" className="space-y-6">
       {/* Upload Instructions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -359,6 +393,15 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
           </CardContent>
         </Card>
       )}
-    </div>
+      </TabsContent>
+
+      <TabsContent value="saved">
+        <SavedRostersList
+          onLoadRoster={handleLoadFromCloud}
+          currentCSVContent={currentCSVContent}
+          currentPlayerCount={validationResult?.players.length}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }

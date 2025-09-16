@@ -1,25 +1,58 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import { Player, Team, LeagueConfig, AppState, TeamGenerationStats, PlayerGroup } from '@/types';
 import { getDefaultConfig, saveDefaultConfig } from '@/utils/configManager';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { validateAndProcessCSV } from '@/utils/csvProcessor';
+import { debounce, safeJsonParse, validateObjectStructure, safeLocalStorageSave } from '@/utils/performance';
+import { validateAppState, validatePlayer, validateTeamName } from '@/utils/validation';
+import { dataStorageService } from '@/services/dataStorageService';
 import { CSVUploader } from '@/components/CSVUploader';
 import { ConfigurationPanel } from '@/components/ConfigurationPanel';
 import { PlayerRoster } from '@/components/PlayerRoster';
 import { TeamDisplay } from '@/components/TeamDisplay';
+import { FullScreenTeamBuilder } from '@/components/FullScreenTeamBuilder';
 import { GenerationStats } from '@/components/GenerationStats';
 import { ExportPanel } from '@/components/ExportPanel';
 import { PlayerGroups } from '@/components/PlayerGroups';
 import PlayerEmail from '@/components/PlayerEmail';
 import TutorialLanding from '@/components/TutorialLanding';
+import { SavedTeamsManager } from '@/components/SavedTeamsManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Settings, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2, Play, AlertTriangle } from 'lucide-react';
+import { Users, Settings, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2, Play, AlertTriangle, MousePointer, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
 import logoUrl from '@/assets/logo.svg';
+
+// Import test runner for development
+if (import.meta.env.DEV) {
+  import('@/utils/firebaseTestRunner');
+}
+
+interface ComponentErrorBoundaryProps {
+  children: React.ReactNode;
+  isolate?: boolean;
+  componentName: string;
+}
+
+function ComponentErrorBoundary({ children, isolate, componentName }: ComponentErrorBoundaryProps) {
+  return (
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onError={(error, errorInfo) => {
+        console.error(`Error in ${componentName}:`, error, errorInfo);
+        toast.error(`Error in ${componentName}: ${error.message}`);
+      }}
+      isolate={isolate}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
@@ -39,22 +72,18 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
 }
 
 function App() {
+  // Auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
   // Check if user has seen the tutorial before
   const [showTutorial, setShowTutorial] = useState(() => {
     return !localStorage.getItem('tutorialCompleted');
   });
 
   const [appState, setAppState] = useState<AppState>(() => {
-    // Try to load saved state from localStorage
-    const savedState = localStorage.getItem('teamBuilderState');
-    if (savedState) {
-      try {
-        return JSON.parse(savedState);
-      } catch (e) {
-        console.error('Failed to parse saved state:', e);
-      }
-    }
-    // Return default state if no saved state exists
+    // Default state - will be overridden by useEffect load
     return {
       players: [],
       teams: [],
@@ -65,21 +94,103 @@ function App() {
     };
   });
 
+  const [dataLoaded, setDataLoaded] = useState(false);
+
   const handleStartApp = useCallback(() => {
     localStorage.setItem('tutorialCompleted', 'true');
     setShowTutorial(false);
   }, []);
 
-  // Save state to localStorage whenever it changes
+  // Auth handlers
+  const handleSignIn = useCallback(async () => {
+    try {
+      await signInAnonymously(auth);
+      // Auth state change will be handled by the listener
+    } catch (error) {
+      console.error('Failed to sign in:', error);
+      toast.error('Failed to sign in');
+    }
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut(auth);
+      toast.success('Signed out - data will save locally');
+    } catch (error) {
+      console.error('Failed to sign out:', error);
+      toast.error('Failed to sign out');
+    }
+  }, []);
+
+  // Set up auth listener and load data
   useEffect(() => {
-    localStorage.setItem('teamBuilderState', JSON.stringify(appState));
-  }, [appState]);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      dataStorageService.setUser(firebaseUser);
+      setIsLoadingAuth(false);
+
+      // Load data when auth state changes
+      try {
+        const loadedState = await dataStorageService.load();
+        if (loadedState) {
+          // Validate the loaded state
+          if (validateAppState(loadedState)) {
+            // Additional validation: ensure all players are valid
+            const validatedPlayers = loadedState.players
+              .map(p => validatePlayer(p))
+              .filter((p): p is Player => p !== null);
+
+            setAppState({
+              ...loadedState,
+              players: validatedPlayers,
+              config: loadedState.config || getDefaultConfig()
+            });
+          } else {
+            console.warn('Invalid saved state structure');
+            toast.warning('Some saved data was invalid and has been cleaned up');
+          }
+        }
+
+        if (firebaseUser) {
+          toast.success('Signed in - data will sync to cloud');
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        toast.error('Failed to load saved data');
+      } finally {
+        setDataLoaded(true);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Save state whenever it changes (after initial load)
+  useEffect(() => {
+    if (dataLoaded) {
+      const saveData = async () => {
+        setSyncStatus('saving');
+        try {
+          await dataStorageService.save(appState);
+          setSyncStatus('saved');
+        } catch (error) {
+          console.error('Failed to save data:', error);
+          setSyncStatus('error');
+        }
+      };
+
+      // Debounce the save
+      const timeoutId = setTimeout(saveData, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [appState, dataLoaded]);
+
 
   // Auto-load sample roster if no players are loaded
   useEffect(() => {
     const autoLoadSampleRoster = async () => {
-      // Only load if no players are currently loaded and tutorial is complete
-      if (appState.players.length === 0 && !showTutorial) {
+      // Only load if no players are currently loaded, tutorial is complete, and data has been loaded
+      if (appState.players.length === 0 && !showTutorial && dataLoaded) {
         try {
           const response = await fetch('/sample_players.csv');
           if (response.ok) {
@@ -108,12 +219,12 @@ function App() {
     };
 
     autoLoadSampleRoster();
-  }, [appState.players.length, showTutorial]);
+  }, [appState.players.length, showTutorial, dataLoaded]);
 
   // Add a function to clear saved data
-  const handleClearSavedData = useCallback(() => {
+  const handleClearSavedData = useCallback(async () => {
     if (window.confirm('Are you sure you want to clear all saved data? This cannot be undone.')) {
-      localStorage.removeItem('teamBuilderState');
+      await dataStorageService.clearAll();
       setAppState({
         players: [],
         teams: [],
@@ -128,16 +239,38 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<string>('upload');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [isFullScreenMode, setIsFullScreenMode] = useState(false);
 
   const handlePlayersLoaded = useCallback((players: Player[], playerGroups: PlayerGroup[] = []) => {
+    // Preserve exec skill ratings from existing players
+    const existingPlayerExecRatings = new Map<string, number>();
+    appState.players.forEach(player => {
+      existingPlayerExecRatings.set(player.name.toLowerCase(), player.execSkillRating);
+    });
+
+    // Update incoming players with preserved exec ratings
+    const updatedPlayers = players.map(player => {
+      const existingExecRating = existingPlayerExecRatings.get(player.name.toLowerCase());
+      return {
+        ...player,
+        // If we have a previous exec rating, use it; otherwise set to null (N/A)
+        execSkillRating: existingExecRating !== undefined && existingExecRating !== null
+          ? existingExecRating
+          : (player.execSkillRating !== undefined ? player.execSkillRating : null)
+      };
+    });
+
     setAppState(prev => ({
       ...prev,
-      players,
+      players: updatedPlayers,
       playerGroups,
       teams: [],
       unassignedPlayers: [],
       stats: undefined
     }));
+    setIsManualMode(false); // Reset manual mode when loading new players
+    setIsFullScreenMode(false); // Reset full screen mode when loading new players
     
     if (players.length > 0) {
       setActiveTab('roster');
@@ -148,27 +281,28 @@ function App() {
         toast.success(`Loaded ${players.length} players successfully`);
       }
     }
-  }, []);
+  }, [appState.players]);
 
   const handleConfigChange = useCallback((config: LeagueConfig) => {
     setAppState(prev => ({ ...prev, config }));
     saveDefaultConfig(config);
   }, []);
 
-  const handleGenerateTeams = useCallback(async (randomize: boolean = false) => {
+  const handleGenerateTeams = useCallback(async (randomize: boolean = false, manualMode: boolean = false) => {
     if (appState.players.length === 0) {
       toast.error('Please upload players first');
       return;
     }
 
     setIsGenerating(true);
-    
+    setIsManualMode(manualMode); // Track manual mode state
+
     try {
       // Add a small delay to show loading state
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const result = generateBalancedTeams(appState.players, appState.config, appState.playerGroups, randomize);
-      
+
+      const result = generateBalancedTeams(appState.players, appState.config, appState.playerGroups, randomize, manualMode);
+
       setAppState(prev => ({
         ...prev,
         teams: result.teams,
@@ -178,10 +312,12 @@ function App() {
 
       setActiveTab('teams');
       
-      const message = randomize 
+      const message = manualMode
+        ? `Created ${result.teams.length} manual teams - drag players to complete setup`
+        : randomize
         ? `Generated ${result.teams.length} random teams`
         : `Generated ${result.teams.length} balanced teams`;
-      
+
       toast.success(message);
       
       if (result.unassignedPlayers.length > 0) {
@@ -352,7 +488,13 @@ function App() {
 
       // Recalculate team stats
       updatedTeams.forEach(team => {
-        const totalSkill = team.players.reduce((sum, p) => sum + p.skillRating, 0);
+        // Use execSkillRating if available, otherwise fall back to skillRating
+        const totalSkill = team.players.reduce((sum, p) => {
+          const skill = (p.execSkillRating !== null && p.execSkillRating !== undefined)
+            ? p.execSkillRating
+            : p.skillRating;
+          return sum + skill;
+        }, 0);
         team.averageSkill = team.players.length > 0 ? totalSkill / team.players.length : 0;
         team.genderBreakdown = { M: 0, F: 0, Other: 0 };
         team.players.forEach(p => {
@@ -369,13 +511,44 @@ function App() {
     });
   }, []);
 
+  // Create debounced team name change handler
+  const debouncedTeamNameChangeRef = useRef(
+    debounce((teamId: string, newName: string) => {
+      setAppState(prev => ({
+        ...prev,
+        teams: prev.teams.map(team =>
+          team.id === teamId ? { ...team, name: validateTeamName(newName) } : team
+        )
+      }));
+    }, 300)
+  );
+
   const handleTeamNameChange = useCallback((teamId: string, newName: string) => {
+    debouncedTeamNameChangeRef.current(teamId, newName);
+  }, []);
+
+  const handleLoadTeams = useCallback((teams: Team[], unassignedPlayers: Player[], config: LeagueConfig) => {
+    // Recalculate team averages using execSkillRating when loading
+    const recalculatedTeams = teams.map(team => {
+      const totalSkill = team.players.reduce((sum, p) => {
+        const skill = (p.execSkillRating !== null && p.execSkillRating !== undefined)
+          ? p.execSkillRating
+          : p.skillRating;
+        return sum + skill;
+      }, 0);
+      return {
+        ...team,
+        averageSkill: team.players.length > 0 ? totalSkill / team.players.length : 0
+      };
+    });
+
     setAppState(prev => ({
       ...prev,
-      teams: prev.teams.map(team => 
-        team.id === teamId ? { ...team, name: newName } : team
-      )
+      teams: recalculatedTeams,
+      unassignedPlayers,
+      config
     }));
+    toast.success('Teams loaded successfully');
   }, []);
 
   // Player group management functions
@@ -533,6 +706,13 @@ function App() {
   const hasPlayers = appState.players.length > 0;
   const hasTeams = appState.teams.length > 0;
 
+  // Reset full screen mode when switching away from teams tab
+  useEffect(() => {
+    if (activeTab !== 'teams' && isFullScreenMode) {
+      setIsFullScreenMode(false);
+    }
+  }, [activeTab, isFullScreenMode]);
+
   // Show tutorial landing page if user hasn't completed it
   if (showTutorial) {
     return (
@@ -547,14 +727,53 @@ function App() {
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
         <header className="bg-white/95 backdrop-blur-xl shadow-xl border-b border-green-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex items-center justify-center gap-6">
-              <img src={logoUrl} alt="TeamBuilder Logo" className="h-10 w-10" />
-              <div className="text-center">
-                <h1 className="text-4xl font-bold relative">
-                  <span className="text-gray-800">Team</span>
-                  <span className="text-primary">Builder</span>
-                </h1>
-                <p className="text-sm text-gray-600 mt-1.5">⚽ Automatically generate balanced sports teams ⚽</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <img src={logoUrl} alt="TeamBuilder Logo" className="h-10 w-10" />
+                <div>
+                  <h1 className="text-4xl font-bold">
+                    <span className="text-gray-800">Team</span>
+                    <span className="text-primary">Builder</span>
+                  </h1>
+                  <p className="text-sm text-gray-600 mt-1.5">⚽ Automatically generate balanced sports teams ⚽</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Sync status indicator */}
+                {user && (
+                  <div className="flex items-center gap-2 text-sm">
+                    {syncStatus === 'saving' && (
+                      <span className="text-blue-600">🔄 Saving...</span>
+                    )}
+                    {syncStatus === 'saved' && (
+                      <span className="text-green-600">✅ Saved</span>
+                    )}
+                    {syncStatus === 'error' && (
+                      <span className="text-red-600">⚠️ Offline</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Auth button */}
+                {!user ? (
+                  <Button
+                    onClick={handleSignIn}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Users className="h-4 w-4" />
+                    Sign in to save online
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSignOut}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Users className="h-4 w-4" />
+                    Sign out
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -621,7 +840,9 @@ function App() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CSVUploader onPlayersLoaded={handlePlayersLoaded} />
+                  <ComponentErrorBoundary isolate componentName="CSVUploader">
+                    <CSVUploader onPlayersLoaded={handlePlayersLoaded} />
+                  </ComponentErrorBoundary>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -662,12 +883,14 @@ function App() {
                   Clear Saved Data
                 </Button>
               </div>
-              <PlayerRoster 
-                players={appState.players}
-                onPlayerUpdate={handlePlayerUpdate}
-                onPlayerAdd={handlePlayerAdd}
-                onPlayerRemove={handlePlayerRemove}
-              />
+              <ComponentErrorBoundary isolate componentName="PlayerRoster">
+                <PlayerRoster
+                  players={appState.players}
+                  onPlayerUpdate={handlePlayerUpdate}
+                  onPlayerAdd={handlePlayerAdd}
+                  onPlayerRemove={handlePlayerRemove}
+                />
+              </ComponentErrorBoundary>
             </TabsContent>
 
             {/* Generate Teams Tab */}
@@ -683,10 +906,11 @@ function App() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ConfigurationPanel 
+                  <ConfigurationPanel
                     config={appState.config}
                     onConfigChange={handleConfigChange}
                     playerCount={appState.players.length}
+                    players={appState.players}
                   />
                 </CardContent>
               </Card>
@@ -702,26 +926,37 @@ function App() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Button 
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Button
                       onClick={() => handleGenerateTeams(false)}
                       disabled={isGenerating || !hasPlayers}
-                      className="flex-1 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg"
+                      className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg"
                       size="lg"
                     >
                       <Zap className="h-4 w-4" />
-                      {isGenerating ? 'Generating...' : '🏆 Generate Balanced Teams'}
+                      {isGenerating ? 'Generating...' : '🏆 Balanced Teams'}
                     </Button>
-                    
-                    <Button 
+
+                    <Button
                       onClick={() => handleGenerateTeams(true)}
                       disabled={isGenerating || !hasPlayers}
                       variant="outline"
-                      className="flex-1 flex items-center gap-2 border-secondary text-secondary hover:bg-secondary hover:text-white"
+                      className="flex items-center gap-2 border-secondary text-secondary hover:bg-secondary hover:text-white"
                       size="lg"
                     >
                       <Shuffle className="h-4 w-4" />
-                      🎲 Generate Random Teams
+                      🎲 Random Teams
+                    </Button>
+
+                    <Button
+                      onClick={() => handleGenerateTeams(false, true)}
+                      disabled={isGenerating || !hasPlayers}
+                      variant="outline"
+                      className="flex items-center gap-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white"
+                      size="lg"
+                    >
+                      <MousePointer className="h-4 w-4" />
+                      ⚡ Manual Teams
                     </Button>
                   </div>
                   
@@ -730,6 +965,8 @@ function App() {
                       <strong>🏆 Balanced Teams:</strong> Honors teammate/avoid requests and balances skill levels
                       <br />
                       <strong>🎲 Random Teams:</strong> Ignores preferences and randomly distributes players
+                      <br />
+                      <strong>⚡ Manual Teams:</strong> Creates empty teams with groups pre-assigned, drag individual players
                     </p>
                   </div>
                 </CardContent>
@@ -738,22 +975,64 @@ function App() {
 
             {/* Teams Tab */}
             <TabsContent value="teams" className="space-y-6">
-              {/* Team Generation Statistics */}
-              {appState.stats && (
-                <div className="mb-6">
-                  <GenerationStats stats={appState.stats} totalTeams={appState.teams.length} />
-                </div>
+              {/* Full Screen Mode */}
+              {isFullScreenMode ? (
+                <FullScreenTeamBuilder
+                  teams={appState.teams}
+                  unassignedPlayers={appState.unassignedPlayers}
+                  config={appState.config}
+                  onPlayerMove={handlePlayerMove}
+                  onTeamNameChange={handleTeamNameChange}
+                  players={appState.players}
+                  playerGroups={appState.playerGroups}
+                  onExitFullScreen={() => setIsFullScreenMode(false)}
+                  onLoadTeams={handleLoadTeams}
+                />
+              ) : (
+                <>
+                  {/* Team Generation Statistics */}
+                  {appState.stats && (
+                    <div className="mb-6">
+                      <GenerationStats stats={appState.stats} totalTeams={appState.teams.length} />
+                    </div>
+                  )}
+
+                  {/* Save/Load Teams and Full Screen Button */}
+                  <div className="space-y-4 mb-6">
+                    <SavedTeamsManager
+                      teams={appState.teams}
+                      unassignedPlayers={appState.unassignedPlayers}
+                      config={appState.config}
+                      onLoadTeams={handleLoadTeams}
+                    />
+
+                    {/* Full Screen Button - Only show in manual mode */}
+                    {isManualMode && appState.teams.length > 0 && (
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={() => setIsFullScreenMode(true)}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                          Full Screen Team Builder
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <TeamDisplay
+                    teams={appState.teams}
+                    unassignedPlayers={appState.unassignedPlayers}
+                    config={appState.config}
+                    onPlayerMove={handlePlayerMove}
+                    onTeamNameChange={handleTeamNameChange}
+                    players={appState.players}
+                    playerGroups={appState.playerGroups}
+                    manualMode={isManualMode}
+                  />
+                </>
               )}
-              
-              <TeamDisplay 
-                teams={appState.teams}
-                unassignedPlayers={appState.unassignedPlayers}
-                config={appState.config}
-                onPlayerMove={handlePlayerMove}
-                onTeamNameChange={handleTeamNameChange}
-                players={appState.players}
-                playerGroups={appState.playerGroups}
-              />
             </TabsContent>
 
             {/* Export Tab */}

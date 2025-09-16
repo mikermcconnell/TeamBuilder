@@ -71,7 +71,7 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
     const headers = Object.keys(firstRow);
     
     const requiredColumns = ['name'];
-    const optionalColumns = ['gender', 'skill rating', 'teammate requests', 'avoid requests', 'email'];
+    const optionalColumns = ['gender', 'skill rating', 'exec skill rating', 'teammate requests', 'avoid requests', 'email'];
     
     const missingRequired = requiredColumns.filter(col => 
       !headers.some(h => h.includes(col.split(' ')[0]))
@@ -85,7 +85,8 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
     // Find column mappings
     const nameCol = headers.find(h => h.includes('name')) || '';
     const genderCol = headers.find(h => h.includes('gender')) || '';
-    const skillCol = headers.find(h => h.includes('skill')) || '';
+    const skillCol = headers.find(h => h.includes('skill') && !h.includes('exec')) || '';
+    const execSkillCol = headers.find(h => h.includes('exec') && h.includes('skill')) || '';
     const teammateCol = headers.find(h => h.includes('teammate')) || '';
     const avoidCol = headers.find(h => h.includes('avoid')) || '';
     const emailCol = headers.find(h => h.includes('email')) || '';
@@ -146,6 +147,24 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
         }
       }
 
+      // Handle exec skill rating (optional)
+      let execSkillRating: number | null = null; // Default to null (N/A) for new players
+      if (execSkillCol) {
+        const execSkillStr = row[execSkillCol]?.trim();
+        if (execSkillStr && execSkillStr.toLowerCase() !== 'n/a') {
+          const execSkill = parseFloat(execSkillStr);
+          if (isNaN(execSkill)) {
+            result.warnings.push(`Row ${actualRowNumber}: Invalid exec skill rating "${execSkillStr}", setting to N/A`);
+            execSkillRating = null;
+          } else {
+            if (execSkill < 0 || execSkill > 10) {
+              result.warnings.push(`Row ${actualRowNumber}: Exec skill rating ${execSkill} outside typical range (0-10)`);
+            }
+            execSkillRating = execSkill;
+          }
+        }
+      }
+
       // Parse teammate requests
       const teammateRequests = parsePlayerList(row[teammateCol] || '');
       const avoidRequests = parsePlayerList(row[avoidCol] || '');
@@ -170,6 +189,7 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
         name,
         gender,
         skillRating,
+        execSkillRating,
         teammateRequests,
         avoidRequests,
         ...(email && { email })
@@ -239,21 +259,21 @@ function generatePlayerId(name: string): string {
 }
 
 export function generateSampleCSV(): string {
-  const headers = ['Name', 'Gender (Optional)', 'Skill Rating (Optional)', 'Teammate Requests', 'Avoid Requests', 'Email (Optional)'];
+  const headers = ['Name', 'Gender (Optional)', 'Skill Rating (Optional)', 'Exec Skill Rating (Optional)', 'Teammate Requests', 'Avoid Requests', 'Email (Optional)'];
   
   const sampleData = [
-    ['Alice Johnson', 'F', '8', 'Bob Smith', '', 'alice.johnson@email.com'],
-    ['Bob Smith', 'M', '7', 'Alice Johnson', 'Charlie Brown', 'bob.smith@email.com'],
-    ['Charlie Brown', 'M', '6', '', 'Bob Smith', ''],
-    ['Diana Prince', 'F', '', '', '', 'diana.prince@email.com'],
-    ['Eve Adams', '', '5', 'Frank Miller', '', ''],
-    ['Frank Miller', 'M', '7', 'Eve Adams', '', 'frank.miller@email.com'],
-    ['Grace Lee', '', '', '', '', 'grace.lee@email.com'],
-    ['Henry Wilson', 'M', '6', '', '', ''],
-    ['Iris Chen', 'F', '7', '', '', 'iris.chen@email.com'],
-    ['Jack Davis', 'M', '8', '', '', 'jack.davis@email.com'],
-    ['Karen Taylor', 'F', '6', '', '', ''],
-    ['Luke Martinez', 'M', '9', '', '', 'luke.martinez@email.com']
+    ['Alice Johnson', 'F', '8', '7.5', 'Bob Smith', '', 'alice.johnson@email.com'],
+    ['Bob Smith', 'M', '7', '7', 'Alice Johnson', 'Charlie Brown', 'bob.smith@email.com'],
+    ['Charlie Brown', 'M', '6', '5.5', '', 'Bob Smith', ''],
+    ['Diana Prince', 'F', '', '', '', '', 'diana.prince@email.com'],
+    ['Eve Adams', '', '5', '5', 'Frank Miller', '', ''],
+    ['Frank Miller', 'M', '7', '6.5', 'Eve Adams', '', 'frank.miller@email.com'],
+    ['Grace Lee', '', '', '', '', '', 'grace.lee@email.com'],
+    ['Henry Wilson', 'M', '6', '6', '', '', ''],
+    ['Iris Chen', 'F', '7', '7', '', '', 'iris.chen@email.com'],
+    ['Jack Davis', 'M', '8', '8.5', '', '', 'jack.davis@email.com'],
+    ['Karen Taylor', 'F', '6', '6', '', '', ''],
+    ['Luke Martinez', 'M', '9', '8', '', '', 'luke.martinez@email.com']
   ];
 
   return [headers.join(',')].concat(sampleData.map(row => row.join(','))).join('\n');

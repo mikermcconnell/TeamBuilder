@@ -87,7 +87,7 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
   };
 
   const getDetailedPreview = () => {
-    const headers = ['Team', 'Player', 'Gender', 'Skill', 'Avg Skill', 'Size', 'M', 'F', 'Other'];
+    const headers = ['Team', 'Player', 'Gender', 'Skill', 'Exec Skill', 'Avg Skill', 'Size', 'M', 'F', 'Other'];
     const rows = [headers];
     
     teams.forEach(team => {
@@ -97,6 +97,7 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
           player.name,
           player.gender,
           player.skillRating?.toString() || 'N/A',
+          player.execSkillRating !== null ? player.execSkillRating.toString() : 'N/A',
           index === 0 ? team.averageSkill.toFixed(1) : '',
           index === 0 ? team.players.length.toString() : '',
           index === 0 ? team.genderBreakdown.M.toString() : '',
@@ -111,7 +112,8 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
         'Unassigned',
         player.name,
         player.gender,
-                 player.skillRating?.toString() || 'N/A',
+        player.skillRating?.toString() || 'N/A',
+        player.execSkillRating !== null ? player.execSkillRating.toString() : 'N/A',
         '',
         '',
         '',

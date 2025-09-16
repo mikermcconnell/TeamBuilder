@@ -10,52 +10,57 @@ export function generateBalancedTeams(
   players: Player[],
   config: LeagueConfig,
   playerGroups: PlayerGroup[] = [],
-  randomize: boolean = false
+  randomize: boolean = false,
+  manualMode: boolean = false
 ): GenerationResult {
   const startTime = Date.now();
-  
+
   // Create player lookup for quick access
   const playerMap = new Map(players.map(p => [p.name.toLowerCase(), p]));
-  
+
+  if (manualMode) {
+    return generateManualTeams(players, config, playerGroups, startTime, playerMap);
+  }
+
   if (randomize) {
     return generateRandomTeams(players, config, playerGroups, startTime, playerMap);
   }
 
   // Find mutual teammate requests
   const mutualPairs = findMutualTeammateRequests(players, playerMap);
-  
+
   // Create constraint groups (custom groups + mutual pairs + individual players)
   const constraintGroups = createConstraintGroups(players, mutualPairs, playerGroups);
-  
+
   // Calculate number of teams needed
   const targetTeams = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
-  
+
   // Initialize teams
   const teams: Team[] = [];
   for (let i = 0; i < targetTeams; i++) {
     teams.push(createEmptyTeam(`Team ${i + 1}`));
   }
-  
+
   // Sort groups by constraints (most constrained first)
   const sortedGroups = constraintGroups.sort((a, b) => {
     const aConstraints = a.reduce((sum, p) => sum + p.avoidRequests.length, 0);
     const bConstraints = b.reduce((sum, p) => sum + p.avoidRequests.length, 0);
     return bConstraints - aConstraints;
   });
-  
+
   const assignedPlayerIds = new Set<string>();
   const unassignedPlayers: Player[] = [];
-  
+
   // Assign groups to teams
   for (const group of sortedGroups) {
     if (group.some(p => assignedPlayerIds.has(p.id))) continue;
-    
+
     const bestTeam = findBestTeamForGroup(group, teams, config, playerMap);
-    
+
     if (bestTeam && canAssignGroupToTeam(group, bestTeam, config)) {
       // Check avoid constraints for all players in the group
       const hasViolations = group.some(player => hasAvoidConflict(player, bestTeam, playerMap));
-      
+
       if (!hasViolations) {
         group.forEach(player => {
           player.teamId = bestTeam.id;
@@ -70,12 +75,12 @@ export function generateBalancedTeams(
       unassignedPlayers.push(...group);
     }
   }
-  
+
   // Balance teams by skill after initial assignment, respecting avoid constraints
   balanceTeamsBySkill(teams, playerMap);
-  
+
   const stats = calculateStats(players, teams, unassignedPlayers, mutualPairs, playerGroups, startTime);
-  
+
   return {
     teams: teams.filter(t => t.players.length > 0),
     unassignedPlayers,
@@ -134,7 +139,91 @@ function generateRandomTeams(
   }
   
   const stats = calculateStats(players, teams, unassignedPlayers, [], playerGroups, startTime);
-  
+
+  return {
+    teams: teams.filter(t => t.players.length > 0),
+    unassignedPlayers,
+    stats
+  };
+}
+
+function generateManualTeams(
+  players: Player[],
+  config: LeagueConfig,
+  playerGroups: PlayerGroup[],
+  startTime: number,
+  playerMap: Map<string, Player>
+): GenerationResult {
+  // Create empty teams based on targetTeams configuration
+  const targetTeams = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
+
+  const teams: Team[] = [];
+  for (let i = 0; i < targetTeams; i++) {
+    teams.push(createEmptyTeam(`Team ${i + 1}`));
+  }
+
+  // Separate grouped and non-grouped players
+  const groupedPlayerIds = new Set<string>();
+  playerGroups.forEach(group => {
+    group.players.forEach(player => {
+      groupedPlayerIds.add(player.id);
+    });
+  });
+
+  // Assign player groups to teams using average skill for balance
+  const assignedGroups = new Set<string>();
+  const groupsWithAvgSkill = playerGroups.map(group => ({
+    ...group,
+    averageSkill: group.players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0) / group.players.length
+  }));
+
+  // Sort groups by average skill (descending) for better balance distribution
+  groupsWithAvgSkill.sort((a, b) => b.averageSkill - a.averageSkill);
+
+  // Assign groups to teams in round-robin fashion for skill balance
+  for (let i = 0; i < groupsWithAvgSkill.length; i++) {
+    const group = groupsWithAvgSkill[i];
+    const teamIndex = i % teams.length;
+    const targetTeam = teams[teamIndex];
+
+    // Check if group can fit in the target team without violating constraints
+    const canAssign = canAssignGroupToTeam(group.players, targetTeam, config) &&
+                     !group.players.some(player => hasAvoidConflict(player, targetTeam, playerMap));
+
+    if (canAssign) {
+      // Assign all players in the group to the team
+      group.players.forEach(player => {
+        player.teamId = targetTeam.id;
+        targetTeam.players.push(player);
+      });
+      updateTeamStats(targetTeam);
+      assignedGroups.add(group.id);
+    }
+  }
+
+  // Collect unassigned players (individual players + any group members that couldn't be assigned)
+  const unassignedPlayers: Player[] = [];
+
+  // Add individual players (not in groups) to unassigned
+  players.forEach(player => {
+    if (!groupedPlayerIds.has(player.id)) {
+      player.teamId = undefined; // Clear any existing team assignment
+      unassignedPlayers.push(player);
+    }
+  });
+
+  // Add any group members whose groups couldn't be assigned
+  playerGroups.forEach(group => {
+    if (!assignedGroups.has(group.id)) {
+      group.players.forEach(player => {
+        player.teamId = undefined;
+        unassignedPlayers.push(player);
+      });
+    }
+  });
+
+  const stats = calculateStats(players, teams, unassignedPlayers, [], playerGroups, startTime);
+
   return {
     teams: teams.filter(t => t.players.length > 0),
     unassignedPlayers,
@@ -284,8 +373,8 @@ function wouldMeetGenderRequirements(
 }
 
 function calculateNewAverageSkill(team: Team, newPlayers: Player[]): number {
-  const totalSkill = team.players.reduce((sum, p) => sum + p.skillRating, 0) +
-                    newPlayers.reduce((sum, p) => sum + p.skillRating, 0);
+  const totalSkill = team.players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0) +
+                    newPlayers.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0);
   const totalPlayers = team.players.length + newPlayers.length;
   
   return totalPlayers > 0 ? totalSkill / totalPlayers : 0;
@@ -293,57 +382,129 @@ function calculateNewAverageSkill(team: Team, newPlayers: Player[]): number {
 
 function calculateOverallAverageSkill(teams: Team[]): number {
   const allPlayers = teams.flatMap(t => t.players);
-  const totalSkill = allPlayers.reduce((sum, p) => sum + p.skillRating, 0);
+  const totalSkill = allPlayers.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0);
   
   return allPlayers.length > 0 ? totalSkill / allPlayers.length : 0;
 }
 
 function balanceTeamsBySkill(teams: Team[], playerMap: Map<string, Player>): void {
-  const maxIterations = 10;
-  
-  for (let i = 0; i < maxIterations; i++) {
-    let swapMade = false;
-    
-    // Sort teams by average skill
+  const maxIterations = 5; // Reduced iterations for performance
+  const minImprovementThreshold = 0.1; // Stop if improvement is minimal
+
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    let bestSwap: { team1: Team; team2: Team; player1: Player; player2: Player; improvement: number } | null = null;
+
+    // Sort teams by average skill once per iteration
     const sortedTeams = [...teams].sort((a, b) => a.averageSkill - b.averageSkill);
-    
-    for (let j = 0; j < sortedTeams.length - 1; j++) {
-      const weakerTeam = sortedTeams[j];
-      const strongerTeam = sortedTeams[j + 1];
-      
-      if (Math.abs(weakerTeam.averageSkill - strongerTeam.averageSkill) < 0.5) break;
-      
-      // Try to find beneficial swaps
-      for (const weakPlayer of weakerTeam.players) {
-        for (const strongPlayer of strongerTeam.players) {
+
+    // Early termination if teams are already balanced
+    const skillRange = sortedTeams[sortedTeams.length - 1].averageSkill - sortedTeams[0].averageSkill;
+    if (skillRange < 0.5) break;
+
+    // Only check adjacent teams and a few most imbalanced pairs
+    const pairsToCheck: [Team, Team][] = [];
+
+    // Add adjacent teams
+    for (let i = 0; i < sortedTeams.length - 1; i++) {
+      pairsToCheck.push([sortedTeams[i], sortedTeams[i + 1]]);
+    }
+
+    // Add most imbalanced pair if not already included
+    if (sortedTeams.length > 2) {
+      pairsToCheck.push([sortedTeams[0], sortedTeams[sortedTeams.length - 1]]);
+    }
+
+    // Find single best swap across all team pairs
+    for (const [weakerTeam, strongerTeam] of pairsToCheck) {
+      const currentDiff = Math.abs(weakerTeam.averageSkill - strongerTeam.averageSkill);
+
+      // Skip if already balanced
+      if (currentDiff < 0.5) continue;
+
+      // Sample players instead of checking all combinations
+      const weakPlayers = samplePlayers(weakerTeam.players, 5); // Check max 5 players
+      const strongPlayers = samplePlayers(strongerTeam.players, 5); // Check max 5 players
+
+      for (const weakPlayer of weakPlayers) {
+        for (const strongPlayer of strongPlayers) {
+          // Quick check: Skip if swap wouldn't help
+          const weakSkill = weakPlayer.execSkillRating !== null ? weakPlayer.execSkillRating : weakPlayer.skillRating;
+          const strongSkill = strongPlayer.execSkillRating !== null ? strongPlayer.execSkillRating : strongPlayer.skillRating;
+          if (weakSkill >= strongSkill) continue;
+
           // Check if swap would create avoid conflicts
-          const weakTeamAfterSwap = {
-            ...weakerTeam,
-            players: weakerTeam.players.filter(p => p.id !== weakPlayer.id).concat(strongPlayer)
-          };
-          const strongTeamAfterSwap = {
-            ...strongerTeam,
-            players: strongerTeam.players.filter(p => p.id !== strongPlayer.id).concat(weakPlayer)
-          };
-          
-          const wouldCreateConflicts = 
-            hasAvoidConflict(weakPlayer, strongTeamAfterSwap, playerMap) ||
-            hasAvoidConflict(strongPlayer, weakTeamAfterSwap, playerMap);
-          
-          if (!wouldCreateConflicts && wouldImproveBalance(weakerTeam, strongerTeam, weakPlayer, strongPlayer)) {
-            // Perform swap
-            swapPlayers(weakerTeam, strongerTeam, weakPlayer, strongPlayer);
-            swapMade = true;
-            break;
+          const wouldCreateConflicts =
+            hasAvoidConflict(weakPlayer, strongerTeam, playerMap) ||
+            hasAvoidConflict(strongPlayer, weakerTeam, playerMap);
+
+          if (!wouldCreateConflicts) {
+            const improvement = calculateSwapImprovement(
+              weakerTeam, strongerTeam, weakPlayer, strongPlayer
+            );
+
+            if (improvement > minImprovementThreshold &&
+                (!bestSwap || improvement > bestSwap.improvement)) {
+              bestSwap = {
+                team1: weakerTeam,
+                team2: strongerTeam,
+                player1: weakPlayer,
+                player2: strongPlayer,
+                improvement
+              };
+            }
           }
         }
-        if (swapMade) break;
       }
-      if (swapMade) break;
     }
-    
-    if (!swapMade) break;
+
+    // Perform the best swap found
+    if (bestSwap && bestSwap.improvement > minImprovementThreshold) {
+      swapPlayers(bestSwap.team1, bestSwap.team2, bestSwap.player1, bestSwap.player2);
+    } else {
+      // No meaningful improvement found, stop
+      break;
+    }
   }
+}
+
+// Helper function to sample a subset of players for performance
+function samplePlayers(players: Player[], maxSample: number): Player[] {
+  if (players.length <= maxSample) return players;
+
+  // Sort by skill rating to get diverse sample
+  const sorted = [...players].sort((a, b) => {
+    const aSkill = a.execSkillRating !== null ? a.execSkillRating : a.skillRating;
+    const bSkill = b.execSkillRating !== null ? b.execSkillRating : b.skillRating;
+    return aSkill - bSkill;
+  });
+  const sample: Player[] = [];
+  const step = Math.floor(players.length / maxSample);
+
+  for (let i = 0; i < players.length && sample.length < maxSample; i += step) {
+    sample.push(sorted[i]);
+  }
+
+  return sample;
+}
+
+// Calculate the improvement a swap would make
+function calculateSwapImprovement(
+  team1: Team,
+  team2: Team,
+  player1: Player,
+  player2: Player
+): number {
+  const currentDiff = Math.abs(team1.averageSkill - team2.averageSkill);
+
+  // Calculate new averages after swap
+  const p1Skill = player1.execSkillRating !== null ? player1.execSkillRating : player1.skillRating;
+  const p2Skill = player2.execSkillRating !== null ? player2.execSkillRating : player2.skillRating;
+  const team1NewAvg = (team1.averageSkill * team1.players.length - p1Skill + p2Skill) / team1.players.length;
+  const team2NewAvg = (team2.averageSkill * team2.players.length - p2Skill + p1Skill) / team2.players.length;
+
+  const newDiff = Math.abs(team1NewAvg - team2NewAvg);
+
+  return currentDiff - newDiff; // Positive value means improvement
 }
 
 function wouldImproveBalance(
@@ -355,8 +516,10 @@ function wouldImproveBalance(
   const currentDiff = Math.abs(team1.averageSkill - team2.averageSkill);
   
   // Calculate new averages after swap
-  const team1NewAvg = (team1.averageSkill * team1.players.length - player1.skillRating + player2.skillRating) / team1.players.length;
-  const team2NewAvg = (team2.averageSkill * team2.players.length - player2.skillRating + player1.skillRating) / team2.players.length;
+  const p1Skill = player1.execSkillRating !== null ? player1.execSkillRating : player1.skillRating;
+  const p2Skill = player2.execSkillRating !== null ? player2.execSkillRating : player2.skillRating;
+  const team1NewAvg = (team1.averageSkill * team1.players.length - p1Skill + p2Skill) / team1.players.length;
+  const team2NewAvg = (team2.averageSkill * team2.players.length - p2Skill + p1Skill) / team2.players.length;
   
   const newDiff = Math.abs(team1NewAvg - team2NewAvg);
   
@@ -392,7 +555,7 @@ function createEmptyTeam(name: string): Team {
 }
 
 function updateTeamStats(team: Team): void {
-  const totalSkill = team.players.reduce((sum, p) => sum + p.skillRating, 0);
+  const totalSkill = team.players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0);
   team.averageSkill = team.players.length > 0 ? totalSkill / team.players.length : 0;
   
   team.genderBreakdown = { M: 0, F: 0, Other: 0 };

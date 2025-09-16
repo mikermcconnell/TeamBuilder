@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { LeagueConfig } from '@/types';
+import React, { useState, useMemo } from 'react';
+import { LeagueConfig, Player } from '@/types';
 import { loadSavedConfigs, saveConfig, deleteConfig, validateConfig } from '@/utils/configManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,15 +10,18 @@ import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Settings, 
-  Save, 
-  Trash2, 
-  Plus, 
-  AlertCircle, 
-  Users, 
+import {
+  Settings,
+  Save,
+  Trash2,
+  Plus,
+  AlertCircle,
+  Users,
   Target,
-  Calculator
+  Calculator,
+  UserCheck,
+  UserX,
+  Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,13 +29,23 @@ interface ConfigurationPanelProps {
   config: LeagueConfig;
   onConfigChange: (config: LeagueConfig) => void;
   playerCount: number;
+  players?: Player[];
 }
 
-export function ConfigurationPanel({ config, onConfigChange, playerCount }: ConfigurationPanelProps) {
+export function ConfigurationPanel({ config, onConfigChange, playerCount, players = [] }: ConfigurationPanelProps) {
   const [savedConfigs, setSavedConfigs] = useState(() => loadSavedConfigs());
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newConfigName, setNewConfigName] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Calculate gender breakdown
+  const genderStats = useMemo(() => {
+    const stats = { M: 0, F: 0, Other: 0 };
+    players.forEach(player => {
+      stats[player.gender]++;
+    });
+    return stats;
+  }, [players]);
 
   const updateConfig = (updates: Partial<LeagueConfig>) => {
     const updatedConfig = { ...config, ...updates };
@@ -92,16 +105,30 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount }: Conf
 
   const calculatePlayersPerTeam = () => {
     if (playerCount === 0) return { min: 0, max: 0, avg: 0 };
-    
+
     const estimatedTeams = calculateEstimatedTeams();
     const avg = playerCount / estimatedTeams;
     const min = Math.floor(avg);
     const max = Math.ceil(avg);
-    
+
     return { min, max, avg: Math.round(avg * 10) / 10 };
   };
 
+  const calculateGenderRequirements = () => {
+    const numTeams = calculateEstimatedTeams();
+    if (numTeams === 0) return { femalesNeeded: 0, malesNeeded: 0, femalesDiff: 0, malesDiff: 0 };
+
+    const femalesNeeded = config.minFemales * numTeams;
+    const malesNeeded = config.minMales * numTeams;
+
+    const femalesDiff = genderStats.F - femalesNeeded;
+    const malesDiff = genderStats.M - malesNeeded;
+
+    return { femalesNeeded, malesNeeded, femalesDiff, malesDiff };
+  };
+
   const stats = calculatePlayersPerTeam();
+  const genderReqs = calculateGenderRequirements();
 
   return (
     <div className="space-y-6">
@@ -288,6 +315,104 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount }: Conf
             />
             <Label htmlFor="allowMixedGender">Allow mixed gender teams</Label>
           </div>
+
+          {/* Gender Ratio Notifications */}
+          {playerCount > 0 && (
+            <div className="space-y-3">
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  Gender Distribution Analysis
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Female Analysis */}
+                  <div className={`p-3 rounded-lg border ${
+                    genderReqs.femalesDiff < 0
+                      ? 'bg-red-50 border-red-200'
+                      : genderReqs.femalesDiff > config.minFemales * 2
+                      ? 'bg-yellow-50 border-yellow-200'
+                      : 'bg-green-50 border-green-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="h-4 w-4 text-pink-600" />
+                        <span className="font-medium text-sm">Females</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {genderStats.F} available
+                      </Badge>
+                    </div>
+                    <div className="mt-2 text-sm">
+                      <div>Required: {genderReqs.femalesNeeded} ({config.minFemales} × {calculateEstimatedTeams()} teams)</div>
+                      <div className={`font-medium mt-1 ${
+                        genderReqs.femalesDiff < 0 ? 'text-red-600' : genderReqs.femalesDiff > 0 ? 'text-green-600' : 'text-gray-600'
+                      }`}>
+                        {genderReqs.femalesDiff === 0 ? (
+                          'Exactly meets requirements'
+                        ) : genderReqs.femalesDiff > 0 ? (
+                          `${genderReqs.femalesDiff} extra female${genderReqs.femalesDiff !== 1 ? 's' : ''}`
+                        ) : (
+                          `${Math.abs(genderReqs.femalesDiff)} female${Math.abs(genderReqs.femalesDiff) !== 1 ? 's' : ''} short`
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Male Analysis */}
+                  <div className={`p-3 rounded-lg border ${
+                    genderReqs.malesDiff < 0
+                      ? 'bg-red-50 border-red-200'
+                      : genderReqs.malesDiff > config.minMales * 2
+                      ? 'bg-yellow-50 border-yellow-200'
+                      : 'bg-green-50 border-green-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium text-sm">Males</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {genderStats.M} available
+                      </Badge>
+                    </div>
+                    <div className="mt-2 text-sm">
+                      <div>Required: {genderReqs.malesNeeded} ({config.minMales} × {calculateEstimatedTeams()} teams)</div>
+                      <div className={`font-medium mt-1 ${
+                        genderReqs.malesDiff < 0 ? 'text-red-600' : genderReqs.malesDiff > 0 ? 'text-green-600' : 'text-gray-600'
+                      }`}>
+                        {genderReqs.malesDiff === 0 ? (
+                          'Exactly meets requirements'
+                        ) : genderReqs.malesDiff > 0 ? (
+                          `${genderReqs.malesDiff} extra male${genderReqs.malesDiff !== 1 ? 's' : ''}`
+                        ) : (
+                          `${Math.abs(genderReqs.malesDiff)} male${Math.abs(genderReqs.malesDiff) !== 1 ? 's' : ''} short`
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Warning if requirements can't be met */}
+                {(genderReqs.femalesDiff < 0 || genderReqs.malesDiff < 0) && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Gender requirements cannot be met with the current player roster.
+                      {genderReqs.femalesDiff < 0 && genderReqs.malesDiff < 0 ? (
+                        ` Need ${Math.abs(genderReqs.femalesDiff)} more female${Math.abs(genderReqs.femalesDiff) !== 1 ? 's' : ''} and ${Math.abs(genderReqs.malesDiff)} more male${Math.abs(genderReqs.malesDiff) !== 1 ? 's' : ''}.`
+                      ) : genderReqs.femalesDiff < 0 ? (
+                        ` Need ${Math.abs(genderReqs.femalesDiff)} more female${Math.abs(genderReqs.femalesDiff) !== 1 ? 's' : ''}.`
+                      ) : (
+                        ` Need ${Math.abs(genderReqs.malesDiff)} more male${Math.abs(genderReqs.malesDiff) !== 1 ? 's' : ''}.`
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

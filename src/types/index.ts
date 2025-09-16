@@ -3,6 +3,7 @@ export interface Player {
   name: string;
   gender: 'M' | 'F' | 'Other';
   skillRating: number;
+  execSkillRating: number | null;  // null indicates "N/A" - no previous rating
   teammateRequests: string[];
   avoidRequests: string[];
   teamId?: string;

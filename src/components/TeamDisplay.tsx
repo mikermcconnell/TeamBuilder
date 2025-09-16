@@ -31,9 +31,10 @@ interface TeamDisplayProps {
   onTeamNameChange: (teamId: string, newName: string) => void;
   players: Player[];
   playerGroups: PlayerGroup[];
+  manualMode?: boolean;
 }
 
-export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, onTeamNameChange, players, playerGroups }: TeamDisplayProps) {
+export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, onTeamNameChange, players, playerGroups, manualMode = false }: TeamDisplayProps) {
   const [draggedPlayer, setDraggedPlayer] = useState<Player | null>(null);
   const [draggedFromTeam, setDraggedFromTeam] = useState<string | null>(null);
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
@@ -153,10 +154,9 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
         for (const teammate of allGroupMembers) {
           onPlayerMove(teammate.id, targetTeamId);
         }
-        
-        const totalMembers = allGroupMembers.length + 1;
+
         const destination = targetTeamId ? 'team' : 'unassigned';
-        toast.success(`Moved Group ${groupLabel} (${totalMembers} players) to ${destination}`);
+        toast.success(`Moved Group ${groupLabel} to ${destination}`);
         return;
       }
 
@@ -241,29 +241,27 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
   const getMoveOptions = (player: Player): Array<{ value: string | null; label: string; disabled: boolean }> => {
     const isInGroup = isPlayerInGroup(player);
     const groupLabel = getPlayerGroupLabel(playerGroups, player.id);
-    const allGroupMembers = isInGroup ? findAllGroupMembers(player) : [];
-    const totalGroupSize = isInGroup ? allGroupMembers.length + 1 : 1;
-    
+
     const options = [
-      { 
-        value: null, 
-        label: isInGroup ? `Move Group ${groupLabel} to Unassigned` : 'Move to Unassigned', 
-        disabled: false 
+      {
+        value: null,
+        label: isInGroup ? `Move Group ${groupLabel} to Unassigned` : 'Move to Unassigned',
+        disabled: false
       }
     ];
 
     teams.forEach(team => {
       const canJoin = canPlayerJoinTeam(player, team, config, true); // Allow oversize for dropdown too
       const isCurrentTeam = player.teamId === team.id;
-      
+
       let label = `Move to ${team.name}`;
       if (isInGroup) {
-        label = `Move Group ${groupLabel} (${totalGroupSize} players) to ${team.name}`;
+        label = `Move Group ${groupLabel} to ${team.name}`;
       }
       if (team.players.length >= config.maxTeamSize) {
         label += ' (will exceed limit)';
       }
-      
+
       options.push({
         value: team.id,
         label,
@@ -274,6 +272,307 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
     return options;
   };
 
+  // Helper functions for manual mode
+  const getNonGroupedPlayers = (): Player[] => {
+    return unassignedPlayers.filter(player => !isPlayerInGroup(player));
+  };
+
+  const getSortedPlayersByGender = (gender: 'M' | 'F'): Player[] => {
+    return getNonGroupedPlayers()
+      .filter(player => player.gender === gender)
+      .sort((a, b) => b.skillRating - a.skillRating); // Sort by skill rating descending
+  };
+
+  // Manual mode layout
+  if (manualMode) {
+    const femaleNonGroupedPlayers = getSortedPlayersByGender('F');
+    const maleNonGroupedPlayers = getSortedPlayersByGender('M');
+    const unassignedGroupedPlayers = unassignedPlayers.filter(player => isPlayerInGroup(player));
+
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-4">
+          {/* Left Panel - Female Players and Unassigned Groups */}
+          <div className="w-80 flex-shrink-0 space-y-4">
+            {/* Female Players Card */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Users className="h-4 w-4 text-pink-600" />
+                  Females ({femaleNonGroupedPlayers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div
+                  className="border-2 border-dashed border-pink-200 rounded-lg p-2 min-h-32 space-y-1.5 overflow-y-auto max-h-[300px]"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, null)}
+                >
+                  {femaleNonGroupedPlayers.map((player) => (
+                    <PlayerCard
+                      key={player.id}
+                      player={player}
+                      moveOptions={getMoveOptions(player)}
+                      onMove={onPlayerMove}
+                      onDragStart={() => handleDragStart(player)}
+                      onDragEnd={handleDragEnd}
+                      playerGroups={playerGroups}
+                      compact={true}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Unassigned Groups Card */}
+            {unassignedGroupedPlayers.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Link className="h-4 w-4 text-purple-600" />
+                    Unassigned Groups ({playerGroups.filter(g =>
+                      g.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id))
+                    ).length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div
+                    className="border-2 border-dashed border-purple-200 rounded-lg p-2 min-h-32 space-y-1.5 overflow-y-auto max-h-[250px]"
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, null)}
+                  >
+                    {unassignedGroupedPlayers.map((player) => (
+                      <PlayerCard
+                        key={player.id}
+                        player={player}
+                        moveOptions={getMoveOptions(player)}
+                        onMove={onPlayerMove}
+                        onDragStart={() => handleDragStart(player)}
+                        onDragEnd={handleDragEnd}
+                        playerGroups={playerGroups}
+                        compact={true}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Center - Teams Grid */}
+          <div className="flex-1 min-w-0">
+            <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+              {teams
+                .slice()
+                .sort((a, b) => {
+                  const aSkill = isNaN(a.averageSkill) ? 0 : a.averageSkill;
+                  const bSkill = isNaN(b.averageSkill) ? 0 : b.averageSkill;
+                  return aSkill - bSkill;
+                })
+                .map((team) => {
+                const constraintCheck = getTeamConstraintViolations(team);
+                const violations = constraintCheck.violations;
+                const sizeIssues = constraintCheck.sizeIssues;
+                const isValid = violations.length === 0;
+                const isOverCapacity = isTeamOverCapacity(team);
+                const isUnderCapacity = isTeamUnderCapacity(team);
+
+                let borderClass = 'border-green-200';
+                if (!isValid) borderClass = 'border-orange-200';
+                if (isOverCapacity) borderClass = 'border-red-300';
+
+                return (
+                  <Card key={team.id} className={borderClass}>
+                    <CardHeader className="pb-2 px-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-1 text-xs">
+                          {isValid && !isOverCapacity && !isUnderCapacity ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          ) : isOverCapacity ? (
+                            <ArrowUp className="h-4 w-4 text-red-600" />
+                          ) : isUnderCapacity ? (
+                            <ArrowDown className="h-4 w-4 text-blue-600" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4 text-orange-600" />
+                          )}
+                          {editingTeamId === team.id ? (
+                            <Input
+                              value={tempTeamName}
+                              onChange={(e) => setTempTeamName(e.target.value)}
+                              onBlur={() => saveTeamName(team.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  saveTeamName(team.id);
+                                } else if (e.key === 'Escape') {
+                                  cancelEditingTeamName();
+                                }
+                              }}
+                              className="h-5 w-16 text-xs"
+                              autoFocus
+                            />
+                          ) : (
+                            <span
+                              className="cursor-pointer hover:bg-gray-100 px-1 rounded text-xs truncate"
+                              onClick={() => startEditingTeamName(team.id, team.name)}
+                              title="Click to edit team name"
+                            >
+                              {team.name}
+                            </span>
+                          )}
+                        </CardTitle>
+                        <Badge
+                          variant={isOverCapacity ? 'destructive' : isUnderCapacity ? 'secondary' : 'default'}
+                          className={`text-xs ${isOverCapacity ? 'bg-red-600' : isUnderCapacity ? 'bg-blue-100 text-blue-800' : ''}`}
+                        >
+                          {team.players.length}/{config.maxTeamSize}
+                        </Badge>
+                      </div>
+
+                      <div className="text-xs text-gray-600">
+                        Skill: {!isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'} | {team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O
+                      </div>
+
+                      {/* Gender Requirements - Always visible for clarity */}
+                      <div className="mt-1 pt-1 border-t border-gray-200 space-y-0.5">
+                        {/* Female requirement */}
+                        <div className={`text-xs font-semibold ${team.genderBreakdown.F < config.minFemales ? 'text-red-600' : 'text-green-600'}`}>
+                          F: {team.genderBreakdown.F}/{config.minFemales}
+                          {team.genderBreakdown.F < config.minFemales ? (
+                            <span className="ml-1 font-bold">
+                              (Need {config.minFemales - team.genderBreakdown.F} more)
+                            </span>
+                          ) : (
+                            <span className="ml-1">✓</span>
+                          )}
+                        </div>
+
+                        {/* Male requirement */}
+                        <div className={`text-xs font-semibold ${team.genderBreakdown.M < config.minMales ? 'text-red-600' : 'text-green-600'}`}>
+                          M: {team.genderBreakdown.M}/{config.minMales}
+                          {team.genderBreakdown.M < config.minMales ? (
+                            <span className="ml-1 font-bold">
+                              (Need {config.minMales - team.genderBreakdown.M} more)
+                            </span>
+                          ) : (
+                            <span className="ml-1">✓</span>
+                          )}
+                        </div>
+
+                        {/* Size status if there are issues */}
+                        {sizeIssues.length > 0 && (
+                          <div className={`text-xs font-medium ${isOverCapacity ? 'text-red-600' : 'text-blue-600'}`}>
+                            {sizeIssues.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="pt-0 px-3 pb-3">
+                      <div
+                        className="border-2 border-dashed border-gray-300 rounded-lg p-1 min-h-40 space-y-1"
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, team.id)}
+                      >
+                        {team.players.length === 0 ? (
+                          <div className="text-center text-gray-500 text-xs flex items-center justify-center h-36">
+                            <div>
+                              <UserPlus className="h-6 w-6 mx-auto mb-1 text-gray-400" />
+                              Drop players here
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {team.players.map((player) => (
+                              <PlayerCard
+                                key={player.id}
+                                player={player}
+                                moveOptions={getMoveOptions(player)}
+                                onMove={onPlayerMove}
+                                onDragStart={() => handleDragStart(player, team.id)}
+                                onDragEnd={handleDragEnd}
+                                playerGroups={playerGroups}
+                                compact={true}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Panel - Male Players */}
+          <div className="w-80 flex-shrink-0">
+            <Card className="h-full">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Users className="h-4 w-4 text-blue-600" />
+                  Males ({maleNonGroupedPlayers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div
+                  className="border-2 border-dashed border-blue-200 rounded-lg p-2 min-h-32 space-y-2 overflow-y-auto max-h-[600px]"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, null)}
+                >
+                  {maleNonGroupedPlayers.map((player) => (
+                    <PlayerCard
+                      key={player.id}
+                      player={player}
+                      moveOptions={getMoveOptions(player)}
+                      onMove={onPlayerMove}
+                      onDragStart={() => handleDragStart(player)}
+                      onDragEnd={handleDragEnd}
+                      playerGroups={playerGroups}
+                      compact={true}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Grouped players in unassigned (if any) */}
+        {unassignedPlayers.filter(player => isPlayerInGroup(player)).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserMinus className="h-5 w-5" />
+                Unassigned Groups
+              </CardTitle>
+              <CardDescription>
+                Player groups that couldn't be automatically assigned
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {unassignedPlayers
+                  .filter(player => isPlayerInGroup(player))
+                  .map((player) => (
+                    <PlayerCard
+                      key={player.id}
+                      player={player}
+                      moveOptions={getMoveOptions(player)}
+                      onMove={onPlayerMove}
+                      onDragStart={() => handleDragStart(player)}
+                      onDragEnd={handleDragEnd}
+                      playerGroups={playerGroups}
+                    />
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
+  // Normal mode layout (existing)
   return (
     <div className="space-y-6">
       {/* Unassigned Players */}
@@ -289,7 +588,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div 
+            <div
               className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-24"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, null)}
@@ -374,7 +673,10 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
 
       {/* Teams Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {teams.map((team) => {
+        {teams
+          .slice()
+          .sort((a, b) => a.averageSkill - b.averageSkill)
+          .map((team) => {
           const constraintCheck = getTeamConstraintViolations(team);
           const violations = constraintCheck.violations;
           const sizeIssues = constraintCheck.sizeIssues;
@@ -444,7 +746,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-1">
                       <Trophy className="h-4 w-4 text-yellow-600" />
-                      <span>Avg Skill: {team.averageSkill.toFixed(1)}</span>
+                      <span>Avg Skill: {!isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Target className="h-4 w-4 text-blue-600" />
@@ -587,9 +889,10 @@ interface PlayerCardProps {
   onDragStart: () => void;
   onDragEnd: () => void;
   playerGroups: PlayerGroup[];
+  compact?: boolean;
 }
 
-function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playerGroups }: PlayerCardProps) {
+function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playerGroups, compact = false }: PlayerCardProps) {
   const getSkillLevelColor = (skill: number): string => {
     if (skill >= 8) return 'text-white bg-green-800';
     if (skill >= 6) return 'text-white bg-green-600';
@@ -604,11 +907,11 @@ function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playe
 
   return (
     <div
-      className="bg-white border rounded-lg p-3 cursor-move hover:shadow-md transition-shadow relative"
-      style={isInGroup ? { 
-        borderColor: groupColor, 
+      className={`bg-white border rounded-lg cursor-move hover:shadow-md transition-shadow relative ${compact ? 'p-1.5' : 'p-3'}`}
+      style={isInGroup ? {
+        borderColor: groupColor,
         borderWidth: '2px',
-        backgroundColor: `${groupColor}08` 
+        backgroundColor: `${groupColor}08`
       } : {}}
       draggable
       onDragStart={(e) => {
@@ -619,7 +922,7 @@ function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playe
     >
       {/* Group label in top corner */}
       {isInGroup && groupLabel && (
-        <div 
+        <div
           className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs"
           style={{ backgroundColor: groupColor }}
         >
@@ -627,31 +930,21 @@ function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playe
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-2">
-        <div className="font-medium truncate flex items-center gap-1">
-          {player.name}
-          {isInGroup && (
-            <span title={`Group ${groupLabel} - ${playerGroup?.players.length} players`}>
-              <Link className="h-3 w-3" style={{ color: groupColor }} />
-            </span>
-          )}
+      <div className={compact ? 'space-y-1' : 'space-y-2'}>
+        <div className={`flex items-center ${compact ? 'gap-1' : 'gap-2'}`}>
+          <div className={`font-medium ${compact ? 'text-xs truncate flex-1 min-w-0' : 'text-sm truncate'}`} title={player.name}>
+            {player.name}
+          </div>
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            <Badge variant="outline" className={compact ? "text-[10px] h-5 px-1" : "text-xs"}>{player.gender}</Badge>
+            <Badge className={`${compact ? "text-[10px] h-5 px-1" : "text-xs"} ${getSkillLevelColor(player.skillRating)}`}>
+              {player.skillRating}
+            </Badge>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Badge variant="outline" className="text-xs">{player.gender}</Badge>
-          <Badge className={`text-xs ${getSkillLevelColor(player.skillRating)}`}>
-            {player.skillRating}
-          </Badge>
-        </div>
-      </div>
-      
-      {(player.teammateRequests.length > 0 || player.avoidRequests.length > 0 || isInGroup) && (
+
+      {!compact && (player.teammateRequests.length > 0 || player.avoidRequests.length > 0) && (
         <div className="text-xs text-gray-600 mb-2">
-          {isInGroup && playerGroup && (
-            <div className="font-medium flex items-center gap-1 mb-1" style={{ color: groupColor }}>
-              <Link className="h-3 w-3" />
-              Group {groupLabel}: {playerGroup.players.map(p => p.name).join(', ')}
-            </div>
-          )}
           {player.teammateRequests.length > 0 && (
             <div className="text-green-600">
               Wants: {player.teammateRequests.join(', ')}
@@ -664,25 +957,28 @@ function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playe
           )}
         </div>
       )}
-      
-      <div className="flex items-center gap-2">
-        <Move className="h-3 w-3 text-gray-400" />
-        <Select onValueChange={(value) => onMove(player.id, value === 'null' ? null : value)}>
-          <SelectTrigger className="h-7 text-xs">
-            <SelectValue placeholder="Move to..." />
-          </SelectTrigger>
-          <SelectContent>
-            {moveOptions.map((option, index) => (
-              <SelectItem 
-                key={index} 
-                value={option.value || 'null'}
-                disabled={option.disabled}
-              >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        {!compact && (
+          <div className="flex items-center gap-2">
+            <Move className="h-3 w-3 text-gray-400 flex-shrink-0" />
+            <Select onValueChange={(value) => onMove(player.id, value === 'null' ? null : value)}>
+              <SelectTrigger className="h-7 text-xs">
+                <SelectValue placeholder="Move to..." />
+              </SelectTrigger>
+              <SelectContent>
+                {moveOptions.map((option, index) => (
+                  <SelectItem
+                    key={index}
+                    value={option.value || 'null'}
+                    disabled={option.disabled}
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
     </div>
   );

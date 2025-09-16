@@ -2,7 +2,7 @@ import { Team, Player, PlayerGroup, LeagueConfig, TeamGenerationStats } from '@/
 import { getPlayerGroup, getPlayerGroupLabel } from './playerGrouping';
 
 export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], playerGroups: PlayerGroup[] = []): string {
-  const headers = ['Team', 'Player Name', 'Gender', 'Skill Rating', 'Player Group', 'Average Team Skill', 'Team Size', 'Males', 'Females', 'Other'];
+  const headers = ['Team', 'Player Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Player Group', 'Average Team Skill', 'Team Size', 'Males', 'Females', 'Other'];
   const rows: string[][] = [headers];
 
   // Add team data
@@ -14,6 +14,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
         player.name,
         player.gender,
         player.skillRating.toString(),
+        player.execSkillRating !== null ? player.execSkillRating.toString() : 'N/A',
         groupLabel,
         index === 0 ? team.averageSkill.toFixed(2) : '', // Only show average on first player
         index === 0 ? team.players.length.toString() : '',
@@ -33,7 +34,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
   // Add unassigned players section
   if (unassignedPlayers.length > 0) {
     rows.push(new Array(headers.length).fill(''));
-    rows.push(['UNASSIGNED PLAYERS', '', '', '', '', '', '', '', '', '']);
+    rows.push(['UNASSIGNED PLAYERS', '', '', '', '', '', '', '', '', '', '']);
     
     unassignedPlayers.forEach(player => {
       const groupLabel = getPlayerGroupLabel(playerGroups, player.id) || '';
@@ -42,6 +43,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
         player.name,
         player.gender,
         player.skillRating.toString(),
+        player.execSkillRating !== null ? player.execSkillRating.toString() : 'N/A',
         groupLabel,
         '',
         '',
@@ -64,8 +66,8 @@ export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[
   teams.forEach(team => {
     const playerNames = team.players.map(p => p.name).join('; ');
     
-    // Calculate skill variance
-    const skills = team.players.map(p => p.skillRating);
+    // Calculate skill variance using exec skill ratings (or skill rating if exec is N/A)
+    const skills = team.players.map(p => p.execSkillRating !== null ? p.execSkillRating : p.skillRating);
     const avgSkill = team.averageSkill;
     const variance = skills.reduce((sum, skill) => sum + Math.pow(skill - avgSkill, 2), 0) / skills.length;
     
@@ -181,7 +183,7 @@ export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], p
     team.players.forEach(player => {
       const groupLabel = getPlayerGroupLabel(playerGroups, player.id);
       const groupStr = groupLabel ? ` [Group ${groupLabel}]` : '';
-      report += `  - ${player.name} (${player.gender}, Skill: ${player.skillRating})${groupStr}\n`;
+      report += `  - ${player.name} (${player.gender}, Skill: ${player.skillRating}, Exec: ${player.execSkillRating !== null ? player.execSkillRating : 'N/A'})${groupStr}\n`;
     });
     
     if (index < teams.length - 1) {
@@ -196,7 +198,7 @@ export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], p
     unassignedPlayers.forEach(player => {
       const groupLabel = getPlayerGroupLabel(playerGroups, player.id);
       const groupStr = groupLabel ? ` [Group ${groupLabel}]` : '';
-      report += `- ${player.name} (${player.gender}, Skill: ${player.skillRating})${groupStr}\n`;
+      report += `- ${player.name} (${player.gender}, Skill: ${player.skillRating}, Exec: ${player.execSkillRating !== null ? player.execSkillRating : 'N/A'})${groupStr}\n`;
       if (player.teammateRequests.length > 0) {
         report += `  Teammate Requests: ${player.teammateRequests.join(', ')}\n`;
       }

@@ -454,13 +454,22 @@ export function PlayerGroups({
                             </SelectTrigger>
                             <SelectContent>
                               {playerGroups.map((group) => (
-                                <SelectItem 
-                                  key={group.id} 
+                                <SelectItem
+                                  key={group.id}
                                   value={group.id}
                                   disabled={!canAddToGroup(group.id)}
                                 >
-                                  Group {group.label} ({group.players.length}/4)
-                                  {!canAddToGroup(group.id) && ' - Full'}
+                                  <div className="flex flex-col">
+                                    <div>
+                                      Group {group.label} ({group.players.length}/4)
+                                      {!canAddToGroup(group.id) && ' - Full'}
+                                    </div>
+                                    {group.players.length > 0 && (
+                                      <div className="text-xs text-gray-600">
+                                        {group.players.map(p => p.name).join(', ')}
+                                      </div>
+                                    )}
+                                  </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
