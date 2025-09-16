@@ -1,4 +1,5 @@
-import { Player, Team, LeagueConfig, TeamGenerationStats, PlayerGroup } from '@/types';
+import { Player, Team, LeagueConfig, TeamGenerationStats, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import { fuzzyMatcher } from './fuzzyNameMatcher';
 
 export interface GenerationResult {
   teams: Team[];
@@ -562,12 +563,12 @@ function calculateStats(
     }
   }
   
-  // Check for avoid request violations
+  // Check for avoid request violations (with fuzzy matching)
   let avoidRequestsViolated = 0;
   for (const team of teams) {
     for (const player of team.players) {
       for (const avoidName of player.avoidRequests) {
-        if (team.players.some(p => p.name.toLowerCase() === avoidName.toLowerCase())) {
+        if (team.players.some(p => fuzzyMatcher.isLikelyMatch(avoidName, p.name, 0.8))) {
           avoidRequestsViolated++;
         }
       }
@@ -586,19 +587,23 @@ function calculateStats(
 }
 
 function hasAvoidConflict(player: Player, team: Team, playerMap: Map<string, Player>): boolean {
-  // Check if player avoids anyone on the team
+  const teamPlayerNames = team.players.map(p => p.name);
+
+  // Check if player avoids anyone on the team (with fuzzy matching)
   for (const avoidName of player.avoidRequests) {
-    if (team.players.some(p => p.name.toLowerCase() === avoidName.toLowerCase())) {
-      return true;
+    for (const teamPlayerName of teamPlayerNames) {
+      if (fuzzyMatcher.isLikelyMatch(avoidName, teamPlayerName, 0.8)) {
+        return true;
+      }
     }
   }
 
-  // Check if anyone on the team avoids this player
+  // Check if anyone on the team avoids this player (with fuzzy matching)
   for (const teamPlayer of team.players) {
-    if (teamPlayer.avoidRequests.some(avoidName => 
-      avoidName.toLowerCase() === player.name.toLowerCase()
-    )) {
-      return true;
+    for (const avoidName of teamPlayer.avoidRequests) {
+      if (fuzzyMatcher.isLikelyMatch(avoidName, player.name, 0.8)) {
+        return true;
+      }
     }
   }
 

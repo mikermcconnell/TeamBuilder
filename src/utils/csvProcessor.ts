@@ -1,5 +1,6 @@
 import { Player, CSVValidationResult, CSVRow, Gender, PlayerGroup } from '@/types';
 import { processMutualRequests } from './playerGrouping';
+import { fuzzyMatcher, FuzzyMatchResult } from './fuzzyNameMatcher';
 
 // CSV format types for automatic detection
 type CSVFormat = 'legacy' | 'registration';
@@ -436,25 +437,79 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
  * Shared logic for finalizing player processing
  */
 function finalizePlayers(players: Player[], result: CSVValidationResult): CSVValidationResult {
-  // Validate teammate/avoid requests reference existing players
-  const playerNames = new Set(players.map(p => p.name.toLowerCase()));
+  // Validate teammate/avoid requests with fuzzy matching
+  const playerNames = players.map(p => p.name);
 
   players.forEach(player => {
-    player.teammateRequests = player.teammateRequests.filter(name => {
-      const exists = playerNames.has(name.toLowerCase());
-      if (!exists) {
-        result.warnings.push(`Player "${player.name}": Teammate request "${name}" not found in roster`);
+    // Process teammate requests with fuzzy matching
+    const resolvedTeammateRequests: string[] = [];
+    player.teammateRequests.forEach(requestedName => {
+      const matches = fuzzyMatcher.match(requestedName, playerNames, 0.6);
+
+      if (matches.length > 0) {
+        const bestMatch = matches[0];
+
+        if (bestMatch.confidence === 'exact' || bestMatch.confidence === 'high') {
+          // Auto-accept high confidence matches
+          resolvedTeammateRequests.push(bestMatch.match);
+          if (bestMatch.match !== requestedName) {
+            result.warnings.push(
+              `Player "${player.name}": Teammate request "${requestedName}" matched to "${bestMatch.match}" (${bestMatch.reason})`
+            );
+          }
+        } else if (bestMatch.confidence === 'medium') {
+          // Medium confidence - add with warning
+          resolvedTeammateRequests.push(bestMatch.match);
+          result.warnings.push(
+            `Player "${player.name}": Teammate request "${requestedName}" matched to "${bestMatch.match}" (${bestMatch.reason}) - please verify`
+          );
+        } else {
+          // Low confidence - suggest but don't auto-match
+          result.warnings.push(
+            `Player "${player.name}": Teammate request "${requestedName}" not found. Did you mean "${bestMatch.match}"?`
+          );
+        }
+      } else {
+        result.warnings.push(`Player "${player.name}": Teammate request "${requestedName}" not found in roster`);
       }
-      return exists;
     });
 
-    player.avoidRequests = player.avoidRequests.filter(name => {
-      const exists = playerNames.has(name.toLowerCase());
-      if (!exists) {
-        result.warnings.push(`Player "${player.name}": Avoid request "${name}" not found in roster`);
+    // Process avoid requests with fuzzy matching
+    const resolvedAvoidRequests: string[] = [];
+    player.avoidRequests.forEach(requestedName => {
+      const matches = fuzzyMatcher.match(requestedName, playerNames, 0.6);
+
+      if (matches.length > 0) {
+        const bestMatch = matches[0];
+
+        if (bestMatch.confidence === 'exact' || bestMatch.confidence === 'high') {
+          // Auto-accept high confidence matches
+          resolvedAvoidRequests.push(bestMatch.match);
+          if (bestMatch.match !== requestedName) {
+            result.warnings.push(
+              `Player "${player.name}": Avoid request "${requestedName}" matched to "${bestMatch.match}" (${bestMatch.reason})`
+            );
+          }
+        } else if (bestMatch.confidence === 'medium') {
+          // Medium confidence - add with warning
+          resolvedAvoidRequests.push(bestMatch.match);
+          result.warnings.push(
+            `Player "${player.name}": Avoid request "${requestedName}" matched to "${bestMatch.match}" (${bestMatch.reason}) - please verify`
+          );
+        } else {
+          // Low confidence - suggest but don't auto-match
+          result.warnings.push(
+            `Player "${player.name}": Avoid request "${requestedName}" not found. Did you mean "${bestMatch.match}"?`
+          );
+        }
+      } else {
+        result.warnings.push(`Player "${player.name}": Avoid request "${requestedName}" not found in roster`);
       }
-      return exists;
     });
+
+    // Update player with resolved requests
+    player.teammateRequests = resolvedTeammateRequests;
+    player.avoidRequests = resolvedAvoidRequests;
   });
 
   // Process mutual requests and create player groups

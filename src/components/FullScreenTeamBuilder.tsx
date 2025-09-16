@@ -305,7 +305,7 @@ export function FullScreenTeamBuilder({
   const getSortedPlayersByGender = (gender: 'M' | 'F'): Player[] => {
     return getNonGroupedPlayers()
       .filter(player => player.gender === gender)
-      .sort((a, b) => b.skillRating - a.skillRating);
+      .sort((a, b) => getEffectiveSkillRating(b) - getEffectiveSkillRating(a));
   };
 
   const femaleNonGroupedPlayers = getSortedPlayersByGender('F');
@@ -782,6 +782,7 @@ function FullScreenPlayerCard({ player, moveOptions, onMove, onDragStart, onDrag
   const groupColor = getPlayerGroupColor(playerGroups, player.id);
   const groupLabel = getPlayerGroupLabel(playerGroups, player.id);
   const isInGroup = playerGroup !== null;
+  const effectiveSkill = getEffectiveSkillRating(player);
 
   return (
     <div
@@ -819,8 +820,8 @@ function FullScreenPlayerCard({ player, moveOptions, onMove, onDragStart, onDrag
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
           <Badge variant="outline" className="text-xs px-1 py-0">{player.gender}</Badge>
-          <Badge className={`text-xs px-1 py-0 ${getSkillLevelColor(player.skillRating)}`}>
-            {player.skillRating}
+          <Badge className={`text-xs px-1 py-0 ${getSkillLevelColor(effectiveSkill)}`}>
+            {effectiveSkill}
           </Badge>
         </div>
       </div>

@@ -52,6 +52,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { debounce } from '@/utils/performance';
 import { validatePlayerName, validateSkillRating } from '@/utils/validation';
+import { fuzzyMatcher, FuzzyMatchResult } from '@/utils/fuzzyNameMatcher';
+import { SkillDistributionChart } from './SkillDistributionChart';
 
 interface PlayerRosterProps {
   players: Player[];
@@ -89,6 +91,8 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
   const [teammateSearchOpen, setTeammateSearchOpen] = useState(false);
   const [avoidSearchOpen, setAvoidSearchOpen] = useState(false);
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
+  const [teammateSearchValue, setTeammateSearchValue] = useState('');
+  const [avoidSearchValue, setAvoidSearchValue] = useState('');
 
   // Create debounced search handler
   const debouncedSearchRef = useRef(
@@ -457,19 +461,49 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
     }
   }, [onPlayerRemove, players]);
 
-  // Helper functions for autocomplete
-  const getAvailablePlayersForTeammate = (currentPlayer: Player) => {
-    return players.filter(p => 
-      p.id !== currentPlayer.id && 
+  // Helper functions for autocomplete with fuzzy matching
+  const getAvailablePlayersForTeammate = (currentPlayer: Player, searchValue?: string) => {
+    const availablePlayers = players.filter(p =>
+      p.id !== currentPlayer.id &&
       !currentPlayer.teammateRequests.includes(p.name)
     );
+
+    if (!searchValue || searchValue.trim() === '') {
+      return availablePlayers;
+    }
+
+    // Use fuzzy matching to find relevant suggestions
+    const playerNames = availablePlayers.map(p => p.name);
+    const matches = fuzzyMatcher.getSuggestions(searchValue, playerNames, 10);
+
+    return matches.map(match =>
+      availablePlayers.find(p => p.name === match.match)!
+    ).filter(Boolean);
   };
 
-  const getAvailablePlayersForAvoid = (currentPlayer: Player) => {
-    return players.filter(p => 
-      p.id !== currentPlayer.id && 
+  const getAvailablePlayersForAvoid = (currentPlayer: Player, searchValue?: string) => {
+    const availablePlayers = players.filter(p =>
+      p.id !== currentPlayer.id &&
       !currentPlayer.avoidRequests.includes(p.name)
     );
+
+    if (!searchValue || searchValue.trim() === '') {
+      return availablePlayers;
+    }
+
+    // Use fuzzy matching to find relevant suggestions
+    const playerNames = availablePlayers.map(p => p.name);
+    const matches = fuzzyMatcher.getSuggestions(searchValue, playerNames, 10);
+
+    return matches.map(match =>
+      availablePlayers.find(p => p.name === match.match)!
+    ).filter(Boolean);
+  };
+
+  // Get match confidence for display
+  const getMatchConfidence = (searchValue: string, playerName: string): FuzzyMatchResult | null => {
+    if (!searchValue || searchValue.trim() === '') return null;
+    return fuzzyMatcher.matchSingle(searchValue, playerName);
   };
 
   const addTeammateRequest = (playerName: string) => {
@@ -480,6 +514,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       });
     }
     setTeammateSearchOpen(false);
+    setTeammateSearchValue('');
   };
 
   const removeTeammateRequest = (playerName: string) => {
@@ -499,6 +534,7 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       });
     }
     setAvoidSearchOpen(false);
+    setAvoidSearchValue('');
   };
 
   const removeAvoidRequest = (playerName: string) => {
@@ -778,6 +814,14 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                     <span className="sm:hidden">Av</span>
                   </TableHead>
                   <TableHead className="w-[12%] px-2 text-xs">Actions</TableHead>
+                </TableRow>
+                {/* Skill Distribution Chart Row */}
+                <TableRow>
+                  <TableCell colSpan={8} className="p-0 border-b">
+                    <div className="p-4 bg-gray-50">
+                      <SkillDistributionChart players={players} />
+                    </div>
+                  </TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1110,25 +1154,45 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
                     <Command>
-                      <CommandInput placeholder="Search players..." />
+                      <CommandInput
+                        placeholder="Search players..."
+                        value={teammateSearchValue}
+                        onValueChange={setTeammateSearchValue}
+                      />
                       <CommandList>
-                        <CommandEmpty>No players found.</CommandEmpty>
+                        <CommandEmpty>
+                          {teammateSearchValue ? 'No matching players found.' : 'Start typing to search players...'}
+                        </CommandEmpty>
                         <CommandGroup>
-                          {getAvailablePlayersForTeammate(editingPlayer).map((player) => (
-                            <CommandItem
-                              key={player.id}
-                              value={player.name}
-                              onSelect={() => addTeammateRequest(player.name)}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 opacity-0`}
-                              />
-                              {player.name}
-                              <Badge variant="outline" className="ml-auto">
-                                {player.gender}
-                              </Badge>
-                            </CommandItem>
-                          ))}
+                          {getAvailablePlayersForTeammate(editingPlayer, teammateSearchValue).map((player) => {
+                            const matchInfo = getMatchConfidence(teammateSearchValue, player.name);
+                            const confidenceColor = matchInfo?.confidence === 'exact' ? 'text-green-600' :
+                                                   matchInfo?.confidence === 'high' ? 'text-blue-600' :
+                                                   matchInfo?.confidence === 'medium' ? 'text-yellow-600' :
+                                                   'text-gray-600';
+
+                            return (
+                              <CommandItem
+                                key={player.id}
+                                value={player.name}
+                                onSelect={() => addTeammateRequest(player.name)}
+                                className="flex items-center justify-between"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Check className="h-4 w-4 opacity-0" />
+                                  <span>{player.name}</span>
+                                  {matchInfo && matchInfo.score < 1.0 && (
+                                    <span className={`text-xs ${confidenceColor}`}>
+                                      ({Math.round(matchInfo.score * 100)}%)
+                                    </span>
+                                  )}
+                                </div>
+                                <Badge variant="outline">
+                                  {player.gender}
+                                </Badge>
+                              </CommandItem>
+                            );
+                          })}
                         </CommandGroup>
                       </CommandList>
                     </Command>
@@ -1163,25 +1227,45 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
                     <Command>
-                      <CommandInput placeholder="Search players..." />
+                      <CommandInput
+                        placeholder="Search players..."
+                        value={avoidSearchValue}
+                        onValueChange={setAvoidSearchValue}
+                      />
                       <CommandList>
-                        <CommandEmpty>No players found.</CommandEmpty>
+                        <CommandEmpty>
+                          {avoidSearchValue ? 'No matching players found.' : 'Start typing to search players...'}
+                        </CommandEmpty>
                         <CommandGroup>
-                          {getAvailablePlayersForAvoid(editingPlayer).map((player) => (
-                            <CommandItem
-                              key={player.id}
-                              value={player.name}
-                              onSelect={() => addAvoidRequest(player.name)}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 opacity-0`}
-                              />
-                              {player.name}
-                              <Badge variant="outline" className="ml-auto">
-                                {player.gender}
-                              </Badge>
-                            </CommandItem>
-                          ))}
+                          {getAvailablePlayersForAvoid(editingPlayer, avoidSearchValue).map((player) => {
+                            const matchInfo = getMatchConfidence(avoidSearchValue, player.name);
+                            const confidenceColor = matchInfo?.confidence === 'exact' ? 'text-green-600' :
+                                                   matchInfo?.confidence === 'high' ? 'text-blue-600' :
+                                                   matchInfo?.confidence === 'medium' ? 'text-yellow-600' :
+                                                   'text-gray-600';
+
+                            return (
+                              <CommandItem
+                                key={player.id}
+                                value={player.name}
+                                onSelect={() => addAvoidRequest(player.name)}
+                                className="flex items-center justify-between"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Check className="h-4 w-4 opacity-0" />
+                                  <span>{player.name}</span>
+                                  {matchInfo && matchInfo.score < 1.0 && (
+                                    <span className={`text-xs ${confidenceColor}`}>
+                                      ({Math.round(matchInfo.score * 100)}%)
+                                    </span>
+                                  )}
+                                </div>
+                                <Badge variant="outline">
+                                  {player.gender}
+                                </Badge>
+                              </CommandItem>
+                            );
+                          })}
                         </CommandGroup>
                       </CommandList>
                     </Command>

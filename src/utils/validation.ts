@@ -19,13 +19,11 @@ export function sanitizeString(input: string, maxLength = 100): string {
   // Remove HTML tags and dangerous characters
   const sanitized = input
     .replace(/<[^>]*>/g, '') // Remove HTML tags
-    .replace(/[<>\"'&]/g, (char) => {
-      // Escape dangerous characters
+    .replace(/[<>&]/g, (char) => {
+      // Escape only truly dangerous characters for XSS prevention
       const escapeMap: { [key: string]: string } = {
         '<': '&lt;',
         '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#x27;',
         '&': '&amp;',
       };
       return escapeMap[char] || char;
