@@ -133,6 +133,7 @@ export class DataStorageService {
           unassignedPlayers: [],
           playerGroups: [],
           config: null,
+          execRatingHistory: {},
           savedConfigs: [],
           lastUpdated: new Date().toISOString()
         });

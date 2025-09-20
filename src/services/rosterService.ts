@@ -16,6 +16,24 @@ import { db, auth } from '@/config/firebase';
 import { Player, PlayerGroup, Team, LeagueConfig } from '@/types';
 import { uploadFile, downloadFile, deleteFile } from './storageService';
 
+// Helper function to remove undefined values from an object
+const removeUndefinedValues = (obj: any): any => {
+  if (obj === null || obj === undefined) return null;
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefinedValues(item));
+  }
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const key in obj) {
+      if (obj[key] !== undefined) {
+        cleaned[key] = removeUndefinedValues(obj[key]);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+};
+
 // Helper function to ensure user is authenticated
 const ensureAuthenticated = (): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -104,11 +122,15 @@ export const saveRoster = async (
       throw new Error('Authentication mismatch - cannot save roster');
     }
 
-    // Calculate metadata
-    const metadata = calculateRosterMetadata(rosterData.players, rosterData.playerGroups);
-    
+    // Clean data to avoid undefined values and calculate metadata
+    const cleanedRosterData = removeUndefinedValues(rosterData) as Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'>;
+    const metadata = calculateRosterMetadata(
+      cleanedRosterData.players,
+      cleanedRosterData.playerGroups
+    );
+
     const docRef = await addDoc(collection(db, 'rosters'), {
-      ...rosterData,
+      ...cleanedRosterData,
       metadata,
       version: 1,
       createdAt: Timestamp.now(),
@@ -130,24 +152,6 @@ export const saveRoster = async (
     
     throw error;
   }
-};
-
-// Helper function to remove undefined values from an object
-const removeUndefinedValues = (obj: any): any => {
-  if (obj === null || obj === undefined) return null;
-  if (Array.isArray(obj)) {
-    return obj.map(item => removeUndefinedValues(item));
-  }
-  if (typeof obj === 'object') {
-    const cleaned: any = {};
-    for (const key in obj) {
-      if (obj[key] !== undefined) {
-        cleaned[key] = removeUndefinedValues(obj[key]);
-      }
-    }
-    return cleaned;
-  }
-  return obj;
 };
 
 // Save teams to an existing roster
@@ -210,17 +214,19 @@ export const updateRoster = async (
       await saveRosterVersion(rosterId, currentData);
     }
     
+    const cleanedRosterData = removeUndefinedValues(rosterData) as Partial<RosterData>;
+
     // Recalculate metadata if players changed
     let metadata = currentData.metadata;
-    if (rosterData.players || rosterData.playerGroups) {
+    if (cleanedRosterData.players || cleanedRosterData.playerGroups) {
       metadata = calculateRosterMetadata(
-        rosterData.players || currentData.players,
-        rosterData.playerGroups || currentData.playerGroups
+        cleanedRosterData.players || currentData.players,
+        cleanedRosterData.playerGroups || currentData.playerGroups
       );
     }
     
     await updateDoc(docRef, {
-      ...rosterData,
+      ...cleanedRosterData,
       metadata,
       version: newVersion,
       updatedAt: Timestamp.now()

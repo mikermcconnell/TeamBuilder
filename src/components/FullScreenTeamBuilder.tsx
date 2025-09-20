@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Player, Team, LeagueConfig, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import React, { useMemo, useState } from 'react';
+import { Player, Team, LeagueConfig, PlayerGroup, Gender, getEffectiveSkillRating } from '@/types';
 import { Button } from '@/components/ui/button';
 import { SavedTeamsManager } from '@/components/SavedTeamsManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,6 +48,7 @@ export function FullScreenTeamBuilder({
   const [draggedGroup, setDraggedGroup] = useState<PlayerGroup | null>(null);
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [tempTeamName, setTempTeamName] = useState<string>('');
+  const [teamSortMode, setTeamSortMode] = useState<'skill' | 'name'>('skill');
 
   // Team name editing functions
   const startEditingTeamName = (teamId: string, currentName: string) => {
@@ -67,6 +68,53 @@ export function FullScreenTeamBuilder({
     setEditingTeamId(null);
     setTempTeamName('');
   };
+
+  const genderOrder: Gender[] = ['M', 'F', 'Other'];
+  const genderLabels: Record<Gender, string> = {
+    M: 'Males',
+    F: 'Females',
+    Other: 'Other',
+  };
+
+  const splitPlayersByGender = (playersList: Player[]): Record<Gender, Player[]> => {
+    return playersList.reduce(
+      (acc, player) => {
+        acc[player.gender].push(player);
+        return acc;
+      },
+      { M: [] as Player[], F: [] as Player[], Other: [] as Player[] }
+    );
+  };
+
+  const calculateAverageSkill = (playersList: Player[]): number | null => {
+    if (playersList.length === 0) {
+      return null;
+    }
+
+    const total = playersList.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0);
+    return Math.round((total / playersList.length) * 10) / 10;
+  };
+
+  const formatAverage = (value: number | null): string => (value === null ? '--' : value.toFixed(1));
+
+  const sortedTeams = useMemo(() => {
+    const copy = [...teams];
+
+    if (teamSortMode === 'name') {
+      return copy.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return copy.sort((a, b) => {
+      const aSkill = isNaN(a.averageSkill) ? 0 : a.averageSkill;
+      const bSkill = isNaN(b.averageSkill) ? 0 : b.averageSkill;
+
+      if (aSkill === bSkill) {
+        return a.name.localeCompare(b.name);
+      }
+
+      return aSkill - bSkill;
+    });
+  }, [teams, teamSortMode]);
 
   // Helper function to check if player is in a group
   const isPlayerInGroup = (player: Player): boolean => {
@@ -389,36 +437,55 @@ export function FullScreenTeamBuilder({
 
             {/* Center - Teams Grid */}
             <div className="col-span-8">
-            <div className="grid grid-cols-5 gap-3">
-              {teams
-                .slice()
-                .sort((a, b) => {
-                  const aSkill = isNaN(a.averageSkill) ? 0 : a.averageSkill;
-                  const bSkill = isNaN(b.averageSkill) ? 0 : b.averageSkill;
-                  return aSkill - bSkill;
-                })
-                .map((team) => {
-                const constraintCheck = getTeamConstraintViolations(team);
-                const violations = constraintCheck.violations;
-                const sizeIssues = constraintCheck.sizeIssues;
-                // Calculate reasonable max gender limits based on team size and mins
-                const maxFemales = config.maxTeamSize - config.minMales;
-                const maxMales = config.maxTeamSize - config.minFemales;
+              {sortedTeams.length > 0 && (
+                <div className="flex items-center justify-end mb-3">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span>Sort teams by</span>
+                    <Select
+                      value={teamSortMode}
+                      onValueChange={(value) => setTeamSortMode(value as 'skill' | 'name')}
+                    >
+                      <SelectTrigger className="h-8 w-44">
+                        <SelectValue placeholder="Sort teams" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="skill">Skill (Low to High)</SelectItem>
+                        <SelectItem value="name">Team Name (A to Z)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-5 gap-3">
+                {sortedTeams.map((team) => {
+                  const constraintCheck = getTeamConstraintViolations(team);
+                  const violations = constraintCheck.violations;
+                  const sizeIssues = constraintCheck.sizeIssues;
+                  // Calculate reasonable max gender limits based on team size and mins
+                  const maxFemales = config.maxTeamSize - config.minMales;
+                  const maxMales = config.maxTeamSize - config.minFemales;
 
-                const hasGenderIssues =
-                  team.genderBreakdown.F < config.minFemales ||
-                  team.genderBreakdown.M < config.minMales ||
-                  team.genderBreakdown.F > maxFemales ||
-                  team.genderBreakdown.M > maxMales;
-                const isValid = violations.length === 0 && !hasGenderIssues;
-                const isOverCapacity = isTeamOverCapacity(team);
-                const isUnderCapacity = isTeamUnderCapacity(team);
+                  const hasGenderIssues =
+                    team.genderBreakdown.F < config.minFemales ||
+                    team.genderBreakdown.M < config.minMales ||
+                    team.genderBreakdown.F > maxFemales ||
+                    team.genderBreakdown.M > maxMales;
+                  const isValid = violations.length === 0 && !hasGenderIssues;
+                  const isOverCapacity = isTeamOverCapacity(team);
+                  const isUnderCapacity = isTeamUnderCapacity(team);
 
-                let borderClass = 'border-green-200';
-                if (!isValid) borderClass = 'border-orange-200';
-                if (isOverCapacity) borderClass = 'border-red-300';
+                  const genderPlayersMap = splitPlayersByGender(team.players);
+                  const genderAverageMap: Record<Gender, number | null> = {
+                    M: calculateAverageSkill(genderPlayersMap.M),
+                    F: calculateAverageSkill(genderPlayersMap.F),
+                    Other: calculateAverageSkill(genderPlayersMap.Other),
+                  };
 
-                return (
+                  let borderClass = 'border-green-200';
+                  if (!isValid) borderClass = 'border-orange-200';
+                  if (isOverCapacity) borderClass = 'border-red-300';
+
+                  return (
                   <Card key={team.id} className={`${borderClass} flex flex-col`}>
                     <CardHeader className="pb-3 flex-shrink-0">
                       <div className="flex items-center justify-between">
@@ -465,8 +532,13 @@ export function FullScreenTeamBuilder({
                         </Badge>
                       </div>
 
-                      <div className="text-xs text-gray-600">
-                        <span className="font-semibold text-sm">Avg: {team.players.length > 0 && !isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'}</span>
+                      <div className="text-xs text-gray-600 flex flex-wrap gap-x-3 gap-y-1">
+                        <span className="font-semibold text-sm">
+                          Avg: {team.players.length > 0 && !isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'}
+                        </span>
+                        <span>{team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O</span>
+                        <span>M Avg: {formatAverage(genderAverageMap.M)}</span>
+                        <span>F Avg: {formatAverage(genderAverageMap.F)}</span>
                       </div>
 
                       {/* Gender requirements display */}
@@ -541,27 +613,47 @@ export function FullScreenTeamBuilder({
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-1">
-                            {team.players.map((player) => (
-                              <FullScreenPlayerCard
-                                key={player.id}
-                                player={player}
-                                moveOptions={getMoveOptions(player)}
-                                onMove={onPlayerMove}
-                                onDragStart={() => handleDragStart(player)}
-                                onDragEnd={handleDragEnd}
-                                playerGroups={playerGroups}
-                              />
-                            ))}
+                          <div className="space-y-2">
+                            {genderOrder.map((gender) => {
+                              const genderPlayers = genderPlayersMap[gender];
+                              if (genderPlayers.length === 0) {
+                                return null;
+                              }
+
+                              const average = genderAverageMap[gender];
+                              return (
+                                <div key={gender}>
+                                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600 mb-1">
+                                    <span>{`${genderLabels[gender]} (${genderPlayers.length})`}</span>
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                      Avg {average !== null ? average.toFixed(1) : '--'}
+                                    </Badge>
+                                  </div>
+                                  <div className="space-y-1">
+                                    {genderPlayers.map((player) => (
+                                      <FullScreenPlayerCard
+                                        key={player.id}
+                                        player={player}
+                                        moveOptions={getMoveOptions(player)}
+                                        onMove={onPlayerMove}
+                                        onDragStart={() => handleDragStart(player)}
+                                        onDragEnd={handleDragEnd}
+                                        playerGroups={playerGroups}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
                     </CardContent>
                   </Card>
                 );
-              })}
+                })}
+              </div>
             </div>
-          </div>
 
             {/* Right Panel - Male Players */}
             <div className="col-span-2 sticky top-0 h-[calc(100vh-160px)]">

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Player, Team, LeagueConfig, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import React, { useMemo, useState } from 'react';
+import { Player, Team, LeagueConfig, PlayerGroup, Gender, getEffectiveSkillRating } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +39,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
   const [draggedFromTeam, setDraggedFromTeam] = useState<string | null>(null);
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [tempTeamName, setTempTeamName] = useState<string>('');
+  const [teamSortMode, setTeamSortMode] = useState<'skill' | 'name'>('skill');
 
   // Team name editing functions
   const startEditingTeamName = (teamId: string, currentName: string) => {
@@ -272,6 +273,53 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
     return options;
   };
 
+  const genderOrder: Gender[] = ['M', 'F', 'Other'];
+  const genderLabels: Record<Gender, string> = {
+    M: 'Males',
+    F: 'Females',
+    Other: 'Other',
+  };
+
+  const splitPlayersByGender = (playersList: Player[]): Record<Gender, Player[]> => {
+    return playersList.reduce(
+      (acc, player) => {
+        acc[player.gender].push(player);
+        return acc;
+      },
+      { M: [] as Player[], F: [] as Player[], Other: [] as Player[] }
+    );
+  };
+
+  const calculateAverageSkill = (playersList: Player[]): number | null => {
+    if (playersList.length === 0) {
+      return null;
+    }
+
+    const total = playersList.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0);
+    return Math.round((total / playersList.length) * 10) / 10;
+  };
+
+  const formatAverage = (value: number | null): string => (value === null ? '--' : value.toFixed(1));
+
+  const sortedTeams = useMemo(() => {
+    const copy = [...teams];
+
+    if (teamSortMode === 'name') {
+      return copy.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return copy.sort((a, b) => {
+      const aSkill = isNaN(a.averageSkill) ? 0 : a.averageSkill;
+      const bSkill = isNaN(b.averageSkill) ? 0 : b.averageSkill;
+
+      if (aSkill === bSkill) {
+        return a.name.localeCompare(b.name);
+      }
+
+      return aSkill - bSkill;
+    });
+  }, [teams, teamSortMode]);
+
   // Helper functions for manual mode
   const getNonGroupedPlayers = (): Player[] => {
     return unassignedPlayers.filter(player => !isPlayerInGroup(player));
@@ -364,21 +412,40 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
 
           {/* Center - Teams Grid */}
           <div className="flex-1 min-w-0">
+            {sortedTeams.length > 0 && (
+              <div className="flex items-center justify-end mb-3">
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <span>Sort teams by</span>
+                  <Select
+                    value={teamSortMode}
+                    onValueChange={(value) => setTeamSortMode(value as 'skill' | 'name')}
+                  >
+                    <SelectTrigger className="h-8 w-40">
+                      <SelectValue placeholder="Sort teams" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="skill">Skill (Low to High)</SelectItem>
+                      <SelectItem value="name">Team Name (A to Z)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-              {teams
-                .slice()
-                .sort((a, b) => {
-                  const aSkill = isNaN(a.averageSkill) ? 0 : a.averageSkill;
-                  const bSkill = isNaN(b.averageSkill) ? 0 : b.averageSkill;
-                  return aSkill - bSkill;
-                })
-                .map((team) => {
+              {sortedTeams.map((team) => {
                 const constraintCheck = getTeamConstraintViolations(team);
                 const violations = constraintCheck.violations;
                 const sizeIssues = constraintCheck.sizeIssues;
                 const isValid = violations.length === 0;
                 const isOverCapacity = isTeamOverCapacity(team);
                 const isUnderCapacity = isTeamUnderCapacity(team);
+
+                const genderPlayersMap = splitPlayersByGender(team.players);
+                const genderAverageMap: Record<Gender, number | null> = {
+                  M: calculateAverageSkill(genderPlayersMap.M),
+                  F: calculateAverageSkill(genderPlayersMap.F),
+                  Other: calculateAverageSkill(genderPlayersMap.Other),
+                };
 
                 let borderClass = 'border-green-200';
                 if (!isValid) borderClass = 'border-orange-200';
@@ -431,8 +498,11 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                         </Badge>
                       </div>
 
-                      <div className="text-xs text-gray-600">
-                        Skill: {!isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'} | {team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O
+                      <div className="text-xs text-gray-600 flex flex-wrap gap-x-2 gap-y-1">
+                        <span>Skill: {!isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'}</span>
+                        <span>{team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O</span>
+                        <span>M Avg: {formatAverage(genderAverageMap.M)}</span>
+                        <span>F Avg: {formatAverage(genderAverageMap.F)}</span>
                       </div>
 
                       {/* Gender Requirements - Always visible for clarity */}
@@ -484,19 +554,39 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-1">
-                            {team.players.map((player) => (
-                              <PlayerCard
-                                key={player.id}
-                                player={player}
-                                moveOptions={getMoveOptions(player)}
-                                onMove={onPlayerMove}
-                                onDragStart={() => handleDragStart(player, team.id)}
-                                onDragEnd={handleDragEnd}
-                                playerGroups={playerGroups}
-                                compact={true}
-                              />
-                            ))}
+                          <div className="space-y-2">
+                            {genderOrder.map((gender) => {
+                              const genderPlayers = genderPlayersMap[gender];
+                              if (genderPlayers.length === 0) {
+                                return null;
+                              }
+
+                              const average = genderAverageMap[gender];
+                              return (
+                                <div key={gender}>
+                                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600 mb-1">
+                                    <span>{`${genderLabels[gender]} (${genderPlayers.length})`}</span>
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">
+                                      Avg {average !== null ? average.toFixed(1) : '--'}
+                                    </Badge>
+                                  </div>
+                                  <div className="space-y-1">
+                                    {genderPlayers.map((player) => (
+                                      <PlayerCard
+                                        key={player.id}
+                                        player={player}
+                                        moveOptions={getMoveOptions(player)}
+                                        onMove={onPlayerMove}
+                                        onDragStart={() => handleDragStart(player, team.id)}
+                                        onDragEnd={handleDragEnd}
+                                        playerGroups={playerGroups}
+                                        compact={true}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -674,18 +764,42 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
         </Card>
       )}
 
+      {sortedTeams.length > 0 && (
+        <div className="flex items-center justify-end">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span>Sort teams by</span>
+            <Select
+              value={teamSortMode}
+              onValueChange={(value) => setTeamSortMode(value as 'skill' | 'name')}
+            >
+              <SelectTrigger className="h-8 w-44">
+                <SelectValue placeholder="Sort teams" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="skill">Skill (Low to High)</SelectItem>
+                <SelectItem value="name">Team Name (A to Z)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
       {/* Teams Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {teams
-          .slice()
-          .sort((a, b) => a.averageSkill - b.averageSkill)
-          .map((team) => {
+        {sortedTeams.map((team) => {
           const constraintCheck = getTeamConstraintViolations(team);
           const violations = constraintCheck.violations;
           const sizeIssues = constraintCheck.sizeIssues;
           const isValid = violations.length === 0;
           const isOverCapacity = isTeamOverCapacity(team);
           const isUnderCapacity = isTeamUnderCapacity(team);
+
+          const genderPlayersMap = splitPlayersByGender(team.players);
+          const genderAverageMap: Record<Gender, number | null> = {
+            M: calculateAverageSkill(genderPlayersMap.M),
+            F: calculateAverageSkill(genderPlayersMap.F),
+            Other: calculateAverageSkill(genderPlayersMap.Other),
+          };
 
           // Determine border color based on team status
           let borderClass = 'border-green-200';
@@ -746,7 +860,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-4 text-sm">
+                  <div className="flex flex-wrap items-center gap-4 text-sm">
                     <div className="flex items-center gap-1">
                       <Trophy className="h-4 w-4 text-yellow-600" />
                       <span>Avg Skill: {!isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'}</span>
@@ -756,6 +870,14 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                       <span>
                         {team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O
                       </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-700">
+                      <span className="font-medium">M Avg:</span>
+                      <span>{formatAverage(genderAverageMap.M)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-700">
+                      <span className="font-medium">F Avg:</span>
+                      <span>{formatAverage(genderAverageMap.F)}</span>
                     </div>
                   </div>
                   
@@ -808,36 +930,23 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-6">
-                      {/* Male Players */}
-                      {team.players.filter(p => p.gender === 'M').length > 0 && (
-                        <div>
-                          <div className="text-sm font-medium text-gray-600 mb-2">Males ({team.players.filter(p => p.gender === 'M').length})</div>
-                          <div className="grid grid-cols-1 gap-3">
-                            {team.players
-                              .filter(player => player.gender === 'M')
-                              .map((player) => (
-                                <PlayerCard
-                                  key={player.id}
-                                  player={player}
-                                  moveOptions={getMoveOptions(player)}
-                                  onMove={onPlayerMove}
-                                  onDragStart={() => handleDragStart(player, team.id)}
-                                  onDragEnd={handleDragEnd}
-                                  playerGroups={playerGroups}
-                                />
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      {genderOrder.map((gender) => {
+                        const genderPlayers = genderPlayersMap[gender];
+                        if (genderPlayers.length === 0) {
+                          return null;
+                        }
 
-                      {/* Female Players */}
-                      {team.players.filter(p => p.gender === 'F').length > 0 && (
-                        <div>
-                          <div className="text-sm font-medium text-gray-600 mb-2">Females ({team.players.filter(p => p.gender === 'F').length})</div>
-                          <div className="grid grid-cols-1 gap-3">
-                            {team.players
-                              .filter(player => player.gender === 'F')
-                              .map((player) => (
+                        const average = genderAverageMap[gender];
+                        return (
+                          <div key={gender}>
+                            <div className="flex items-center justify-between text-sm font-medium text-gray-600 mb-2">
+                              <span>{`${genderLabels[gender]} (${genderPlayers.length})`}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                Avg {average !== null ? average.toFixed(1) : '--'}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
+                              {genderPlayers.map((player) => (
                                 <PlayerCard
                                   key={player.id}
                                   player={player}
@@ -847,32 +956,11 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                                   onDragEnd={handleDragEnd}
                                   playerGroups={playerGroups}
                                 />
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-
-                      {/* Other Gender Players */}
-                      {team.players.filter(p => p.gender === 'Other').length > 0 && (
-                        <div>
-                          <div className="text-sm font-medium text-gray-600 mb-2">Other ({team.players.filter(p => p.gender === 'Other').length})</div>
-                          <div className="grid grid-cols-1 gap-3">
-                            {team.players
-                              .filter(player => player.gender === 'Other')
-                              .map((player) => (
-                                <PlayerCard
-                                  key={player.id}
-                                  player={player}
-                                  moveOptions={getMoveOptions(player)}
-                                  onMove={onPlayerMove}
-                                  onDragStart={() => handleDragStart(player, team.id)}
-                                  onDragEnd={handleDragEnd}
-                                  playerGroups={playerGroups}
-                                />
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

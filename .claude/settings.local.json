@@ -50,7 +50,17 @@
       "Bash(git push:*)",
       "Bash(findstr:*)",
       "Bash(vercel env add:*)",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "Bash(git commit:*)",
+      "Bash(start \"\" \"http://localhost:5185/\")",
+      "Bash(start \"\" \"C:\\Users\\Mike McConnell\\Documents\\mike_apps\\TeamBuilder\\exec-skill-test.html\")",
+      "Bash(node test-csv-formats.js)",
+      "Bash(node:*)",
+      "Bash(del \"C:\\Users\\Mike McConnell\\Documents\\mike_apps\\TeamBuilder\\test-skill-logic.js\")",
+      "Bash(npx tsx:*)",
+      "Bash(start \"\" \"http://localhost:5175/\")",
+      "Bash(start \"\" \"http://localhost:5176/\")",
+      "Bash(start \"\" \"http://localhost:5177/\")"
     ],
     "deny": [],
     "ask": []

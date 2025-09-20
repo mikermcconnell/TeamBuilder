@@ -57,6 +57,7 @@ export class FirebaseTestRunner {
           minMales: 3,
           allowMixedGender: true
         },
+        execRatingHistory: {},
         savedConfigs: []
       };
 
@@ -200,6 +201,7 @@ export class FirebaseTestRunner {
           minMales: 2,
           allowMixedGender: true
         },
+        execRatingHistory: {},
         savedConfigs: []
       };
 
@@ -258,6 +260,7 @@ export class FirebaseTestRunner {
           minMales: 2,
           allowMixedGender: true
         },
+        execRatingHistory: {},
         savedConfigs: []
       };
 
@@ -337,6 +340,7 @@ export class FirebaseTestRunner {
           minMales: 2,
           allowMixedGender: true
         },
+        execRatingHistory: {},
         savedConfigs: []
       };
 

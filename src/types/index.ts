@@ -66,6 +66,7 @@ export interface AppState {
   unassignedPlayers: Player[];
   playerGroups: PlayerGroup[];
   config: LeagueConfig;
+  execRatingHistory: Record<string, number>;
   stats?: TeamGenerationStats;
   savedConfigs: LeagueConfig[];
 }

@@ -1,0 +1,11 @@
+Name,Gender,Skill Rating,Exec Skill Rating,Teammate Requests,Avoid Requests,Email
+Alice Johnson,F,8,7.5,"Bob Smith","",alice@test.com
+Bob Smith,M,6,N/A,"Alice Johnson","",bob@test.com
+Charlie Davis,Other,7,8.2,"","Bob Smith",charlie@test.com
+Diana Martinez,F,9,9.5,"","",diana@test.com
+Edward Lee,M,5,4.8,"Frank Chen","",edward@test.com
+Frank Chen,M,6,N/A,"Edward Lee","",frank@test.com
+Grace Kim,F,8,7.9,"","Charlie Davis",grace@test.com
+Henry Wilson,M,7,6.5,"","",henry@test.com
+Isabella Brown,F,6,N/A,"","",isabella@test.com
+Jack Thompson,M,8,8.8,"","",jack@test.com

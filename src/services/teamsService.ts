@@ -1,10 +1,10 @@
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs, 
-  updateDoc, 
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  updateDoc,
   deleteDoc,
   doc,
   getDoc,
@@ -50,6 +50,36 @@ const ensureAuthenticated = (): Promise<boolean> => {
   });
 };
 
+
+const removeUndefinedValues = (value: any): any => {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => removeUndefinedValues(item));
+  }
+
+  if (value instanceof Timestamp) {
+    return value;
+  }
+
+  if (typeof value === 'object') {
+    const cleaned: Record<string, any> = {};
+    for (const key in value) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const nested = value[key];
+        if (nested !== undefined) {
+          cleaned[key] = removeUndefinedValues(nested);
+        }
+      }
+    }
+    return cleaned;
+  }
+
+  return value;
+};
+
 // Save teams configuration
 export const saveTeams = async (
   teamsData: Omit<TeamsData, 'id' | 'createdAt' | 'updatedAt'>
@@ -64,16 +94,19 @@ export const saveTeams = async (
       throw new Error('Authentication mismatch');
     }
 
-    const docRef = await addDoc(collection(db, 'teams'), {
-      ...teamsData,
+    const sanitizedTeamsData = removeUndefinedValues(teamsData) as Omit<TeamsData, 'id' | 'createdAt' | 'updatedAt'>;
+    const payload = removeUndefinedValues({
+      ...sanitizedTeamsData,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
     });
-    
+
+    const docRef = await addDoc(collection(db, 'teams'), payload);
+
     return docRef.id;
   } catch (error: any) {
     console.error('Error saving teams:', error);
-    
+
     if (error?.code === 'permission-denied') {
       throw new Error('Permission denied. Please make sure you are signed in.');
     }
@@ -94,10 +127,12 @@ export const updateTeams = async (
     }
 
     const docRef = doc(db, 'teams', teamsId);
-    await updateDoc(docRef, {
+    const payload = removeUndefinedValues({
       ...teamsData,
       updatedAt: Timestamp.now()
     });
+
+    await updateDoc(docRef, payload);
   } catch (error: any) {
     console.error('Error updating teams:', error);
     throw error;

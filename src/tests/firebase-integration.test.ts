@@ -80,6 +80,7 @@ class FirebaseTestSuite {
           minMales: 3,
           allowMixedGender: true
         },
+        execRatingHistory: {},
         savedConfigs: []
       };
 
@@ -222,6 +223,7 @@ class FirebaseTestSuite {
           minMales: 2,
           allowMixedGender: true
         },
+        execRatingHistory: {},
         savedConfigs: []
       };
 

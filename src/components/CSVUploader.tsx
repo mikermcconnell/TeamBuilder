@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { SavedRostersList } from './SavedRostersList';
 import { auth } from '@/config/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { saveRoster } from '@/services/rosterService';
+import { RosterStorageService } from '@/services/rosterStorage';
 
 interface CSVUploaderProps {
   onPlayersLoaded: (players: Player[], playerGroups?: PlayerGroup[]) => void;
@@ -29,6 +29,7 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [rosterName, setRosterName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
     setIsProcessing(true);
 
     try {
+      setUploadedFileName(file.name);
       const text = await file.text();
       setCurrentCSVContent(text);
       const result = validateAndProcessCSV(text);
@@ -93,6 +95,7 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
 
   const handleLoadFromCloud = (csvContent: string, rosterName: string) => {
     setCurrentCSVContent(csvContent);
+    setUploadedFileName(`${rosterName}.csv`);
     const result = validateAndProcessCSV(csvContent);
     setValidationResult(result);
 
@@ -107,16 +110,13 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
     if (validationResult && validationResult.players.length > 0) {
       onPlayersLoaded(validationResult.players, validationResult.playerGroups);
 
-      // Show save dialog if user is authenticated
-      if (isAuthenticated) {
-        setShowSaveDialog(true);
-        // Generate default name from timestamp
-        const now = new Date();
-        const defaultName = `Roster ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-        setRosterName(defaultName);
-      } else {
-        setValidationResult(null);
-      }
+      // Prompt the user to save the uploaded CSV file
+      setShowSaveDialog(true);
+      const now = new Date();
+      const baseName = uploadedFileName
+        ? uploadedFileName.replace(/\.[^/.]+$/, '')
+        : `Roster ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      setRosterName(baseName);
 
       if (validationResult.isValid) {
         toast.success(`Loaded ${validationResult.players.length} players successfully`);
@@ -127,22 +127,28 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
   };
 
   const handleSaveRoster = async () => {
-    if (!validationResult || !auth.currentUser || !rosterName.trim()) {
+    if (!validationResult || !rosterName.trim() || !currentCSVContent.trim()) {
+      return;
+    }
+
+    if (!auth.currentUser) {
+      toast.error('Please sign in to save the roster to the cloud.');
       return;
     }
 
     setIsSaving(true);
     try {
-      await saveRoster({
-        userId: auth.currentUser.uid,
-        name: rosterName.trim(),
-        description: `Imported on ${new Date().toLocaleDateString()}`,
-        players: validationResult.players,
-        playerGroups: validationResult.playerGroups || [],
-        tags: ['imported']
-      });
+      const lines = currentCSVContent.split('\n');
+      const headers = lines[0]?.split(',').map((header) => header.trim()) || [];
 
-      toast.success(`Roster "${rosterName}" saved successfully!`);
+      await RosterStorageService.saveRoster(
+        currentCSVContent,
+        rosterName.trim(),
+        `Uploaded on ${new Date().toLocaleDateString()}`,
+        headers
+      );
+
+      toast.success(`Roster "${rosterName}" saved to the cloud!`);
       setShowSaveDialog(false);
       setValidationResult(null);
       setRosterName('');
@@ -459,18 +465,36 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
     </Tabs>
 
     {/* Save Roster Dialog */}
-    <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+    <Dialog
+      open={showSaveDialog}
+      onOpenChange={(open) => {
+        setShowSaveDialog(open);
+        if (!open && !isSaving) {
+          setRosterName('');
+          setValidationResult(null);
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Save className="h-5 w-5" />
-            Save Roster to Cloud
+            Save CSV Roster to Cloud
           </DialogTitle>
           <DialogDescription>
-            Give your roster a name to save it to your cloud storage. You can access it anytime from the Saved Rosters tab.
+            Give your uploaded roster a name to save the CSV file to your cloud storage. You can access it anytime from the Saved
+            Rosters tab.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          {!isAuthenticated && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Sign in to save your roster to the cloud. You can still continue without saving.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="roster-name">Roster Name</Label>
             <Input
@@ -489,6 +513,11 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
               }.
             </div>
           )}
+          {uploadedFileName && (
+            <div className="text-xs text-gray-500">
+              Original file name: {uploadedFileName}
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleSkipSave} disabled={isSaving}>
@@ -496,7 +525,7 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
           </Button>
           <Button
             onClick={handleSaveRoster}
-            disabled={!rosterName.trim() || isSaving}
+            disabled={!rosterName.trim() || isSaving || !isAuthenticated}
             className="flex items-center gap-2"
           >
             {isSaving ? (

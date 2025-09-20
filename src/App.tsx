@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { Player, Team, LeagueConfig, AppState, TeamGenerationStats, PlayerGroup, getEffectiveSkillRating } from '@/types';
@@ -8,6 +8,7 @@ import { validateAndProcessCSV } from '@/utils/csvProcessor';
 import { debounce, safeJsonParse, validateObjectStructure, safeLocalStorageSave } from '@/utils/performance';
 import { validateAppState, validatePlayer, validateTeamName } from '@/utils/validation';
 import { dataStorageService } from '@/services/dataStorageService';
+import { saveRoster, updateRoster, RosterData, getUserRosters, getRoster } from '@/services/rosterService';
 import { CSVUploader } from '@/components/CSVUploader';
 import { ConfigurationPanel } from '@/components/ConfigurationPanel';
 import { PlayerRoster } from '@/components/PlayerRoster';
@@ -22,7 +23,10 @@ import { SavedTeamsManager } from '@/components/SavedTeamsManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Settings, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2, Play, AlertTriangle, MousePointer, Maximize2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Save, FolderOpen, Users, Settings, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2, Play, AlertTriangle, MousePointer, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
@@ -71,6 +75,8 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
   );
 }
 
+const normalizeName = (name: string): string => name.trim().toLowerCase();
+
 function App() {
   // Auth state
   const [user, setUser] = useState<User | null>(null);
@@ -90,11 +96,97 @@ function App() {
       unassignedPlayers: [],
       playerGroups: [],
       config: getDefaultConfig(),
+      execRatingHistory: {},
       savedConfigs: []
     };
   });
 
   const [dataLoaded, setDataLoaded] = useState(false);
+
+  const [isSaveRosterDialogOpen, setIsSaveRosterDialogOpen] = useState(false);
+  const [rosterName, setRosterName] = useState('');
+  const [rosterDescription, setRosterDescription] = useState('');
+  const [savedRosterId, setSavedRosterId] = useState<string | null>(null);
+  const [isSavingRoster, setIsSavingRoster] = useState(false);
+  const [isLoadRosterDialogOpen, setIsLoadRosterDialogOpen] = useState(false);
+  const [savedRosters, setSavedRosters] = useState<RosterData[]>([]);
+  const [isFetchingRosters, setIsFetchingRosters] = useState(false);
+  const [loadingRosterId, setLoadingRosterId] = useState<string | null>(null);
+  const [rosterSearchTerm, setRosterSearchTerm] = useState('');
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastAutoSaveAt, setLastAutoSaveAt] = useState<Date | null>(null);
+  const autoSaveTimeoutRef = useRef<number | null>(null);
+  const autoSaveResetTimeoutRef = useRef<number | null>(null);
+  const autoSaveSuppressTimeoutRef = useRef<number | null>(null);
+  const autoSaveSuppressedRef = useRef(false);
+  const autoSaveInFlightRef = useRef(false);
+
+  const suppressAutoSave = useCallback((duration: number = 1000) => {
+    autoSaveSuppressedRef.current = true;
+    if (autoSaveSuppressTimeoutRef.current) {
+      window.clearTimeout(autoSaveSuppressTimeoutRef.current);
+    }
+    autoSaveSuppressTimeoutRef.current = window.setTimeout(() => {
+      autoSaveSuppressedRef.current = false;
+      autoSaveSuppressTimeoutRef.current = null;
+    }, duration);
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setSavedRosterId(null);
+      setRosterName('');
+      setRosterDescription('');
+      setSavedRosters([]);
+      setIsLoadRosterDialogOpen(false);
+      setRosterSearchTerm('');
+      setLoadingRosterId(null);
+      setLastAutoSaveAt(null);
+      setAutoSaveStatus('idle');
+      suppressAutoSave(1000);
+    }
+  }, [user, suppressAutoSave]);
+
+  const fetchUserRosters = useCallback(async () => {
+    if (!user) {
+      setSavedRosters([]);
+      return;
+    }
+
+    setIsFetchingRosters(true);
+    try {
+      const rosters = await getUserRosters(user.uid, false);
+      setSavedRosters(rosters);
+    } catch (error) {
+      console.error('Failed to load saved rosters:', error);
+      toast.error('Failed to load saved rosters');
+    } finally {
+      setIsFetchingRosters(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserRosters();
+    }
+  }, [user, fetchUserRosters]);
+
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        window.clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+      if (autoSaveResetTimeoutRef.current) {
+        window.clearTimeout(autoSaveResetTimeoutRef.current);
+        autoSaveResetTimeoutRef.current = null;
+      }
+      if (autoSaveSuppressTimeoutRef.current) {
+        window.clearTimeout(autoSaveSuppressTimeoutRef.current);
+        autoSaveSuppressTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const handleStartApp = useCallback(() => {
     localStorage.setItem('tutorialCompleted', 'true');
@@ -140,10 +232,18 @@ function App() {
               .map(p => validatePlayer(p))
               .filter((p): p is Player => p !== null);
 
+            const execHistory = { ...(loadedState.execRatingHistory ?? {}) };
+            validatedPlayers.forEach(player => {
+              if (player.execSkillRating !== null) {
+                execHistory[normalizeName(player.name)] = player.execSkillRating;
+              }
+            });
+
             setAppState({
               ...loadedState,
               players: validatedPlayers,
-              config: loadedState.config || getDefaultConfig()
+              config: loadedState.config || getDefaultConfig(),
+              execRatingHistory: execHistory
             });
           } else {
             console.warn('Invalid saved state structure');
@@ -186,6 +286,388 @@ function App() {
   }, [appState, dataLoaded]);
 
 
+  // Add a function to clear saved data
+  const handleClearSavedData = useCallback(async () => {
+    if (window.confirm('Are you sure you want to clear all saved data? This cannot be undone.')) {
+      await dataStorageService.clearAll();
+      setAppState({
+        players: [],
+        teams: [],
+        unassignedPlayers: [],
+        playerGroups: [],
+        config: getDefaultConfig(),
+        execRatingHistory: {},
+        savedConfigs: []
+      });
+      toast.success('All saved data has been cleared');
+      setSavedRosterId(null);
+      setRosterName('');
+      setRosterDescription('');
+      setLastAutoSaveAt(null);
+      setAutoSaveStatus('idle');
+      suppressAutoSave(1000);
+    }
+  }, [suppressAutoSave]);
+
+  const handleOpenSaveRosterDialog = useCallback(() => {
+    if (!user) {
+      toast.error('Please sign in to save rosters online');
+      return;
+    }
+
+    if (appState.players.length === 0) {
+      toast.error('Add players before saving');
+      return;
+    }
+
+    setRosterName(prev => {
+      if (prev.trim()) {
+        return prev;
+      }
+      const fallbackName = 'Roster ' + new Date().toLocaleDateString();
+      return fallbackName;
+    });
+    setIsSaveRosterDialogOpen(true);
+  }, [user, appState.players.length]);
+
+  const handleOpenLoadRosterDialog = useCallback(() => {
+    if (!user) {
+      toast.error('Please sign in to load rosters');
+      return;
+    }
+
+    fetchUserRosters();
+    setIsLoadRosterDialogOpen(true);
+  }, [user, fetchUserRosters]);
+
+  const handleSaveRosterToFirebase = useCallback(async () => {
+    if (!user) {
+      toast.error('Please sign in to save rosters online');
+      return;
+    }
+
+    const trimmedName = rosterName.trim();
+    if (!trimmedName) {
+      toast.error('Please enter a roster name');
+      return;
+    }
+
+    if (appState.players.length === 0) {
+      toast.error('Cannot save an empty roster');
+      return;
+    }
+
+    suppressAutoSave(1500);
+    setIsSavingRoster(true);
+
+    try {
+      const descriptionValue = rosterDescription.trim();
+
+      if (savedRosterId) {
+        const updatePayload: Partial<RosterData> = {
+          name: trimmedName,
+          players: appState.players,
+          playerGroups: appState.playerGroups
+        };
+
+        updatePayload.description = descriptionValue || '';
+
+        await updateRoster(savedRosterId, updatePayload, true);
+        toast.success('Roster updated successfully');
+      } else {
+        const rosterPayload: Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'> = {
+          userId: user.uid,
+          name: trimmedName,
+          players: appState.players,
+          playerGroups: appState.playerGroups
+        };
+
+        if (descriptionValue) {
+          rosterPayload.description = descriptionValue;
+        }
+
+        const rosterId = await saveRoster(rosterPayload);
+        setSavedRosterId(rosterId);
+        toast.success('Roster saved successfully');
+      }
+
+      fetchUserRosters();
+      setIsSaveRosterDialogOpen(false);
+    } catch (error: any) {
+      console.error('Failed to save roster to Firebase:', error);
+      toast.error(error?.message || 'Failed to save roster');
+    } finally {
+      setIsSavingRoster(false);
+    }
+  }, [user, rosterName, rosterDescription, appState.players, appState.playerGroups, savedRosterId, fetchUserRosters, suppressAutoSave]);
+
+  const autoSaveRoster = useCallback(async () => {
+    if (!user || !dataLoaded || isSavingRoster) {
+      return;
+    }
+
+    if (autoSaveSuppressedRef.current || autoSaveInFlightRef.current) {
+      return;
+    }
+
+    if (appState.players.length === 0) {
+      return;
+    }
+
+    autoSaveInFlightRef.current = true;
+    setAutoSaveStatus('saving');
+
+    const trimmedName = rosterName.trim();
+    let nameToUse = trimmedName;
+    if (!trimmedName) {
+      nameToUse = 'Auto Saved Roster ' + new Date().toLocaleDateString();
+      setRosterName(prev => (prev.trim() ? prev : nameToUse));
+    }
+
+    const descriptionValue = rosterDescription.trim();
+    try {
+      if (savedRosterId) {
+        const updatePayload: Partial<RosterData> = {
+          name: nameToUse,
+          players: appState.players,
+          playerGroups: appState.playerGroups,
+          description: descriptionValue || ''
+        };
+
+        await updateRoster(savedRosterId, updatePayload, false);
+      } else {
+        if (!user) {
+          return;
+        }
+
+        const rosterPayload: Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'> = {
+          userId: user.uid,
+          name: nameToUse,
+          players: appState.players,
+          playerGroups: appState.playerGroups
+        };
+
+        if (descriptionValue) {
+          rosterPayload.description = descriptionValue;
+        }
+
+        const newRosterId = await saveRoster(rosterPayload);
+        setSavedRosterId(newRosterId);
+      }
+
+      setAutoSaveStatus('saved');
+      setLastAutoSaveAt(new Date());
+      suppressAutoSave(1000);
+
+      fetchUserRosters();
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      setAutoSaveStatus('error');
+    } finally {
+      autoSaveInFlightRef.current = false;
+
+      if (autoSaveResetTimeoutRef.current) {
+        window.clearTimeout(autoSaveResetTimeoutRef.current);
+      }
+      autoSaveResetTimeoutRef.current = window.setTimeout(() => {
+        setAutoSaveStatus('idle');
+        autoSaveResetTimeoutRef.current = null;
+      }, 3000);
+    }
+  }, [user, dataLoaded, isSavingRoster, appState.players, appState.playerGroups, rosterName, rosterDescription, savedRosterId, suppressAutoSave, fetchUserRosters]);
+
+  const handleLoadRosterFromFirebase = useCallback(async (rosterId: string) => {
+    suppressAutoSave(1500);
+    if (!user) {
+      toast.error('Please sign in to load rosters');
+      return;
+    }
+
+    setLoadingRosterId(rosterId);
+    try {
+      const roster = await getRoster(rosterId);
+      if (!roster) {
+        toast.error('Roster could not be found');
+        return;
+      }
+
+      setAppState(prev => {
+        const execHistory = { ...prev.execRatingHistory };
+        (roster.players || []).forEach(player => {
+          if (player.execSkillRating !== null && player.execSkillRating !== undefined) {
+            execHistory[normalizeName(player.name)] = player.execSkillRating;
+          }
+        });
+
+        return {
+          ...prev,
+          players: roster.players || [],
+          teams: roster.teams || [],
+          unassignedPlayers: roster.unassignedPlayers || [],
+          playerGroups: roster.playerGroups || [],
+          config: roster.teamsConfig || prev.config,
+          stats: undefined,
+          execRatingHistory: execHistory
+        };
+      });
+
+      setSavedRosterId(roster.id ?? null);
+      setRosterName(roster.name ?? '');
+      setRosterDescription(roster.description ?? '');
+      setIsManualMode(false);
+      setIsFullScreenMode(false);
+      setIsLoadRosterDialogOpen(false);
+      setRosterSearchTerm('');
+
+      if (roster.teams && roster.teams.length > 0) {
+        setActiveTab('teams');
+      } else {
+        setActiveTab('roster');
+      }
+
+      if (roster.name) {
+        toast.success('Loaded roster "' + roster.name + '"');
+      } else {
+        toast.success('Loaded roster');
+      }
+      fetchUserRosters();
+    } catch (error) {
+      console.error('Failed to load roster from Firebase:', error);
+      toast.error('Failed to load roster');
+    } finally {
+      setLoadingRosterId(null);
+    }
+  }, [user, fetchUserRosters, suppressAutoSave]);
+
+  const filteredSavedRosters = useMemo(() => {
+    const term = rosterSearchTerm.trim().toLowerCase();
+    if (!term) {
+      return savedRosters;
+    }
+
+    return savedRosters.filter(roster => {
+      const searchSource = [
+        roster.name,
+        roster.description,
+        roster.season,
+        roster.sport,
+        Array.isArray(roster.tags) ? roster.tags.join(' ') : ''
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchSource.includes(term);
+    });
+  }, [savedRosters, rosterSearchTerm]);
+
+  const [activeTab, setActiveTab] = useState<string>('upload');
+
+  useEffect(() => {
+    if (!user || !dataLoaded || isSavingRoster) {
+      return;
+    }
+
+    if (autoSaveSuppressedRef.current) {
+      return;
+    }
+
+    if (appState.players.length === 0) {
+      return;
+    }
+
+    if (autoSaveTimeoutRef.current) {
+      window.clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    autoSaveTimeoutRef.current = window.setTimeout(() => {
+      autoSaveTimeoutRef.current = null;
+      void autoSaveRoster();
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        window.clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+    };
+  }, [user, dataLoaded, isSavingRoster, appState.players, appState.playerGroups, rosterName, rosterDescription, savedRosterId, autoSaveRoster]);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [isFullScreenMode, setIsFullScreenMode] = useState(false);
+  const handlePlayersLoaded = useCallback((players: Player[], playerGroups: PlayerGroup[] = []) => {
+    suppressAutoSave(1500);
+    setAppState(prev => {
+      const execRatingHistory = { ...prev.execRatingHistory };
+
+      // Seed history with any exec ratings already stored on current players
+      prev.players.forEach(existingPlayer => {
+        if (existingPlayer.execSkillRating !== null) {
+          execRatingHistory[normalizeName(existingPlayer.name)] = existingPlayer.execSkillRating;
+        }
+      });
+
+      const updatedPlayers = players.map(player => {
+        const nameKey = normalizeName(player.name);
+        const csvExec = player.execSkillRating !== null && player.execSkillRating !== undefined
+          ? player.execSkillRating
+          : null;
+
+        const historyExec = execRatingHistory[nameKey];
+        const finalExec = csvExec !== null && csvExec !== undefined
+          ? csvExec
+          : historyExec !== undefined
+            ? historyExec
+            : null;
+
+        if (finalExec !== null) {
+          execRatingHistory[nameKey] = finalExec;
+        }
+
+        return {
+          ...player,
+          execSkillRating: finalExec
+        };
+      });
+
+      const playersById = new Map(updatedPlayers.map(player => [player.id, player]));
+      const updatedPlayerGroups = playerGroups.map(group => ({
+        ...group,
+        players: group.players.map(groupPlayer => playersById.get(groupPlayer.id) ?? groupPlayer)
+      }));
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        playerGroups: updatedPlayerGroups,
+        teams: [],
+        unassignedPlayers: [],
+        stats: undefined,
+        execRatingHistory
+      };
+    });
+
+    setIsManualMode(false);
+    setIsFullScreenMode(false);
+
+    if (players.length > 0) {
+      setActiveTab('roster');
+      const groupedPlayerCount = playerGroups.reduce((sum, group) => sum + group.players.length, 0);
+      if (groupedPlayerCount > 0) {
+        toast.success('Loaded ' + players.length + ' players with ' + playerGroups.length + ' groups');
+      } else {
+        toast.success('Loaded ' + players.length + ' players successfully');
+      }
+    }
+
+    setSavedRosterId(null);
+    setRosterName('');
+    setRosterDescription('');
+  }, [suppressAutoSave]);
+
+
+
   // Auto-load sample roster if no players are loaded
   useEffect(() => {
     const autoLoadSampleRoster = async () => {
@@ -198,17 +680,7 @@ function App() {
             const result = validateAndProcessCSV(csvText);
             
             if (result.isValid && result.players.length > 0) {
-              setAppState(prev => ({
-                ...prev,
-                players: result.players,
-                playerGroups: result.playerGroups || [],
-                teams: [],
-                unassignedPlayers: [],
-                stats: undefined
-              }));
-              
-              setActiveTab('roster');
-              toast.success(`Auto-loaded ${result.players.length} sample players`);
+              handlePlayersLoaded(result.players, result.playerGroups || []);
             }
           }
         } catch (error) {
@@ -219,69 +691,7 @@ function App() {
     };
 
     autoLoadSampleRoster();
-  }, [appState.players.length, showTutorial, dataLoaded]);
-
-  // Add a function to clear saved data
-  const handleClearSavedData = useCallback(async () => {
-    if (window.confirm('Are you sure you want to clear all saved data? This cannot be undone.')) {
-      await dataStorageService.clearAll();
-      setAppState({
-        players: [],
-        teams: [],
-        unassignedPlayers: [],
-        playerGroups: [],
-        config: getDefaultConfig(),
-        savedConfigs: []
-      });
-      toast.success('All saved data has been cleared');
-    }
-  }, []);
-
-  const [activeTab, setActiveTab] = useState<string>('upload');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isManualMode, setIsManualMode] = useState(false);
-  const [isFullScreenMode, setIsFullScreenMode] = useState(false);
-
-  const handlePlayersLoaded = useCallback((players: Player[], playerGroups: PlayerGroup[] = []) => {
-    // Preserve exec skill ratings from existing players
-    const existingPlayerExecRatings = new Map<string, number>();
-    appState.players.forEach(player => {
-      existingPlayerExecRatings.set(player.name.toLowerCase(), player.execSkillRating);
-    });
-
-    // Update incoming players with preserved exec ratings
-    const updatedPlayers = players.map(player => {
-      const existingExecRating = existingPlayerExecRatings.get(player.name.toLowerCase());
-      return {
-        ...player,
-        // If we have a previous exec rating, use it; otherwise set to null (N/A)
-        execSkillRating: existingExecRating !== undefined && existingExecRating !== null
-          ? existingExecRating
-          : (player.execSkillRating !== undefined ? player.execSkillRating : null)
-      };
-    });
-
-    setAppState(prev => ({
-      ...prev,
-      players: updatedPlayers,
-      playerGroups,
-      teams: [],
-      unassignedPlayers: [],
-      stats: undefined
-    }));
-    setIsManualMode(false); // Reset manual mode when loading new players
-    setIsFullScreenMode(false); // Reset full screen mode when loading new players
-    
-    if (players.length > 0) {
-      setActiveTab('roster');
-      const groupedPlayerCount = playerGroups.reduce((sum, group) => sum + group.players.length, 0);
-      if (groupedPlayerCount > 0) {
-        toast.success(`Loaded ${players.length} players with ${playerGroups.length} groups`);
-      } else {
-        toast.success(`Loaded ${players.length} players successfully`);
-      }
-    }
-  }, [appState.players]);
+  }, [appState.players.length, showTutorial, dataLoaded, handlePlayersLoaded]);
 
   const handleConfigChange = useCallback((config: LeagueConfig) => {
     setAppState(prev => ({ ...prev, config }));
@@ -333,8 +743,28 @@ function App() {
 
   const handlePlayerUpdate = useCallback((updatedPlayer: Player) => {
     setAppState(prev => {
+      const existingPlayer = prev.players.find(p => p.id === updatedPlayer.id);
+      const updatedHistory = { ...prev.execRatingHistory };
+
+      if (existingPlayer) {
+        const oldKey = normalizeName(existingPlayer.name);
+        const newKey = normalizeName(updatedPlayer.name);
+
+        if (oldKey !== newKey && updatedHistory[oldKey] !== undefined) {
+          delete updatedHistory[oldKey];
+        }
+
+        if (updatedPlayer.execSkillRating !== null && updatedPlayer.execSkillRating !== undefined) {
+          updatedHistory[newKey] = updatedPlayer.execSkillRating;
+        } else {
+          delete updatedHistory[newKey];
+        }
+      } else if (updatedPlayer.execSkillRating !== null && updatedPlayer.execSkillRating !== undefined) {
+        updatedHistory[normalizeName(updatedPlayer.name)] = updatedPlayer.execSkillRating;
+      }
+
       // Update player in the main players array
-      const updatedPlayers = prev.players.map(p => 
+      const updatedPlayers = prev.players.map(p =>
         p.id === updatedPlayer.id ? updatedPlayer : p
       );
 
@@ -375,20 +805,30 @@ function App() {
         ...prev,
         players: updatedPlayers,
         teams: updatedTeams,
-        unassignedPlayers: updatedUnassigned
+        unassignedPlayers: updatedUnassigned,
+        execRatingHistory: updatedHistory
       };
     });
   }, []);
 
+
   const handlePlayerAdd = useCallback((newPlayer: Player) => {
-    setAppState(prev => ({
-      ...prev,
-      players: [...prev.players, newPlayer],
-      // Clear teams when adding new players to force regeneration
-      teams: [],
-      unassignedPlayers: [],
-      stats: undefined
-    }));
+    setAppState(prev => {
+      const updatedHistory = { ...prev.execRatingHistory };
+      if (newPlayer.execSkillRating !== null && newPlayer.execSkillRating !== undefined) {
+        updatedHistory[normalizeName(newPlayer.name)] = newPlayer.execSkillRating;
+      }
+
+      return {
+        ...prev,
+        players: [...prev.players, newPlayer],
+        // Clear teams when adding new players to force regeneration
+        teams: [],
+        unassignedPlayers: [],
+        stats: undefined,
+        execRatingHistory: updatedHistory
+      };
+    });
   }, []);
 
   const handlePlayerRemove = useCallback((playerId: string) => {
@@ -887,7 +1327,7 @@ function App() {
 
             {/* Roster Tab */}
             <TabsContent value="roster" className="space-y-6">
-              <div className="flex justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -899,14 +1339,42 @@ function App() {
                   <Play className="h-4 w-4" />
                   View Tutorial Again
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleClearSavedData}
-                  className="flex items-center gap-2 text-red-500 hover:text-red-600 border-red-200 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Clear Saved Data
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    onClick={handleOpenSaveRosterDialog}
+                    className="flex items-center gap-2 bg-primary text-white hover:bg-primary/90 shadow-md"
+                    disabled={appState.players.length === 0 || isSavingRoster}
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSavingRoster ? 'Saving...' : savedRosterId ? 'Update Roster' : 'Save Roster'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleOpenLoadRosterDialog}
+                    className="flex items-center gap-2 border-green-200 hover:bg-green-50"
+                    disabled={!user || isFetchingRosters}
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    {isFetchingRosters ? 'Loading...' : 'Load Roster'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleClearSavedData}
+                    className="flex items-center gap-2 text-red-500 hover:text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Clear Saved Data
+                  </Button>
+                </div>
+                {user && (
+                  <div className="w-full text-xs text-muted-foreground mt-1">
+                    {autoSaveStatus === 'saving' && 'Auto-saving...'}
+                    {autoSaveStatus === 'saved' && lastAutoSaveAt && ('Auto-saved at ' + lastAutoSaveAt.toLocaleTimeString())}
+                    {autoSaveStatus === 'error' && (
+                      <span className="text-red-500">Auto-save failed. Changes are stored locally.</span>
+                    )}
+                  </div>
+                )}
               </div>
               <ComponentErrorBoundary isolate componentName="PlayerRoster">
                 <PlayerRoster
@@ -916,6 +1384,154 @@ function App() {
                   onPlayerRemove={handlePlayerRemove}
                 />
               </ComponentErrorBoundary>
+
+              <Dialog
+                open={isSaveRosterDialogOpen}
+                onOpenChange={open => {
+                  if (!isSavingRoster) {
+                    setIsSaveRosterDialogOpen(open);
+                  }
+                }}
+              >
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>{savedRosterId ? 'Update Roster' : 'Save Roster'}</DialogTitle>
+                    <DialogDescription>
+                      Name your roster so you can find it again quickly. You can update it later.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="roster-name">Roster name</Label>
+                      <Input
+                        id="roster-name"
+                        value={rosterName}
+                        onChange={event => setRosterName(event.target.value)}
+                        placeholder="e.g. 2025 Fall Indoor League"
+                        disabled={isSavingRoster}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="roster-description">Description (optional)</Label>
+                      <Input
+                        id="roster-description"
+                        value={rosterDescription}
+                        onChange={event => setRosterDescription(event.target.value)}
+                        placeholder="Add a short note to quickly identify this roster"
+                        disabled={isSavingRoster}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsSaveRosterDialogOpen(false)}
+                      disabled={isSavingRoster}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSaveRosterToFirebase}
+                      disabled={isSavingRoster || !rosterName.trim()}
+                    >
+                      {isSavingRoster ? 'Saving...' : savedRosterId ? 'Update Roster' : 'Save Roster'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog
+                open={isLoadRosterDialogOpen}
+                onOpenChange={open => {
+                  if (!loadingRosterId) {
+                    setIsLoadRosterDialogOpen(open);
+                    if (!open) {
+                      setRosterSearchTerm('');
+                    }
+                  }
+                }}
+              >
+                <DialogContent className="sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Load Saved Roster</DialogTitle>
+                    <DialogDescription>
+                      Choose a roster you've saved to Firebase to replace the current roster.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="roster-search">Search</Label>
+                      <Input
+                        id="roster-search"
+                        value={rosterSearchTerm}
+                        onChange={event => setRosterSearchTerm(event.target.value)}
+                        placeholder="Search by name, season, or sport"
+                        disabled={isFetchingRosters}
+                      />
+                    </div>
+                    <div className="max-h-64 overflow-y-auto rounded-md border divide-y">
+                      {isFetchingRosters && savedRosters.length === 0 ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          Loading saved rosters...
+                        </div>
+                      ) : filteredSavedRosters.length === 0 ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          {rosterSearchTerm
+                            ? 'No saved rosters match your search.'
+                            : 'No saved rosters yet.'}
+                        </div>
+                      ) : (
+                        filteredSavedRosters.map(roster => {
+                          const rosterId = roster.id;
+                          const isLoadingThisRoster = rosterId ? loadingRosterId === rosterId : false;
+                          const updatedLabel = roster.updatedAt
+                            ? 'Updated ' + roster.updatedAt.toLocaleDateString()
+                            : undefined;
+                          const playersLabel = (roster.metadata?.totalPlayers ?? 0) + ' players';
+                          return (
+                            <button
+                              key={rosterId || roster.name}
+                              type="button"
+                              onClick={() => rosterId && handleLoadRosterFromFirebase(rosterId)}
+                              disabled={!rosterId || isLoadingThisRoster}
+                              className="w-full px-4 py-3 text-left hover:bg-muted transition disabled:opacity-60"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="space-y-1">
+                                  <div className="text-sm font-medium text-foreground">
+                                    {roster.name || 'Untitled roster'}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
+                                    <span>{playersLabel}</span>
+                                    {roster.season && <span>• {roster.season}</span>}
+                                    {roster.sport && <span>• {roster.sport}</span>}
+                                    {updatedLabel && <span>• {updatedLabel}</span>}
+                                  </div>
+                                </div>
+                                <div className="text-xs font-medium text-muted-foreground">
+                                  {isLoadingThisRoster ? 'Loading…' : 'Load'}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsLoadRosterDialogOpen(false);
+                        setRosterSearchTerm('');
+                      }}
+                      disabled={loadingRosterId !== null}
+                    >
+                      Close
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* Generate Teams Tab */}

@@ -32,6 +32,10 @@
 
 No signup required - upload your CSV and start generating teams instantly!
 
+## ✅ TODO
+
+- Remove the "Clear Saved Data" button from the roster page; it is no longer needed.
+
 ## 📋 Quick Start Guide
 
 ### 1. Upload Your Roster
