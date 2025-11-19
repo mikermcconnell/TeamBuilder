@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { Player, Team, LeagueConfig, AppState, TeamGenerationStats, PlayerGroup, getEffectiveSkillRating } from '@/types';
 import { getDefaultConfig, saveDefaultConfig } from '@/utils/configManager';
@@ -20,6 +20,7 @@ import { PlayerGroups } from '@/components/PlayerGroups';
 import PlayerEmail from '@/components/PlayerEmail';
 import TutorialLanding from '@/components/TutorialLanding';
 import { SavedTeamsManager } from '@/components/SavedTeamsManager';
+import { AuthDialog } from '@/components/AuthDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,6 +83,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
   // Check if user has seen the tutorial before
   const [showTutorial, setShowTutorial] = useState(() => {
@@ -194,16 +196,6 @@ function App() {
   }, []);
 
   // Auth handlers
-  const handleSignIn = useCallback(async () => {
-    try {
-      await signInAnonymously(auth);
-      // Auth state change will be handled by the listener
-    } catch (error) {
-      console.error('Failed to sign in:', error);
-      toast.error('Failed to sign in');
-    }
-  }, []);
-
   const handleSignOut = useCallback(async () => {
     try {
       await signOut(auth);
@@ -1191,7 +1183,7 @@ function App() {
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
         <header className="bg-white/95 backdrop-blur-xl shadow-xl border-b border-green-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="w-full max-w-full xl:max-w-[1600px] 2xl:max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <img src={logoUrl} alt="TeamBuilder Logo" className="h-10 w-10" />
@@ -1219,10 +1211,10 @@ function App() {
                   </div>
                 )}
 
-                {/* Auth button */}
+                {/* Auth controls */}
                 {!user ? (
                   <Button
-                    onClick={handleSignIn}
+                    onClick={() => setAuthDialogOpen(true)}
                     variant="outline"
                     className="flex items-center gap-2"
                   >
@@ -1230,21 +1222,27 @@ function App() {
                     Sign in to save online
                   </Button>
                 ) : (
-                  <Button
-                    onClick={handleSignOut}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Users className="h-4 w-4" />
-                    Sign out
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-gray-600">
+                      {user.email || 'Signed in'}
+                    </div>
+                    <Button
+                      onClick={handleSignOut}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      Sign out
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
           </div>
         </header>
+        <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="w-full max-w-full xl:max-w-[1600px] 2xl:max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 py-8">
           {/* Main Navigation Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-7 mb-6 bg-white/80 backdrop-blur-xl border border-green-200 shadow-lg">
@@ -1301,7 +1299,7 @@ function App() {
                     Upload Player Roster
                   </CardTitle>
                   <CardDescription className="text-gray-600">
-                    Upload a CSV file with player information to get started building your teams
+                  Upload a CSV or Excel file with player information to get started building your teams
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

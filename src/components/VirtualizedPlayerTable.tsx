@@ -1,5 +1,5 @@
-import React, { memo, CSSProperties } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import React, { memo } from 'react';
+import { List, RowComponentProps } from 'react-window';
 import { Player } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,20 +14,17 @@ interface VirtualizedPlayerTableProps {
   height: number;
 }
 
-interface RowProps {
-  index: number;
-  style: CSSProperties;
-  data: {
-    players: Player[];
-    onView: (player: Player) => void;
-    onEdit: (player: Player) => void;
-    onRemove?: (playerId: string) => void;
-    onSkillEdit: (playerId: string, currentValue: number) => void;
-  };
+interface RowData {
+  players: Player[];
+  onView: (player: Player) => void;
+  onEdit: (player: Player) => void;
+  onRemove?: (playerId: string) => void;
+  onSkillEdit: (playerId: string, currentValue: number) => void;
 }
 
-const Row = memo(({ index, style, data }: RowProps) => {
-  const player = data.players[index];
+const Row = memo(({ index, style, ...data }: RowComponentProps<RowData>) => {
+  const { players, onView, onEdit, onRemove, onSkillEdit } = data;
+  const player = players[index];
 
   const getGenderBadgeVariant = (gender: string) => {
     switch (gender) {
@@ -49,7 +46,7 @@ const Row = memo(({ index, style, data }: RowProps) => {
         <div>
           <span
             className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded inline-block"
-            onClick={() => data.onSkillEdit(player.id, player.skillRating)}
+            onClick={() => onSkillEdit(player.id, player.skillRating)}
           >
             {player.skillRating}
           </span>
@@ -77,23 +74,23 @@ const Row = memo(({ index, style, data }: RowProps) => {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => data.onView(player)}
+            onClick={() => onView(player)}
           >
             <Eye className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => data.onEdit(player)}
+            onClick={() => onEdit(player)}
           >
             <Edit2 className="h-4 w-4" />
           </Button>
-          {data.onRemove && (
+          {onRemove && (
             <Button
               size="sm"
               variant="ghost"
               className="text-red-600 hover:text-red-700"
-              onClick={() => data.onRemove(player.id)}
+              onClick={() => onRemove(player.id)}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -114,7 +111,7 @@ export function VirtualizedPlayerTable({
   onSkillEdit,
   height
 }: VirtualizedPlayerTableProps) {
-  const itemData = {
+  const rowProps = {
     players,
     onView,
     onEdit,
@@ -140,14 +137,13 @@ export function VirtualizedPlayerTable({
       {/* Virtualized List */}
       {players.length > 0 ? (
         <List
-          height={height}
-          itemCount={players.length}
-          itemSize={60}
-          width="100%"
-          itemData={itemData}
-        >
-          {Row}
-        </List>
+          rowCount={players.length}
+          rowHeight={60}
+          overscanCount={4}
+          style={{ height, width: '100%' }}
+          rowComponent={Row}
+          rowProps={rowProps}
+        />
       ) : (
         <div className="p-8 text-center text-gray-500">
           No players found

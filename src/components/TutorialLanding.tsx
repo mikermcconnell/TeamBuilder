@@ -481,7 +481,7 @@ const CSVUploadDemo: React.FC = () => {
             {uploadProgress === 0 ? (
               <div className="text-gray-600">
                 <FileSpreadsheet className="w-12 h-12 mx-auto mb-2" />
-                <p>Drop CSV file here</p>
+                <p>Drop CSV or Excel file here</p>
               </div>
             ) : (
               <div className="space-y-3">

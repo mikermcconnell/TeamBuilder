@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { 
-  Save, 
-  FolderOpen, 
-  Cloud, 
-  CloudOff, 
-  LogIn, 
-  LogOut, 
-  UserPlus,
+import {
+  Save,
+  FolderOpen,
+  Cloud,
+  LogIn,
+  LogOut,
   Trash2,
   Clock,
   Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,23 +20,20 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 
-import { 
-  signInAnonymousUser, 
-  signInWithEmail, 
-  createAccount, 
+import {
   signOutUser,
   getCurrentUser,
-  subscribeToAuthChanges,
-  isAnonymousUser
+  subscribeToAuthChanges
 } from '@/services/authService';
-import { 
-  saveSession, 
-  getUserSessions, 
+import {
+  saveSession,
+  getUserSessions,
   deleteSession,
   SessionData,
   updateSession
 } from '@/services/firestoreService';
 import { AppState } from '@/types';
+import { AuthDialog } from '@/components/AuthDialog';
 
 interface SessionManagerProps {
   appState: AppState;
@@ -51,9 +46,6 @@ export function SessionManager({ appState, onLoadSession }: SessionManagerProps)
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
@@ -78,47 +70,6 @@ export function SessionManager({ appState, onLoadSession }: SessionManagerProps)
       setSessions(userSessions);
     } catch (error) {
       console.error('Error loading sessions:', error);
-    }
-  };
-
-  const handleAnonymousSignIn = async () => {
-    setIsLoading(true);
-    try {
-      const user = await signInAnonymousUser();
-      setUser(user);
-      toast.success('Signed in anonymously');
-      setShowAuthDialog(false);
-    } catch (error) {
-      toast.error('Failed to sign in');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEmailAuth = async () => {
-    if (!email || !password) {
-      toast.error('Please enter email and password');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      let user: User;
-      if (authMode === 'signin') {
-        user = await signInWithEmail(email, password);
-        toast.success('Signed in successfully');
-      } else {
-        user = await createAccount(email, password);
-        toast.success('Account created successfully');
-      }
-      setUser(user);
-      setShowAuthDialog(false);
-      setEmail('');
-      setPassword('');
-    } catch (error) {
-      toast.error(authMode === 'signin' ? 'Failed to sign in' : 'Failed to create account');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -243,11 +194,11 @@ export function SessionManager({ appState, onLoadSession }: SessionManagerProps)
           {user ? (
             <>
               <div className="flex items-center gap-2">
-                <Badge variant={isAnonymousUser(user) ? "secondary" : "default"}>
-                  {isAnonymousUser(user) ? "Anonymous" : "Signed In"}
+                <Badge variant="default">
+                  Cloud sync active
                 </Badge>
                 <span className="text-sm text-gray-600">
-                  {user.email || 'Guest User'}
+                  {user.email || 'Signed in'}
                 </span>
               </div>
               <Button
@@ -316,89 +267,7 @@ export function SessionManager({ appState, onLoadSession }: SessionManagerProps)
           Load Session ({sessions.length})
         </Button>
 
-        {/* Auth Dialog */}
-        <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Sign In to Save Sessions</DialogTitle>
-              <DialogDescription>
-                Sign in to save and access your team building sessions from any device
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              {/* Anonymous Sign In */}
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleAnonymousSignIn}
-                disabled={isLoading}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Continue as Guest
-              </Button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">Or</span>
-                </div>
-              </div>
-
-              {/* Email Auth */}
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Button
-                    variant={authMode === 'signin' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setAuthMode('signin')}
-                  >
-                    Sign In
-                  </Button>
-                  <Button
-                    variant={authMode === 'signup' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setAuthMode('signup')}
-                  >
-                    Sign Up
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-
-                <Button
-                  className="w-full"
-                  onClick={handleEmailAuth}
-                  disabled={isLoading}
-                >
-                  {authMode === 'signin' ? 'Sign In' : 'Create Account'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
 
         {/* Sessions Dialog */}
         <Dialog open={showSessionsDialog} onOpenChange={setShowSessionsDialog}>

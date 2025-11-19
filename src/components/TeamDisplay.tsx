@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Player, Team, LeagueConfig, PlayerGroup, Gender, getEffectiveSkillRating } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,9 @@ import {
   UserPlus,
   ArrowUp,
   ArrowDown,
-  Link
+  Link,
+  Maximize2,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPlayerGroup, getPlayerGroupColor, getPlayerGroupLabel, arePlayersInSameGroup, getGroupmates } from '@/utils/playerGrouping';
@@ -34,12 +36,38 @@ interface TeamDisplayProps {
   manualMode?: boolean;
 }
 
+interface ManualTeamCardOptions {
+  expanded?: boolean;
+  showExpandButton?: boolean;
+}
+
 export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, onTeamNameChange, players, playerGroups, manualMode = false }: TeamDisplayProps) {
   const [draggedPlayer, setDraggedPlayer] = useState<Player | null>(null);
   const [draggedFromTeam, setDraggedFromTeam] = useState<string | null>(null);
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [tempTeamName, setTempTeamName] = useState<string>('');
   const [teamSortMode, setTeamSortMode] = useState<'skill' | 'name'>('skill');
+  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
+
+  const expandedTeam = useMemo(
+    () => teams.find(team => team.id === expandedTeamId) ?? null,
+    [teams, expandedTeamId]
+  );
+
+  useEffect(() => {
+    if (!expandedTeamId) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setExpandedTeamId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [expandedTeamId]);
 
   // Team name editing functions
   const startEditingTeamName = (teamId: string, currentName: string) => {
@@ -301,6 +329,201 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
 
   const formatAverage = (value: number | null): string => (value === null ? '--' : value.toFixed(1));
 
+  const renderManualTeamCard = (
+    team: Team,
+    options: ManualTeamCardOptions = {}
+  ) => {
+    const { expanded = false, showExpandButton = true } = options;
+    const constraintCheck = getTeamConstraintViolations(team);
+    const violations = constraintCheck.violations;
+    const sizeIssues = constraintCheck.sizeIssues;
+    const isValid = violations.length === 0;
+    const isOverCapacity = isTeamOverCapacity(team);
+    const isUnderCapacity = isTeamUnderCapacity(team);
+
+    const genderPlayersMap = splitPlayersByGender(team.players);
+    const genderAverageMap: Record<Gender, number | null> = {
+      M: calculateAverageSkill(genderPlayersMap.M),
+      F: calculateAverageSkill(genderPlayersMap.F),
+      Other: calculateAverageSkill(genderPlayersMap.Other),
+    };
+
+    let borderClass = 'border-green-200';
+    if (!isValid) borderClass = 'border-orange-200';
+    if (isOverCapacity) borderClass = 'border-red-300';
+
+    const dropZoneClasses = expanded
+      ? 'border-2 border-dashed border-gray-300 rounded-lg p-5 min-h-48 max-h-[70vh] overflow-y-auto'
+      : 'border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-32';
+
+    return (
+      <Card
+        key={team.id}
+        className={`${borderClass} ${expanded ? 'shadow-2xl ring-2 ring-primary/40 scale-[1.01]' : ''}`}
+      >
+        <CardHeader className={expanded ? 'pb-3 px-4 pt-4' : 'pb-2 px-3'}>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className={`flex items-center gap-1 ${expanded ? 'text-sm md:text-base' : 'text-xs'}`}>
+              {isValid && !isOverCapacity && !isUnderCapacity ? (
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              ) : isOverCapacity ? (
+                <ArrowUp className="h-4 w-4 text-red-600" />
+              ) : isUnderCapacity ? (
+                <ArrowDown className="h-4 w-4 text-blue-600" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+              )}
+              {editingTeamId === team.id ? (
+                <Input
+                  value={tempTeamName}
+                  onChange={(e) => setTempTeamName(e.target.value)}
+                  onBlur={() => saveTeamName(team.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      saveTeamName(team.id);
+                    } else if (e.key === 'Escape') {
+                      cancelEditingTeamName();
+                    }
+                  }}
+                  className={`${expanded ? 'h-7 w-28 text-sm' : 'h-5 w-16 text-xs'}`}
+                  autoFocus
+                />
+              ) : (
+                <span
+                  className="cursor-pointer hover:bg-gray-100 px-1 rounded text-xs truncate"
+                  onClick={() => startEditingTeamName(team.id, team.name)}
+                  title="Click to edit team name"
+                >
+                  {team.name}
+                </span>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={isOverCapacity ? 'destructive' : isUnderCapacity ? 'secondary' : 'default'}
+                className={`text-xs ${isOverCapacity ? 'bg-red-600' : isUnderCapacity ? 'bg-blue-100 text-blue-800' : ''}`}
+              >
+                {team.players.length}/{config.maxTeamSize}
+              </Badge>
+              {showExpandButton && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-gray-500 hover:text-gray-900"
+                  onClick={() => setExpandedTeamId(team.id)}
+                  title="Expand team view"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="text-xs text-gray-600 flex flex-wrap gap-x-2 gap-y-1">
+            <span>Skill: {!isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'}</span>
+            <span>{team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O</span>
+            <span>M Avg: {formatAverage(genderAverageMap.M)}</span>
+            <span>F Avg: {formatAverage(genderAverageMap.F)}</span>
+          </div>
+
+          <div className="mt-1 pt-1 border-t border-gray-200 space-y-0.5">
+            <div className={`text-xs font-semibold ${team.genderBreakdown.F < config.minFemales ? 'text-red-600' : 'text-green-600'}`}>
+              F: {team.genderBreakdown.F}/{config.minFemales}
+              {team.genderBreakdown.F < config.minFemales ? (
+                <span className="ml-1 font-bold">
+                  (Need {config.minFemales - team.genderBreakdown.F} more)
+                </span>
+              ) : (
+                <span className="ml-1">✓</span>
+              )}
+            </div>
+
+            <div className={`text-xs font-semibold ${team.genderBreakdown.M < config.minMales ? 'text-red-600' : 'text-green-600'}`}>
+              M: {team.genderBreakdown.M}/{config.minMales}
+              {team.genderBreakdown.M < config.minMales ? (
+                <span className="ml-1 font-bold">
+                  (Need {config.minMales - team.genderBreakdown.M} more)
+                </span>
+              ) : (
+                <span className="ml-1">✓</span>
+              )}
+            </div>
+
+            {sizeIssues.length > 0 && (
+              <div className={`text-xs font-medium ${isOverCapacity ? 'text-red-600' : 'text-blue-600'}`}>
+                {sizeIssues.join(', ')}
+              </div>
+            )}
+          </div>
+
+          {violations.length > 0 && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <ul className="list-disc list-inside space-y-1">
+                  {violations.map((violation, index) => (
+                    <li key={index} className="text-xs">{violation}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardHeader>
+
+        <CardContent className={expanded ? 'pt-2 pb-4 px-4' : undefined}>
+          <div
+            className={dropZoneClasses}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, team.id)}
+          >
+            {team.players.length === 0 ? (
+              <div className="text-center text-gray-500 h-20 flex items-center justify-center">
+                <div>
+                  <UserPlus className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  Drop players here
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {genderOrder.map((gender) => {
+                  const genderPlayers = genderPlayersMap[gender];
+                  if (genderPlayers.length === 0) {
+                    return null;
+                  }
+
+                  const average = genderAverageMap[gender];
+                  return (
+                    <div key={gender}>
+                      <div className="flex items-center justify-between text-sm font-medium text-gray-600 mb-2">
+                        <span>{`${genderLabels[gender]} (${genderPlayers.length})`}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          Avg {average !== null ? average.toFixed(1) : '--'}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3">
+                        {genderPlayers.map((player) => (
+                          <PlayerCard
+                            key={player.id}
+                            player={player}
+                            moveOptions={getMoveOptions(player)}
+                            onMove={onPlayerMove}
+                            onDragStart={() => handleDragStart(player, team.id)}
+                            onDragEnd={handleDragEnd}
+                            playerGroups={playerGroups}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   const sortedTeams = useMemo(() => {
     const copy = [...teams];
 
@@ -338,6 +561,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
     const unassignedGroupedPlayers = unassignedPlayers.filter(player => isPlayerInGroup(player));
 
     return (
+      <>
       <div className="space-y-6">
         <div className="flex gap-4">
           {/* Left Panel - Female Players and Unassigned Groups */}
@@ -490,12 +714,23 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                             </span>
                           )}
                         </CardTitle>
-                        <Badge
-                          variant={isOverCapacity ? 'destructive' : isUnderCapacity ? 'secondary' : 'default'}
-                          className={`text-xs ${isOverCapacity ? 'bg-red-600' : isUnderCapacity ? 'bg-blue-100 text-blue-800' : ''}`}
-                        >
-                          {team.players.length}/{config.maxTeamSize}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={isOverCapacity ? 'destructive' : isUnderCapacity ? 'secondary' : 'default'}
+                            className={`text-xs ${isOverCapacity ? 'bg-red-600' : isUnderCapacity ? 'bg-blue-100 text-blue-800' : ''}`}
+                          >
+                            {team.players.length}/{config.maxTeamSize}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-gray-500 hover:text-gray-900"
+                            onClick={() => setExpandedTeamId(team.id)}
+                            title="Expand team view"
+                          >
+                            <Maximize2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="text-xs text-gray-600 flex flex-wrap gap-x-2 gap-y-1">
@@ -662,6 +897,30 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
           </Card>
         )}
       </div>
+
+      {expandedTeam && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setExpandedTeamId(null)}
+        >
+        <div
+          className="relative w-full max-w-4xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute -top-4 -right-4 rounded-full shadow-lg z-50"
+            onClick={() => setExpandedTeamId(null)}
+            title="Close expanded view"
+          >
+            <X className="h-4 w-4" />
+            </Button>
+            {renderManualTeamCard(expandedTeam, { expanded: true, showExpandButton: false })}
+          </div>
+        </div>
+      )}
+      </>
     );
   }
 

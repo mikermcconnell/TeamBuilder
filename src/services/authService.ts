@@ -1,24 +1,14 @@
-import { 
-  signInAnonymously, 
-  onAuthStateChanged, 
+import {
+  onAuthStateChanged,
   User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { auth } from '@/config/firebase';
-
-// Sign in anonymously (for users who don't want to create an account)
-export const signInAnonymousUser = async (): Promise<User> => {
-  try {
-    const userCredential = await signInAnonymously(auth);
-    return userCredential.user;
-  } catch (error) {
-    console.error('Error signing in anonymously:', error);
-    throw new Error('Failed to sign in anonymously');
-  }
-};
 
 // Sign in with email and password
 export const signInWithEmail = async (email: string, password: string): Promise<User> => {
@@ -77,7 +67,14 @@ export const subscribeToAuthChanges = (callback: (user: User | null) => void): (
   return onAuthStateChanged(auth, callback);
 };
 
-// Check if user is anonymous
-export const isAnonymousUser = (user: User | null): boolean => {
-  return user?.isAnonymous ?? false;
+export const signInWithGoogle = async (): Promise<User> => {
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
+  } catch (error) {
+    console.error('Error signing in with Google:', error);
+    throw new Error('Failed to sign in with Google');
+  }
 };

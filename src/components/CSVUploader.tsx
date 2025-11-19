@@ -15,12 +15,15 @@ import { SavedRostersList } from './SavedRostersList';
 import { auth } from '@/config/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RosterStorageService } from '@/services/rosterStorage';
+import * as XLSX from 'xlsx';
 
 interface CSVUploaderProps {
   onPlayersLoaded: (players: Player[], playerGroups?: PlayerGroup[]) => void;
 }
 
 export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
+  const SUPPORTED_EXTENSIONS = ['.csv', '.xls', '.xlsx'];
+  const EXCEL_EXTENSIONS = ['.xls', '.xlsx'];
   const [dragActive, setDragActive] = useState(false);
   const [validationResult, setValidationResult] = useState<CSVValidationResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -65,9 +68,25 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
     }
   };
 
+  const getFileExtension = (fileName: string) => {
+    const match = fileName?.match(/(\.[^.]+)$/);
+    return match ? match[1].toLowerCase() : '';
+  };
+
+  const convertExcelToCSV = async (file: File) => {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    if (workbook.SheetNames.length === 0) {
+      throw new Error('Excel file does not contain any sheets');
+    }
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    return XLSX.utils.sheet_to_csv(worksheet, { FS: ',', RS: '\n' });
+  };
+
   const handleFile = async (file: File) => {
-    if (!file.name.endsWith('.csv')) {
-      toast.error('Please upload a CSV file');
+    const extension = getFileExtension(file.name);
+    if (!SUPPORTED_EXTENSIONS.includes(extension)) {
+      toast.error('Unsupported file type. Please upload a CSV or Excel file');
       return;
     }
 
@@ -75,7 +94,12 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
 
     try {
       setUploadedFileName(file.name);
-      const text = await file.text();
+      let text: string;
+      if (EXCEL_EXTENSIONS.includes(extension)) {
+        text = await convertExcelToCSV(file);
+      } else {
+        text = await file.text();
+      }
       setCurrentCSVContent(text);
       const result = validateAndProcessCSV(text);
       setValidationResult(result);
@@ -86,7 +110,7 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
         toast.error('CSV file contains errors');
       }
     } catch (error) {
-      toast.error('Failed to read CSV file');
+      toast.error('Failed to process the uploaded file');
       console.error('File reading error:', error);
     } finally {
       setIsProcessing(false);
@@ -200,11 +224,11 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              CSV Format Required
+              Roster Format Requirements
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-gray-600">Your CSV file must include these columns:</p>
+            <p className="text-sm text-gray-600">Your CSV or Excel file must include these columns:</p>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Badge variant="outline">Required</Badge>
@@ -261,7 +285,7 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
         <CardHeader>
           <CardTitle>Upload Player Roster</CardTitle>
           <CardDescription>
-            Drop your CSV file here or click to browse
+            Drop your CSV or Excel file here or click to browse
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -280,7 +304,7 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv"
+              accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               onChange={handleFileInput}
               className="hidden"
             />
@@ -289,14 +313,14 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
               <Upload className="h-12 w-12 text-gray-400 mx-auto" />
               <div>
                 <h3 className="text-lg font-medium text-gray-900">
-                  {isProcessing ? 'Processing...' : 'Upload CSV File'}
+                {isProcessing ? 'Processing...' : 'Upload CSV or Excel File'}
                 </h3>
                 <p className="text-gray-600 mt-1">
                   {isProcessing ? 'Please wait while we process your file' : 'Drag and drop or click to browse'}
                 </p>
               </div>
               <p className="text-sm text-gray-500">
-                Supports CSV files up to 10MB
+                Supports CSV (.csv) or Excel (.xls, .xlsx) up to 10MB
               </p>
             </div>
           </div>
@@ -479,10 +503,10 @@ export function CSVUploader({ onPlayersLoaded }: CSVUploaderProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Save className="h-5 w-5" />
-            Save CSV Roster to Cloud
+            Save Roster to Cloud
           </DialogTitle>
           <DialogDescription>
-            Give your uploaded roster a name to save the CSV file to your cloud storage. You can access it anytime from the Saved
+            Give your uploaded roster a name to save it to your cloud storage. You can access it anytime from the Saved
             Rosters tab.
           </DialogDescription>
         </DialogHeader>
