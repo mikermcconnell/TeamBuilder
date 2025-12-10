@@ -1,4 +1,4 @@
-import { Player, PlayerGroup } from '@/types';
+import { Player, PlayerGroup, TeammateRequest, RequestConflict, NearMissGroup, UnfulfilledRequest } from '@/types';
 
 // Predefined colors for player groups
 const GROUP_COLORS = [
@@ -22,7 +22,7 @@ function normalizeName(name: string): string {
 }
 
 // Function to check if two names might match (including nicknames)
-function namesMatch(name1: string, name2: string): boolean {
+export function namesMatch(name1: string, name2: string): boolean {
   const norm1 = normalizeName(name1);
   const norm2 = normalizeName(name2);
 
@@ -101,7 +101,7 @@ function namesMatch(name1: string, name2: string): boolean {
 }
 
 // Function to find a player by name (including nickname matching)
-function findPlayerByName(players: Player[], targetName: string): Player | null {
+export function findPlayerByName(players: Player[], targetName: string): Player | null {
   // First try exact match
   let found = players.find(p => p.name.toLowerCase() === targetName.toLowerCase());
   if (found) return found;
@@ -111,25 +111,102 @@ function findPlayerByName(players: Player[], targetName: string): Player | null 
   return found || null;
 }
 
-// Function to process mutual requests and create groups
-export function processMutualRequests(players: Player[]): {
+// Parse teammate requests with priority (first = must-have)
+export function parseTeammateRequests(player: Player, allPlayers: Player[]): TeammateRequest[] {
+  return player.teammateRequests.map((name, index) => {
+    const matchedPlayer = findPlayerByName(allPlayers, name);
+    return {
+      name,
+      priority: index === 0 ? 'must-have' : 'nice-to-have',
+      matchedPlayerId: matchedPlayer?.id,
+      status: undefined, // Will be set after team generation
+      reason: undefined
+    };
+  });
+}
+
+// Detect conflicts: Player A requests Player B, but Player B avoids Player A
+export function detectRequestConflicts(players: Player[]): RequestConflict[] {
+  const conflicts: RequestConflict[] = [];
+
+  for (const player of players) {
+    for (const requestedName of player.teammateRequests) {
+      const requestedPlayer = findPlayerByName(players, requestedName);
+      if (!requestedPlayer) continue;
+
+      // Check if requested player avoids this player
+      const isAvoided = requestedPlayer.avoidRequests.some(
+        avoidName => namesMatch(avoidName, player.name)
+      );
+
+      if (isAvoided) {
+        conflicts.push({
+          playerId: player.id,
+          playerName: player.name,
+          requestedPlayerId: requestedPlayer.id,
+          requestedName: requestedPlayer.name,
+          conflictType: 'avoid-vs-request',
+          description: `${player.name} requested ${requestedPlayer.name}, but ${requestedPlayer.name} wants to avoid ${player.name}`
+        });
+      }
+
+      // Check for one-way requests (not mutual) - informational
+      const isMutual = requestedPlayer.teammateRequests.some(
+        name => namesMatch(name, player.name)
+      );
+
+      if (!isMutual && !isAvoided) {
+        conflicts.push({
+          playerId: player.id,
+          playerName: player.name,
+          requestedPlayerId: requestedPlayer.id,
+          requestedName: requestedPlayer.name,
+          conflictType: 'one-way-request',
+          description: `${player.name} requested ${requestedPlayer.name}, but ${requestedPlayer.name} did not request ${player.name}`
+        });
+      }
+    }
+  }
+
+  return conflicts;
+}
+
+// Extended result type with new features
+export interface ProcessMutualRequestsResult {
   cleanedPlayers: Player[];
   playerGroups: PlayerGroup[];
-} {
-  const cleanedPlayers = players.map(p => ({ ...p, teammateRequests: [] as string[] }));
+  conflicts: RequestConflict[];
+  nearMissGroups: NearMissGroup[];
+}
+
+// Function to process mutual requests and create groups
+export function processMutualRequests(players: Player[]): ProcessMutualRequestsResult {
+  const cleanedPlayers = players.map(p => ({
+    ...p,
+    teammateRequests: [] as string[],
+    teammateRequestsParsed: parseTeammateRequests(p, players)
+  }));
   const playerGroups: PlayerGroup[] = [];
+  const nearMissGroups: NearMissGroup[] = [];
   const processedPlayerIds = new Set<string>();
+
+  // Detect conflicts first
+  const conflicts = detectRequestConflicts(players);
 
   // Find all mutual connections
   const mutualConnections: { [playerId: string]: Set<string> } = {};
+  const allConnections: { [playerId: string]: Set<string> } = {}; // For near-miss detection
 
   for (const player of players) {
     mutualConnections[player.id] = new Set();
+    allConnections[player.id] = new Set();
 
     for (const requestedName of player.teammateRequests) {
       const requestedPlayer = findPlayerByName(players, requestedName);
 
       if (requestedPlayer && requestedPlayer.id !== player.id) {
+        allConnections[player.id]?.add(requestedPlayer.id);
+
         // Check if the request is mutual
         const isMutual = requestedPlayer.teammateRequests.some(name =>
           namesMatch(name, player.name)
@@ -159,8 +236,9 @@ export function processMutualRequests(players: Player[]): {
     // Build a group using BFS to find all connected players
     const groupPlayerIds = new Set<string>([player.id]);
     const queue = [player.id];
+    const overflowPlayers: string[] = []; // Track players that couldn't fit
 
-    while (queue.length > 0 && groupPlayerIds.size < 4) {
+    while (queue.length > 0) {
       const currentPlayerId = queue.shift()!;
       const currentConnections = mutualConnections[currentPlayerId];
 
@@ -168,9 +246,14 @@ export function processMutualRequests(players: Player[]): {
       if (!currentConnections) continue;
 
       for (const connectedId of currentConnections) {
-        if (!groupPlayerIds.has(connectedId) && !processedPlayerIds.has(connectedId) && groupPlayerIds.size < 4) {
-          groupPlayerIds.add(connectedId);
-          queue.push(connectedId);
+        if (!groupPlayerIds.has(connectedId) && !processedPlayerIds.has(connectedId)) {
+          if (groupPlayerIds.size < 4) {
+            groupPlayerIds.add(connectedId);
+            queue.push(connectedId);
+          } else {
+            // Track overflow for near-miss detection
+            overflowPlayers.push(connectedId);
+          }
         }
       }
     }
@@ -191,6 +274,18 @@ export function processMutualRequests(players: Player[]): {
 
       playerGroups.push(group);
 
+      // Track near-miss if players overflowed
+      if (overflowPlayers.length > 0) {
+        const allIds = [...Array.from(groupPlayerIds), ...overflowPlayers];
+        const allNames = allIds.map(id => players.find(p => p.id === id)?.name || 'Unknown');
+        nearMissGroups.push({
+          playerIds: allIds,
+          playerNames: allNames,
+          reason: 'group-too-large',
+          potentialSize: allIds.length
+        });
+      }
+
       // Mark players as processed and assign group ID
       for (const playerId of groupPlayerIds) {
         processedPlayerIds.add(playerId);
@@ -204,38 +299,93 @@ export function processMutualRequests(players: Player[]): {
     }
   }
 
-  // Calculate unfulfilled requests
+  // Calculate unfulfilled requests with priority
   for (const player of players) {
     const cleanedPlayer = cleanedPlayers.find(p => p.id === player.id);
     if (!cleanedPlayer) continue;
 
     cleanedPlayer.unfulfilledRequests = [];
 
-    for (const requestedName of player.teammateRequests) {
+    player.teammateRequests.forEach((requestedName, index) => {
       const requestedPlayer = findPlayerByName(players, requestedName);
+      const priority = index === 0 ? 'must-have' : 'nice-to-have';
 
-      // If player wasn't found, we can't really do much (maybe track as "not found" later if needed)
-      if (!requestedPlayer) continue;
+      // If player wasn't found, skip
+      if (!requestedPlayer) return;
 
       // Check if they ended up in the same group
       const inSameGroup = arePlayersInSameGroup(playerGroups, player.id, requestedPlayer.id);
 
       if (!inSameGroup) {
+        // Check if there's a conflict
+        const hasConflict = conflicts.some(
+          c => c.playerId === player.id && c.requestedPlayerId === requestedPlayer.id && c.conflictType === 'avoid-vs-request'
+        );
+
         // Check if it was mutual
         const isMutual = requestedPlayer.teammateRequests.some(name =>
           namesMatch(name, player.name)
         );
 
-        cleanedPlayer.unfulfilledRequests.push({
+        let reason: UnfulfilledRequest['reason'];
+        if (hasConflict) {
+          reason = 'conflict';
+        } else if (isMutual) {
+          reason = 'group-full';
+        } else {
+          reason = 'non-reciprocal';
+        }
+
+        cleanedPlayer.unfulfilledRequests?.push({
           playerId: requestedPlayer.id,
           name: requestedPlayer.name,
-          reason: isMutual ? 'group-full' : 'non-reciprocal'
+          reason,
+          priority
         });
       }
+
+      // Update parsed request status
+      const parsedRequest = cleanedPlayer.teammateRequestsParsed?.find(r => r.name === requestedName);
+      if (parsedRequest) {
+        parsedRequest.status = inSameGroup ? 'honored' : (
+          conflicts.some(c => c.playerId === player.id && c.requestedPlayerId === requestedPlayer.id && c.conflictType === 'avoid-vs-request')
+            ? 'conflict'
+            : 'unfulfilled'
+        );
+      }
+    });
+  }
+
+  return { cleanedPlayers, playerGroups, conflicts, nearMissGroups };
+}
+
+// Validate groups against league config BEFORE team generation
+export function validateGroupsForGeneration(
+  playerGroups: PlayerGroup[],
+  maxTeamSize: number
+): { valid: boolean; warnings: string[]; errors: string[] } {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  for (const group of playerGroups) {
+    if (group.players.length > maxTeamSize) {
+      errors.push(
+        `Group ${group.label} has ${group.players.length} players, but max team size is ${maxTeamSize}. ` +
+        `This group cannot be placed on any team together.`
+      );
+    } else if (group.players.length === maxTeamSize) {
+      warnings.push(
+        `Group ${group.label} has ${group.players.length} players, which fills an entire team. ` +
+        `No other players can join this team.`
+      );
     }
   }
 
-  return { cleanedPlayers, playerGroups };
+  return {
+    valid: errors.length === 0,
+    warnings,
+    errors
+  };
 }
 
 // Function to get group by player ID
@@ -266,4 +416,62 @@ export function getPlayerGroupColor(playerGroups: PlayerGroup[], playerId: strin
 export function getPlayerGroupLabel(playerGroups: PlayerGroup[], playerId: string): string | null {
   const group = getPlayerGroup(playerGroups, playerId);
   return group ? group.label : null;
+}
+
+// Get request statistics for export/display
+export function getRequestStatistics(players: Player[], playerGroups: PlayerGroup[]): {
+  totalRequests: number;
+  mustHaveTotal: number;
+  mustHaveHonored: number;
+  mustHaveBroken: number;
+  niceToHaveTotal: number;
+  niceToHaveHonored: number;
+  niceToHaveBroken: number;
+  conflictsCount: number;
+} {
+  let totalRequests = 0;
+  let mustHaveTotal = 0;
+  let mustHaveHonored = 0;
+  let niceToHaveTotal = 0;
+  let niceToHaveHonored = 0;
+  let conflictsCount = 0;
+
+  const conflicts = detectRequestConflicts(players);
+  conflictsCount = conflicts.filter(c => c.conflictType === 'avoid-vs-request').length;
+
+  for (const player of players) {
+    player.teammateRequests.forEach((requestedName, index) => {
+      totalRequests++;
+      const isMustHave = index === 0;
+
+      if (isMustHave) {
+        mustHaveTotal++;
+      } else {
+        niceToHaveTotal++;
+      }
+
+      const requestedPlayer = findPlayerByName(players, requestedName);
+      if (requestedPlayer) {
+        const inSameGroup = arePlayersInSameGroup(playerGroups, player.id, requestedPlayer.id);
+        if (inSameGroup) {
+          if (isMustHave) {
+            mustHaveHonored++;
+          } else {
+            niceToHaveHonored++;
+          }
+        }
+      }
+    });
+  }
+
+  return {
+    totalRequests,
+    mustHaveTotal,
+    mustHaveHonored,
+    mustHaveBroken: mustHaveTotal - mustHaveHonored,
+    niceToHaveTotal,
+    niceToHaveHonored,
+    niceToHaveBroken: niceToHaveTotal - niceToHaveHonored,
+    conflictsCount
+  };
 }

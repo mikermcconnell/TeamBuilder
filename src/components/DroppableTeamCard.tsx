@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Team, LeagueConfig, getEffectiveSkillRating } from '@/types';
+import { Team, LeagueConfig, PlayerGroup, getEffectiveSkillRating } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -26,9 +26,15 @@ interface DroppableTeamCardProps {
     config: LeagueConfig;
     onNameChange: (id: string, name: string) => void;
     onRemoveTeam?: (id: string) => void;
+    playerGroups?: PlayerGroup[];
 }
 
-export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: DroppableTeamCardProps) {
+export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, playerGroups = [] }: DroppableTeamCardProps) {
+    // Helper to get group info for a player
+    const getPlayerGroupInfo = (playerId: string) => {
+        const group = playerGroups.find(g => g.playerIds.includes(playerId));
+        return group ? { color: group.color, label: group.label } : null;
+    };
     const { setNodeRef, isOver } = useDroppable({
         id: team.id,
         data: { type: 'team', team },
@@ -116,7 +122,7 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
                     )}
 
                     <div className="flex items-center gap-1">
-                        <Badge variant={isOverCapacity ? "destructive" : "secondary"} className={`text-[10px] px-1.5 h-5 font-medium ${isOverCapacity ? '' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                        <Badge variant={isOverCapacity ? "destructive" : "secondary"} className={`text-lg px-2 h-7 font-bold ${isOverCapacity ? '' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                             {playerCount}/{config.maxTeamSize}
                         </Badge>
                         <DropdownMenu>
@@ -166,17 +172,29 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
                         <span className="text-[12px]">{avgSkill}</span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500">
-                        <div className={`flex items-center gap-0.5 ${femaleCount < config.minFemales ? 'text-red-600 font-bold' : ''}`}>
-                            <span className="text-slate-400">F:</span>
+                    <div className="flex items-center gap-3 text-xl font-bold text-slate-600">
+                        <div className={`flex items-center gap-1 ${femaleCount < config.minFemales ? 'text-red-600' : ''}`}>
+                            <span>F:</span>
                             <span>{femaleCount}</span>
+                            {femaleCount < config.minFemales && (
+                                <span className="text-red-600 text-sm">(-{config.minFemales - femaleCount})</span>
+                            )}
+                            {femaleCount > config.minFemales && (
+                                <span className="text-green-600 text-sm">(+{femaleCount - config.minFemales})</span>
+                            )}
                         </div>
-                        <div className={`flex items-center gap-0.5 ${maleCount < config.minMales ? 'text-red-600 font-bold' : ''}`}>
-                            <span className="text-slate-400">M:</span>
+                        <div className={`flex items-center gap-1 ${maleCount < config.minMales ? 'text-red-600' : ''}`}>
+                            <span>M:</span>
                             <span>{maleCount}</span>
+                            {maleCount < config.minMales && (
+                                <span className="text-red-600 text-sm">(-{config.minMales - maleCount})</span>
+                            )}
+                            {maleCount > config.minMales && (
+                                <span className="text-green-600 text-sm">(+{maleCount - config.minMales})</span>
+                            )}
                         </div>
-                        <div className={`flex items-center gap-0.5 ${handlerCount < targetHandlers ? 'text-orange-600 font-bold' : ''}`}>
-                            <span className="text-slate-400">H:</span>
+                        <div className="flex items-center gap-1">
+                            <span>H:</span>
                             <span>{handlerCount}</span>
                         </div>
                     </div>
@@ -205,9 +223,18 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
                                     <span className="bg-pink-100 text-pink-700 px-1.5 rounded-full text-[9px]">{team.players.filter(p => p.gender === 'F').length}</span>
                                 </div>
                                 <div className="space-y-1">
-                                    {team.players.filter(p => p.gender === 'F').map((player) => (
-                                        <DraggablePlayerCard key={player.id} player={player} compact />
-                                    ))}
+                                    {team.players.filter(p => p.gender === 'F').map((player) => {
+                                        const groupInfo = getPlayerGroupInfo(player.id);
+                                        return (
+                                            <DraggablePlayerCard
+                                                key={player.id}
+                                                player={player}
+                                                compact
+                                                groupColor={groupInfo?.color}
+                                                groupLabel={groupInfo?.label}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -220,9 +247,18 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
                                     <span className="bg-blue-100 text-blue-700 px-1.5 rounded-full text-[9px]">{team.players.filter(p => p.gender === 'M').length}</span>
                                 </div>
                                 <div className="space-y-1">
-                                    {team.players.filter(p => p.gender === 'M').map((player) => (
-                                        <DraggablePlayerCard key={player.id} player={player} compact />
-                                    ))}
+                                    {team.players.filter(p => p.gender === 'M').map((player) => {
+                                        const groupInfo = getPlayerGroupInfo(player.id);
+                                        return (
+                                            <DraggablePlayerCard
+                                                key={player.id}
+                                                player={player}
+                                                compact
+                                                groupColor={groupInfo?.color}
+                                                groupLabel={groupInfo?.label}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

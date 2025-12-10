@@ -22,7 +22,7 @@ export function parseCSV(csvText: string): CSVRow[] {
     const line = lines[i].trim();
     // Skip completely empty lines
     if (!line) continue;
-    
+
     const values = parseCSVLine(line);
     // Skip rows with only empty/whitespace values
     if (values.every(val => !val.trim())) continue;
@@ -41,10 +41,10 @@ function parseCSVLine(line: string): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
-  
+
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    
+
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
@@ -54,7 +54,7 @@ function parseCSVLine(line: string): string[] {
       current += char;
     }
   }
-  
+
   result.push(current);
   return result.map(val => val.trim());
 }
@@ -309,6 +309,24 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
     (h.toLowerCase().includes('request') || h.toLowerCase().includes('_request'))
   );
 
+  // Find "Do Not Play" column for avoid requests
+  const doNotPlayCol = headers.find(h =>
+    h.toLowerCase().includes('do') &&
+    h.toLowerCase().includes('not') &&
+    h.toLowerCase().includes('play')
+  ) || '';
+
+  // Find skill rating component columns (Athletic ability, Throwing, Knowledge/leadership, Handling, Quality player)
+  const skillComponentCols = headers.filter(h => {
+    const lowerH = h.toLowerCase();
+    return lowerH.includes('athletic') ||
+      lowerH.includes('throwing') ||
+      lowerH.includes('knowledge') ||
+      lowerH.includes('leadership') ||
+      lowerH.includes('handling') ||
+      lowerH.includes('quality');
+  });
+
   const seenNames = new Set<string>();
   const players: Player[] = [];
   let actualRowNumber = 2; // Start from row 2 (after header)
@@ -362,9 +380,33 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
       }
     }
 
-    // Handle skill rating - always use the Skill column for player skill display
+    // Handle skill rating - calculate from skill component columns if available
     let skillRating = 5; // Default to middle value
-    if (skillCol) {
+
+    if (skillComponentCols.length > 0) {
+      // Calculate skill from component columns (average * 2)
+      const skillValues: number[] = [];
+      skillComponentCols.forEach(col => {
+        const valStr = row[col]?.trim();
+        if (valStr) {
+          const val = parseFloat(valStr);
+          if (!isNaN(val)) {
+            skillValues.push(val);
+          }
+        }
+      });
+
+      if (skillValues.length > 0) {
+        const average = skillValues.reduce((sum, v) => sum + v, 0) / skillValues.length;
+        skillRating = Math.round(average * 2 * 10) / 10; // Round to 1 decimal place
+
+        if (skillRating > 10) {
+          result.warnings.push(`Row ${actualRowNumber}: Calculated skill rating ${skillRating} exceeds maximum, capping at 10`);
+          skillRating = 10;
+        }
+      }
+    } else if (skillCol) {
+      // Fallback to single skill column
       const skillStr = row[skillCol]?.trim();
       if (skillStr) {
         const skill = parseFloat(skillStr);
@@ -399,10 +441,22 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
     const teammateRequests: string[] = [];
     playerRequestCols.forEach(col => {
       const request = row[col]?.trim();
-      if (request) {
+      if (request && request.toLowerCase() !== 'n/a' && request !== '') {
         teammateRequests.push(request);
       }
     });
+
+    // Parse avoid requests from Do Not Play column
+    const avoidRequests: string[] = [];
+    if (doNotPlayCol) {
+      const doNotPlayVal = row[doNotPlayCol]?.trim();
+      // Only process if it's not "No" or empty - extract actual player names
+      if (doNotPlayVal && doNotPlayVal.toLowerCase() !== 'no' && !doNotPlayVal.toLowerCase().startsWith('yes:')) {
+        // Split by common delimiters and add each name
+        const names = doNotPlayVal.split(/[,;]/).map(n => n.trim()).filter(n => n.length > 0);
+        avoidRequests.push(...names);
+      }
+    }
 
     const player: Player = {
       id: generatePlayerId(name),
@@ -411,7 +465,7 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
       skillRating,
       execSkillRating, // Will be set to exec value if exec > 0, otherwise null
       teammateRequests,
-      avoidRequests: [], // Not provided in registration format
+      avoidRequests,
       // email not provided in registration format
     };
 
@@ -428,7 +482,15 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
     result.warnings.push(`Combined ${playerRequestCols.length} player request columns into teammate requests`);
   }
 
-  result.warnings.push('Registration format detected - avoid requests and email not available');
+  if (skillComponentCols.length > 0) {
+    result.warnings.push(`Calculated skill rating from ${skillComponentCols.length} component columns (average × 2)`);
+  }
+
+  if (doNotPlayCol) {
+    result.warnings.push('Parsed "Do Not Play" column for avoid requests');
+  } else {
+    result.warnings.push('Registration format detected - email not available');
+  }
 
   return finalizePlayers(players, result);
 }
@@ -535,7 +597,7 @@ function finalizePlayers(players: Player[], result: CSVValidationResult): CSVVal
 
 function parsePlayerList(str: string): string[] {
   if (!str) return [];
-  
+
   return str
     .split(/[,;]/)
     .map(name => name.trim())
@@ -548,7 +610,7 @@ function generatePlayerId(name: string): string {
 
 export function generateSampleCSV(): string {
   const headers = ['Name', 'Gender (Optional)', 'Skill Rating (Optional)', 'Exec Skill Rating (Optional)', 'Teammate Requests', 'Avoid Requests', 'Email (Optional)'];
-  
+
   const sampleData = [
     ['Alice Johnson', 'F', '8', '7.5', 'Bob Smith', '', 'alice.johnson@email.com'],
     ['Bob Smith', 'M', '7', '7', 'Alice Johnson', 'Charlie Brown', 'bob.smith@email.com'],

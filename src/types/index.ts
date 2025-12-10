@@ -5,6 +5,7 @@ export interface Player {
   skillRating: number;
   execSkillRating: number | null;  // null indicates "N/A" - no previous rating
   teammateRequests: string[];
+  teammateRequestsParsed?: TeammateRequest[]; // Parsed with priority (first = must-have)
   avoidRequests: string[];
   teamId?: string;
   groupId?: string;
@@ -28,10 +29,50 @@ export interface TeamsData {
   isAutoSaved?: boolean;
 }
 
+// Priority for teammate requests - first request is must-have
+export type RequestPriority = 'must-have' | 'nice-to-have';
+
+// Parsed teammate request with priority
+export interface TeammateRequest {
+  name: string;
+  priority: RequestPriority;
+  status?: 'honored' | 'unfulfilled' | 'conflict';
+  matchedPlayerId?: string; // ID of matched player if found
+  reason?: string;
+}
+
+// Conflict between request and avoid
+export interface RequestConflict {
+  playerId: string;
+  playerName: string;
+  requestedPlayerId: string;
+  requestedName: string;
+  conflictType: 'avoid-vs-request' | 'one-way-request';
+  description: string;
+}
+
+// Groups that almost formed but couldn't due to constraints
+export interface NearMissGroup {
+  playerIds: string[];
+  playerNames: string[];
+  reason: 'group-too-large' | 'would-exceed-team-size' | 'gender-constraints' | 'avoid-conflict';
+  potentialSize: number;
+}
+
+// History entry for undo/redo
+export interface GroupHistoryEntry {
+  action: 'create' | 'delete' | 'add-player' | 'remove-player' | 'merge';
+  timestamp: number;
+  groupId: string;
+  playerIds: string[];
+  previousState?: PlayerGroup[];
+}
+
 export interface UnfulfilledRequest {
   playerId?: string;
   name: string;
-  reason: 'non-reciprocal' | 'group-full';
+  reason: 'non-reciprocal' | 'group-full' | 'conflict' | 'partial';
+  priority: RequestPriority;
 }
 
 export interface PlayerGroup {
@@ -72,6 +113,8 @@ export interface CSVValidationResult {
   warnings: string[];
   players: Player[];
   playerGroups: PlayerGroup[];
+  conflicts?: RequestConflict[];
+  nearMissGroups?: NearMissGroup[];
 }
 
 export interface TeamGenerationStats {
@@ -80,7 +123,12 @@ export interface TeamGenerationStats {
   unassignedPlayers: number;
   mutualRequestsHonored: number;
   mutualRequestsBroken: number;
+  mustHaveRequestsHonored: number;
+  mustHaveRequestsBroken: number;
+  niceToHaveRequestsHonored: number;
+  niceToHaveRequestsBroken: number;
   avoidRequestsViolated: number;
+  conflictsDetected: number;
   generationTime: number;
 }
 

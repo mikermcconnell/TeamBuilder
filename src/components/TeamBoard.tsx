@@ -1,5 +1,5 @@
 import React from 'react';
-import { Team, LeagueConfig } from '@/types';
+import { Team, LeagueConfig, PlayerGroup } from '@/types';
 import { DroppableTeamCard } from './DroppableTeamCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,10 @@ interface TeamBoardProps {
     onTeamNameChange: (id: string, name: string) => void;
     onRemoveTeam?: (id: string) => void;
     onAddTeam?: () => void;
+    playerGroups?: PlayerGroup[];
 }
 
-export function TeamBoard({ teams, config, onTeamNameChange, onRemoveTeam, onAddTeam }: TeamBoardProps) {
+export function TeamBoard({ teams, config, onTeamNameChange, onRemoveTeam, onAddTeam, playerGroups = [] }: TeamBoardProps) {
     return (
         <div className="flex-1 h-full bg-gray-100/50 p-6 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between mb-6">
@@ -38,6 +39,7 @@ export function TeamBoard({ teams, config, onTeamNameChange, onRemoveTeam, onAdd
                                 config={config}
                                 onNameChange={onTeamNameChange}
                                 onRemoveTeam={onRemoveTeam}
+                                playerGroups={playerGroups}
                             />
                         </div>
                     ))}

@@ -35,7 +35,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
   if (unassignedPlayers.length > 0) {
     rows.push(new Array(headers.length).fill(''));
     rows.push(['UNASSIGNED PLAYERS', '', '', '', '', '', '', '', '', '', '']);
-    
+
     unassignedPlayers.forEach(player => {
       const groupLabel = getPlayerGroupLabel(playerGroups, player.id) || '';
       rows.push([
@@ -54,7 +54,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
     });
   }
 
-  return rows.map(row => 
+  return rows.map(row =>
     row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
   ).join('\n');
 }
@@ -65,12 +65,12 @@ export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[
 
   teams.forEach(team => {
     const playerNames = team.players.map(p => p.name).join('; ');
-    
+
     // Calculate skill variance using exec skill ratings (or skill rating if exec is N/A)
     const skills = team.players.map(p => p.execSkillRating !== null ? p.execSkillRating : p.skillRating);
     const avgSkill = team.averageSkill;
     const variance = skills.reduce((sum, skill) => sum + Math.pow(skill - avgSkill, 2), 0) / skills.length;
-    
+
     // Get player groups in this team
     const teamGroups = new Set();
     team.players.forEach(player => {
@@ -80,7 +80,7 @@ export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[
       }
     });
     const groupsStr = Array.from(teamGroups).join(', ') || 'None';
-    
+
     const row = [
       team.name,
       team.players.length.toString(),
@@ -104,14 +104,19 @@ export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[
     rows.push(['Unassigned Players', stats.unassignedPlayers.toString(), '', '', '', '', '', '', '']);
     rows.push(['Mutual Requests Honored', stats.mutualRequestsHonored.toString(), '', '', '', '', '', '', '']);
     rows.push(['Mutual Requests Broken', stats.mutualRequestsBroken.toString(), '', '', '', '', '', '', '']);
+    rows.push(['Must-Have Requests Honored', stats.mustHaveRequestsHonored?.toString() || '0', '', '', '', '', '', '', '']);
+    rows.push(['Must-Have Requests Broken', stats.mustHaveRequestsBroken?.toString() || '0', '', '', '', '', '', '', '']);
+    rows.push(['Nice-to-Have Requests Honored', stats.niceToHaveRequestsHonored?.toString() || '0', '', '', '', '', '', '', '']);
+    rows.push(['Nice-to-Have Requests Broken', stats.niceToHaveRequestsBroken?.toString() || '0', '', '', '', '', '', '', '']);
     rows.push(['Avoid Violations', stats.avoidRequestsViolated.toString(), '', '', '', '', '', '', '']);
+    rows.push(['Conflicts Detected', stats.conflictsDetected?.toString() || '0', '', '', '', '', '', '', '']);
     rows.push(['Generation Time (ms)', stats.generationTime.toString(), '', '', '', '', '', '', '']);
     rows.push(['Max Team Size', config.maxTeamSize.toString(), '', '', '', '', '', '', '']);
     rows.push(['Min Females', config.minFemales.toString(), '', '', '', '', '', '', '']);
     rows.push(['Min Males', config.minMales.toString(), '', '', '', '', '', '', '']);
   }
 
-  return rows.map(row => 
+  return rows.map(row =>
     row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
   ).join('\n');
 }
@@ -119,7 +124,7 @@ export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[
 export function downloadCSV(csvContent: string, filename: string): void {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
-  
+
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -136,7 +141,7 @@ export function exportConfigToJSON(configs: any[], filename: string): void {
   const jsonContent = JSON.stringify(configs, null, 2);
   const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
   const link = document.createElement('a');
-  
+
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -152,7 +157,7 @@ export function exportConfigToJSON(configs: any[], filename: string): void {
 export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], playerGroups: PlayerGroup[] = [], config?: LeagueConfig, stats?: TeamGenerationStats): string {
   let report = 'TEAM BALANCING REPORT\n';
   report += '=====================\n\n';
-  
+
   report += `Generated on: ${new Date().toLocaleString()}\n`;
   report += `Total Teams: ${teams.length}\n`;
   report += `Total Assigned Players: ${teams.reduce((sum, t) => sum + t.players.length, 0)}\n`;
@@ -165,7 +170,7 @@ export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], p
     report += `Players: ${team.players.length}\n`;
     report += `Average Skill: ${team.averageSkill.toFixed(2)}\n`;
     report += `Gender Breakdown: ${team.genderBreakdown.M}M, ${team.genderBreakdown.F}F, ${team.genderBreakdown.Other} Other\n`;
-    
+
     // Add group information
     const teamGroups = new Set();
     team.players.forEach(player => {
@@ -177,15 +182,15 @@ export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], p
     if (teamGroups.size > 0) {
       report += `Player Groups: ${Array.from(teamGroups).join(', ')}\n`;
     }
-    
+
     report += 'Players:\n';
-    
+
     team.players.forEach(player => {
       const groupLabel = getPlayerGroupLabel(playerGroups, player.id);
       const groupStr = groupLabel ? ` [Group ${groupLabel}]` : '';
       report += `  - ${player.name} (${player.gender}, Skill: ${player.skillRating}, Exec: ${player.execSkillRating !== null ? player.execSkillRating : 'N/A'})${groupStr}\n`;
     });
-    
+
     if (index < teams.length - 1) {
       report += '\n';
     }
@@ -217,7 +222,14 @@ export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], p
     report += `Unassigned Players: ${stats.unassignedPlayers}\n`;
     report += `Mutual Requests Honored: ${stats.mutualRequestsHonored}\n`;
     report += `Mutual Requests Broken: ${stats.mutualRequestsBroken}\n`;
+    report += '\n';
+    report += `★ Must-Have Requests Honored: ${stats.mustHaveRequestsHonored || 0}\n`;
+    report += `★ Must-Have Requests Broken: ${stats.mustHaveRequestsBroken || 0}\n`;
+    report += `♡ Nice-to-Have Requests Honored: ${stats.niceToHaveRequestsHonored || 0}\n`;
+    report += `♡ Nice-to-Have Requests Broken: ${stats.niceToHaveRequestsBroken || 0}\n`;
+    report += '\n';
     report += `Avoid Request Violations: ${stats.avoidRequestsViolated}\n`;
+    report += `Conflicts Detected: ${stats.conflictsDetected || 0}\n`;
     report += `Generation Time: ${stats.generationTime}ms\n`;
   }
 

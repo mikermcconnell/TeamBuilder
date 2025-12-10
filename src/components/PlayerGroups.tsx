@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { PlayerGroup, Player } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { 
-  Users, 
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Users,
   UserCheck,
   AlertTriangle,
   Trophy,
@@ -17,9 +16,18 @@ import {
   UserPlus,
   UserMinus,
   Plus,
-  Trash2
+  Trash2,
+  Undo2,
+  Redo2,
+  AlertCircle,
+  Star,
+  Heart,
+  XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { detectRequestConflicts } from '@/utils/playerGrouping';
+import { SuggestedGroupsPanel } from './SuggestedGroupsPanel';
+import { generateGroupSuggestions, SuggestedGroup } from '@/services/groupSuggestionService';
 
 interface PlayerGroupsProps {
   playerGroups: PlayerGroup[];
@@ -29,24 +37,41 @@ interface PlayerGroupsProps {
   onCreateNewGroup: (playerIds: string[]) => void;
   onDeleteGroup: (groupId: string) => void;
   onMergeGroups: (sourceGroupId: string, targetGroupId: string) => void;
+  // New: History management
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
-export function PlayerGroups({ 
-  playerGroups, 
-  players, 
-  onAddPlayerToGroup, 
-  onRemovePlayerFromGroup, 
-  onCreateNewGroup, 
+export function PlayerGroups({
+  playerGroups,
+  players,
+  onAddPlayerToGroup,
+  onRemovePlayerFromGroup,
+  onCreateNewGroup,
   onDeleteGroup,
-  onMergeGroups
+  onMergeGroups,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false
 }: PlayerGroupsProps) {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [isMergingGroup, setIsMergingGroup] = useState(false);
   const [selectedGroupForMerge, setSelectedGroupForMerge] = useState<string | null>(null);
   const [newGroupName, setNewGroupName] = useState('');
-  
+
+  // AI Suggestions state
+  const [suggestions, setSuggestions] = useState<SuggestedGroup[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+
   const ungroupedPlayers = players.filter(p => !p.groupId);
+
+  // Detect conflicts for warning display
+  const conflicts = detectRequestConflicts(players);
+  const avoidConflicts = conflicts.filter(c => c.conflictType === 'avoid-vs-request');
 
   const getSkillLevelColor = (skill: number): string => {
     if (skill >= 8) return 'text-white bg-green-800';
@@ -108,32 +133,86 @@ export function PlayerGroups({
   const handleMergeGroups = (sourceGroupId: string, targetGroupId: string) => {
     const sourceGroup = playerGroups.find(g => g.id === sourceGroupId);
     const targetGroup = playerGroups.find(g => g.id === targetGroupId);
-    
+
     if (!sourceGroup || !targetGroup) return;
-    
+
     const totalPlayers = sourceGroup.players.length + targetGroup.players.length;
     if (totalPlayers > 4) {
       toast.error('Merged group would exceed 4 players');
       return;
     }
-    
+
     onMergeGroups(sourceGroupId, targetGroupId);
     setSelectedGroupForMerge(null);
     setIsMergingGroup(false);
     toast.success('Groups merged successfully');
   };
 
+  // AI Suggestions handlers
+  const handleGenerateSuggestions = async () => {
+    setIsLoadingSuggestions(true);
+    const result = await generateGroupSuggestions(players, playerGroups);
+    setIsLoadingSuggestions(false);
+
+    if (result.error) {
+      toast.error(result.error);
+    } else if (result.suggestions.length === 0) {
+      toast.info('No group suggestions found. Try adding teammate requests to players.');
+    } else {
+      setSuggestions(result.suggestions);
+      toast.success(`Found ${result.suggestions.length} group suggestions!`);
+    }
+  };
+
+  const handleAcceptSuggestion = (suggestion: SuggestedGroup) => {
+    // Create a new group from the suggestion
+    onCreateNewGroup(suggestion.playerIds);
+    // Remove from suggestions list
+    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+    toast.success(`Created group with ${suggestion.playerNames.join(', ')}`);
+  };
+
+  const handleDenySuggestion = (suggestionId: string) => {
+    setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
+  };
+
   return (
     <div className="space-y-6">
+      {/* Undo/Redo Controls */}
+      {(onUndo || onRedo) && (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="gap-1"
+          >
+            <Undo2 className="h-4 w-4" />
+            Undo
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="gap-1"
+          >
+            <Redo2 className="h-4 w-4" />
+            Redo
+          </Button>
+        </div>
+      )}
+
       {/* Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{playerGroups.length}</div>
             <div className="text-sm text-gray-600">Player Groups</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">
@@ -142,21 +221,48 @@ export function PlayerGroups({
             <div className="text-sm text-gray-600">Grouped Players</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-orange-600">{ungroupedPlayers.length}</div>
             <div className="text-sm text-gray-600">Individual Players</div>
           </CardContent>
         </Card>
+
+        <Card className={avoidConflicts.length > 0 ? 'border-red-300 bg-red-50' : ''}>
+          <CardContent className="p-4 text-center">
+            <div className={`text-2xl font-bold ${avoidConflicts.length > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+              {avoidConflicts.length}
+            </div>
+            <div className="text-sm text-gray-600">Conflicts</div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Conflicts Warning */}
+      {avoidConflicts.length > 0 && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            <strong>{avoidConflicts.length} conflict(s) detected:</strong> Some players requested others who want to avoid them.
+            <ul className="mt-2 space-y-1 text-sm">
+              {avoidConflicts.slice(0, 3).map((c, i) => (
+                <li key={i}>• {c.description}</li>
+              ))}
+              {avoidConflicts.length > 3 && (
+                <li className="italic">...and {avoidConflicts.length - 3} more</li>
+              )}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Info Alert */}
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Player groups are formed from mutual teammate requests. Only players who requested each other 
-          are grouped together. Groups can contain 2-4 players and will be kept together during team generation.
+          Player groups are formed from mutual teammate requests. <Star className="h-3 w-3 inline text-amber-500 fill-amber-500" /> = must-have (first request),
+          <Heart className="h-3 w-3 inline text-pink-400 ml-1" /> = nice-to-have. Groups can contain 2-4 players.
         </AlertDescription>
       </Alert>
 
@@ -199,7 +305,7 @@ export function PlayerGroups({
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="flex items-center gap-2">
-                            <div 
+                            <div
                               className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs"
                               style={{ backgroundColor: group.color }}
                             >
@@ -218,7 +324,7 @@ export function PlayerGroups({
                             </Button>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
                             <Trophy className="h-4 w-4 text-yellow-600" />
@@ -232,20 +338,20 @@ export function PlayerGroups({
                           </div>
                         </div>
                       </CardHeader>
-                      
+
                       <CardContent>
                         <div className="space-y-2">
                           {group.players.map((player, index) => (
-                            <div 
+                            <div
                               key={player.id}
                               className="flex items-center justify-between p-3 rounded-lg border"
-                              style={{ 
+                              style={{
                                 backgroundColor: `${group.color}08`,
                                 borderColor: `${group.color}30`
                               }}
                             >
                               <div className="flex items-center gap-2">
-                                <div 
+                                <div
                                   className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs"
                                   style={{ backgroundColor: group.color }}
                                 >
@@ -253,7 +359,7 @@ export function PlayerGroups({
                                 </div>
                                 <div className="font-medium">{player.name}</div>
                               </div>
-                              
+
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">
                                   {player.gender}
@@ -282,7 +388,7 @@ export function PlayerGroups({
                             {group.players.map(player => (
                               <div key={player.id} className="mb-1">
                                 <span className="font-medium">{player.name}</span>: {
-                                  player.teammateRequests.length > 0 
+                                  player.teammateRequests.length > 0
                                     ? player.teammateRequests.join(', ')
                                     : 'None'
                                 }
@@ -323,7 +429,7 @@ export function PlayerGroups({
                 <Plus className="h-4 w-4" />
                 Create New Group ({selectedPlayers.length} selected)
               </Button>
-              
+
               {selectedPlayers.length > 0 && (
                 <Button
                   variant="outline"
@@ -362,8 +468,8 @@ export function PlayerGroups({
                     <Button onClick={handleCreateNewGroup} className="flex-1">
                       Create Group
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => {
                         setIsCreatingGroup(false);
                         setNewGroupName('');
@@ -389,6 +495,15 @@ export function PlayerGroups({
         </Card>
       )}
 
+      {/* AI-Suggested Groups Panel */}
+      <SuggestedGroupsPanel
+        suggestions={suggestions}
+        isLoading={isLoadingSuggestions}
+        onGenerate={handleGenerateSuggestions}
+        onAccept={handleAcceptSuggestion}
+        onDeny={handleDenySuggestion}
+      />
+
       {/* Individual Players */}
       {ungroupedPlayers.length > 0 && (
         <Card>
@@ -406,11 +521,10 @@ export function PlayerGroups({
               {ungroupedPlayers.map((player) => (
                 <div
                   key={player.id}
-                  className={`border rounded-lg p-3 transition-colors ${
-                    selectedPlayers.includes(player.id) 
-                      ? 'bg-blue-50 border-blue-200' 
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
+                  className={`border rounded-lg p-3 transition-colors ${selectedPlayers.includes(player.id)
+                    ? 'bg-blue-50 border-blue-200'
+                    : 'bg-gray-50 border-gray-200'
+                    }`}
                 >
                   {/* Player selection checkbox */}
                   <div className="flex items-start gap-2 mb-2">
@@ -430,7 +544,7 @@ export function PlayerGroups({
                           </Badge>
                         </div>
                       </div>
-                      
+
                       {player.teammateRequests.length > 0 && (
                         <div className="text-xs text-gray-600 mb-2">
                           <div className="text-orange-600">
@@ -438,7 +552,7 @@ export function PlayerGroups({
                           </div>
                         </div>
                       )}
-                      
+
                       {player.avoidRequests.length > 0 && (
                         <div className="text-xs text-red-600 mb-2">
                           Avoid: {player.avoidRequests.join(', ')}
@@ -492,7 +606,7 @@ export function PlayerGroups({
             <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Player Groups Found</h3>
             <p className="text-gray-600">
-              No mutual teammate requests were found in your player roster. 
+              No mutual teammate requests were found in your player roster.
               Players need to request each other to form groups.
             </p>
           </CardContent>
@@ -518,7 +632,7 @@ export function PlayerGroups({
                     .map(group => {
                       const sourceGroup = playerGroups.find(g => g.id === selectedGroupForMerge);
                       const wouldExceedLimit = sourceGroup && (sourceGroup.players.length + group.players.length > 4);
-                      
+
                       return (
                         <Button
                           key={group.id}
@@ -528,7 +642,7 @@ export function PlayerGroups({
                           className="w-full justify-start"
                         >
                           <div className="flex items-center gap-2">
-                            <div 
+                            <div
                               className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs"
                               style={{ backgroundColor: group.color }}
                             >
@@ -556,7 +670,7 @@ export function PlayerGroups({
                       className="w-full justify-start"
                     >
                       <div className="flex items-center gap-2">
-                        <div 
+                        <div
                           className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs"
                           style={{ backgroundColor: group.color }}
                         >
@@ -570,8 +684,8 @@ export function PlayerGroups({
               </div>
             )}
             <div className="flex gap-2 pt-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setIsMergingGroup(false);
                   setSelectedGroupForMerge(null);

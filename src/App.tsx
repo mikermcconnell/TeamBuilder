@@ -320,15 +320,30 @@ function App() {
     setLoadingWorkspaceId(id);
     const workspace = await loadWorkspace(id);
     if (workspace) {
-      setAppState(prev => ({
-        ...prev,
-        players: workspace.players || [],
-        playerGroups: workspace.playerGroups || [],
-        config: workspace.config || getDefaultConfig(),
-        teams: workspace.teams || [],
-        unassignedPlayers: workspace.unassignedPlayers || [],
-        stats: workspace.stats,
-      }));
+      setAppState(prev => {
+        // Seed execRatingHistory from the loaded workspace's players
+        const execRatingHistory = { ...prev.execRatingHistory };
+        (workspace.players || []).forEach(player => {
+          if (player.execSkillRating !== null && player.execSkillRating !== undefined) {
+            const key = normalizeName(player.name);
+            // Only update if not already present or if the loaded value is newer
+            if (!execRatingHistory[key]) {
+              execRatingHistory[key] = { rating: player.execSkillRating, updatedAt: 0 };
+            }
+          }
+        });
+
+        return {
+          ...prev,
+          players: workspace.players || [],
+          playerGroups: workspace.playerGroups || [],
+          config: workspace.config || getDefaultConfig(),
+          teams: workspace.teams || [],
+          unassignedPlayers: workspace.unassignedPlayers || [],
+          stats: workspace.stats,
+          execRatingHistory,
+        };
+      });
 
       toast.success(`Loaded project "${workspace.name}"`);
       setIsLoadWorkspaceDialogOpen(false);
@@ -466,6 +481,23 @@ function App() {
       return;
     }
 
+    // Validate groups against config before generation
+    const { validateGroupsForGeneration } = await import('@/utils/playerGrouping');
+    const validation = validateGroupsForGeneration(appState.playerGroups, appState.config.maxTeamSize);
+
+    // Show errors if any group is too large
+    if (!validation.valid) {
+      validation.errors.forEach(error => {
+        toast.error(error, { duration: 5000 });
+      });
+      return; // Don't proceed with generation
+    }
+
+    // Show warnings (but continue)
+    validation.warnings.forEach(warning => {
+      toast.warning(warning, { duration: 4000 });
+    });
+
     setIsManualMode(manualMode); // Track manual mode state
 
     try {
@@ -491,6 +523,11 @@ function App() {
 
       toast.success(message);
 
+      // Show detailed stats for must-have requests
+      if (result.stats.mustHaveRequestsBroken > 0) {
+        toast.warning(`${result.stats.mustHaveRequestsBroken} must-have requests could not be honored`, { duration: 4000 });
+      }
+
       if (result.unassignedPlayers.length > 0) {
         toast.warning(`${result.unassignedPlayers.length} players could not be assigned due to constraints`);
       }
@@ -498,7 +535,7 @@ function App() {
       console.error('Team generation failed:', error);
       toast.error('Failed to generate teams. Please check your configuration.');
     }
-  }, [appState.players, appState.config]);
+  }, [appState.players, appState.config, appState.playerGroups]);
 
   const handlePlayerUpdate = useCallback((updatedPlayer: Player) => {
     setAppState(prev => {
@@ -1061,7 +1098,7 @@ function App() {
                   value="config"
                   className="flex-1 rounded-xl py-3 font-bold text-slate-600 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
                 >
-                  Config
+                  League Config
                 </TabsTrigger>
                 <TabsTrigger
                   value="roster"
@@ -1094,7 +1131,7 @@ function App() {
                       <div className="h-10 w-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500">
                         <BarChart3 className="h-5 w-5" />
                       </div>
-                      Configuration
+                      League Configuration
                     </h2>
                     <p className="text-slate-500 mt-2 ml-14">Adjust team settings and balancing rules.</p>
                   </div>
@@ -1123,7 +1160,10 @@ function App() {
                     </p>
 
                     <div id="csv-upload-trigger">
-                      <CSVUploader onPlayersLoaded={handlePlayersLoaded} />
+                      <CSVUploader
+                        onPlayersLoaded={handlePlayersLoaded}
+                        onNavigateToRoster={() => setActiveTab('roster')}
+                      />
                     </div>
 
                     <div className="pt-8 border-t border-slate-100 mt-8">
@@ -1221,7 +1261,10 @@ function App() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
                           {/* Team Builder Card */}
                           <div
-                            onClick={() => setIsFullScreenMode(true)}
+                            onClick={() => {
+                              handleGenerateTeams(false, true); // Generate in manual mode (empty teams)
+                              setIsFullScreenMode(true);
+                            }}
                             className="group bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 hover:-translate-y-1 transition-all cursor-pointer flex flex-col items-center text-center"
                           >
                             <div className="h-20 w-20 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-100 transition-colors">

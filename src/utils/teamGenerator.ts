@@ -549,6 +549,11 @@ function calculateStats(
 
   let mutualRequestsHonored = 0;
   let mutualRequestsBroken = 0;
+  let mustHaveRequestsHonored = 0;
+  let mustHaveRequestsBroken = 0;
+  let niceToHaveRequestsHonored = 0;
+  let niceToHaveRequestsBroken = 0;
+  let conflictsDetected = 0;
 
   // Count custom player groups (highest priority requests)
   for (const group of playerGroups) {
@@ -594,13 +599,62 @@ function calculateStats(
     }
   }
 
+  // Calculate must-have vs nice-to-have stats based on request index
+  // First request (index 0) = must-have, rest = nice-to-have
+  for (const player of allPlayers) {
+    player.teammateRequests.forEach((requestedName, index) => {
+      const isMustHave = index === 0;
+
+      // Find if requested player exists
+      const requestedPlayer = allPlayers.find(
+        p => p.name.toLowerCase() === requestedName.toLowerCase() ||
+          fuzzyMatcher.isLikelyMatch(requestedName, p.name, 0.8)
+      );
+
+      if (!requestedPlayer) return;
+
+      // Check if request is honored (same team)
+      const playerTeam = teams.find(t => t.players.some(p => p.id === player.id));
+      const requestedPlayerTeam = teams.find(t => t.players.some(p => p.id === requestedPlayer.id));
+      const isHonored = playerTeam && requestedPlayerTeam && playerTeam.id === requestedPlayerTeam.id;
+
+      // Check for avoid conflict
+      const hasConflict = requestedPlayer.avoidRequests.some(
+        avoidName => fuzzyMatcher.isLikelyMatch(avoidName, player.name, 0.8)
+      );
+
+      if (hasConflict) {
+        conflictsDetected++;
+      }
+
+      if (isMustHave) {
+        if (isHonored) {
+          mustHaveRequestsHonored++;
+        } else {
+          mustHaveRequestsBroken++;
+        }
+      } else {
+        if (isHonored) {
+          niceToHaveRequestsHonored++;
+        } else {
+          niceToHaveRequestsBroken++;
+        }
+      }
+    });
+  }
+
   return {
     totalPlayers: allPlayers.length,
     assignedPlayers: assignedPlayers.length,
     unassignedPlayers: unassignedPlayers.length,
     mutualRequestsHonored,
     mutualRequestsBroken,
+    mustHaveRequestsHonored,
+    mustHaveRequestsBroken,
+    niceToHaveRequestsHonored,
+    niceToHaveRequestsBroken,
     avoidRequestsViolated,
+    conflictsDetected,
     generationTime: Date.now() - startTime
   };
 }

@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Player, Team, LeagueConfig, PlayerGroup } from '@/types';
+import { getPlayerGroup } from '@/utils/playerGrouping';
 import { PlayerSidebar } from './PlayerSidebar';
 import { TeamBoard } from './TeamBoard';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
@@ -78,7 +79,7 @@ export function FullScreenTeamBuilder({
   const handleAiPrompt = async (prompt: string) => {
     setIsAiLoading(true);
     try {
-      const suggestions = await generateTeamSuggestions(prompt, players, teams, config);
+      const suggestions = await generateTeamSuggestions(prompt, players, teams, config, playerGroups);
       setAiSuggestions(suggestions);
     } catch (error) {
       toast.error("Failed to generate suggestions. Please check your API key.");
@@ -148,13 +149,15 @@ export function FullScreenTeamBuilder({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    // setActiveId(null);
     setActivePlayer(null);
 
     if (!over) return;
 
     const activePlayerId = active.id as string;
     const overId = over.id as string;
+    const draggedPlayer = players.find(p => p.id === activePlayerId);
+
+    if (!draggedPlayer) return;
 
     // Find source and destination
     const sourceTeamId = teams.find(t => t.players.some(p => p.id === activePlayerId))?.id || null;
@@ -180,16 +183,32 @@ export function FullScreenTeamBuilder({
 
     // Only move if destination is different
     if (sourceTeamId !== targetTeamId) {
-      onPlayerMove(activePlayerId, targetTeamId);
+      // Check if player is in a group
+      const playerGroup = getPlayerGroup(playerGroups, activePlayerId);
 
-      // Show toast
-      const player = players.find(p => p.id === activePlayerId);
-      if (player) {
+      if (playerGroup && playerGroup.players.length > 1) {
+        // Move entire group together
+        playerGroup.players.forEach(groupMember => {
+          onPlayerMove(groupMember.id, targetTeamId);
+        });
+
+        // Show group move toast
         if (targetTeamId) {
           const teamName = teams.find(t => t.id === targetTeamId)?.name || 'Team';
-          toast.success(`Moved ${player.name} to ${teamName}`);
+          toast.success(`Moved Group ${playerGroup.label} (${playerGroup.players.length} players) to ${teamName}`);
         } else {
-          toast.success(`Moved ${player.name} to Unassigned`);
+          toast.success(`Moved Group ${playerGroup.label} (${playerGroup.players.length} players) to Unassigned`);
+        }
+      } else {
+        // Move single player
+        onPlayerMove(activePlayerId, targetTeamId);
+
+        // Show toast
+        if (targetTeamId) {
+          const teamName = teams.find(t => t.id === targetTeamId)?.name || 'Team';
+          toast.success(`Moved ${draggedPlayer.name} to ${teamName}`);
+        } else {
+          toast.success(`Moved ${draggedPlayer.name} to Unassigned`);
         }
       }
     }
@@ -347,6 +366,7 @@ export function FullScreenTeamBuilder({
             teams={sortedTeams}
             config={config}
             onTeamNameChange={onTeamNameChange}
+            playerGroups={playerGroups}
           // Add handlers for adding/removing teams if needed in future
           />
         </div>

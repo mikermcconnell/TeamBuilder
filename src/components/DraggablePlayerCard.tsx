@@ -2,14 +2,23 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Player, getEffectiveSkillRating } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { GripVertical, Unlink, Users } from 'lucide-react';
+import { GripVertical, Unlink, Users, AlertTriangle } from 'lucide-react';
 
 interface DraggablePlayerCardProps {
   player: Player;
   compact?: boolean;
+  groupColor?: string | null; // Group color for visual indicator
+  groupLabel?: string | null; // Group label (A, B, C...)
+  showSplitWarning?: boolean; // Show warning when player would be separated from group
 }
 
-export function DraggablePlayerCard({ player, compact = false }: DraggablePlayerCardProps) {
+export function DraggablePlayerCard({
+  player,
+  compact = false,
+  groupColor,
+  groupLabel,
+  showSplitWarning = false
+}: DraggablePlayerCardProps) {
   const {
     attributes,
     listeners,
@@ -45,7 +54,6 @@ export function DraggablePlayerCard({ player, compact = false }: DraggablePlayer
   return (
     <div
       ref={setNodeRef}
-      style={style}
       {...attributes}
       {...listeners}
       className={`
@@ -53,8 +61,34 @@ export function DraggablePlayerCard({ player, compact = false }: DraggablePlayer
         hover:border-primary/50 hover:bg-slate-50 transition-all cursor-grab active:cursor-grabbing
         ${isDragging ? 'ring-2 ring-primary border-primary z-50 shadow-xl scale-105' : 'border-slate-200 shadow-sm'}
         ${compact ? 'p-1.5 gap-2' : 'p-3 gap-3'}
+        ${groupColor ? 'border-l-4' : ''}
       `}
+      style={{
+        ...style,
+        borderLeftColor: groupColor || undefined
+      }}
     >
+      {/* Group Badge Indicator */}
+      {groupLabel && groupColor && (
+        <div
+          className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm z-10"
+          style={{ backgroundColor: groupColor }}
+          title={`Group ${groupLabel}`}
+        >
+          {groupLabel}
+        </div>
+      )}
+
+      {/* Split Warning Indicator */}
+      {showSplitWarning && (
+        <div
+          className="absolute -top-1.5 -right-1.5 z-10"
+          title="Moving this player will separate them from their group"
+        >
+          <AlertTriangle className="h-4 w-4 text-amber-500 fill-amber-100" />
+        </div>
+      )}
+
       {/* Drag Handle */}
       <div className="text-gray-400 group-hover:text-gray-600 shrink-0">
         <GripVertical className="h-4 w-4" />
