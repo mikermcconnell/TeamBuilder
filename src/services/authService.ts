@@ -75,6 +75,6 @@ export const signInWithGoogle = async (): Promise<User> => {
     return result.user;
   } catch (error) {
     console.error('Error signing in with Google:', error);
-    throw new Error('Failed to sign in with Google');
+    throw error; // Throw original error to expose specific reason (e.g. domain not authorized)
   }
 };

@@ -89,6 +89,7 @@ export function AuthDialog({
       closeDialog();
     } catch (error: any) {
       console.error('Google auth error:', error);
+      // Display the actual error message (e.g., "This domain is not authorized")
       toast.error(error.message || 'Failed to sign in with Google');
     } finally {
       setIsSubmitting(false);
