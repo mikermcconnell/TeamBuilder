@@ -1262,7 +1262,10 @@ function App() {
                           {/* Team Builder Card */}
                           <div
                             onClick={() => {
-                              handleGenerateTeams(false, true); // Generate in manual mode (empty teams)
+                              // Only generate teams if none exist; otherwise preserve current state
+                              if (appState.teams.length === 0) {
+                                handleGenerateTeams(false, true); // Generate in manual mode (empty teams)
+                              }
                               setIsFullScreenMode(true);
                             }}
                             className="group bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 hover:-translate-y-1 transition-all cursor-pointer flex flex-col items-center text-center"
