@@ -1,70 +1,64 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read/write their own data
-    match /users/{userId}/data/{document} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    
+    // --- Helper Functions ---
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Checks if the user is owner of the resource being requested
+    function isResourceOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Checks if the user is claiming ownership in the new data
+    function isClaimingOwnership() {
+      return isAuthenticated() && request.auth.uid == request.resource.data.userId;
     }
 
-    // Sessions - users can only access their own sessions
-    match /sessions/{document} {
-      allow read, write: if request.auth != null &&
-        request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null &&
-        request.auth.uid == request.resource.data.userId;
+    // --- Collection Rules ---
+
+    // Users - users can only read/write their own data
+    match /users/{userId}/data/{document} {
+      allow read, write: if isOwner(userId);
     }
     
     // Rosters - users can only access their own rosters
     match /rosters/{document} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.userId;
+      allow read, write: if isResourceOwner();
+      allow create: if isClaimingOwnership();
     }
     
     // Roster versions - users can only access their own roster versions
     match /rosterVersions/{document} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.userId;
+      allow read, write: if isResourceOwner();
+      allow create: if isClaimingOwnership(); // Often created via backend/triggers, but client might too
     }
     
     // Roster templates - public read, authenticated users can create their own
     match /rosterTemplates/{document} {
-      allow read: if true; // Public templates can be read by anyone
-      allow write: if request.auth != null && 
-        request.auth.uid == resource.data.createdBy;
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.createdBy;
-    }
-    
-    // Config presets - users can only access their own presets
-    match /configPresets/{document} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.userId;
+      allow read: if true;
+      // Write/Create only by creator (or admin in future)
+      allow write: if isAuthenticated() && request.auth.uid == resource.data.createdBy;
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.createdBy;
     }
     
     // Teams - users can only access their own saved teams
     match /teams/{document} {
-      allow read, write: if request.auth != null &&
-        request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null &&
-        request.auth.uid == request.resource.data.userId;
+      allow read, write: if isResourceOwner();
+      allow create: if isClaimingOwnership();
     }
 
-    // Saved Rosters - users can only access their own saved rosters
-    match /savedRosters/{document} {
-      allow read: if request.auth != null &&
-        request.auth.uid == resource.data.userId;
-      allow write: if request.auth != null &&
-        request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null &&
-        request.auth.uid == request.resource.data.userId;
-      allow delete: if request.auth != null &&
-        request.auth.uid == resource.data.userId;
+    // Workspaces - users can only access their own workspaces
+    match /workspaces/{document} {
+      allow read, write: if isResourceOwner();
+      allow create: if isClaimingOwnership();
     }
   }
 }

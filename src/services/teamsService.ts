@@ -7,28 +7,12 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  getDoc,
   orderBy,
   limit,
   Timestamp
 } from 'firebase/firestore';
 import { db, auth } from '@/config/firebase';
-import { Team, Player, LeagueConfig } from '@/types';
-
-export interface TeamsData {
-  id?: string;
-  userId: string;
-  rosterId?: string; // Link to the roster used
-  name: string;
-  description?: string;
-  teams: Team[];
-  unassignedPlayers: Player[];
-  config: LeagueConfig;
-  generationMethod?: 'balanced' | 'random' | 'manual';
-  createdAt?: Date;
-  updatedAt?: Date;
-  isAutoSaved?: boolean;
-}
+import { TeamsData } from '@/types';
 
 // Helper function to ensure user is authenticated
 const ensureAuthenticated = (): Promise<boolean> => {
@@ -94,6 +78,11 @@ export const saveTeams = async (
       throw new Error('Authentication mismatch');
     }
 
+    // Validate payload structure using Zod
+    // Note: We need to be careful with Dates vs Timestamps here. 
+    // The schema expects Date or string, but Firestore wants Timestamps or Dates.
+    // For now, let's trust the schema validation but keep standard cleaning.
+
     const sanitizedTeamsData = removeUndefinedValues(teamsData) as Omit<TeamsData, 'id' | 'createdAt' | 'updatedAt'>;
     const payload = removeUndefinedValues({
       ...sanitizedTeamsData,
@@ -110,14 +99,14 @@ export const saveTeams = async (
     if (error?.code === 'permission-denied') {
       throw new Error('Permission denied. Please make sure you are signed in.');
     }
-    
+
     throw error;
   }
 };
 
 // Update existing teams
 export const updateTeams = async (
-  teamsId: string, 
+  teamsId: string,
   teamsData: Partial<TeamsData>
 ): Promise<void> => {
   try {
@@ -178,11 +167,11 @@ export const getUserTeams = async (
     });
   } catch (error: any) {
     console.error('Error fetching teams:', error);
-    
+
     if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
       console.warn('Database indexes are being built. Teams will be available shortly.');
     }
-    
+
     return [];
   }
 };

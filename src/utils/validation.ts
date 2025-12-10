@@ -1,15 +1,31 @@
 /**
- * Input validation utilities to prevent XSS and ensure data integrity
+ * Input validation utilities using Zod schemas
  */
 
-import { Player, LeagueConfig, AppState } from '@/types';
+import { z } from 'zod';
+import { Player, LeagueConfig, AppState, TeamsData } from '@/types';
+import {
+  MAX_PLAYER_NAME_LENGTH,
+  MAX_TEAMMATE_REQUESTS,
+  MAX_AVOID_REQUESTS,
+  MAX_TEAM_NAME_LENGTH,
+  MAX_LEAGUE_NAME_LENGTH,
+  MAX_TEAM_DESCRIPTION_LENGTH,
+  MIN_TEAM_SIZE,
+  MAX_TEAM_SIZE,
+  DEFAULT_MAX_TEAM_SIZE,
+  MIN_GENDER_COUNT,
+  MAX_GENDER_COUNT,
+  DEFAULT_MIN_FEMALES,
+  DEFAULT_MIN_MALES,
+  MIN_TARGET_TEAMS,
+  MAX_TARGET_TEAMS,
+  MAX_CSV_SIZE_BYTES
+} from '@/config/constants';
 
 /**
  * Sanitizes a string input to prevent XSS attacks
- *
- * @param input The string to sanitize
- * @param maxLength Maximum allowed length
- * @returns Sanitized string
+ * Used as a transform in Zod schemas
  */
 export function sanitizeString(input: string, maxLength = 100): string {
   if (typeof input !== 'string') {
@@ -20,7 +36,6 @@ export function sanitizeString(input: string, maxLength = 100): string {
   const sanitized = input
     .replace(/<[^>]*>/g, '') // Remove HTML tags
     .replace(/[<>&]/g, (char) => {
-      // Escape only truly dangerous characters for XSS prevention
       const escapeMap: { [key: string]: string } = {
         '<': '&lt;',
         '>': '&gt;',
@@ -34,164 +49,161 @@ export function sanitizeString(input: string, maxLength = 100): string {
   return sanitized;
 }
 
+// --- Zod Schemas ---
+
+export const PlayerSchema = z.object({
+  id: z.string().default(() => `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`),
+  name: z.string().min(1, "Player name cannot be empty").transform(val => sanitizeString(val, MAX_PLAYER_NAME_LENGTH)),
+  gender: z.enum(['M', 'F', 'Other']).default('Other'),
+  skillRating: z.number().min(1).max(10).catch(5), // Default to 5 if invalid
+  execSkillRating: z.number().min(1).max(10).nullable().default(null),
+  teammateRequests: z.array(z.string().transform(val => sanitizeString(val, MAX_PLAYER_NAME_LENGTH)))
+    .default([])
+    .transform(arr => arr.slice(0, MAX_TEAMMATE_REQUESTS)),
+  avoidRequests: z.array(z.string().transform(val => sanitizeString(val, MAX_PLAYER_NAME_LENGTH)))
+    .default([])
+    .transform(arr => arr.slice(0, MAX_AVOID_REQUESTS)),
+  teamId: z.string().optional(),
+  groupId: z.string().optional(),
+  email: z.string().email().optional().or(z.literal('')).optional(),
+  isHandler: z.boolean().optional(),
+  unfulfilledRequests: z.array(z.object({
+    playerId: z.string().optional(),
+    name: z.string(),
+    reason: z.enum(['non-reciprocal', 'group-full'])
+  })).optional()
+});
+
+export const TeamSchema = z.object({
+  id: z.string(),
+  name: z.string().transform(val => sanitizeString(val, MAX_TEAM_NAME_LENGTH)),
+  players: z.array(PlayerSchema),
+  averageSkill: z.number().default(0),
+  genderBreakdown: z.object({
+    M: z.number().default(0),
+    F: z.number().default(0),
+    Other: z.number().default(0)
+  }),
+  handlerCount: z.number().optional(),
+  isNameEditable: z.boolean().optional()
+});
+
+export const LeagueConfigSchema = z.object({
+  id: z.string().default('default'),
+  name: z.string().default('Default League').transform(val => sanitizeString(val, MAX_LEAGUE_NAME_LENGTH)),
+  maxTeamSize: z.number().min(MIN_TEAM_SIZE).max(MAX_TEAM_SIZE).default(DEFAULT_MAX_TEAM_SIZE),
+  minFemales: z.number().min(MIN_GENDER_COUNT).max(MAX_GENDER_COUNT).default(DEFAULT_MIN_FEMALES),
+  minMales: z.number().min(MIN_GENDER_COUNT).max(MAX_GENDER_COUNT).default(DEFAULT_MIN_MALES),
+  targetTeams: z.number().min(MIN_TARGET_TEAMS).max(MAX_TARGET_TEAMS).optional(),
+  allowMixedGender: z.boolean().default(true),
+});
+
+// AppState validation is complex due to nested structures, 
+// but we can define parts of it.
+export const AppStateSchema = z.object({
+  players: z.array(PlayerSchema),
+  teams: z.array(TeamSchema),
+  unassignedPlayers: z.array(PlayerSchema),
+  config: LeagueConfigSchema,
+}).passthrough();
+
+export const TeamsDataSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string(),
+  rosterId: z.string().optional(),
+  name: z.string().transform(val => sanitizeString(val, MAX_LEAGUE_NAME_LENGTH)),
+  description: z.string().optional().transform(val => val ? sanitizeString(val, MAX_TEAM_DESCRIPTION_LENGTH) : undefined),
+  teams: z.array(TeamSchema),
+  unassignedPlayers: z.array(PlayerSchema),
+  config: LeagueConfigSchema,
+  generationMethod: z.enum(['balanced', 'random', 'manual']).optional(),
+  createdAt: z.instanceof(Date).optional(),
+  updatedAt: z.instanceof(Date).optional(),
+  isAutoSaved: z.boolean().optional(),
+});
+
+
+// --- Exported Validation Functions (Wrappers) ---
+
 /**
  * Validates and sanitizes a player name
- *
- * @param name The player name to validate
- * @returns Sanitized player name
  */
 export function validatePlayerName(name: string): string {
-  const sanitized = sanitizeString(name, 50);
-
-  if (sanitized.length < 1) {
-    throw new Error('Player name cannot be empty');
+  try {
+    return PlayerSchema.shape.name.parse(name);
+  } catch (e) {
+    if (e instanceof z.ZodError) throw new Error(e.errors[0].message);
+    throw e;
   }
-
-  return sanitized;
 }
 
 /**
  * Validates a skill rating value
- *
- * @param rating The skill rating to validate
- * @returns Valid skill rating between 1 and 10
  */
 export function validateSkillRating(rating: number): number {
-  const parsed = Number(rating);
-
-  if (isNaN(parsed)) {
-    return 5; // Default to middle value
-  }
-
-  // Clamp between 1 and 10
-  return Math.max(1, Math.min(10, Math.round(parsed)));
+  return PlayerSchema.shape.skillRating.parse(rating);
 }
 
 /**
- * Validates teammate/avoid requests array
- *
- * @param requests Array of player names
- * @returns Sanitized array of requests
+ * Validates request arrays
  */
 export function validateRequests(requests: string[]): string[] {
-  if (!Array.isArray(requests)) {
-    return [];
-  }
-
-  return requests
-    .filter(req => typeof req === 'string' && req.trim().length > 0)
-    .map(req => sanitizeString(req, 50))
-    .slice(0, 10); // Limit to 10 requests
+  return PlayerSchema.shape.teammateRequests.parse(requests);
 }
 
 /**
  * Validates a complete Player object
- *
- * @param player The player to validate
- * @returns Validated player object
  */
 export function validatePlayer(player: any): Player | null {
-  try {
-    if (!player || typeof player !== 'object') {
-      return null;
-    }
-
-    return {
-      id: player.id || `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: validatePlayerName(player.name),
-      gender: ['M', 'F', 'Other'].includes(player.gender) ? player.gender : 'Other',
-      skillRating: validateSkillRating(player.skillRating),
-      execSkillRating: player.execSkillRating !== undefined && player.execSkillRating !== null
-        ? validateSkillRating(player.execSkillRating)
-        : null,
-      teammateRequests: validateRequests(player.teammateRequests || []),
-      avoidRequests: validateRequests(player.avoidRequests || []),
-      teamId: player.teamId || undefined,
-      groupId: player.groupId || undefined,
-      email: player.email || undefined,
-      isHandler: typeof player.isHandler === 'boolean' ? player.isHandler : undefined,
-    };
-  } catch (error) {
-    console.error('Player validation failed:', error);
-    return null;
+  const result = PlayerSchema.safeParse(player);
+  if (result.success) {
+    return result.data as Player;
   }
+  console.error('Player validation failed:', result.error);
+  return null;
 }
 
 /**
  * Validates league configuration
- *
- * @param config The configuration to validate
- * @returns Validated configuration
  */
 export function validateLeagueConfig(config: any): LeagueConfig {
-  const defaults: LeagueConfig = {
-    id: 'default',
-    name: 'Default League',
-    maxTeamSize: 12,
-    minFemales: 0,
-    minMales: 0,
-    allowMixedGender: true,
-  };
-
-  if (!config || typeof config !== 'object') {
-    return defaults;
+  const result = LeagueConfigSchema.safeParse(config);
+  if (result.success) {
+    return result.data as LeagueConfig;
   }
-
-  return {
-    id: config.id || defaults.id,
-    name: sanitizeString(config.name || defaults.name, 50),
-    maxTeamSize: Math.max(2, Math.min(30, Number(config.maxTeamSize) || defaults.maxTeamSize)),
-    minFemales: Math.max(0, Math.min(15, Number(config.minFemales) || defaults.minFemales)),
-    minMales: Math.max(0, Math.min(15, Number(config.minMales) || defaults.minMales)),
-    targetTeams: config.targetTeams ? Math.max(2, Math.min(50, Number(config.targetTeams))) : undefined,
-    allowMixedGender: Boolean(config.allowMixedGender),
-  };
+  console.warn('Invalid league config, using defaults:', result.error);
+  return LeagueConfigSchema.parse({}); // Return clean defaults
 }
 
 /**
  * Validates the complete app state structure
- *
- * @param state The state to validate
- * @returns Whether the state is valid
  */
 export function validateAppState(state: any): state is AppState {
-  if (!state || typeof state !== 'object') {
-    return false;
+  return AppStateSchema.safeParse(state).success;
+}
+
+/**
+ * Validates team name
+ */
+export function validateTeamName(name: string): string {
+  return TeamSchema.shape.name.parse(name);
+}
+
+/**
+ * Validates teams data structure
+ */
+export function validateTeamsData(data: any): TeamsData {
+  const result = TeamsDataSchema.safeParse(data);
+  if (result.success) {
+    // Asserting types because Zod transforms/defaults make exact type matching tricky
+    return result.data as unknown as TeamsData;
   }
-
-  const requiredKeys = ['players', 'teams', 'unassignedPlayers', 'config'];
-
-  for (const key of requiredKeys) {
-    if (!(key in state)) {
-      return false;
-    }
-  }
-
-  // Validate arrays
-  if (!Array.isArray(state.players) ||
-    !Array.isArray(state.teams) ||
-    !Array.isArray(state.unassignedPlayers)) {
-    return false;
-  }
-
-  // Validate config
-  if (!state.config || typeof state.config !== 'object') {
-    return false;
-  }
-
-  // Validate execRatingHistory (allow migration from old format)
-  if (state.execRatingHistory && typeof state.execRatingHistory !== 'object') {
-    return false;
-  }
-
-  return true;
+  throw new Error(`Invalid teams data: ${result.error.message}`);
 }
 
 /**
  * Sanitizes and validates CSV data
- *
- * @param data Raw CSV data
- * @returns Sanitized CSV data
+ * Keeps original simple string replacement as Zod isn't great for streaming/large text blob sanitization logic
  */
 export function sanitizeCSVData(data: string): string {
   if (typeof data !== 'string') {
@@ -203,15 +215,5 @@ export function sanitizeCSVData(data: string): string {
     .replace(/=FORMULA/gi, '') // Prevent formula injection
     .replace(/=cmd/gi, '')
     .replace(/=HYPERLINK/gi, '')
-    .slice(0, 1024 * 1024); // Limit to 1MB
-}
-
-/**
- * Validates team name
- *
- * @param name Team name to validate
- * @returns Sanitized team name
- */
-export function validateTeamName(name: string): string {
-  return sanitizeString(name, 30);
+    .slice(0, MAX_CSV_SIZE_BYTES);
 }

@@ -10,6 +10,9 @@ import { validateAppState, validatePlayer, validateTeamName } from '@/utils/vali
 import { dataStorageService } from '@/services/dataStorageService';
 import { WorkspaceService } from '@/services/workspaceService';
 import { SavedWorkspace } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+
 // Removed legacy imports
 // Removed rosterService imports
 import { CSVUploader } from '@/components/CSVUploader';
@@ -59,13 +62,25 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
 const normalizeName = (name: string): string => name.trim().toLowerCase();
 
 function App() {
-  // Auth state
-  const [user, setUser] = useState<User | null>(null);
-  // const [isLoadingAuth, setIsLoadingAuth] = useState(true); // Unused
-  // const [isLoadingAuth, setIsLoadingAuth] = useState(true); // Unused
+  // Auth state from Context
+  const { user, signOut } = useAuth();
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
+
+  // Workspace state from Context
+  const {
+    currentWorkspaceId,
+    workspaceName,
+    workspaceDescription,
+    savedWorkspaces,
+    isSaving: isSavingWorkspace,
+    isLoading: isFetchingWorkspaces,
+    saveWorkspace,
+    loadWorkspace,
+    deleteWorkspace,
+    setCurrentWorkspaceInfo
+  } = useWorkspace();
+
   const [isFullScreenMode, setIsFullScreenMode] = useState(false);
-  const [teamsView, setTeamsView] = useState<'landing' | 'exports'>('landing'); // State for switching between landing and exports views
 
   // Check if user has seen the tutorial before
   const [showTutorial, setShowTutorial] = useState(() => {
@@ -87,16 +102,9 @@ function App() {
 
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Workspace State
+  // Workspace Dialog State (UI only)
   const [isSaveWorkspaceDialogOpen, setIsSaveWorkspaceDialogOpen] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState('');
-  const [workspaceDescription, setWorkspaceDescription] = useState('');
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
-  const [isSavingWorkspace, setIsSavingWorkspace] = useState(false);
-
   const [isLoadWorkspaceDialogOpen, setIsLoadWorkspaceDialogOpen] = useState(false);
-  const [savedWorkspaces, setSavedWorkspaces] = useState<SavedWorkspace[]>([]);
-  const [isFetchingWorkspaces, setIsFetchingWorkspaces] = useState(false);
   const [loadingWorkspaceId, setLoadingWorkspaceId] = useState<string | null>(null);
   const [workspaceSearchTerm, setWorkspaceSearchTerm] = useState('');
 
@@ -132,7 +140,14 @@ function App() {
         // Actually, handleSaveWorkspace sets 'isSavingWorkspace' which might show a big spinner. We want this to be subtle.
         // So let's call the service directly here.
 
-        await WorkspaceService.saveWorkspace(payload, currentWorkspaceId);
+        await saveWorkspace({
+          players: appState.players,
+          playerGroups: appState.playerGroups,
+          config: appState.config,
+          teams: appState.teams,
+          unassignedPlayers: appState.unassignedPlayers,
+          stats: appState.stats,
+        });
         setSaveStatus('saved');
 
         // Reset back to idle after a moment, or keep as 'saved' until next change?
@@ -149,41 +164,7 @@ function App() {
   }, [appState, currentWorkspaceId, user, workspaceName, workspaceDescription]);
 
 
-  useEffect(() => {
-    if (!user) {
-      setCurrentWorkspaceId(null);
-      setWorkspaceName('');
-      setWorkspaceDescription('');
-      setSavedWorkspaces([]);
-      setIsLoadWorkspaceDialogOpen(false);
-      setWorkspaceSearchTerm('');
-      setLoadingWorkspaceId(null);
-    }
-  }, [user]);
-
-  const fetchUserWorkspaces = useCallback(async () => {
-    if (!user) {
-      setSavedWorkspaces([]);
-      return;
-    }
-
-    setIsFetchingWorkspaces(true);
-    try {
-      const workspaces = await WorkspaceService.getUserWorkspaces(user.uid);
-      setSavedWorkspaces(workspaces);
-    } catch (error) {
-      console.error('Failed to load saved workspaces:', error);
-      toast.error('Failed to load saved projects');
-    } finally {
-      setIsFetchingWorkspaces(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      fetchUserWorkspaces();
-    }
-  }, [user, fetchUserWorkspaces]);
+  // Removed local auth effects and fetchUserWorkspaces effects as they are handled in contexts
 
 
 
@@ -194,21 +175,18 @@ function App() {
 
   // Auth handlers
   const handleSignOut = useCallback(async () => {
-    try {
-      await signOut(auth);
-      toast.success('Signed out - data will save locally');
-    } catch (error) {
-      console.error('Failed to sign out:', error);
-      toast.error('Failed to sign out');
-    }
-  }, []);
+    await signOut();
+  }, [signOut]);
 
   // Set up auth listener and load data
+  // Set up auth listener and load data
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      dataStorageService.setUser(firebaseUser);
-      // setIsLoadingAuth(false);
+    // NOTE: We don't need onAuthStateChanged here anymore, but we do need to load DATA into AppState when user changes (or on mount).
+    // DataStorageService handles loading from Firestore/Local.
+    // We should trigger this when user *value* changes from context.
+
+    const loadData = async () => {
+      dataStorageService.setUser(user);
 
       // Load data when auth state changes
       try {
@@ -268,20 +246,16 @@ function App() {
             toast.info('Loaded sample roster to get you started!');
           }
         }
-
-        if (firebaseUser) {
-          toast.success('Signed in - data will sync to cloud');
-        }
       } catch (error) {
         console.error('Failed to load data:', error);
         toast.error('Failed to load saved data');
       } finally {
         setDataLoaded(true);
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
+    loadData();
+  }, [user]);
 
   // Save state whenever it changes (after initial load)
   useEffect(() => {
@@ -307,79 +281,40 @@ function App() {
 
   // --- Workspace Handlers ---
 
+  // --- Workspace Handlers (Delegated to Context) ---
+
   const handleOpenSaveWorkspaceDialog = useCallback(() => {
     if (!user) {
       toast.error('Please sign in to save projects');
       return;
     }
-
-    setWorkspaceName(prev => {
-      if (prev.trim()) return prev;
-      return 'Project ' + new Date().toLocaleDateString();
-    });
+    setCurrentWorkspaceInfo(undefined, workspaceName || ('Project ' + new Date().toLocaleDateString()), workspaceDescription);
     setIsSaveWorkspaceDialogOpen(true);
-  }, [user]);
+  }, [user, workspaceName, workspaceDescription, setCurrentWorkspaceInfo]);
 
   const handleOpenLoadWorkspaceDialog = useCallback(() => {
     if (!user) {
       toast.error('Please sign in to load projects');
       return;
     }
-    fetchUserWorkspaces();
+    // Saved workspaces are auto-loaded by context
     setIsLoadWorkspaceDialogOpen(true);
-  }, [user, fetchUserWorkspaces]);
+  }, [user]);
 
   const handleSaveWorkspace = useCallback(async () => {
-    if (!user) return;
-
-    const trimmedName = workspaceName.trim();
-    if (!trimmedName) {
-      toast.error('Please enter a project name');
-      return;
-    }
-
-    setIsSavingWorkspace(true);
-
     try {
-      const payload: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'> = {
-        userId: user.uid,
-        name: trimmedName,
-        description: workspaceDescription.trim(),
-        players: appState.players,
-        playerGroups: appState.playerGroups,
-        config: appState.config,
-        teams: appState.teams,
-        unassignedPlayers: appState.unassignedPlayers,
-        stats: appState.stats,
-        version: 1,
-        // tags: [] 
-      };
-
-      const id = await WorkspaceService.saveWorkspace(payload, currentWorkspaceId || undefined);
-      setCurrentWorkspaceId(id);
-
+      await saveWorkspace(appState);
       toast.success('Project saved successfully');
       setIsSaveWorkspaceDialogOpen(false);
-      fetchUserWorkspaces();
-    } catch (error: any) {
-      console.error('Failed to save project:', error);
-      toast.error('Failed to save project');
-    } finally {
-      setIsSavingWorkspace(false);
+    } catch (e) {
+      // Toast handled in context
     }
-  }, [user, workspaceName, workspaceDescription, appState, currentWorkspaceId, fetchUserWorkspaces]);
+  }, [saveWorkspace, appState]);
 
   const handleLoadWorkspace = useCallback(async (id: string) => {
-    if (!user) return;
-
     setLoadingWorkspaceId(id);
-    try {
-      const workspace = await WorkspaceService.getWorkspace(id);
-      if (!workspace) {
-        toast.error('Project not found');
-        return;
-      }
-
+    const workspace = await loadWorkspace(id);
+    if (workspace) {
       setAppState(prev => ({
         ...prev,
         players: workspace.players || [],
@@ -388,43 +323,19 @@ function App() {
         teams: workspace.teams || [],
         unassignedPlayers: workspace.unassignedPlayers || [],
         stats: workspace.stats,
-        // We merge history? Or just keep what we have? 
-        // For now, let's assume history in current session is valuable, but maybe we should load history from workspace if we decide to save it there?
-        // The SavedWorkspace type doesn't explicitly store history in my definition above efficiently, but simple AppState usually has execHistory.
-        // Actually, my definition of SavedWorkspace missed 'execRatingHistory'.
-        // Let's just keep current history for now, or if I add it to `SavedWorkspace` later I can load it.
       }));
-
-      setCurrentWorkspaceId(workspace.id);
-      setWorkspaceName(workspace.name);
-      setWorkspaceDescription(workspace.description || '');
 
       toast.success(`Loaded project "${workspace.name}"`);
       setIsLoadWorkspaceDialogOpen(false);
-    } catch (error) {
-      console.error('Failed to load project:', error);
-      toast.error('Failed to load project');
-    } finally {
-      setLoadingWorkspaceId(null);
     }
-  }, [user]);
+    setLoadingWorkspaceId(null);
+  }, [loadWorkspace]);
 
-  const handleDeleteWorkspace = useCallback(async (id: string, e: React.MouseEvent) => {
+  const handleDeleteWorkspaceAction = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this project?')) return;
-
-    try {
-      await WorkspaceService.deleteWorkspace(id);
-      toast.success('Project deleted');
-      if (currentWorkspaceId === id) {
-        setCurrentWorkspaceId(null);
-        setWorkspaceName('');
-      }
-      fetchUserWorkspaces();
-    } catch (error) {
-      toast.error('Failed to delete project');
-    }
-  }, [currentWorkspaceId, fetchUserWorkspaces]);
+    await deleteWorkspace(id);
+  }, [deleteWorkspace]);
 
 
 
@@ -509,9 +420,7 @@ function App() {
       }
     }
 
-    setCurrentWorkspaceId(null);
-    setWorkspaceName('');
-    setWorkspaceDescription('');
+    setCurrentWorkspaceInfo(null, '', '');
   }, []);
 
 
@@ -1031,7 +940,6 @@ function App() {
         playerGroups={appState.playerGroups}
         onPlayerMove={handlePlayerMove}
         onTeamNameChange={handleTeamNameChange}
-        onTeamNameChange={handleTeamNameChange}
         onLoadWorkspace={handleLoadWorkspace}
         currentWorkspaceId={currentWorkspaceId}
       />
@@ -1396,7 +1304,7 @@ function App() {
               <Input
                 id="ws-name"
                 value={workspaceName}
-                onChange={(e) => setWorkspaceName(e.target.value)}
+                onChange={(e) => setCurrentWorkspaceInfo(currentWorkspaceId, e.target.value, workspaceDescription)}
                 placeholder="e.g., Summer Tournament 2024"
                 className="rounded-xl border-2 border-slate-200 focus-visible:ring-primary"
               />
@@ -1406,7 +1314,7 @@ function App() {
               <Input
                 id="ws-desc"
                 value={workspaceDescription}
-                onChange={(e) => setWorkspaceDescription(e.target.value)}
+                onChange={(e) => setCurrentWorkspaceInfo(currentWorkspaceId, workspaceName, e.target.value)}
                 placeholder="Notes about this session..."
                 className="rounded-xl border-2 border-slate-200 focus-visible:ring-primary"
               />
@@ -1484,7 +1392,8 @@ function App() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50"
-                        onClick={(e) => handleDeleteWorkspace(ws.id, e)}
+                        onClick={(e) => handleDeleteWorkspaceAction(ws.id, e)}
+
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

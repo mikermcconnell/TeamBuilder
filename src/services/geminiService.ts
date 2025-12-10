@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Player, Team, LeagueConfig } from '@/types';
 import { TeamSuggestion } from '@/types/ai';
+import { GEMINI_MODEL } from '@/config/constants';
 
 // Initialize the API client
 // Note: In a production app, this should be proxied through a backend to protect the key
@@ -17,7 +18,7 @@ export async function generateTeamSuggestions(
         throw new Error('Missing Gemini API Key');
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
     // Filter out players who are already on a team
     const assignedPlayerIds = new Set(teams.flatMap(t => t.players.map(p => p.id)));

@@ -13,6 +13,21 @@ export interface Player {
   unfulfilledRequests?: UnfulfilledRequest[];
 }
 
+export interface TeamsData {
+  id?: string;
+  userId: string;
+  rosterId?: string; // Link to the roster used
+  name: string;
+  description?: string;
+  teams: Team[];
+  unassignedPlayers: Player[];
+  config: LeagueConfig;
+  generationMethod?: 'balanced' | 'random' | 'manual';
+  createdAt?: string | Date; // Allow both for Firestore compatibility
+  updatedAt?: string | Date;
+  isAutoSaved?: boolean;
+}
+
 export interface UnfulfilledRequest {
   playerId?: string;
   name: string;
