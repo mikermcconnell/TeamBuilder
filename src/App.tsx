@@ -101,6 +101,7 @@ function App() {
   });
 
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [teamsView, setTeamsView] = useState<'landing' | 'exports'>('landing'); // UI state for teams tab
 
   // Workspace Dialog State (UI only)
   const [isSaveWorkspaceDialogOpen, setIsSaveWorkspaceDialogOpen] = useState(false);
@@ -265,7 +266,7 @@ function App() {
           await dataStorageService.save(appState);
         } catch (error) {
           console.error('Failed to save data:', error);
-          setSyncStatus('error');
+          setSaveStatus('error');
         }
       };
 
@@ -288,9 +289,9 @@ function App() {
       toast.error('Please sign in to save projects');
       return;
     }
-    setCurrentWorkspaceInfo(undefined, workspaceName || ('Project ' + new Date().toLocaleDateString()), workspaceDescription);
+    setCurrentWorkspaceInfo(currentWorkspaceId || null, workspaceName || ('Project ' + new Date().toLocaleDateString()), workspaceDescription);
     setIsSaveWorkspaceDialogOpen(true);
-  }, [user, workspaceName, workspaceDescription, setCurrentWorkspaceInfo]);
+  }, [user, workspaceName, workspaceDescription, setCurrentWorkspaceInfo, currentWorkspaceId]);
 
   const handleOpenLoadWorkspaceDialog = useCallback(() => {
     if (!user) {
