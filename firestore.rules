@@ -12,12 +12,12 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Checks if the user is owner of the resource being requested
+    // Checks if the user is owner of the resource being requested (existing data)
     function isResourceOwner() {
       return isAuthenticated() && request.auth.uid == resource.data.userId;
     }
     
-    // Checks if the user is claiming ownership in the new data
+    // Checks if the user is claiming ownership in the new data (incoming data)
     function isClaimingOwnership() {
       return isAuthenticated() && request.auth.uid == request.resource.data.userId;
     }
@@ -29,35 +29,43 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
     
-    // Rosters - users can only access their own rosters
+    // Rosters
     match /rosters/{document} {
-      allow read, write: if isResourceOwner();
+      // Read: Owner of existing resource
+      allow get, list: if isResourceOwner();
+      // Update/Delete: Owner of existing resource
+      allow update, delete: if isResourceOwner();
+      // Create: Check incoming data ownership
       allow create: if isClaimingOwnership();
     }
     
-    // Roster versions - users can only access their own roster versions
+    // Roster versions
     match /rosterVersions/{document} {
-      allow read, write: if isResourceOwner();
-      allow create: if isClaimingOwnership(); // Often created via backend/triggers, but client might too
+      allow get, list: if isResourceOwner();
+      allow update, delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
     }
     
-    // Roster templates - public read, authenticated users can create their own
+    // Roster templates
     match /rosterTemplates/{document} {
       allow read: if true;
-      // Write/Create only by creator (or admin in future)
-      allow write: if isAuthenticated() && request.auth.uid == resource.data.createdBy;
+      // Update/Delete: Creator of existing
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.createdBy;
+      // Create: Creator in incoming data
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.createdBy;
     }
     
-    // Teams - users can only access their own saved teams
+    // Teams
     match /teams/{document} {
-      allow read, write: if isResourceOwner();
+      allow get, list: if isResourceOwner();
+      allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
 
-    // Workspaces - users can only access their own workspaces
+    // Workspaces
     match /workspaces/{document} {
-      allow read, write: if isResourceOwner();
+      allow get, list: if isResourceOwner();
+      allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
   }

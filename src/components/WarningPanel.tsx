@@ -15,17 +15,14 @@ import {
     ChevronDown,
     ChevronUp,
     ChevronLeft,
-    ChevronRight,
     SkipForward,
     Edit3,
     CheckIcon,
-    ChevronsUpDown
 } from 'lucide-react';
 import {
     Command,
     CommandEmpty,
     CommandGroup,
-    CommandInput,
     CommandItem,
     CommandList,
 } from "@/components/ui/command"
@@ -41,6 +38,8 @@ interface WarningPanelProps {
     onNavigateToRoster?: () => void;
     onConfirmLoad: () => void;
     knownPlayerNames?: string[];
+    knownPlayers?: import('@/types').Player[];
+    onResolveWarning?: (warning: StructuredWarning) => void;
 }
 
 interface WarningGroup {
@@ -116,8 +115,9 @@ function WarningWizardCard({
     onSkipAll,
     onConfirmAll,
     duplicateCount,
-    knownPlayerNames
-}: WarningWizardCardProps) {
+    knownPlayerNames,
+    knownPlayers = []
+}: WarningWizardCardProps & { knownPlayers?: import('@/types').Player[] }) {
     const [editMode, setEditMode] = useState(false);
     const [correctedValue, setCorrectedValue] = useState(warning.matchedName || '');
     const [open, setOpen] = useState(false);
@@ -317,6 +317,41 @@ function WarningWizardCard({
                             </div>
                         )}
 
+                        {/* Player Preview Card */}
+                        {(warning.matchedName || (editMode && getCorrectedValue())) && (() => {
+                            const nameToCheck = editMode ? getCorrectedValue() : warning.matchedName;
+                            const matchedPlayer = knownPlayers.find(p => p.name.toLowerCase() === nameToCheck?.toLowerCase());
+
+                            if (matchedPlayer) {
+                                return (
+                                    <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                            Match Preview
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div>
+                                                <div className="text-sm font-bold text-slate-800">{matchedPlayer.name}</div>
+                                                <div className="text-xs text-slate-500">{matchedPlayer.email || 'No email'}</div>
+                                            </div>
+                                            <div className="h-8 w-px bg-slate-100 mx-2" />
+                                            <div className="flex gap-3">
+                                                <div className="text-center">
+                                                    <div className="text-[10px] text-slate-400 uppercase">Gender</div>
+                                                    <div className="font-medium text-sm">{matchedPlayer.gender}</div>
+                                                </div>
+                                                <div className="text-center">
+                                                    <div className="text-[10px] text-slate-400 uppercase">Skill</div>
+                                                    <div className="font-medium text-sm">{matchedPlayer.skillRating}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+
                         {warning.matchReason && !editMode && (
                             <div className="text-xs text-slate-500 mt-1">
                                 ({warning.matchReason})
@@ -461,7 +496,7 @@ function CompactWarningGroup({ group, warnings, onAcceptAll }: CompactWarningGro
     );
 }
 
-export function WarningPanel({ warnings, onNavigateToRoster, onConfirmLoad, knownPlayerNames = [] }: WarningPanelProps) {
+export function WarningPanel({ warnings, onNavigateToRoster, onConfirmLoad, knownPlayerNames = [], knownPlayers = [], onResolveWarning }: WarningPanelProps) {
     const [structuredWarnings, setStructuredWarnings] = useState<StructuredWarning[]>(() =>
         parseWarnings(warnings)
     );
@@ -527,14 +562,24 @@ export function WarningPanel({ warnings, onNavigateToRoster, onConfirmLoad, know
         if (wizardWarnings.length <= 1) {
             setWizardComplete(true);
         }
+
+        // Propagate resolution to parent
+        const warning = structuredWarnings.find(w => w.id === id);
+        if (warning && onResolveWarning) {
+            onResolveWarning({
+                ...warning,
+                status: 'accepted',
+                matchedName: correctedValue || warning.matchedName
+            });
+        }
     };
 
     const handleConfirmAll = (id: string, correctedValue?: string) => {
         const warning = structuredWarnings.find(w => w.id === id);
         if (!warning) return;
 
-        setStructuredWarnings(prev =>
-            prev.map(w =>
+        setStructuredWarnings(prev => {
+            const next = prev.map(w =>
                 (w.id === id || (w.status === 'pending' && w.requestedName === warning.requestedName))
                     ? {
                         ...w,
@@ -542,8 +587,24 @@ export function WarningPanel({ warnings, onNavigateToRoster, onConfirmLoad, know
                         matchedName: correctedValue || w.matchedName
                     }
                     : w
-            )
-        );
+            );
+            return next;
+        });
+
+        // Propagate resolution for ALL matching warnings
+        if (onResolveWarning) {
+            const dependentWarnings = structuredWarnings.filter(w =>
+                (w.id === id || (w.status === 'pending' && w.requestedName === warning.requestedName))
+            );
+
+            dependentWarnings.forEach(w => {
+                onResolveWarning({
+                    ...w,
+                    status: 'accepted',
+                    matchedName: correctedValue || w.matchedName
+                });
+            });
+        }
 
         // Check if we exhausted the list
         const resolvedCount = 1 + wizardWarnings.filter(w => w.id !== id && w.requestedName === warning.requestedName).length;
@@ -640,6 +701,7 @@ export function WarningPanel({ warnings, onNavigateToRoster, onConfirmLoad, know
                             onConfirmAll={handleConfirmAll}
                             duplicateCount={duplicateCount}
                             knownPlayerNames={knownPlayerNames}
+                            knownPlayers={knownPlayers}
                         />
                     </div>
                 )}
