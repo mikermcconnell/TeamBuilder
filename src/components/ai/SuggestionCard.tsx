@@ -9,9 +9,17 @@ interface SuggestionCardProps {
     suggestion: TeamSuggestion;
     onAccept: (suggestion: TeamSuggestion) => void;
     onDismiss: (id: string) => void;
+    resolvePlayerName: (id: string) => string;
+    resolveTeamName: (id: string) => string;
 }
 
-export function SuggestionCard({ suggestion, onAccept, onDismiss }: SuggestionCardProps) {
+export function SuggestionCard({
+    suggestion,
+    onAccept,
+    onDismiss,
+    resolvePlayerName,
+    resolveTeamName
+}: SuggestionCardProps) {
     return (
         <Card className="mb-3 border-l-4 border-l-purple-500 shadow-sm">
             <CardContent className="pt-4 pb-2">
@@ -31,10 +39,10 @@ export function SuggestionCard({ suggestion, onAccept, onDismiss }: SuggestionCa
                 <div className="space-y-2">
                     {suggestion.actions.map((action, idx) => (
                         <div key={idx} className="flex items-center gap-2 text-xs bg-slate-50 p-2 rounded border border-slate-100">
-                            <span className="font-medium text-slate-700">Player {action.playerId}</span>
+                            <span className="font-medium text-slate-700">{resolvePlayerName(action.playerId)}</span>
                             <ArrowRight className="w-3 h-3 text-slate-400" />
                             <span className="text-slate-600">
-                                {action.targetTeamId === 'unassigned' ? 'Unassigned' : 'Target Team'}
+                                {action.targetTeamId === 'unassigned' ? 'Unassigned' : resolveTeamName(action.targetTeamId)}
                             </span>
                         </div>
                     ))}

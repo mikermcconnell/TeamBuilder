@@ -19,6 +19,10 @@ export async function generateTeamSuggestions(
 
     const model = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
 
+    // Filter out players who are already on a team
+    const assignedPlayerIds = new Set(teams.flatMap(t => t.players.map(p => p.id)));
+    const unassignedPlayers = players.filter(p => !assignedPlayerIds.has(p.id));
+
     // Prepare context data
     const context = {
         request: prompt,
@@ -44,8 +48,18 @@ export async function generateTeamSuggestions(
                 isHandler: p.isHandler
             }))
         })),
-        unassignedCount: players.length - teams.reduce((sum, t) => sum + t.players.length, 0)
+        unassignedPool: unassignedPlayers.map(p => ({
+            id: p.id,
+            name: p.name,
+            skill: p.execSkillRating ?? p.skillRating,
+            gender: p.gender,
+            isHandler: p.isHandler
+        })),
+        unassignedCount: unassignedPlayers.length
     };
+
+    // DEBUG: Log context to ensure IDs are correct
+    console.log("Gemini Context:", JSON.stringify(context, null, 2));
 
     const systemPrompt = `
     You are an AI Team Builder Assistant.
@@ -54,22 +68,29 @@ export async function generateTeamSuggestions(
     
     Current request: "${prompt}"
 
-    Please provide exactly THREE (3) distinct options/suggestions to address this request.
-    Rank them from most recommended (1st) to least recommended (3rd).
-    Each option should be a separate item in the returned array.
+    Please provide exactly THREE (3) distinct options/suggestions.
+    Rank them from 1st (best) to 3rd.
 
-    Return a JSON array of suggestions. Each suggestion must have:
-    - id: unique string
-    - type: "move" or "swap"
-    - title: specific title (e.g. "Option 1: Swap Alice & Bob")
-    - reasoning: brief explanation of WHY this option works (e.g. "Swapping Alice (Skill 9) with Bob (Skill 5) reduces Team 1's average to match the league mean, while maintaining gender balance.")
-    - actions: array of objects with { playerId, sourceTeamId, targetTeamId }
+    RETURN ONLY A JSON ARRAY based on this schema:
+    [
+      {
+        "id": "must-be-unique-uuid",
+        "type": "move" | "swap",
+        "title": "Short descriptive title",
+        "reasoning": "Explanation of why this helps",
+        "actions": [
+           { "playerId": "EXACT_UUID_FROM_CONTEXT", "sourceTeamId": "EXACT_UUID", "targetTeamId": "EXACT_UUID" }
+        ]
+      }
+    ]
 
-    For a SWAP, return TWO actions (one for each player).
-    For a MOVE, return ONE action.
-    Use 'unassigned' as teamId if moving to/from unassigned pool.
+    CRITICAL RULES:
+    1. USE ONLY REAL IDs from the provided context (teams or unassignedPool).
+    2. DO NOT hallucinate IDs like "player-1" or "Team A". 
+    3. If a valid ID is "1234-5678", you MUST use "1234-5678".
+    4. "unassigned" is a valid teamId for the pool.
     
-    IMPORTANT: Return ONLY the JSON array. Do not include markdown formatting.
+    IMPORTANT: Return ONLY valid JSON. No markdown formatting.
   `;
 
     try {

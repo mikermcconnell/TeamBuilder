@@ -21,7 +21,6 @@ import {
     SheetTitle,
     SheetTrigger,
     SheetFooter,
-    SheetClose,
 } from '@/components/ui/sheet';
 import { Search, Filter, X, RotateCcw } from 'lucide-react';
 
@@ -103,249 +102,264 @@ export function RosterFilters({ filters, onFilterChange, skillGroups }: RosterFi
     }, [filters]);
 
     return (
-        <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="flex flex-col gap-4 w-full">
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <Input
                         placeholder="Search by name..."
                         value={filters.search}
                         onChange={(e) => handleSearchChange(e.target.value)}
-                        className="pl-9"
+                        className="pl-12 h-12 rounded-2xl border-2 border-slate-200 focus-visible:ring-0 focus-visible:border-primary/50 text-base shadow-sm"
                     />
                 </div>
 
-                <Select
-                    value={filters.gender}
-                    onValueChange={(value) => handleGenderChange(value as Gender | 'all')}
-                >
-                    <SelectTrigger className="w-[140px]">
-                        <SelectValue placeholder="Gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Genders</SelectItem>
-                        <SelectItem value="M">Male</SelectItem>
-                        <SelectItem value="F">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                </Select>
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <Select
+                        value={filters.gender}
+                        onValueChange={(value) => handleGenderChange(value as Gender | 'all')}
+                    >
+                        <SelectTrigger className="w-full sm:w-[140px] h-12 rounded-2xl border-2 border-slate-200 font-bold text-slate-600">
+                            <SelectValue placeholder="Gender" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-2 border-slate-100">
+                            <SelectItem value="all" className="font-bold text-slate-600">All Genders</SelectItem>
+                            <SelectItem value="M" className="font-bold text-blue-500">Male</SelectItem>
+                            <SelectItem value="F" className="font-bold text-pink-500">Female</SelectItem>
+                            <SelectItem value="Other" className="font-bold text-slate-500">Other</SelectItem>
+                        </SelectContent>
+                    </Select>
 
-                <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                    <SheetTrigger asChild>
-                        <Button variant="outline" className="gap-2 relative">
-                            <Filter className="h-4 w-4" />
-                            Filters
-                            {activeFilterCount > 0 && (
-                                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]">
-                                    {activeFilterCount}
-                                </Badge>
-                            )}
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent className="overflow-y-auto">
-                        <SheetHeader>
-                            <SheetTitle>Filter Roster</SheetTitle>
-                            <SheetDescription>
-                                Narrow down players by skill, attributes, and more.
-                            </SheetDescription>
-                        </SheetHeader>
+                    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="outline" className="h-12 rounded-2xl border-2 border-slate-200 px-4 gap-2 relative hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all font-bold text-slate-600">
+                                <Filter className="h-5 w-5" />
+                                <span className="hidden sm:inline">Filters</span>
+                                {activeFilterCount > 0 && (
+                                    <Badge variant="secondary" className="ml-1 h-6 w-6 p-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground border-2 border-white shadow-sm absolute -top-2 -right-2 pointer-events-none">
+                                        {activeFilterCount}
+                                    </Badge>
+                                )}
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent className="overflow-y-auto sm:max-w-md w-full">
+                            <SheetHeader className="mb-6">
+                                <SheetTitle className="text-2xl font-black text-slate-800">Filter Roster</SheetTitle>
+                                <SheetDescription className="text-base font-medium text-slate-400">
+                                    Fine-tune your player list with advanced filters.
+                                </SheetDescription>
+                            </SheetHeader>
 
-                        <div className="py-6 space-y-8">
-                            {/* Skill Range */}
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <Label>Skill Rating</Label>
-                                    <span className="text-sm text-muted-foreground">
-                                        {localFilters.minSkill} - {localFilters.maxSkill}
-                                    </span>
+                            <div className="py-2 space-y-8">
+                                {/* Skill Range */}
+                                <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-base font-extrabold text-slate-700">Skill Rating</Label>
+                                        <Badge variant="outline" className="text-base font-bold bg-white border-2 border-slate-200 px-3 py-1">
+                                            {localFilters.minSkill} - {localFilters.maxSkill}
+                                        </Badge>
+                                    </div>
+                                    <Slider
+                                        min={0}
+                                        max={10}
+                                        step={0.5}
+                                        value={[localFilters.minSkill, localFilters.maxSkill]}
+                                        onValueChange={([min, max]) => setLocalFilters({
+                                            ...localFilters,
+                                            minSkill: min ?? 0,
+                                            maxSkill: max ?? 10
+                                        })}
+                                        className="py-4 cursor-pointer"
+                                    />
                                 </div>
-                                <Slider
-                                    min={0}
-                                    max={10}
-                                    step={0.5}
-                                    value={[localFilters.minSkill, localFilters.maxSkill]}
-                                    onValueChange={([min, max]) => setLocalFilters({ ...localFilters, minSkill: min, maxSkill: max })}
-                                    className="py-4"
-                                />
-                            </div>
 
-                            {/* Exec Skill Range */}
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <Label>Exec Skill Rating</Label>
-                                    <span className="text-sm text-muted-foreground">
-                                        {localFilters.minExecSkill} - {localFilters.maxExecSkill}
-                                    </span>
+                                {/* Exec Skill Range */}
+                                <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-base font-extrabold text-slate-700">Exec Rating</Label>
+                                        <Badge variant="outline" className="text-base font-bold bg-white border-2 border-slate-200 px-3 py-1">
+                                            {localFilters.minExecSkill} - {localFilters.maxExecSkill}
+                                        </Badge>
+                                    </div>
+                                    <Slider
+                                        min={0}
+                                        max={10}
+                                        step={0.5}
+                                        value={[localFilters.minExecSkill, localFilters.maxExecSkill]}
+                                        onValueChange={([min, max]) => setLocalFilters({
+                                            ...localFilters,
+                                            minExecSkill: min ?? 0,
+                                            maxExecSkill: max ?? 10
+                                        })}
+                                        className="py-4 cursor-pointer"
+                                    />
                                 </div>
-                                <Slider
-                                    min={0}
-                                    max={10}
-                                    step={0.5}
-                                    value={[localFilters.minExecSkill, localFilters.maxExecSkill]}
-                                    onValueChange={([min, max]) => setLocalFilters({ ...localFilters, minExecSkill: min, maxExecSkill: max })}
-                                    className="py-4"
-                                />
-                            </div>
 
-                            {/* Skill Groups */}
-                            <div className="space-y-3">
-                                <Label>Skill Groups</Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {skillGroups.map((group) => (
-                                        <div key={group} className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id={`group-${group}`}
-                                                checked={localFilters.skillGroups.includes(group)}
-                                                onCheckedChange={(checked) => {
-                                                    if (checked) {
-                                                        setLocalFilters({
-                                                            ...localFilters,
-                                                            skillGroups: [...localFilters.skillGroups, group],
-                                                        });
-                                                    } else {
-                                                        setLocalFilters({
-                                                            ...localFilters,
-                                                            skillGroups: localFilters.skillGroups.filter((g) => g !== group),
-                                                        });
-                                                    }
-                                                }}
-                                            />
-                                            <Label htmlFor={`group-${group}`} className="text-sm font-normal cursor-pointer">
-                                                {group}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Attributes */}
-                            <div className="space-y-4">
-                                <Label>Attributes</Label>
-
+                                {/* Skill Groups */}
                                 <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <Label htmlFor="has-email" className="font-normal">Has Email Address</Label>
-                                        <Select
-                                            value={localFilters.hasEmail === null ? 'any' : localFilters.hasEmail ? 'yes' : 'no'}
-                                            onValueChange={(val) => setLocalFilters({
-                                                ...localFilters,
-                                                hasEmail: val === 'any' ? null : val === 'yes'
-                                            })}
-                                        >
-                                            <SelectTrigger className="w-[100px] h-8">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="any">Any</SelectItem>
-                                                <SelectItem value="yes">Yes</SelectItem>
-                                                <SelectItem value="no">No</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                    <Label className="text-base font-extrabold text-slate-700">Skill Groups</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {skillGroups.map((group) => {
+                                            const isSelected = localFilters.skillGroups.includes(group);
+                                            return (
+                                                <div
+                                                    key={group}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setLocalFilters({
+                                                                ...localFilters,
+                                                                skillGroups: localFilters.skillGroups.filter((g) => g !== group),
+                                                            });
+                                                        } else {
+                                                            setLocalFilters({
+                                                                ...localFilters,
+                                                                skillGroups: [...localFilters.skillGroups, group],
+                                                            });
+                                                        }
+                                                    }}
+                                                    className={`
+                                                        cursor-pointer px-4 py-2 rounded-xl text-sm font-bold border-b-4 active:border-b-0 active:translate-y-1 transition-all
+                                                        ${isSelected
+                                                            ? 'bg-blue-500 text-white border-blue-700 shadow-sm'
+                                                            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                                        }
+                                                    `}
+                                                >
+                                                    {group}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
+                                </div>
 
-                                    <div className="flex items-center justify-between">
-                                        <Label htmlFor="has-requests" className="font-normal">Has Requests</Label>
-                                        <Select
-                                            value={localFilters.hasRequests === null ? 'any' : localFilters.hasRequests ? 'yes' : 'no'}
-                                            onValueChange={(val) => setLocalFilters({
-                                                ...localFilters,
-                                                hasRequests: val === 'any' ? null : val === 'yes'
-                                            })}
-                                        >
-                                            <SelectTrigger className="w-[100px] h-8">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="any">Any</SelectItem>
-                                                <SelectItem value="yes">Yes</SelectItem>
-                                                <SelectItem value="no">No</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                {/* Attributes */}
+                                <div className="space-y-4">
+                                    <Label className="text-base font-extrabold text-slate-700">Attributes</Label>
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200">
+                                            <Label htmlFor="has-email" className="font-bold text-slate-600">Has Email</Label>
+                                            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                                                {['any', 'yes', 'no'].map((opt) => {
+                                                    const val = opt === 'any' ? null : opt === 'yes';
+                                                    const isActive = localFilters.hasEmail === val;
+                                                    return (
+                                                        <button
+                                                            key={opt}
+                                                            onClick={() => setLocalFilters({ ...localFilters, hasEmail: val })}
+                                                            className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${isActive ? 'bg-white shadow-sm text-primary' : 'text-slate-400 hover:text-slate-600'}`}
+                                                        >
+                                                            {opt.toUpperCase()}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200">
+                                            <Label htmlFor="has-requests" className="font-bold text-slate-600">Has Requests</Label>
+                                            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                                                {['any', 'yes', 'no'].map((opt) => {
+                                                    const val = opt === 'any' ? null : opt === 'yes';
+                                                    const isActive = localFilters.hasRequests === val;
+                                                    return (
+                                                        <button
+                                                            key={opt}
+                                                            onClick={() => setLocalFilters({ ...localFilters, hasRequests: val })}
+                                                            className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${isActive ? 'bg-white shadow-sm text-primary' : 'text-slate-400 hover:text-slate-600'}`}
+                                                        >
+                                                            {opt.toUpperCase()}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <SheetFooter className="flex-col sm:flex-row gap-2">
-                            <Button variant="outline" onClick={handleResetFilters} className="w-full sm:w-auto">
-                                <RotateCcw className="mr-2 h-4 w-4" />
-                                Reset
-                            </Button>
-                            <Button onClick={handleApplyFilters} className="w-full sm:w-auto">
-                                Apply Filters
-                            </Button>
-                        </SheetFooter>
-                    </SheetContent>
-                </Sheet>
+                            <SheetFooter className="flex-col sm:flex-row gap-3 mt-8 pb-8 sm:pb-0">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleResetFilters}
+                                    className="w-full sm:w-1/3 h-12 rounded-xl border-2 font-bold text-slate-500 hover:text-slate-700"
+                                >
+                                    <RotateCcw className="mr-2 h-4 w-4" />
+                                    Reset
+                                </Button>
+                                <Button
+                                    onClick={handleApplyFilters}
+                                    className="w-full sm:w-2/3 h-12 rounded-xl text-base font-black border-b-4 border-primary-shadow active:border-b-0 active:translate-y-1 transition-all"
+                                >
+                                    Apply Filters
+                                </Button>
+                            </SheetFooter>
+                        </SheetContent>
+                    </Sheet>
+                </div>
 
                 {activeFilterCount > 0 && (
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleResetFilters}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full px-3"
                     >
-                        <X className="mr-2 h-4 w-4" />
-                        Clear
+                        <X className="mr-1 h-4 w-4" />
+                        Clear All
                     </Button>
                 )}
             </div>
 
             {/* Active Filter Tags */}
             {activeFilterCount > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
                     {filters.gender !== 'all' && (
-                        <Badge variant="secondary" className="flex items-center gap-1">
+                        <Badge variant="secondary" className="pl-3 pr-1 py-1 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200">
                             Gender: {filters.gender}
-                            <X
-                                className="h-3 w-3 cursor-pointer ml-1"
-                                onClick={() => handleGenderChange('all')}
-                            />
+                            <div className="ml-2 h-5 w-5 rounded-full bg-white/50 flex items-center justify-center cursor-pointer hover:bg-white" onClick={() => handleGenderChange('all')}>
+                                <X className="h-3 w-3" />
+                            </div>
                         </Badge>
                     )}
                     {(filters.minSkill > 0 || filters.maxSkill < 10) && (
-                        <Badge variant="secondary" className="flex items-center gap-1">
+                        <Badge variant="secondary" className="pl-3 pr-1 py-1 rounded-full bg-orange-100 text-orange-700 hover:bg-orange-200">
                             Skill: {filters.minSkill}-{filters.maxSkill}
-                            <X
-                                className="h-3 w-3 cursor-pointer ml-1"
-                                onClick={() => onFilterChange({ ...filters, minSkill: 0, maxSkill: 10 })}
-                            />
+                            <div className="ml-2 h-5 w-5 rounded-full bg-white/50 flex items-center justify-center cursor-pointer hover:bg-white" onClick={() => onFilterChange({ ...filters, minSkill: 0, maxSkill: 10 })}>
+                                <X className="h-3 w-3" />
+                            </div>
                         </Badge>
                     )}
                     {(filters.minExecSkill > 0 || filters.maxExecSkill < 10) && (
-                        <Badge variant="secondary" className="flex items-center gap-1">
+                        <Badge variant="secondary" className="pl-3 pr-1 py-1 rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200">
                             Exec: {filters.minExecSkill}-{filters.maxExecSkill}
-                            <X
-                                className="h-3 w-3 cursor-pointer ml-1"
-                                onClick={() => onFilterChange({ ...filters, minExecSkill: 0, maxExecSkill: 10 })}
-                            />
+                            <div className="ml-2 h-5 w-5 rounded-full bg-white/50 flex items-center justify-center cursor-pointer hover:bg-white" onClick={() => onFilterChange({ ...filters, minExecSkill: 0, maxExecSkill: 10 })}>
+                                <X className="h-3 w-3" />
+                            </div>
                         </Badge>
                     )}
                     {filters.skillGroups.map(group => (
-                        <Badge key={group} variant="secondary" className="flex items-center gap-1">
+                        <Badge key={group} variant="secondary" className="pl-3 pr-1 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200">
                             Group: {group}
-                            <X
-                                className="h-3 w-3 cursor-pointer ml-1"
-                                onClick={() => onFilterChange({ ...filters, skillGroups: filters.skillGroups.filter(g => g !== group) })}
-                            />
+                            <div className="ml-2 h-5 w-5 rounded-full bg-white/50 flex items-center justify-center cursor-pointer hover:bg-white" onClick={() => onFilterChange({ ...filters, skillGroups: filters.skillGroups.filter(g => g !== group) })}>
+                                <X className="h-3 w-3" />
+                            </div>
                         </Badge>
                     ))}
                     {filters.hasEmail !== null && (
-                        <Badge variant="secondary" className="flex items-center gap-1">
+                        <Badge variant="secondary" className="pl-3 pr-1 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">
                             Email: {filters.hasEmail ? 'Yes' : 'No'}
-                            <X
-                                className="h-3 w-3 cursor-pointer ml-1"
-                                onClick={() => onFilterChange({ ...filters, hasEmail: null })}
-                            />
+                            <div className="ml-2 h-5 w-5 rounded-full bg-white/50 flex items-center justify-center cursor-pointer hover:bg-white" onClick={() => onFilterChange({ ...filters, hasEmail: null })}>
+                                <X className="h-3 w-3" />
+                            </div>
                         </Badge>
                     )}
                     {filters.hasRequests !== null && (
-                        <Badge variant="secondary" className="flex items-center gap-1">
+                        <Badge variant="secondary" className="pl-3 pr-1 py-1 rounded-full bg-pink-100 text-pink-700 hover:bg-pink-200">
                             Requests: {filters.hasRequests ? 'Yes' : 'No'}
-                            <X
-                                className="h-3 w-3 cursor-pointer ml-1"
-                                onClick={() => onFilterChange({ ...filters, hasRequests: null })}
-                            />
+                            <div className="ml-2 h-5 w-5 rounded-full bg-white/50 flex items-center justify-center cursor-pointer hover:bg-white" onClick={() => onFilterChange({ ...filters, hasRequests: null })}>
+                                <X className="h-3 w-3" />
+                            </div>
                         </Badge>
                     )}
                 </div>

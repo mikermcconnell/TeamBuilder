@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -13,7 +13,7 @@ import {
   defaultDropAnimationSideEffects,
   DropAnimation
 } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Player, Team, LeagueConfig, PlayerGroup } from '@/types';
 import { PlayerSidebar } from './PlayerSidebar';
 import { TeamBoard } from './TeamBoard';
@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
-import { SavedTeamsManager } from './SavedTeamsManager';
+import { WorkspaceManager } from './WorkspaceManager';
 import {
   Select,
   SelectContent,
@@ -35,6 +35,8 @@ import { AssistantPanel } from './ai/AssistantPanel';
 import { generateTeamSuggestions } from '@/services/geminiService';
 import { TeamSuggestion } from '@/types/ai';
 
+import { SuggestionReviewModal } from './ai/SuggestionReviewModal';
+
 interface FullScreenTeamBuilderProps {
   teams: Team[];
   unassignedPlayers: Player[];
@@ -43,9 +45,10 @@ interface FullScreenTeamBuilderProps {
   onTeamNameChange: (teamId: string, newName: string) => void;
   players: Player[];
   playerGroups: PlayerGroup[];
-  onExitFullScreen: () => void;
-  onLoadTeams?: (teams: Team[], unassignedPlayers: Player[], config: LeagueConfig) => void;
-  rosterId?: string;
+  onExitFullScreen?: () => void;
+  onLoadWorkspace: (id: string) => void;
+  currentWorkspaceId?: string | null;
+  isEmbedded?: boolean;
 }
 
 export function FullScreenTeamBuilder({
@@ -57,16 +60,18 @@ export function FullScreenTeamBuilder({
   players,
   playerGroups,
   onExitFullScreen,
-  onLoadTeams,
-  rosterId
+  onLoadWorkspace,
+  currentWorkspaceId,
+  isEmbedded = false
 }: FullScreenTeamBuilderProps) {
-  const [activeId, setActiveId] = useState<string | null>(null);
+
   const [activePlayer, setActivePlayer] = useState<Player | null>(null);
 
   const [sortBy, setSortBy] = useState<'name' | 'skill-high' | 'skill-low'>('name');
 
   // AI Assistant State
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(true);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<TeamSuggestion[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
@@ -132,18 +137,18 @@ export function FullScreenTeamBuilder({
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    setActiveId(active.id as string);
+    // setActiveId(active.id as string);
     setActivePlayer(active.data.current?.player || null);
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
+  const handleDragOver = (_: DragOverEvent) => {
     // We can add visual feedback here if needed, but for now we rely on the droppable components
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    setActiveId(null);
+    // setActiveId(null);
     setActivePlayer(null);
 
     if (!over) return;
@@ -201,28 +206,38 @@ export function FullScreenTeamBuilder({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-50 z-50 flex flex-col font-sans text-slate-900">
+    <div className={isEmbedded
+      ? "w-full h-[800px] flex flex-col font-sans text-slate-900 bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden"
+      : "fixed inset-0 bg-slate-50 z-50 flex flex-col font-sans text-slate-900"
+    }>
       {/* Enterprise Header */}
-      <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-3 flex-shrink-0 flex items-center justify-between z-20 sticky top-0">
+      <div className={`bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-3 flex-shrink-0 flex items-center justify-between z-20 sticky top-0 ${isEmbedded ? 'bg-white' : ''}`}>
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onExitFullScreen}
-              className="text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors -ml-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
-            <div className="h-4 w-px bg-slate-200" />
-            <div className="flex items-center gap-2">
-              <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm">
-                <Maximize2 className="h-4 w-4 text-white" />
+          {!isEmbedded && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onExitFullScreen}
+                className="text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors -ml-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <div className="h-4 w-px bg-slate-200" />
+              <div className="flex items-center gap-2">
+                <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm">
+                  <Maximize2 className="h-4 w-4 text-white" />
+                </div>
+                <h1 className="text-lg font-bold tracking-tight text-slate-800">Team Builder Hub</h1>
               </div>
-              <h1 className="text-lg font-bold tracking-tight text-slate-800">Team Builder Hub</h1>
             </div>
-          </div>
+          )}
+          {isEmbedded && (
+            <div className="flex items-center gap-2 text-slate-500">
+              <span className="text-sm font-semibold uppercase tracking-wider">Interactive Workspace</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -235,7 +250,7 @@ export function FullScreenTeamBuilder({
             <Sparkles className="w-4 h-4" />
             <span className="hidden sm:inline">AI Assistant</span>
           </Button>
-          {onLoadTeams && (
+          {onLoadWorkspace && (
             <div className="flex items-center gap-3">
               <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
                 <SelectTrigger className="w-[180px] h-9 bg-white border-slate-200">
@@ -263,14 +278,16 @@ export function FullScreenTeamBuilder({
                 </SelectContent>
               </Select>
               <div className="h-6 w-px bg-slate-200 mx-1" />
-              {onLoadTeams && (
+              {onLoadWorkspace && (
                 <div className="flex items-center">
-                  <SavedTeamsManager
+                  <WorkspaceManager
+                    players={players}
+                    playerGroups={playerGroups}
                     teams={teams}
                     unassignedPlayers={unassignedPlayers}
                     config={config}
-                    rosterId={rosterId}
-                    onLoadTeams={onLoadTeams}
+                    onLoadWorkspace={onLoadWorkspace}
+                    currentWorkspaceId={currentWorkspaceId}
                     mode="toolbar"
                   />
                 </div>
@@ -297,19 +314,33 @@ export function FullScreenTeamBuilder({
             />
           </div>
 
-          {/* AI Assistant Panel */}
+          {/* AI Assistant - Clippy (Floating) */}
           {isAssistantOpen && (
-            <div className="z-30 h-full border-r bg-white shadow-xl animate-in slide-in-from-left duration-200">
-              <AssistantPanel
-                suggestions={aiSuggestions}
-                isLoading={isAiLoading}
-                onSendPrompt={handleAiPrompt}
-                onAcceptSuggestion={handleAcceptSuggestion}
-                onDismissSuggestion={handleDismissSuggestion}
-                onClose={() => setIsAssistantOpen(false)}
-              />
-            </div>
+            <AssistantPanel
+              suggestions={aiSuggestions}
+              isLoading={isAiLoading}
+              onSendPrompt={handleAiPrompt}
+              onAcceptSuggestion={handleAcceptSuggestion}
+              onDismissSuggestion={handleDismissSuggestion}
+              onClose={() => setIsAssistantOpen(false)}
+              players={players}
+              teams={teams}
+              onReview={() => setIsReviewModalOpen(true)}
+            />
           )}
+
+          {/* Review Modal */}
+          <SuggestionReviewModal
+            isOpen={isReviewModalOpen}
+            onClose={() => setIsReviewModalOpen(false)}
+            suggestions={aiSuggestions}
+            onConfirm={(suggestion) => {
+              handleAcceptSuggestion(suggestion);
+              setIsReviewModalOpen(false);
+            }}
+            players={players}
+            teams={teams}
+          />
 
           {/* Board */}
           <TeamBoard

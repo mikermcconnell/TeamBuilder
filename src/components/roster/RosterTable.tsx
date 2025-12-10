@@ -8,14 +8,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -30,13 +23,13 @@ import {
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
-    Settings2,
     Check,
     UserCheck,
     UserX,
     Trash2,
     Eye,
-    Edit
+    Edit,
+    Zap
 } from 'lucide-react';
 
 export type SortField = 'name' | 'gender' | 'skillRating' | 'execSkillRating' | 'isHandler' | 'group';
@@ -56,8 +49,9 @@ interface RosterTableProps {
     onViewPlayer: (player: Player) => void;
     onEditPlayer: (player: Player) => void;
     getSkillGroup: (player: Player) => string;
-    getSkillGroupInfo: (group: string) => any;
-    getSkillGradientStyle: (rating: number) => any;
+    getSkillGroupInfo: (group: string) => { bgColor: string; textColor: string; description: string };
+    getSkillGradientStyle: (rating: number) => React.CSSProperties;
+    columnVisibility: Record<string, boolean>;
 }
 
 export function RosterTable({
@@ -70,26 +64,15 @@ export function RosterTable({
     onEditPlayer,
     getSkillGroup,
     getSkillGroupInfo,
-    getSkillGradientStyle
+    getSkillGradientStyle,
+    columnVisibility
 }: RosterTableProps) {
     // Sorting state
     const [sortConfig, setSortConfig] = useState<SortConfig[]>([
         { field: 'name', direction: 'asc' }
     ]);
 
-    // Column visibility state
-    const [columnVisibility, setColumnVisibility] = useState({
-        select: true,
-        name: true,
-        gender: true,
-        skill: true,
-        exec: true,
-        group: true,
-        isHandler: true,
-        teammates: true,
-        avoid: true,
-        actions: true
-    });
+
 
     // Inline editing state
     const [editingCell, setEditingCell] = useState<{ id: string, field: 'skill' | 'exec' } | null>(null);
@@ -219,42 +202,50 @@ export function RosterTable({
         setEditingCell(null);
     };
 
+    // Helper for Avatar colors
+    const getAvatarColor = (name: string) => {
+        const colors = [
+            'bg-red-100 text-red-600',
+            'bg-orange-100 text-orange-600',
+            'bg-amber-100 text-amber-600',
+            'bg-yellow-100 text-yellow-600',
+            'bg-lime-100 text-lime-600',
+            'bg-green-100 text-green-600',
+            'bg-emerald-100 text-emerald-600',
+            'bg-teal-100 text-teal-600',
+            'bg-cyan-100 text-cyan-600',
+            'bg-sky-100 text-sky-600',
+            'bg-blue-100 text-blue-600',
+            'bg-indigo-100 text-indigo-600',
+            'bg-violet-100 text-violet-600',
+            'bg-purple-100 text-purple-600',
+            'bg-fuchsia-100 text-fuchsia-600',
+            'bg-pink-100 text-pink-600',
+            'bg-rose-100 text-rose-600',
+        ];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    };
+
+    const getInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map(n => n[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+    };
+
     return (
         <div className="space-y-4">
-            <div className="flex justify-end">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="ml-auto hidden h-8 lg:flex">
-                            <Settings2 className="mr-2 h-4 w-4" />
-                            Columns
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[150px]">
-                        <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {Object.keys(columnVisibility).map((key) => {
-                            if (key === 'select' || key === 'actions') return null;
-                            return (
-                                <DropdownMenuCheckboxItem
-                                    key={key}
-                                    className="capitalize"
-                                    checked={columnVisibility[key as keyof typeof columnVisibility]}
-                                    onCheckedChange={(checked) =>
-                                        setColumnVisibility((prev) => ({ ...prev, [key]: checked }))
-                                    }
-                                >
-                                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                                </DropdownMenuCheckboxItem>
-                            );
-                        })}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
+            {/* Columns Dropdown moved to PlayerRoster */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                <Table className="[&_tr_th:first-child]:pl-8 [&_tr_td:first-child]:pl-8 [&_tr_th:last-child]:pr-8 [&_tr_td:last-child]:pr-8">
+                    <TableHeader className="bg-slate-50/80">
+                        <TableRow className="hover:bg-transparent border-b border-slate-100">
                             {columnVisibility.select && (
                                 <TableHead className="w-[40px]">
                                     <Checkbox
@@ -266,50 +257,50 @@ export function RosterTable({
                             )}
                             {columnVisibility.name && (
                                 <TableHead
-                                    className="cursor-pointer hover:bg-muted/50"
+                                    className="cursor-pointer hover:text-primary transition-colors"
                                     onClick={(e) => handleSort('name', e.shiftKey)}
                                 >
-                                    <div className="flex items-center">Name {getSortIcon('name')}</div>
+                                    <div className="flex items-center gap-1">Name {getSortIcon('name')}</div>
                                 </TableHead>
                             )}
                             {columnVisibility.gender && (
                                 <TableHead
-                                    className="cursor-pointer hover:bg-muted/50"
+                                    className="cursor-pointer hover:text-primary transition-colors"
                                     onClick={(e) => handleSort('gender', e.shiftKey)}
                                 >
-                                    <div className="flex items-center">Gender {getSortIcon('gender')}</div>
+                                    <div className="flex items-center gap-1">Gender {getSortIcon('gender')}</div>
                                 </TableHead>
                             )}
                             {columnVisibility.skill && (
                                 <TableHead
-                                    className="cursor-pointer hover:bg-muted/50"
+                                    className="cursor-pointer hover:text-primary transition-colors"
                                     onClick={(e) => handleSort('skillRating', e.shiftKey)}
                                 >
-                                    <div className="flex items-center">Skill {getSortIcon('skillRating')}</div>
+                                    <div className="flex items-center gap-1">Skill {getSortIcon('skillRating')}</div>
                                 </TableHead>
                             )}
                             {columnVisibility.exec && (
                                 <TableHead
-                                    className="cursor-pointer hover:bg-muted/50"
+                                    className="cursor-pointer hover:text-primary transition-colors"
                                     onClick={(e) => handleSort('execSkillRating', e.shiftKey)}
                                 >
-                                    <div className="flex items-center">Exec {getSortIcon('execSkillRating')}</div>
+                                    <div className="flex items-center gap-1">Exec {getSortIcon('execSkillRating')}</div>
                                 </TableHead>
                             )}
                             {columnVisibility.group && (
                                 <TableHead
-                                    className="cursor-pointer hover:bg-muted/50"
+                                    className="cursor-pointer hover:text-primary transition-colors"
                                     onClick={(e) => handleSort('group', e.shiftKey)}
                                 >
-                                    <div className="flex items-center">Group {getSortIcon('group')}</div>
+                                    <div className="flex items-center gap-1">Group {getSortIcon('group')}</div>
                                 </TableHead>
                             )}
                             {columnVisibility.isHandler && (
                                 <TableHead
-                                    className="cursor-pointer hover:bg-muted/50"
+                                    className="cursor-pointer hover:text-primary transition-colors"
                                     onClick={(e) => handleSort('isHandler', e.shiftKey)}
                                 >
-                                    <div className="flex items-center">Handler {getSortIcon('isHandler')}</div>
+                                    <div className="flex items-center gap-1">Handler {getSortIcon('isHandler')}</div>
                                 </TableHead>
                             )}
                             {columnVisibility.teammates && <TableHead>Teammates</TableHead>}
@@ -320,13 +311,24 @@ export function RosterTable({
                     <TableBody>
                         {sortedPlayers.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={Object.values(columnVisibility).filter(Boolean).length} className="h-24 text-center">
-                                    No results.
+                                <TableCell colSpan={Object.values(columnVisibility).filter(Boolean).length} className="h-32 text-center">
+                                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                                        <div className="bg-slate-100 p-3 rounded-full mb-2">
+                                            <UserX className="h-6 w-6 text-slate-400" />
+                                        </div>
+                                        <p>No players found.</p>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ) : (
                             sortedPlayers.map((player) => (
-                                <TableRow key={player.id} className="group">
+                                <TableRow
+                                    key={player.id}
+                                    className={`
+                                        group transition-colors hover:bg-slate-50/80 border-b border-slate-50 last:border-0
+                                        ${selectedPlayerIds.has(player.id) ? 'bg-blue-50/30' : ''}
+                                    `}
+                                >
                                     {columnVisibility.select && (
                                         <TableCell>
                                             <Checkbox
@@ -337,43 +339,63 @@ export function RosterTable({
                                         </TableCell>
                                     )}
                                     {columnVisibility.name && (
-                                        <TableCell className="font-medium">{player.name}</TableCell>
+                                        <TableCell className="font-medium py-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`
+                                                    h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shadow-sm
+                                                    ${getAvatarColor(player.name)}
+                                                `}>
+                                                    {getInitials(player.name)}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-slate-700">{player.name}</span>
+                                                    {player.email && (
+                                                        <span className="text-[10px] text-muted-foreground hidden sm:inline-block">
+                                                            {player.email}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </TableCell>
                                     )}
                                     {columnVisibility.gender && (
-                                        <TableCell>
-                                            <Badge variant="outline">{player.gender}</Badge>
+                                        <TableCell className="py-3">
+                                            <Badge variant="outline" className="border-slate-200 text-slate-600 bg-white">
+                                                {player.gender}
+                                            </Badge>
                                         </TableCell>
                                     )}
                                     {columnVisibility.skill && (
-                                        <TableCell>
+                                        <TableCell className="py-3">
                                             {editingCell?.id === player.id && editingCell.field === 'skill' ? (
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-1 scale-110 origin-left">
                                                     <Input
                                                         type="number"
                                                         value={editValue}
                                                         onChange={(e) => setEditValue(e.target.value)}
-                                                        className="w-16 h-8"
+                                                        className="w-16 h-8 text-center font-bold"
                                                         autoFocus
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') saveEdit(player);
                                                             if (e.key === 'Escape') setEditingCell(null);
                                                         }}
                                                     />
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => saveEdit(player)}>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 hover:text-green-700" onClick={() => saveEdit(player)}>
                                                         <Check className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             ) : (
                                                 <div
-                                                    className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-muted/50"
+                                                    className="flex items-center gap-2 cursor-pointer group/skill"
                                                     onClick={() => startEditing(player.id, 'skill', player.skillRating)}
                                                 >
                                                     <div
-                                                        className="px-2 py-0.5 rounded text-sm font-medium"
+                                                        className="px-2.5 py-1 rounded-lg text-sm font-bold min-w-[36px] text-center shadow-sm border border-black/5 transition-transform group-hover/skill:scale-105"
                                                         style={getSkillGradientStyle(player.skillRating)}
                                                     >
                                                         {player.skillRating}
                                                     </div>
+                                                    <Edit className="h-3 w-3 text-slate-300 opacity-0 group-hover/skill:opacity-100 transition-opacity" />
                                                 </div>
                                             )}
                                         </TableCell>
@@ -381,36 +403,39 @@ export function RosterTable({
                                     {columnVisibility.exec && (
                                         <TableCell>
                                             {editingCell?.id === player.id && editingCell.field === 'exec' ? (
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-1 scale-110 origin-left">
                                                     <Input
                                                         type="number"
                                                         value={editValue}
                                                         onChange={(e) => setEditValue(e.target.value)}
-                                                        className="w-16 h-8"
+                                                        className="w-16 h-8 text-center font-bold"
                                                         autoFocus
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') saveEdit(player);
                                                             if (e.key === 'Escape') setEditingCell(null);
                                                         }}
                                                     />
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => saveEdit(player)}>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 hover:text-green-700" onClick={() => saveEdit(player)}>
                                                         <Check className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             ) : (
                                                 <div
-                                                    className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-muted/50"
+                                                    className="flex items-center gap-2 cursor-pointer group/exec"
                                                     onClick={() => startEditing(player.id, 'exec', player.execSkillRating)}
                                                 >
                                                     {player.execSkillRating !== null ? (
-                                                        <div
-                                                            className="px-2 py-0.5 rounded text-sm font-medium"
-                                                            style={getSkillGradientStyle(player.execSkillRating)}
-                                                        >
-                                                            {player.execSkillRating}
-                                                        </div>
+                                                        <>
+                                                            <div
+                                                                className="px-2.5 py-1 rounded-lg text-sm font-bold min-w-[36px] text-center shadow-sm border border-black/5 transition-transform group-hover/exec:scale-105"
+                                                                style={getSkillGradientStyle(player.execSkillRating)}
+                                                            >
+                                                                {player.execSkillRating}
+                                                            </div>
+                                                            <Edit className="h-3 w-3 text-slate-300 opacity-0 group-hover/exec:opacity-100 transition-opacity" />
+                                                        </>
                                                     ) : (
-                                                        <span className="text-muted-foreground text-sm px-2">N/A</span>
+                                                        <span className="text-muted-foreground text-xs px-2 italic">Set</span>
                                                     )}
                                                 </div>
                                             )}
@@ -422,7 +447,12 @@ export function RosterTable({
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
                                                         <Badge
-                                                            className={`${getSkillGroupInfo(getSkillGroup(player)).bgColor} ${getSkillGroupInfo(getSkillGroup(player)).textColor} border cursor-help`}
+                                                            className={`
+                                                                ${getSkillGroupInfo(getSkillGroup(player)).bgColor} 
+                                                                ${getSkillGroupInfo(getSkillGroup(player)).textColor} 
+                                                                border-2 border-transparent hover:border-current
+                                                                transition-colors cursor-help
+                                                            `}
                                                         >
                                                             {getSkillGroup(player)}
                                                         </Badge>
@@ -435,25 +465,33 @@ export function RosterTable({
                                         </TableCell>
                                     )}
                                     {columnVisibility.isHandler && (
-                                        <TableCell>
-                                            <Checkbox
-                                                checked={!!player.isHandler}
-                                                onCheckedChange={(checked) => {
-                                                    onPlayerUpdate({ ...player, isHandler: checked as boolean });
-                                                }}
-                                                aria-label={`Toggle handler for ${player.name}`}
-                                            />
+                                        <TableCell className="py-2">
+                                            <button
+                                                onClick={() => onPlayerUpdate({ ...player, isHandler: !player.isHandler })}
+                                                className={`
+                                                    p-1.5 rounded-full transition-all border-2
+                                                    ${player.isHandler
+                                                        ? 'bg-yellow-100 border-yellow-200 text-yellow-600 hover:scale-110'
+                                                        : 'bg-transparent border-transparent text-slate-300 hover:bg-slate-100 hover:text-slate-400'
+                                                    }
+                                                `}
+                                                title={player.isHandler ? "Handler" : "Not Handler"}
+                                            >
+                                                <Zap className="h-4 w-4 fill-current" />
+                                            </button>
                                         </TableCell>
                                     )}
                                     {columnVisibility.teammates && (
                                         <TableCell>
                                             {player.teammateRequests.length > 0 ? (
                                                 <div className="flex items-center gap-1">
-                                                    <UserCheck className="h-3 w-3 text-green-600" />
-                                                    <span className="text-sm">{player.teammateRequests.length}</span>
+                                                    <div className="bg-green-100 p-1 rounded-full">
+                                                        <UserCheck className="h-3 w-3 text-green-600" />
+                                                    </div>
+                                                    <span className="text-xs font-medium text-slate-600">{player.teammateRequests.length}</span>
                                                 </div>
                                             ) : (
-                                                <span className="text-muted-foreground text-sm">-</span>
+                                                <span className="text-slate-200 text-sm">-</span>
                                             )}
                                         </TableCell>
                                     )}
@@ -461,25 +499,27 @@ export function RosterTable({
                                         <TableCell>
                                             {player.avoidRequests.length > 0 ? (
                                                 <div className="flex items-center gap-1">
-                                                    <UserX className="h-3 w-3 text-red-600" />
-                                                    <span className="text-sm">{player.avoidRequests.length}</span>
+                                                    <div className="bg-red-100 p-1 rounded-full">
+                                                        <UserX className="h-3 w-3 text-red-600" />
+                                                    </div>
+                                                    <span className="text-xs font-medium text-slate-600">{player.avoidRequests.length}</span>
                                                 </div>
                                             ) : (
-                                                <span className="text-muted-foreground text-sm">-</span>
+                                                <span className="text-slate-200 text-sm">-</span>
                                             )}
                                         </TableCell>
                                     )}
                                     {columnVisibility.actions && (
                                         <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewPlayer(player)}>
+                                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => onViewPlayer(player)}>
                                                     <Eye className="h-4 w-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditPlayer(player)}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => onEditPlayer(player)}>
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
                                                 {onPlayerRemove && (
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onPlayerRemove(player)}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => onPlayerRemove(player)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 )}
@@ -492,8 +532,8 @@ export function RosterTable({
                     </TableBody>
                 </Table>
             </div>
-            <div className="text-xs text-muted-foreground">
-                {selectedPlayerIds.size} of {players.length} row(s) selected.
+            <div className="text-xs text-muted-foreground ml-2">
+                {selectedPlayerIds.size} of {players.length} players selected
             </div>
         </div>
     );

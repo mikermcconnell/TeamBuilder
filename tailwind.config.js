@@ -16,51 +16,58 @@ module.exports = {
 			},
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Nunito', 'sans-serif'],
+			},
 			colors: {
-				border: 'hsl(var(--border))',
-				input: 'hsl(var(--input))',
-				ring: 'hsl(var(--ring))',
-				background: 'hsl(var(--background))',
-				foreground: 'hsl(var(--foreground))',
+				border: '#E5E5E5', // Light gray border
+				input: '#E5E5E5',
+				ring: '#58CC02',
+				background: '#F7F7F7', // Light gray background
+				foreground: '#4B4B4B', // Dark gray text like Duolingo
 				primary: {
-					DEFAULT: '#22C55E', // Vibrant grass green
-					foreground: 'hsl(var(--primary-foreground))',
+					DEFAULT: '#58CC02', // Main Lime Green
+					foreground: '#FFFFFF',
+					shadow: '#58A700', // Darker green for 3D effect
 				},
 				secondary: {
-					DEFAULT: '#0EA5E9', // Sky blue
-					foreground: 'hsl(var(--secondary-foreground))',
+					DEFAULT: '#1CB0F6', // Sky Blue
+					foreground: '#FFFFFF',
+					shadow: '#1899D6',
 				},
 				accent: {
-					DEFAULT: '#F97316', // Sports orange
-					foreground: 'hsl(var(--accent-foreground))',
+					DEFAULT: '#FFC800', // Gold/Yellow
+					foreground: '#FFFFFF',
+					shadow: '#E5B400',
 				},
-				sport: {
-					field: '#16A34A', // Deep field green
-					sky: '#3B82F6', // Bright sky blue
-					energy: '#EF4444', // Energetic red
-					sun: '#FBBF24', // Sunny yellow
-				},
-				destructive: {
-					DEFAULT: 'hsl(var(--destructive))',
-					foreground: 'hsl(var(--destructive-foreground))',
-				},
-				muted: {
-					DEFAULT: 'hsl(var(--muted))',
-					foreground: 'hsl(var(--muted-foreground))',
-				},
-				popover: {
-					DEFAULT: 'hsl(var(--popover))',
-					foreground: 'hsl(var(--popover-foreground))',
+				danger: {
+					DEFAULT: '#FF4B4B', // Red
+					foreground: '#FFFFFF',
+					shadow: '#EA2B2B',
 				},
 				card: {
-					DEFAULT: 'hsl(var(--card))',
-					foreground: 'hsl(var(--card-foreground))',
+					DEFAULT: '#FFFFFF',
+					foreground: '#4B4B4B',
+				},
+				popover: {
+					DEFAULT: '#FFFFFF',
+					foreground: '#4B4B4B',
+				},
+				muted: {
+					DEFAULT: '#F7F7F7',
+					foreground: '#AFAFAF',
 				},
 			},
 			borderRadius: {
-				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)',
+				lg: '1rem', // 16px
+				md: '0.75rem', // 12px
+				sm: '0.5rem', // 8px
+				xl: '1.25rem', // 20px
+				'2xl': '1.5rem', // 24px
+				'3xl': '2rem', // 32px
+			},
+			boxShadow: {
+				'3d': '0 4px 0 0 var(--tw-shadow-color)',
 			},
 			keyframes: {
 				'accordion-down': {

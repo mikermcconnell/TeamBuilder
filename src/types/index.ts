@@ -80,6 +80,27 @@ export interface AppState {
   savedConfigs: LeagueConfig[];
 }
 
+export interface SavedWorkspace {
+  id: string; // Firestore ID
+  userId: string;
+  name: string;
+  description?: string;
+
+  // The Data Snapshot
+  players: Player[];
+  playerGroups: PlayerGroup[];
+  config: LeagueConfig;
+  teams: Team[];          // Empty if not yet generated
+  unassignedPlayers: Player[]; // Empty if not yet generated
+  stats?: TeamGenerationStats;
+
+  // Metadata
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+  tags?: string[];
+  version: number;
+}
+
 export type Gender = 'M' | 'F' | 'Other';
 
 export interface CSVRow {

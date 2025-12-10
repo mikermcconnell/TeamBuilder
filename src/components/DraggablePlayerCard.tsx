@@ -49,10 +49,10 @@ export function DraggablePlayerCard({ player, compact = false }: DraggablePlayer
       {...attributes}
       {...listeners}
       className={`
-        relative group flex items-center rounded-lg border bg-white shadow-sm 
-        hover:shadow-md hover:border-primary/50 transition-all cursor-grab active:cursor-grabbing
-        ${isDragging ? 'ring-2 ring-primary z-50' : 'border-gray-200'}
-        ${compact ? 'p-1.5 gap-2' : 'p-2 gap-3'}
+        relative group flex items-center rounded-xl border-2 border-b-4 bg-white 
+        hover:border-primary/50 hover:bg-slate-50 transition-all cursor-grab active:cursor-grabbing
+        ${isDragging ? 'ring-2 ring-primary border-primary z-50 shadow-xl scale-105' : 'border-slate-200 shadow-sm'}
+        ${compact ? 'p-1.5 gap-2' : 'p-3 gap-3'}
       `}
     >
       {/* Drag Handle */}

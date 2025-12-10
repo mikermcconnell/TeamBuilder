@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { Player, Team, LeagueConfig, AppState, PlayerGroup, getEffectiveSkillRating } from '@/types';
@@ -8,14 +8,16 @@ import { validateAndProcessCSV, generateSampleCSV } from '@/utils/csvProcessor';
 import { debounce } from '@/utils/performance';
 import { validateAppState, validatePlayer, validateTeamName } from '@/utils/validation';
 import { dataStorageService } from '@/services/dataStorageService';
-import { saveRoster, updateRoster, RosterData, getUserRosters, getRoster } from '@/services/rosterService';
+import { WorkspaceService } from '@/services/workspaceService';
+import { SavedWorkspace } from '@/types';
+// Removed legacy imports
+// Removed rosterService imports
 import { CSVUploader } from '@/components/CSVUploader';
 import { ConfigurationPanel } from '@/components/ConfigurationPanel';
 import { PlayerRoster } from '@/components/PlayerRoster';
 import { FullScreenTeamBuilder } from '@/components/FullScreenTeamBuilder';
 import { ExportPanel } from '@/components/ExportPanel';
 import { PlayerGroups } from '@/components/PlayerGroups';
-import PlayerEmail from '@/components/PlayerEmail';
 import TutorialLanding from '@/components/TutorialLanding';
 import { AuthDialog } from '@/components/AuthDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,7 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, FolderOpen, Users, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2, Play, AlertTriangle, MousePointer } from 'lucide-react';
+import { FolderOpen, Users, FileSpreadsheet, BarChart3, Shuffle, UserCheck, Trash2, LayoutGrid, ArrowRight, FileText, ArrowLeft, Save, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
@@ -35,24 +37,7 @@ if (import.meta.env.DEV) {
   import('@/utils/firebaseTestRunner');
 }
 
-interface ComponentErrorBoundaryProps {
-  children: React.ReactNode;
-  componentName: string;
-}
 
-function ComponentErrorBoundary({ children, componentName }: ComponentErrorBoundaryProps) {
-  return (
-    <ErrorBoundary
-      FallbackComponent={ErrorFallback}
-      onError={(error, errorInfo) => {
-        console.error(`Error in ${componentName}:`, error, errorInfo);
-        toast.error(`Error in ${componentName}: ${error.message}`);
-      }}
-    >
-      {children}
-    </ErrorBoundary>
-  );
-}
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
@@ -77,8 +62,10 @@ function App() {
   // Auth state
   const [user, setUser] = useState<User | null>(null);
   // const [isLoadingAuth, setIsLoadingAuth] = useState(true); // Unused
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  // const [isLoadingAuth, setIsLoadingAuth] = useState(true); // Unused
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [isFullScreenMode, setIsFullScreenMode] = useState(false);
+  const [teamsView, setTeamsView] = useState<'landing' | 'exports'>('landing'); // State for switching between landing and exports views
 
   // Check if user has seen the tutorial before
   const [showTutorial, setShowTutorial] = useState(() => {
@@ -100,90 +87,105 @@ function App() {
 
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  const [isSaveRosterDialogOpen, setIsSaveRosterDialogOpen] = useState(false);
-  const [rosterName, setRosterName] = useState('');
-  const [rosterDescription, setRosterDescription] = useState('');
-  const [savedRosterId, setSavedRosterId] = useState<string | null>(null);
-  const [isSavingRoster, setIsSavingRoster] = useState(false);
-  const [isLoadRosterDialogOpen, setIsLoadRosterDialogOpen] = useState(false);
-  const [savedRosters, setSavedRosters] = useState<RosterData[]>([]);
-  const [isFetchingRosters, setIsFetchingRosters] = useState(false);
-  const [loadingRosterId, setLoadingRosterId] = useState<string | null>(null);
-  const [rosterSearchTerm, setRosterSearchTerm] = useState('');
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [lastAutoSaveAt, setLastAutoSaveAt] = useState<Date | null>(null);
-  const autoSaveTimeoutRef = useRef<number | null>(null);
-  const autoSaveResetTimeoutRef = useRef<number | null>(null);
-  const autoSaveSuppressTimeoutRef = useRef<number | null>(null);
-  const autoSaveSuppressedRef = useRef(false);
-  const autoSaveInFlightRef = useRef(false);
+  // Workspace State
+  const [isSaveWorkspaceDialogOpen, setIsSaveWorkspaceDialogOpen] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState('');
+  const [workspaceDescription, setWorkspaceDescription] = useState('');
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
+  const [isSavingWorkspace, setIsSavingWorkspace] = useState(false);
 
-  const suppressAutoSave = useCallback((duration: number = 1000) => {
-    autoSaveSuppressedRef.current = true;
-    if (autoSaveSuppressTimeoutRef.current) {
-      window.clearTimeout(autoSaveSuppressTimeoutRef.current);
-    }
-    autoSaveSuppressTimeoutRef.current = window.setTimeout(() => {
-      autoSaveSuppressedRef.current = false;
-      autoSaveSuppressTimeoutRef.current = null;
-    }, duration);
-  }, []);
+  const [isLoadWorkspaceDialogOpen, setIsLoadWorkspaceDialogOpen] = useState(false);
+  const [savedWorkspaces, setSavedWorkspaces] = useState<SavedWorkspace[]>([]);
+  const [isFetchingWorkspaces, setIsFetchingWorkspaces] = useState(false);
+  const [loadingWorkspaceId, setLoadingWorkspaceId] = useState<string | null>(null);
+  const [workspaceSearchTerm, setWorkspaceSearchTerm] = useState('');
 
+  // Auto-save logic
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  // Debounced auto-save effect
   useEffect(() => {
-    if (!user) {
-      setSavedRosterId(null);
-      setRosterName('');
-      setRosterDescription('');
-      setSavedRosters([]);
-      setIsLoadRosterDialogOpen(false);
-      setRosterSearchTerm('');
-      setLoadingRosterId(null);
-      setLastAutoSaveAt(null);
-      setAutoSaveStatus('idle');
-      suppressAutoSave(1000);
-    }
-  }, [user, suppressAutoSave]);
-
-  const fetchUserRosters = useCallback(async () => {
-    if (!user) {
-      setSavedRosters([]);
+    // Only auto-save if we have a current workspace loaded and a user is signed in
+    if (!currentWorkspaceId || !user) {
       return;
     }
 
-    setIsFetchingRosters(true);
+    setSaveStatus('saving');
+
+    const debouncedSave = setTimeout(async () => {
+      try {
+        const payload: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'> = {
+          userId: user.uid,
+          name: workspaceName || 'Untitled Project',
+          description: workspaceDescription || '',
+          players: appState.players,
+          playerGroups: appState.playerGroups,
+          config: appState.config,
+          teams: appState.teams,
+          unassignedPlayers: appState.unassignedPlayers,
+          stats: appState.stats,
+          version: 1,
+        };
+
+        // We use the existing logic but just call the service directly to avoid UI flashing from the main save handler if it has other side effects
+        // Or we can reuse the logic. Let's reuse the logic but carefully.
+        // Actually, handleSaveWorkspace sets 'isSavingWorkspace' which might show a big spinner. We want this to be subtle.
+        // So let's call the service directly here.
+
+        await WorkspaceService.saveWorkspace(payload, currentWorkspaceId);
+        setSaveStatus('saved');
+
+        // Reset back to idle after a moment, or keep as 'saved' until next change?
+        // Let's keep 'saved' visible for a bit then fade out or just stay 'saved'.
+        setTimeout(() => setSaveStatus('idle'), 3000);
+
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+        setSaveStatus('error');
+      }
+    }, 3000); // 3 second delay
+
+    return () => clearTimeout(debouncedSave);
+  }, [appState, currentWorkspaceId, user, workspaceName, workspaceDescription]);
+
+
+  useEffect(() => {
+    if (!user) {
+      setCurrentWorkspaceId(null);
+      setWorkspaceName('');
+      setWorkspaceDescription('');
+      setSavedWorkspaces([]);
+      setIsLoadWorkspaceDialogOpen(false);
+      setWorkspaceSearchTerm('');
+      setLoadingWorkspaceId(null);
+    }
+  }, [user]);
+
+  const fetchUserWorkspaces = useCallback(async () => {
+    if (!user) {
+      setSavedWorkspaces([]);
+      return;
+    }
+
+    setIsFetchingWorkspaces(true);
     try {
-      const rosters = await getUserRosters(user.uid, false);
-      setSavedRosters(rosters);
+      const workspaces = await WorkspaceService.getUserWorkspaces(user.uid);
+      setSavedWorkspaces(workspaces);
     } catch (error) {
-      console.error('Failed to load saved rosters:', error);
-      toast.error('Failed to load saved rosters');
+      console.error('Failed to load saved workspaces:', error);
+      toast.error('Failed to load saved projects');
     } finally {
-      setIsFetchingRosters(false);
+      setIsFetchingWorkspaces(false);
     }
   }, [user]);
 
   useEffect(() => {
     if (user) {
-      fetchUserRosters();
+      fetchUserWorkspaces();
     }
-  }, [user, fetchUserRosters]);
+  }, [user, fetchUserWorkspaces]);
 
-  useEffect(() => {
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        window.clearTimeout(autoSaveTimeoutRef.current);
-        autoSaveTimeoutRef.current = null;
-      }
-      if (autoSaveResetTimeoutRef.current) {
-        window.clearTimeout(autoSaveResetTimeoutRef.current);
-        autoSaveResetTimeoutRef.current = null;
-      }
-      if (autoSaveSuppressTimeoutRef.current) {
-        window.clearTimeout(autoSaveSuppressTimeoutRef.current);
-        autoSaveSuppressTimeoutRef.current = null;
-      }
-    };
-  }, []);
+
 
   const handleStartApp = useCallback(() => {
     localStorage.setItem('tutorialCompleted', 'true');
@@ -285,10 +287,8 @@ function App() {
   useEffect(() => {
     if (dataLoaded) {
       const saveData = async () => {
-        setSyncStatus('saving');
         try {
           await dataStorageService.save(appState);
-          setSyncStatus('saved');
         } catch (error) {
           console.error('Failed to save data:', error);
           setSyncStatus('error');
@@ -303,338 +303,140 @@ function App() {
   }, [appState, dataLoaded]);
 
 
-  // Add a function to clear saved data
-  const handleClearSavedData = useCallback(async () => {
-    if (window.confirm('Are you sure you want to clear all saved data? This cannot be undone.')) {
-      await dataStorageService.clearAll();
-      setAppState({
-        players: [],
-        teams: [],
-        unassignedPlayers: [],
-        playerGroups: [],
-        config: getDefaultConfig(),
-        execRatingHistory: {},
-        savedConfigs: []
-      });
-      toast.success('All saved data has been cleared');
-      setSavedRosterId(null);
-      setRosterName('');
-      setRosterDescription('');
-      setLastAutoSaveAt(null);
-      setAutoSaveStatus('idle');
-      suppressAutoSave(1000);
-    }
-  }, [suppressAutoSave]);
 
-  const handleOpenSaveRosterDialog = useCallback(() => {
+
+  // --- Workspace Handlers ---
+
+  const handleOpenSaveWorkspaceDialog = useCallback(() => {
     if (!user) {
-      toast.error('Please sign in to save rosters online');
+      toast.error('Please sign in to save projects');
       return;
     }
 
-    if (appState.players.length === 0) {
-      toast.error('Add players before saving');
-      return;
-    }
-
-    setRosterName(prev => {
-      if (prev.trim()) {
-        return prev;
-      }
-      const fallbackName = 'Roster ' + new Date().toLocaleDateString();
-      return fallbackName;
+    setWorkspaceName(prev => {
+      if (prev.trim()) return prev;
+      return 'Project ' + new Date().toLocaleDateString();
     });
-    setIsSaveRosterDialogOpen(true);
-  }, [user, appState.players.length]);
+    setIsSaveWorkspaceDialogOpen(true);
+  }, [user]);
 
-  const handleOpenLoadRosterDialog = useCallback(() => {
+  const handleOpenLoadWorkspaceDialog = useCallback(() => {
     if (!user) {
-      toast.error('Please sign in to load rosters');
+      toast.error('Please sign in to load projects');
       return;
     }
+    fetchUserWorkspaces();
+    setIsLoadWorkspaceDialogOpen(true);
+  }, [user, fetchUserWorkspaces]);
 
-    fetchUserRosters();
-    setIsLoadRosterDialogOpen(true);
-  }, [user, fetchUserRosters]);
+  const handleSaveWorkspace = useCallback(async () => {
+    if (!user) return;
 
-  const handleSaveRosterToFirebase = useCallback(async () => {
-    if (!user) {
-      toast.error('Please sign in to save rosters online');
-      return;
-    }
-
-    const trimmedName = rosterName.trim();
+    const trimmedName = workspaceName.trim();
     if (!trimmedName) {
-      toast.error('Please enter a roster name');
+      toast.error('Please enter a project name');
       return;
     }
 
-    if (appState.players.length === 0) {
-      toast.error('Cannot save an empty roster');
-      return;
-    }
-
-    suppressAutoSave(1500);
-    setIsSavingRoster(true);
+    setIsSavingWorkspace(true);
 
     try {
-      const descriptionValue = rosterDescription.trim();
+      const payload: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'> = {
+        userId: user.uid,
+        name: trimmedName,
+        description: workspaceDescription.trim(),
+        players: appState.players,
+        playerGroups: appState.playerGroups,
+        config: appState.config,
+        teams: appState.teams,
+        unassignedPlayers: appState.unassignedPlayers,
+        stats: appState.stats,
+        version: 1,
+        // tags: [] 
+      };
 
-      if (savedRosterId) {
-        const updatePayload: Partial<RosterData> = {
-          name: trimmedName,
-          players: appState.players,
-          playerGroups: appState.playerGroups
-        };
+      const id = await WorkspaceService.saveWorkspace(payload, currentWorkspaceId || undefined);
+      setCurrentWorkspaceId(id);
 
-        updatePayload.description = descriptionValue || '';
-
-        await updateRoster(savedRosterId, updatePayload, true);
-        toast.success('Roster updated successfully');
-      } else {
-        const rosterPayload: Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'> = {
-          userId: user.uid,
-          name: trimmedName,
-          players: appState.players,
-          playerGroups: appState.playerGroups
-        };
-
-        if (descriptionValue) {
-          rosterPayload.description = descriptionValue;
-        }
-
-        const rosterId = await saveRoster(rosterPayload);
-        setSavedRosterId(rosterId);
-        toast.success('Roster saved successfully');
-      }
-
-      fetchUserRosters();
-      setIsSaveRosterDialogOpen(false);
+      toast.success('Project saved successfully');
+      setIsSaveWorkspaceDialogOpen(false);
+      fetchUserWorkspaces();
     } catch (error: any) {
-      console.error('Failed to save roster to Firebase:', error);
-      toast.error(error?.message || 'Failed to save roster');
+      console.error('Failed to save project:', error);
+      toast.error('Failed to save project');
     } finally {
-      setIsSavingRoster(false);
+      setIsSavingWorkspace(false);
     }
-  }, [user, rosterName, rosterDescription, appState.players, appState.playerGroups, savedRosterId, fetchUserRosters, suppressAutoSave]);
+  }, [user, workspaceName, workspaceDescription, appState, currentWorkspaceId, fetchUserWorkspaces]);
 
-  const autoSaveRoster = useCallback(async () => {
-    if (!user || !dataLoaded || isSavingRoster) {
-      return;
-    }
+  const handleLoadWorkspace = useCallback(async (id: string) => {
+    if (!user) return;
 
-    if (autoSaveSuppressedRef.current || autoSaveInFlightRef.current) {
-      return;
-    }
-
-    if (appState.players.length === 0) {
-      return;
-    }
-
-    autoSaveInFlightRef.current = true;
-    setAutoSaveStatus('saving');
-
-    const trimmedName = rosterName.trim();
-    let nameToUse = trimmedName;
-    if (!trimmedName) {
-      nameToUse = 'Auto Saved Roster ' + new Date().toLocaleDateString();
-      setRosterName(prev => (prev.trim() ? prev : nameToUse));
-    }
-
-    const descriptionValue = rosterDescription.trim();
+    setLoadingWorkspaceId(id);
     try {
-      if (savedRosterId) {
-        const updatePayload: Partial<RosterData> = {
-          name: nameToUse,
-          players: appState.players,
-          playerGroups: appState.playerGroups,
-          description: descriptionValue || ''
-        };
-
-        await updateRoster(savedRosterId, updatePayload, false);
-      } else {
-        if (!user) {
-          return;
-        }
-
-        const rosterPayload: Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'> = {
-          userId: user.uid,
-          name: nameToUse,
-          players: appState.players,
-          playerGroups: appState.playerGroups
-        };
-
-        if (descriptionValue) {
-          rosterPayload.description = descriptionValue;
-        }
-
-        const newRosterId = await saveRoster(rosterPayload);
-        setSavedRosterId(newRosterId);
-      }
-
-      setAutoSaveStatus('saved');
-      setLastAutoSaveAt(new Date());
-      suppressAutoSave(1000);
-
-      fetchUserRosters();
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-      setAutoSaveStatus('error');
-    } finally {
-      autoSaveInFlightRef.current = false;
-
-      if (autoSaveResetTimeoutRef.current) {
-        window.clearTimeout(autoSaveResetTimeoutRef.current);
-      }
-      autoSaveResetTimeoutRef.current = window.setTimeout(() => {
-        setAutoSaveStatus('idle');
-        autoSaveResetTimeoutRef.current = null;
-      }, 3000);
-    }
-  }, [user, dataLoaded, isSavingRoster, appState.players, appState.playerGroups, rosterName, rosterDescription, savedRosterId, suppressAutoSave, fetchUserRosters]);
-
-  const handleLoadRosterFromFirebase = useCallback(async (rosterId: string) => {
-    suppressAutoSave(1500);
-    if (!user) {
-      toast.error('Please sign in to load rosters');
-      return;
-    }
-
-    setLoadingRosterId(rosterId);
-    try {
-      const roster = await getRoster(rosterId);
-      if (!roster) {
-        toast.error('Roster could not be found');
+      const workspace = await WorkspaceService.getWorkspace(id);
+      if (!workspace) {
+        toast.error('Project not found');
         return;
       }
 
-      setAppState(prev => {
-        const execHistory = { ...prev.execRatingHistory };
-        const rosterUpdatedAt = roster.updatedAt ? new Date(roster.updatedAt).getTime() : 0;
+      setAppState(prev => ({
+        ...prev,
+        players: workspace.players || [],
+        playerGroups: workspace.playerGroups || [],
+        config: workspace.config || getDefaultConfig(),
+        teams: workspace.teams || [],
+        unassignedPlayers: workspace.unassignedPlayers || [],
+        stats: workspace.stats,
+        // We merge history? Or just keep what we have? 
+        // For now, let's assume history in current session is valuable, but maybe we should load history from workspace if we decide to save it there?
+        // The SavedWorkspace type doesn't explicitly store history in my definition above efficiently, but simple AppState usually has execHistory.
+        // Actually, my definition of SavedWorkspace missed 'execRatingHistory'.
+        // Let's just keep current history for now, or if I add it to `SavedWorkspace` later I can load it.
+      }));
 
-        // Smart Merge: Compare roster data with local history
-        (roster.players || []).forEach(player => {
-          if (player.execSkillRating !== null && player.execSkillRating !== undefined) {
-            const key = normalizeName(player.name);
-            const historyEntry = execHistory[key];
+      setCurrentWorkspaceId(workspace.id);
+      setWorkspaceName(workspace.name);
+      setWorkspaceDescription(workspace.description || '');
 
-            // If local history is newer, override the player's rating with history
-            if (historyEntry && historyEntry.updatedAt > rosterUpdatedAt) {
-              player.execSkillRating = historyEntry.rating;
-            } else {
-              // Otherwise, update history with roster's data (if roster is newer or no history)
-              // Note: If they are equal/unknown, we usually bias towards the loaded roster as it's what the user asked for
-              execHistory[key] = { rating: player.execSkillRating, updatedAt: rosterUpdatedAt };
-            }
-          } else {
-            // Player has no rating in roster, check history
-            const key = normalizeName(player.name);
-            const historyEntry = execHistory[key];
-            if (historyEntry) {
-              player.execSkillRating = historyEntry.rating;
-            }
-          }
-        });
-
-        return {
-          ...prev,
-          players: roster.players || [],
-          teams: roster.teams || [],
-          unassignedPlayers: roster.unassignedPlayers || [],
-          playerGroups: roster.playerGroups || [],
-          config: roster.teamsConfig || prev.config,
-          stats: undefined,
-          execRatingHistory: execHistory
-        };
-      });
-
-      setSavedRosterId(roster.id ?? null);
-      setRosterName(roster.name ?? '');
-      setRosterDescription(roster.description ?? '');
-      setIsManualMode(false);
-      setIsFullScreenMode(false);
-      setIsLoadRosterDialogOpen(false);
-      setRosterSearchTerm('');
-
-      if (roster.teams && roster.teams.length > 0) {
-        setActiveTab('teams');
-      } else {
-        setActiveTab('roster');
-      }
-
-      if (roster.name) {
-        toast.success('Loaded roster "' + roster.name + '"');
-      } else {
-        toast.success('Loaded roster');
-      }
-      fetchUserRosters();
+      toast.success(`Loaded project "${workspace.name}"`);
+      setIsLoadWorkspaceDialogOpen(false);
     } catch (error) {
-      console.error('Failed to load roster from Firebase:', error);
-      toast.error('Failed to load roster');
+      console.error('Failed to load project:', error);
+      toast.error('Failed to load project');
     } finally {
-      setLoadingRosterId(null);
+      setLoadingWorkspaceId(null);
     }
-  }, [user, fetchUserRosters, suppressAutoSave]);
+  }, [user]);
 
-  const filteredSavedRosters = useMemo(() => {
-    const term = rosterSearchTerm.trim().toLowerCase();
-    if (!term) {
-      return savedRosters;
+  const handleDeleteWorkspace = useCallback(async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this project?')) return;
+
+    try {
+      await WorkspaceService.deleteWorkspace(id);
+      toast.success('Project deleted');
+      if (currentWorkspaceId === id) {
+        setCurrentWorkspaceId(null);
+        setWorkspaceName('');
+      }
+      fetchUserWorkspaces();
+    } catch (error) {
+      toast.error('Failed to delete project');
     }
+  }, [currentWorkspaceId, fetchUserWorkspaces]);
 
-    return savedRosters.filter(roster => {
-      const searchSource = [
-        roster.name,
-        roster.description,
-        roster.season,
-        roster.sport,
-        Array.isArray(roster.tags) ? roster.tags.join(' ') : ''
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
 
-      return searchSource.includes(term);
-    });
-  }, [savedRosters, rosterSearchTerm]);
 
   const [activeTab, setActiveTab] = useState<string>('upload');
 
-  useEffect(() => {
-    if (!user || !dataLoaded || isSavingRoster) {
-      return;
-    }
 
-    if (autoSaveSuppressedRef.current) {
-      return;
-    }
 
-    if (appState.players.length === 0) {
-      return;
-    }
 
-    if (autoSaveTimeoutRef.current) {
-      window.clearTimeout(autoSaveTimeoutRef.current);
-    }
 
-    autoSaveTimeoutRef.current = window.setTimeout(() => {
-      autoSaveTimeoutRef.current = null;
-      void autoSaveRoster();
-    }, 1500);
-
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        window.clearTimeout(autoSaveTimeoutRef.current);
-        autoSaveTimeoutRef.current = null;
-      }
-    };
-  }, [user, dataLoaded, isSavingRoster, appState.players, appState.playerGroups, rosterName, rosterDescription, savedRosterId, autoSaveRoster]);
-
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isManualMode, setIsManualMode] = useState(false);
-  const [isFullScreenMode, setIsFullScreenMode] = useState(false);
+
   const handlePlayersLoaded = useCallback((players: Player[], playerGroups: PlayerGroup[] = []) => {
-    suppressAutoSave(1500);
     setAppState(prev => {
       const execRatingHistory = { ...prev.execRatingHistory };
 
@@ -707,10 +509,10 @@ function App() {
       }
     }
 
-    setSavedRosterId(null);
-    setRosterName('');
-    setRosterDescription('');
-  }, [suppressAutoSave]);
+    setCurrentWorkspaceId(null);
+    setWorkspaceName('');
+    setWorkspaceDescription('');
+  }, []);
 
 
 
@@ -750,7 +552,6 @@ function App() {
       return;
     }
 
-    setIsGenerating(true);
     setIsManualMode(manualMode); // Track manual mode state
 
     try {
@@ -782,8 +583,6 @@ function App() {
     } catch (error) {
       console.error('Team generation failed:', error);
       toast.error('Failed to generate teams. Please check your configuration.');
-    } finally {
-      setIsGenerating(false);
     }
   }, [appState.players, appState.config]);
 
@@ -1187,8 +986,7 @@ function App() {
     });
   }, []);
 
-  const hasPlayers = appState.players.length > 0;
-  const hasTeams = appState.teams.length > 0;
+
 
   // Reset full screen mode when switching away from teams tab
   useEffect(() => {
@@ -1222,521 +1020,485 @@ function App() {
     }
   }, [activeTab, appState.players]);
 
-  // Show tutorial landing page if user hasn't completed it
-  if (showTutorial) {
+  if (isFullScreenMode) {
     return (
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <TutorialLanding onStartApp={handleStartApp} />
-      </ErrorBoundary>
+      <FullScreenTeamBuilder
+        teams={appState.teams}
+        unassignedPlayers={appState.unassignedPlayers}
+        onExitFullScreen={() => setIsFullScreenMode(false)}
+        config={appState.config}
+        players={appState.players}
+        playerGroups={appState.playerGroups}
+        onPlayerMove={handlePlayerMove}
+        onTeamNameChange={handleTeamNameChange}
+        onTeamNameChange={handleTeamNameChange}
+        onLoadWorkspace={handleLoadWorkspace}
+        currentWorkspaceId={currentWorkspaceId}
+      />
     );
   }
 
-  return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
-        <header className="bg-white/95 backdrop-blur-xl shadow-xl border-b border-green-200">
-          <div className="w-full max-w-full xl:max-w-[1600px] 2xl:max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <img src={logoUrl} alt="TeamBuilder Logo" className="h-10 w-10" />
-                <div>
-                  <h1 className="text-4xl font-bold">
-                    <span className="text-gray-800">Team</span>
-                    <span className="text-primary">Builder</span>
-                  </h1>
-                  <p className="text-sm text-gray-600 mt-1.5">⚽ Automatically generate balanced sports teams ⚽</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {/* Sync status indicator */}
-                {user && (
-                  <div className="flex items-center gap-2 text-sm">
-                    {syncStatus === 'saving' && (
-                      <span className="text-blue-600">🔄 Saving...</span>
-                    )}
-                    {syncStatus === 'saved' && (
-                      <span className="text-green-600">✅ Saved</span>
-                    )}
-                    {syncStatus === 'error' && (
-                      <span className="text-red-600">⚠️ Offline</span>
-                    )}
-                  </div>
-                )}
+  // --- Main Render ---
 
-                {/* Auth controls */}
-                {!user ? (
-                  <Button
-                    onClick={() => setAuthDialogOpen(true)}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Users className="h-4 w-4" />
-                    Sign in to save online
-                  </Button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm text-gray-600">
-                      {user.email || 'Signed in'}
-                    </div>
-                    <Button
-                      onClick={handleSignOut}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <Users className="h-4 w-4" />
-                      Sign out
-                    </Button>
-                  </div>
-                )}
-              </div>
+  if (showTutorial) {
+    return <TutorialLanding onStartApp={handleStartApp} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-neutral-100 font-sans text-slate-800">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+
+        {/* Header Section */}
+        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
+              <img src={logoUrl} alt="TeamBuilder Logo" className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">TeamBuilder</h1>
+              <p className="text-slate-500 font-medium">Create balanced teams in seconds</p>
             </div>
           </div>
-        </header>
-        <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
-        <main className="w-full max-w-full xl:max-w-[1600px] 2xl:max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 py-8">
-          {/* Main Navigation Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-7 mb-6 bg-white/80 backdrop-blur-xl border border-green-200 shadow-lg h-auto p-1">
-              <TabsTrigger
-                value="upload"
-                data-testid="nav-upload"
-                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary font-medium transition-all"
-              >
-                <FileSpreadsheet className="h-5 w-5 sm:h-6 sm:w-6" />
-                Upload
-              </TabsTrigger>
-              <TabsTrigger
-                value="roster"
-                disabled={!hasPlayers}
-                data-testid="nav-roster"
-                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
-              >
-                <Users className="h-5 w-5 sm:h-6 sm:w-6" />
-                Roster
-              </TabsTrigger>
-              <TabsTrigger
-                value="groups"
-                disabled={!hasPlayers}
-                data-testid="nav-groups"
-                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
-              >
-                <UserCheck className="h-5 w-5 sm:h-6 sm:w-6" />
-                Groups
-              </TabsTrigger>
-              <TabsTrigger
-                value="config"
-                disabled={!hasPlayers}
-                data-testid="nav-config"
-                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
-              >
-                <Zap className="h-5 w-5 sm:h-6 sm:w-6" />
-                Generate Teams
-              </TabsTrigger>
-              <TabsTrigger
-                value="teams"
-                disabled={!hasTeams}
-                data-testid="nav-teams"
-                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
-              >
-                <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6" />
-                Teams
-              </TabsTrigger>
-              <TabsTrigger
-                value="export"
-                disabled={!hasTeams}
-                data-testid="nav-export"
-                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
-              >
-                <Download className="h-5 w-5 sm:h-6 sm:w-6" />
-                Export
-              </TabsTrigger>
-              <TabsTrigger
-                value="email"
-                disabled={!hasTeams || appState.players.filter(p => p.email).length === 0}
-                data-testid="nav-email"
-                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
-              >
-                <Users className="h-5 w-5 sm:h-6 sm:w-6" />
-                Email
-              </TabsTrigger>
-            </TabsList>
+          <div className="flex items-center gap-3">
+            {/* Sync Status */}
 
-            {/* Upload Tab */}
-            <TabsContent value="upload" className="space-y-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">🏆 Get Started</h2>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    localStorage.removeItem('tutorialCompleted');
-                    window.location.reload();
-                  }}
-                  className="flex items-center gap-2 text-secondary hover:text-secondary/80 border-green-200 hover:bg-green-50"
-                >
-                  <Play className="h-4 w-4" />
-                  View Tutorial Again
-                </Button>
-              </div>
-              <Card className="bg-white/90 backdrop-blur-xl border-green-200 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-gray-800 flex items-center gap-2">
-                    <FileSpreadsheet className="h-5 w-5 text-primary" />
-                    Upload Player Roster
-                  </CardTitle>
-                  <CardDescription className="text-gray-600">
-                    Upload a CSV or Excel file with player information to get started building your teams
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ComponentErrorBoundary componentName="CSVUploader">
-                    <CSVUploader onPlayersLoaded={handlePlayersLoaded} />
-                  </ComponentErrorBoundary>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            {/* Player Groups Tab */}
-            <TabsContent value="groups" className="space-y-6">
-              <PlayerGroups
-                playerGroups={appState.playerGroups}
-                players={appState.players}
-                onAddPlayerToGroup={handleAddPlayerToGroup}
-                onRemovePlayerFromGroup={handleRemovePlayerFromGroup}
-                onCreateNewGroup={handleCreateNewGroup}
-                onDeleteGroup={handleDeleteGroup}
-                onMergeGroups={handleMergeGroups}
-              />
-            </TabsContent>
-
-            {/* Roster Tab */}
-            <TabsContent value="roster" className="space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    localStorage.removeItem('tutorialCompleted');
-                    window.location.reload();
-                  }}
-                  className="flex items-center gap-2 text-secondary hover:text-secondary/80 border-green-200 hover:bg-green-50"
-                >
-                  <Play className="h-4 w-4" />
-                  View Tutorial Again
-                </Button>
-                <div className="flex flex-wrap items-center gap-3">
+            {/* Auth & Save Controls */}
+            {!user ? (
+              <Button
+                onClick={() => setAuthDialogOpen(true)}
+                className="bg-white hover:bg-slate-50 text-slate-700 border-b-4 border-slate-200 active:border-b-0 rounded-xl font-bold px-6 h-12 transition-all active:translate-y-1"
+              >
+                Sign In
+              </Button>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 mr-2">
                   <Button
-                    onClick={handleOpenSaveRosterDialog}
-                    className="flex items-center gap-2 bg-primary text-white hover:bg-primary/90 shadow-md"
-                    disabled={appState.players.length === 0 || isSavingRoster}
+                    onClick={handleOpenLoadWorkspaceDialog}
+                    variant="ghost"
+                    className="h-10 px-3 rounded-xl text-slate-600 hover:bg-slate-100 font-bold"
                   >
-                    <Save className="h-4 w-4" />
-                    {isSavingRoster ? 'Saving...' : savedRosterId ? 'Update Roster' : 'Save Roster'}
+                    <FolderOpen className="h-4 w-4 mr-2" /> Load Project
                   </Button>
                   <Button
-                    variant="outline"
-                    onClick={handleOpenLoadRosterDialog}
-                    className="flex items-center gap-2 border-green-200 hover:bg-green-50"
-                    disabled={!user || isFetchingRosters}
+                    onClick={handleOpenSaveWorkspaceDialog}
+                    variant="ghost"
+                    className="h-10 px-3 rounded-xl text-slate-600 hover:bg-slate-100 font-bold"
                   >
-                    <FolderOpen className="h-4 w-4" />
-                    {isFetchingRosters ? 'Loading...' : 'Load Roster'}
+                    <div className="flex items-center gap-2">
+                      <Save className="h-4 w-4 mr-2" />
+                      <span className="hidden xl:inline">Save Project</span>
+                      <span className="xl:hidden">Save</span>
+                    </div>
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleClearSavedData}
-                    className="flex items-center gap-2 text-red-500 hover:text-red-600 border-red-200 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Clear Saved Data
-                  </Button>
+
+                  {/* Auto-save Status Indicator */}
+                  {currentWorkspaceId && (
+                    <div className="text-sm font-medium transition-colors w-24 text-right">
+                      {saveStatus === 'saving' && <span className="text-slate-500 italic">Saving...</span>}
+                      {saveStatus === 'saved' && <span className="text-green-600">All saved</span>}
+                      {saveStatus === 'error' && <span className="text-red-500">Save failed</span>}
+                    </div>
+                  )}
                 </div>
-                {user && (
-                  <div className="w-full text-xs text-muted-foreground mt-1">
-                    {autoSaveStatus === 'saving' && 'Auto-saving...'}
-                    {autoSaveStatus === 'saved' && lastAutoSaveAt && ('Auto-saved at ' + lastAutoSaveAt.toLocaleTimeString())}
-                    {autoSaveStatus === 'error' && (
-                      <span className="text-red-500">Auto-save failed. Changes are stored locally.</span>
-                    )}
+
+                <div className="bg-white px-4 h-12 flex items-center gap-3 rounded-xl border border-slate-200 shadow-sm hidden md:flex">
+                  <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <UserCheck className="h-4 w-4 text-primary" />
                   </div>
-                )}
+                  <div>
+                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Logged in as</div>
+                    <div className="text-sm font-bold text-slate-800 leading-none">{user.displayName || user.email}</div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSignOut}
+                  variant="ghost"
+                  className="h-12 w-12 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
               </div>
-              <ComponentErrorBoundary componentName="PlayerRoster">
-                <PlayerRoster
-                  players={appState.players}
-                  onPlayerUpdate={handlePlayerUpdate}
-                  onPlayerAdd={handlePlayerAdd}
-                  onPlayerRemove={handlePlayerRemove}
-                />
-              </ComponentErrorBoundary>
+            )}
+          </div>
+        </header>
 
-              <Dialog
-                open={isSaveRosterDialogOpen}
-                onOpenChange={open => {
-                  if (!isSavingRoster) {
-                    setIsSaveRosterDialogOpen(open);
-                  }
-                }}
-              >
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>{savedRosterId ? 'Update Roster' : 'Save Roster'}</DialogTitle>
-                    <DialogDescription>
-                      Name your roster so you can find it again quickly. You can update it later.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="roster-name">Roster name</Label>
-                      <Input
-                        id="roster-name"
-                        value={rosterName}
-                        onChange={event => setRosterName(event.target.value)}
-                        placeholder="e.g. 2025 Fall Indoor League"
-                        disabled={isSavingRoster}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="roster-description">Description (optional)</Label>
-                      <Input
-                        id="roster-description"
-                        value={rosterDescription}
-                        onChange={event => setRosterDescription(event.target.value)}
-                        placeholder="Add a short note to quickly identify this roster"
-                        disabled={isSavingRoster}
-                      />
-                    </div>
+        {/* Main Content Area */}
+        {/* Main Content Area */}
+        <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
+
+
+
+          {/* Right Column: Workspace */}
+          <div className="space-y-6">
+
+            {/* Tabs Navigation */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="bg-slate-200/50 p-1 rounded-2xl w-full flex mb-6">
+                <TabsTrigger
+                  value="upload"
+                  className="flex-1 rounded-xl py-3 font-bold text-slate-600 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
+                >
+                  Data Source
+                </TabsTrigger>
+                <TabsTrigger
+                  value="config"
+                  className="flex-1 rounded-xl py-3 font-bold text-slate-600 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
+                >
+                  Config
+                </TabsTrigger>
+                <TabsTrigger
+                  value="roster"
+                  className="flex-1 rounded-xl py-3 font-bold text-slate-600 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
+                >
+                  Player Roster
+                  {appState.players.length > 0 && (
+                    <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
+                      {appState.players.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="teams"
+                  className="flex-1 rounded-xl py-3 font-bold text-slate-600 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
+                >
+                  Teams
+                  {appState.teams.length > 0 && (
+                    <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
+                      {appState.teams.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="config" className="space-y-6 focus-visible:outline-none">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="p-8 border-b border-slate-100">
+                    <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-3">
+                      <div className="h-10 w-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500">
+                        <BarChart3 className="h-5 w-5" />
+                      </div>
+                      Configuration
+                    </h2>
+                    <p className="text-slate-500 mt-2 ml-14">Adjust team settings and balancing rules.</p>
                   </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsSaveRosterDialogOpen(false)}
-                      disabled={isSavingRoster}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSaveRosterToFirebase}
-                      disabled={isSavingRoster || !rosterName.trim()}
-                    >
-                      {isSavingRoster ? 'Saving...' : savedRosterId ? 'Update Roster' : 'Save Roster'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog
-                open={isLoadRosterDialogOpen}
-                onOpenChange={open => {
-                  if (!loadingRosterId) {
-                    setIsLoadRosterDialogOpen(open);
-                    if (!open) {
-                      setRosterSearchTerm('');
-                    }
-                  }
-                }}
-              >
-                <DialogContent className="sm:max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle>Load Saved Roster</DialogTitle>
-                    <DialogDescription>
-                      Choose a roster you've saved to Firebase to replace the current roster.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="roster-search">Search</Label>
-                      <Input
-                        id="roster-search"
-                        value={rosterSearchTerm}
-                        onChange={event => setRosterSearchTerm(event.target.value)}
-                        placeholder="Search by name, season, or sport"
-                        disabled={isFetchingRosters}
+                  <div className="p-8">
+                    <ErrorBoundary FallbackComponent={ErrorFallback}>
+                      <ConfigurationPanel
+                        config={appState.config}
+                        onConfigChange={handleConfigChange}
+                        playerCount={appState.players.length}
+                        players={appState.players}
                       />
+                    </ErrorBoundary>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="upload" className="space-y-6 focus-visible:outline-none">
+                <div className="bg-white rounded-2xl p-8 border border-slate-200 text-center shadow-sm">
+                  <div className="max-w-xl mx-auto space-y-6">
+                    <div className="h-20 w-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto text-blue-500 mb-4">
+                      <FileSpreadsheet className="h-10 w-10" />
                     </div>
-                    <div className="max-h-64 overflow-y-auto rounded-md border divide-y">
-                      {isFetchingRosters && savedRosters.length === 0 ? (
-                        <div className="py-6 text-center text-sm text-muted-foreground">
-                          Loading saved rosters...
+                    <h2 className="text-2xl font-extrabold text-slate-800">Upload Your Roster</h2>
+                    <p className="text-slate-500 text-lg">
+                      Drag and drop your CSV file here, or paste your data directly. We'll handle the parsing and validation.
+                    </p>
+
+                    <div id="csv-upload-trigger">
+                      <CSVUploader onPlayersLoaded={handlePlayersLoaded} />
+                    </div>
+
+                    <div className="pt-8 border-t border-slate-100 mt-8">
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Or load a saved project</h3>
+
+                      {!user ? (
+                        <div className="p-4 bg-slate-50 rounded-xl text-slate-500">
+                          Sign in to see your saved projects
                         </div>
-                      ) : filteredSavedRosters.length === 0 ? (
-                        <div className="py-6 text-center text-sm text-muted-foreground">
-                          {rosterSearchTerm
-                            ? 'No saved rosters match your search.'
-                            : 'No saved rosters yet.'}
+                      ) : savedWorkspaces.length === 0 ? (
+                        <div className="p-4 bg-slate-50 rounded-xl text-slate-500">
+                          No saved projects found
                         </div>
                       ) : (
-                        filteredSavedRosters.map(roster => {
-                          const rosterId = roster.id;
-                          const isLoadingThisRoster = rosterId ? loadingRosterId === rosterId : false;
-                          const updatedLabel = roster.updatedAt
-                            ? 'Updated ' + roster.updatedAt.toLocaleDateString()
-                            : undefined;
-                          const playersLabel = (roster.metadata?.totalPlayers ?? 0) + ' players';
-                          return (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {savedWorkspaces.slice(0, 4).map(ws => (
                             <button
-                              key={rosterId || roster.name}
-                              type="button"
-                              onClick={() => rosterId && handleLoadRosterFromFirebase(rosterId)}
-                              disabled={!rosterId || isLoadingThisRoster}
-                              className="w-full px-4 py-3 text-left hover:bg-muted transition disabled:opacity-60"
+                              key={ws.id}
+                              onClick={() => handleLoadWorkspace(ws.id)}
+                              className="flex items-center p-3 bg-white border-2 border-slate-100 hover:border-primary/50 hover:bg-primary/5 rounded-xl transition-all group"
                             >
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="space-y-1">
-                                  <div className="text-sm font-medium text-foreground">
-                                    {roster.name || 'Untitled roster'}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
-                                    <span>{playersLabel}</span>
-                                    {roster.season && <span>• {roster.season}</span>}
-                                    {roster.sport && <span>• {roster.sport}</span>}
-                                    {updatedLabel && <span>• {updatedLabel}</span>}
-                                  </div>
-                                </div>
-                                <div className="text-xs font-medium text-muted-foreground">
-                                  {isLoadingThisRoster ? 'Loading…' : 'Load'}
-                                </div>
+                              <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-primary transition-colors">
+                                <FolderOpen className="h-5 w-5" />
+                              </div>
+                              <div className="ml-3 text-left overflow-hidden">
+                                <div className="font-bold text-slate-700 truncate">{ws.name}</div>
+                                <div className="text-xs text-slate-400">{new Date(ws.updatedAt).toLocaleDateString()}</div>
                               </div>
                             </button>
-                          );
-                        })
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsLoadRosterDialogOpen(false);
-                        setRosterSearchTerm('');
-                      }}
-                      disabled={loadingRosterId !== null}
-                    >
-                      Close
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </TabsContent>
+                </div>
+              </TabsContent>
 
-            {/* Generate Teams Tab */}
-            <TabsContent value="config" className="space-y-6">
-              <Card className="bg-white/90 backdrop-blur-xl border-green-200 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-gray-800 flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-primary" />
-                    Team Generation Settings
-                  </CardTitle>
-                  <CardDescription className="text-gray-600">
-                    Configure team size limits and gender requirements for fair, balanced teams
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ConfigurationPanel
-                    config={appState.config}
-                    onConfigChange={handleConfigChange}
-                    playerCount={appState.players.length}
-                    players={appState.players}
-                  />
-                </CardContent>
-              </Card>
+              <TabsContent value="roster" className="space-y-6 focus-visible:outline-none">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[600px]">
+                  <ErrorBoundary FallbackComponent={ErrorFallback}>
+                    <PlayerRoster
+                      players={appState.players}
+                      onPlayerUpdate={handlePlayerUpdate}
+                      onPlayerRemove={handlePlayerRemove}
+                      onPlayerAdd={handlePlayerAdd}
+                    />
+                  </ErrorBoundary>
+                </div>
 
-              {/* Generate Teams Section */}
-              <Card className="bg-white/90 backdrop-blur-xl border-green-200 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-gray-800 flex items-center gap-2">
-                    ⚡ Generate Teams
-                  </CardTitle>
-                  <CardDescription className="text-gray-600">
-                    Create balanced teams based on your configuration and player constraints
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {appState.playerGroups.length > 0 && (
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="text-lg font-extrabold text-slate-700 mb-4">Player Groups</h3>
+                    <PlayerGroups
+                      playerGroups={appState.playerGroups}
+                      players={appState.players}
+                      onAddPlayerToGroup={handleAddPlayerToGroup}
+                      onRemovePlayerFromGroup={handleRemovePlayerFromGroup}
+                      onCreateNewGroup={handleCreateNewGroup}
+                      onDeleteGroup={handleDeleteGroup}
+                      onMergeGroups={handleMergeGroups}
+                    />
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="teams" className="space-y-6 focus-visible:outline-none">
+                {appState.teams.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-slate-200">
+                    <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-6">
+                      <Users className="h-10 w-10" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-700 mb-2">No Teams Generated Yet</h3>
+                    <p className="text-slate-500 mb-8 max-w-md mx-auto">
+                      Upload your roster and configure your settings to generate balanced teams instantly.
+                    </p>
                     <Button
                       onClick={() => handleGenerateTeams(false)}
-                      disabled={isGenerating || !hasPlayers}
-                      className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg"
                       size="lg"
+                      className="bg-primary hover:bg-primary/90 text-white border-b-4 border-primary-shadow active:border-b-0 rounded-xl font-bold px-8 h-14 text-lg transition-all active:translate-y-1"
                     >
-                      <Zap className="h-4 w-4" />
-                      {isGenerating ? 'Generating...' : '🏆 Balanced Teams'}
-                    </Button>
-
-                    <Button
-                      onClick={() => handleGenerateTeams(true)}
-                      disabled={isGenerating || !hasPlayers}
-                      variant="outline"
-                      className="flex items-center gap-2 border-secondary text-secondary hover:bg-secondary hover:text-white"
-                      size="lg"
-                    >
-                      <Shuffle className="h-4 w-4" />
-                      🎲 Random Teams
-                    </Button>
-
-                    <Button
-                      onClick={() => handleGenerateTeams(false, true)}
-                      disabled={isGenerating || !hasPlayers}
-                      variant="outline"
-                      className="flex items-center gap-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white"
-                      size="lg"
-                    >
-                      <MousePointer className="h-4 w-4" />
-                      ⚡ Manual Teams
+                      Generate Teams Now
                     </Button>
                   </div>
+                ) : (
+                  <div className="space-y-6">
+                    {teamsView === 'landing' ? (
+                      <div className="space-y-8 py-8">
+                        <div className="text-center space-y-2">
+                          <h2 className="text-3xl font-extrabold text-slate-800">Select Workspace</h2>
+                          <p className="text-slate-500 max-w-lg mx-auto">
+                            Choose between the interactive Team Builder for drag-and-drop adjustments, or view Exports & Reports.
+                          </p>
+                        </div>
 
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-gray-700">
-                      <strong>🏆 Balanced Teams:</strong> Honors teammate/avoid requests and balances skill levels
-                      <br />
-                      <strong>🎲 Random Teams:</strong> Ignores preferences and randomly distributes players
-                      <br />
-                      <strong>⚡ Manual Teams:</strong> Creates empty teams with groups pre-assigned, drag individual players
-                    </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
+                          {/* Team Builder Card */}
+                          <div
+                            onClick={() => setIsFullScreenMode(true)}
+                            className="group bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 hover:-translate-y-1 transition-all cursor-pointer flex flex-col items-center text-center"
+                          >
+                            <div className="h-20 w-20 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-100 transition-colors">
+                              <LayoutGrid className="h-10 w-10 text-indigo-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-800 mb-3">Team Builder</h3>
+                            <p className="text-slate-500 mb-8 leading-relaxed">
+                              Interactive workspace to drag-and-drop players, manage unassigned pool, and balance teams visually.
+                            </p>
+                            <div className="mt-auto font-bold text-indigo-600 flex items-center group-hover:gap-2 transition-all">
+                              ENTER WORKSPACE <ArrowRight className="h-4 w-4 ml-2" />
+                            </div>
+                          </div>
+
+                          {/* Exports Card */}
+                          <div
+                            onClick={() => setTeamsView('exports')}
+                            className="group bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-green-200 hover:-translate-y-1 transition-all cursor-pointer flex flex-col items-center text-center"
+                          >
+                            <div className="h-20 w-20 bg-green-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-green-100 transition-colors">
+                              <FileText className="h-10 w-10 text-green-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-800 mb-3">Exports & Reports</h3>
+                            <p className="text-slate-500 mb-8 leading-relaxed">
+                              Download CSVs for spreadsheets, generate summary reports, and view detailed team statistics.
+                            </p>
+                            <div className="mt-auto font-bold text-green-600 flex items-center group-hover:gap-2 transition-all">
+                              VIEW EXPORTS <ArrowRight className="h-4 w-4 ml-2" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-center mt-8">
+                          <Button
+                            onClick={() => handleGenerateTeams(false)}
+                            variant="outline"
+                            className="border-2 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold"
+                          >
+                            <Shuffle className="h-4 w-4 mr-2" /> Re-Balance Teams
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-4">
+                          <Button
+                            variant="ghost"
+                            onClick={() => setTeamsView('landing')}
+                            className="text-slate-500 hover:text-slate-800"
+                          >
+                            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workspace
+                          </Button>
+                          <h2 className="text-2xl font-extrabold text-slate-800">Exports & Reports</h2>
+                        </div>
+
+                        <ExportPanel
+                          teams={appState.teams}
+                          unassignedPlayers={appState.unassignedPlayers}
+                          stats={appState.stats}
+                          config={appState.config}
+                          playerGroups={appState.playerGroups}
+                        />
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Teams Tab */}
-            <TabsContent value="teams" className="h-[calc(100vh-120px)]">
-              <FullScreenTeamBuilder
-                teams={appState.teams}
-                unassignedPlayers={appState.unassignedPlayers}
-                config={appState.config}
-                onPlayerMove={handlePlayerMove}
-                onTeamNameChange={handleTeamNameChange}
-                players={appState.players}
-                playerGroups={appState.playerGroups}
-                onExitFullScreen={() => setActiveTab('config')}
-                onLoadTeams={handleLoadTeams}
-                rosterId={appState.config?.name}
-              />
-            </TabsContent>
-
-            {/* Export Tab */}
-            <TabsContent value="export" className="space-y-6">
-              <ExportPanel
-                teams={appState.teams}
-                unassignedPlayers={appState.unassignedPlayers}
-                config={appState.config}
-                stats={appState.stats}
-                playerGroups={appState.playerGroups}
-              />
-            </TabsContent>
-
-            {/* Email Tab */}
-            <TabsContent value="email" className="space-y-6">
-              <PlayerEmail
-                teams={appState.teams}
-                unassignedPlayers={appState.unassignedPlayers}
-              />
-            </TabsContent>
-          </Tabs>
-        </main>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
+
+      {/* Dialogs */}
+      <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
+
+      <Dialog open={isSaveWorkspaceDialogOpen} onOpenChange={setIsSaveWorkspaceDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-extrabold text-slate-800">Save Project</DialogTitle>
+            <DialogDescription>Save your entire workspace (players, teams, and settings) to the cloud.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="ws-name" className="font-bold text-slate-700">Project Name</Label>
+              <Input
+                id="ws-name"
+                value={workspaceName}
+                onChange={(e) => setWorkspaceName(e.target.value)}
+                placeholder="e.g., Summer Tournament 2024"
+                className="rounded-xl border-2 border-slate-200 focus-visible:ring-primary"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ws-desc" className="font-bold text-slate-700">Description (Optional)</Label>
+              <Input
+                id="ws-desc"
+                value={workspaceDescription}
+                onChange={(e) => setWorkspaceDescription(e.target.value)}
+                placeholder="Notes about this session..."
+                className="rounded-xl border-2 border-slate-200 focus-visible:ring-primary"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsSaveWorkspaceDialogOpen(false)} className="rounded-xl font-bold">Cancel</Button>
+            <Button
+              onClick={handleSaveWorkspace}
+              disabled={isSavingWorkspace}
+              className="bg-primary hover:bg-primary/90 text-white rounded-xl font-bold"
+            >
+              {isSavingWorkspace ? 'Saving...' : 'Save Project'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isLoadWorkspaceDialogOpen} onOpenChange={setIsLoadWorkspaceDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] rounded-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-extrabold text-slate-800">Load Project</DialogTitle>
+            <DialogDescription>Select a previously saved workspace to restore.</DialogDescription>
+            <div className="relative mt-2">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FolderOpen className="h-4 w-4 text-slate-400" />
+              </div>
+              <Input
+                placeholder="Search projects..."
+                className="pl-10 rounded-xl bg-slate-50 border-slate-200"
+                value={workspaceSearchTerm}
+                onChange={(e) => setWorkspaceSearchTerm(e.target.value)}
+              />
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto min-h-[300px] py-2 space-y-2">
+            {isFetchingWorkspaces ? (
+              <div className="flex items-center justify-center h-40">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : savedWorkspaces.length === 0 ? (
+              <div className="text-center py-10 text-slate-500">
+                No saved projects found.
+              </div>
+            ) : (
+              savedWorkspaces
+                .filter(ws => ws.name.toLowerCase().includes(workspaceSearchTerm.toLowerCase()))
+                .map(ws => (
+                  <button
+                    key={ws.id}
+                    onClick={() => handleLoadWorkspace(ws.id)}
+                    disabled={loadingWorkspaceId === ws.id}
+                    className="w-full flex items-center p-4 bg-white border border-slate-100 hover:border-primary/30 hover:bg-slate-50 rounded-xl transition-all group text-left relative"
+                  >
+                    <div className="h-12 w-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 group-hover:bg-primary group-hover:text-white transition-colors">
+                      <FolderOpen className="h-6 w-6" />
+                    </div>
+                    <div className="ml-4 flex-1">
+                      <div className="font-bold text-slate-800 flex items-center gap-2">
+                        {ws.name}
+                      </div>
+                      <div className="text-sm text-slate-500 line-clamp-1">{ws.description}</div>
+                      <div className="text-xs text-slate-400 mt-1 flex gap-3">
+                        <span>{new Date(ws.updatedAt).toLocaleDateString()}</span>
+                        <span>•</span>
+                        <span>{ws.players?.length || 0} players</span>
+                        <span>•</span>
+                        <span>{ws.teams?.length || 0} teams</span>
+                      </div>
+                    </div>
+
+                    <div className="absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50"
+                        onClick={(e) => handleDeleteWorkspace(ws.id, e)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </button>
+                ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
       <Analytics />
-    </ErrorBoundary>
+    </div>
   );
 }
 

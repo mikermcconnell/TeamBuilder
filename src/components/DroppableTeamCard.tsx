@@ -50,7 +50,7 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
     // Stats
     const playerCount = team.players.length;
     const isOverCapacity = playerCount > config.maxTeamSize;
-    const isUnderCapacity = playerCount < config.maxTeamSize - 2;
+
 
     const totalSkill = team.players.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
     const avgSkill = playerCount > 0 ? (totalSkill / playerCount).toFixed(1) : '--';
@@ -73,23 +73,23 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
         maleCount < config.minMales;
 
     // Status Color
-    let statusColor = 'border-slate-200 bg-white hover:shadow-md hover:border-slate-300';
-    if (isOver) statusColor = 'border-indigo-400 ring-2 ring-indigo-50 shadow-md transform scale-[1.01]';
-    else if (isOverCapacity) statusColor = 'border-red-200 bg-red-50/10';
-    else if (genderIssues) statusColor = 'border-orange-200 bg-orange-50/10';
+    let statusColor = 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-primary/30';
+    if (isOver) statusColor = 'border-primary ring-2 ring-primary/20 shadow-xl transform scale-[1.02] z-10';
+    else if (isOverCapacity) statusColor = 'border-red-200 bg-red-50/30';
+    else if (genderIssues) statusColor = 'border-orange-200 bg-orange-50/30';
 
     // Skill Color
     const getSkillColor = (val: number) => {
-        if (val >= 8.0) return 'text-emerald-600 bg-emerald-50 border-emerald-100';
-        if (val >= 5.0) return 'text-amber-600 bg-amber-50 border-amber-100';
-        return 'text-red-600 bg-red-50 border-red-100';
+        if (val >= 8.0) return 'text-emerald-700 bg-emerald-100 border-emerald-200';
+        if (val >= 5.0) return 'text-amber-700 bg-amber-100 border-amber-200';
+        return 'text-red-700 bg-red-100 border-red-200';
     };
 
     const avgSkillValue = parseFloat(avgSkill);
-    const skillColorClass = !isNaN(avgSkillValue) ? getSkillColor(avgSkillValue) : 'text-slate-500 bg-slate-50 border-slate-100';
+    const skillColorClass = !isNaN(avgSkillValue) ? getSkillColor(avgSkillValue) : 'text-slate-500 bg-slate-100 border-slate-200';
 
     return (
-        <Card className={`relative h-full flex flex-col transition-all duration-300 rounded-xl border shadow-sm group ${statusColor}`}>
+        <Card className={`relative h-full flex flex-col transition-all duration-300 rounded-2xl border-2 border-b-4 shadow-sm group ${statusColor}`}>
             <CardHeader className="p-3 pb-2 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                     {isEditing ? (

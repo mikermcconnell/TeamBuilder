@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Player, Gender, getEffectiveSkillRating } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -14,12 +14,26 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Users,
   Download,
   Plus,
   Trash2,
   UserMinus,
-  UserCheck
+  UserCheck,
+  MoreVertical,
+  Search,
+  Settings2,
+  Zap,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
@@ -40,6 +54,18 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
   // State
   const [filters, setFilters] = useState<RosterFilterState>(initialFilterState);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set());
+  const [columnVisibility, setColumnVisibility] = useState({
+    select: true,
+    name: true,
+    gender: true,
+    skill: true,
+    exec: true,
+    group: true,
+    isHandler: true,
+    teammates: true,
+    avoid: true,
+    actions: true
+  });
 
   // Dialog states
   const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
@@ -315,34 +341,57 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{players.length}</div>
-            <div className="text-sm text-gray-600">Total Players</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-lg font-semibold text-green-600">
-              {getGenderStats.M}M / {getGenderStats.F}F
+      {/* Stats Cards Dashboard */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 px-8">
+        {/* Total Players */}
+        <Card className="border-b-4 border-blue-200 shadow-sm hover:translate-y-[-2px] transition-transform">
+          <CardContent className="p-6 flex flex-col items-center justify-center h-full">
+            <div className="bg-blue-100 p-3 rounded-full mb-2">
+              <Users className="h-6 w-6 text-blue-500" />
             </div>
-            <div className="text-sm text-gray-600">Gender Split</div>
+            <div className="text-3xl font-extrabold text-blue-600">{players.length}</div>
+            <div className="text-xs font-bold text-blue-400 uppercase tracking-wider mt-1">Total Athletes</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-600">{getSkillStats.avg}</div>
-            <div className="text-sm text-gray-600">Avg Skill Rating</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-lg font-semibold text-orange-600">
-              {getSkillStats.min} - {getSkillStats.max}
+
+        {/* Gender Split */}
+        <Card className="border-b-4 border-pink-200 shadow-sm hover:translate-y-[-2px] transition-transform">
+          <CardContent className="p-6 flex flex-col items-center justify-center h-full">
+            <div className="flex items-end gap-3 mb-2">
+              <div className="flex flex-col items-center">
+                <span className="text-xl font-black text-blue-500">{getGenderStats.M}</span>
+                <span className="text-[10px] font-bold text-blue-300 uppercase">Men</span>
+              </div>
+              <div className="h-8 w-px bg-slate-200 mx-1"></div>
+              <div className="flex flex-col items-center">
+                <span className="text-xl font-black text-pink-500">{getGenderStats.F}</span>
+                <span className="text-[10px] font-bold text-pink-300 uppercase">Women</span>
+              </div>
             </div>
-            <div className="text-sm text-gray-600">Skill Range</div>
+            <div className="text-xs font-bold text-pink-400 uppercase tracking-wider mt-1">Gender Split</div>
+          </CardContent>
+        </Card>
+
+        {/* Avg Skill */}
+        <Card className="border-b-4 border-purple-200 shadow-sm hover:translate-y-[-2px] transition-transform">
+          <CardContent className="p-6 flex flex-col items-center justify-center h-full">
+            <div className="bg-purple-100 p-3 rounded-full mb-2">
+              <Zap className="h-6 w-6 text-purple-500" />
+            </div>
+            <div className="text-3xl font-extrabold text-purple-600">{getSkillStats.avg}</div>
+            <div className="text-xs font-bold text-purple-400 uppercase tracking-wider mt-1">Avg Skill</div>
+          </CardContent>
+        </Card>
+
+        {/* Skill Range */}
+        <Card className="border-b-4 border-orange-200 shadow-sm hover:translate-y-[-2px] transition-transform">
+          <CardContent className="p-6 flex flex-col items-center justify-center h-full">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-lg">{getSkillStats.min}</span>
+              <span className="text-orange-300 font-bold">-</span>
+              <span className="text-xl font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-lg">{getSkillStats.max}</span>
+            </div>
+            <div className="text-xs font-bold text-orange-400 uppercase tracking-wider mt-1">Skill Range</div>
           </CardContent>
         </Card>
       </div>
@@ -350,146 +399,203 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
       {/* Skill Distribution Chart */}
       <SkillDistributionChart players={players} />
 
-      {/* Main Content */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Player Roster
-                <Badge variant="secondary" className="ml-2">
-                  {filteredPlayers.length} / {players.length}
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                Manage your team roster, filter players, and analyze skills.
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Dialog open={isAddPlayerOpen} onOpenChange={setIsAddPlayerOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="default">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Player
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Add New Player</DialogTitle>
-                    <DialogDescription>Add a new player to your roster manually.</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="name">Name *</Label>
-                      <Input
-                        id="name"
-                        value={newPlayer.name}
-                        onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
-                        placeholder="Enter player name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="gender">Gender</Label>
-                      <Select value={newPlayer.gender} onValueChange={(value: Gender) => setNewPlayer({ ...newPlayer, gender: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="M">Male</SelectItem>
-                          <SelectItem value="F">Female</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="skill">Skill Rating (0-10)</Label>
-                      <Input
-                        id="skill"
-                        type="number"
-                        min="0"
-                        max="10"
-                        step="0.1"
-                        value={newPlayer.skillRating}
-                        onChange={(e) => setNewPlayer({ ...newPlayer, skillRating: parseFloat(e.target.value) || 5 })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email (Optional)</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={newPlayer.email}
-                        onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
-                        placeholder="player@example.com"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="teammates">Teammate Requests (Optional)</Label>
-                      <Textarea
-                        id="teammates"
-                        value={newPlayer.teammateRequests}
-                        onChange={(e) => setNewPlayer({ ...newPlayer, teammateRequests: e.target.value })}
-                        placeholder="Comma-separated list of player names"
-                        rows={2}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="avoid">Avoid Requests (Optional)</Label>
-                      <Textarea
-                        id="avoid"
-                        value={newPlayer.avoidRequests}
-                        onChange={(e) => setNewPlayer({ ...newPlayer, avoidRequests: e.target.value })}
-                        placeholder="Comma-separated list of player names"
-                        rows={2}
-                      />
-                    </div>
+      {/* Main Content: Toolbar & Table */}
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+
+        {/* Toolbar */}
+        <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-50/50">
+
+          {/* Search & Stats Summary */}
+          <div className="flex-1 w-full md:w-auto relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+            <Input
+              placeholder="Search players..."
+              className="pl-10 bg-white border-slate-200 focus-visible:ring-primary rounded-xl"
+              value={filters.search}
+              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <RosterFilters
+              filters={filters}
+              onFilterChange={setFilters}
+              skillGroups={['Elite', 'Good', 'Mid', 'Beginner', 'Learning']}
+            />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-xl border-2 border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[150px]">
+                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {Object.keys(columnVisibility).map((key) => {
+                  if (key === 'select' || key === 'actions') return null;
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={key}
+                      className="capitalize"
+                      checked={columnVisibility[key as keyof typeof columnVisibility]}
+                      onCheckedChange={(checked) =>
+                        setColumnVisibility((prev) => ({ ...prev, [key]: checked }))
+                      }
+                    >
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div className="h-6 w-px bg-slate-200 mx-1"></div>
+
+            <Dialog open={isAddPlayerOpen} onOpenChange={setIsAddPlayerOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90 text-white border-b-4 border-primary-shadow active:border-b-0 rounded-xl font-bold transition-all active:translate-y-1">
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Add Player</span>
+                  <span className="sm:hidden">Add</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                {/* ... (Dialog Content - Keeping existing logic but ensuring it matches) ... */}
+                <DialogHeader>
+                  <DialogTitle>Add New Player</DialogTitle>
+                  <DialogDescription>Add a new player to your roster manually.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Name *</Label>
+                    <Input
+                      id="name"
+                      value={newPlayer.name}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
+                      placeholder="Enter player name"
+                    />
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsAddPlayerOpen(false)}>Cancel</Button>
-                    <Button onClick={handleAddPlayer}>Add Player</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  <div>
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select value={newPlayer.gender} onValueChange={(value: Gender) => setNewPlayer({ ...newPlayer, gender: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">Male</SelectItem>
+                        <SelectItem value="F">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="skill">Skill Rating (0-10)</Label>
+                    <Input
+                      id="skill"
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.1"
+                      value={newPlayer.skillRating}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, skillRating: parseFloat(e.target.value) || 5 })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email (Optional)</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={newPlayer.email}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
+                      placeholder="player@example.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="teammates">Teammate Requests (Optional)</Label>
+                    <Textarea
+                      id="teammates"
+                      value={newPlayer.teammateRequests}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, teammateRequests: e.target.value })}
+                      placeholder="Comma-separated list of player names"
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="avoid">Avoid Requests (Optional)</Label>
+                    <Textarea
+                      id="avoid"
+                      value={newPlayer.avoidRequests}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, avoidRequests: e.target.value })}
+                      placeholder="Comma-separated list of player names"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAddPlayerOpen(false)}>Cancel</Button>
+                  <Button onClick={handleAddPlayer}>Add Player</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-              <Button variant="outline" onClick={handleExportRosters} disabled={players.length === 0}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-
-              {onPlayerRemove && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-xl border-2 border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg border-2 border-slate-100">
+                <DropdownMenuLabel>Roster Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleExportRosters} disabled={players.length === 0} className="cursor-pointer">
+                  <Download className="h-4 w-4 mr-2" /> Export to CSV
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <Dialog open={isDeleteAllOpen} onOpenChange={setIsDeleteAllOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="destructive" disabled={players.length === 0}>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete All
-                    </Button>
+                    <div className="w-full"> {/* Trigger wrapper */}
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        disabled={players.length === 0}
+                        className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" /> Delete All
+                      </DropdownMenuItem>
+                    </div>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                      <DialogTitle>Delete All Players</DialogTitle>
-                      <DialogDescription>
-                        Are you sure you want to delete all {players.length} players? This cannot be undone.
+                      <div className="flex items-center gap-2 text-red-600 mb-2">
+                        <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                          <AlertTriangle className="h-6 w-6" />
+                        </div>
+                        <DialogTitle className="text-xl">Delete All Players?</DialogTitle>
+                      </div>
+                      <DialogDescription className="text-base pt-2">
+                        This will permanently delete <span className="font-bold text-foreground">{players.length} players</span> from your roster.
+                        <br /><br />
+                        This action cannot be undone. Are you absolutely sure?
                       </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsDeleteAllOpen(false)}>Cancel</Button>
-                      <Button variant="destructive" onClick={handleDeleteAllPlayers}>Delete All</Button>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                      <Button variant="outline" onClick={() => setIsDeleteAllOpen(false)} className="h-10 rounded-xl font-bold">Cancel</Button>
+                      <Button variant="destructive" onClick={handleDeleteAllPlayers} className="h-10 rounded-xl font-bold bg-red-600 hover:bg-red-700">
+                        Yes, Delete All
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-              )}
-            </div>
-          </div>
-        </CardHeader>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-        <CardContent className="space-y-6">
+          </div>
+        </div>
+
+        <div className="p-0">
           {/* Filters */}
-          <RosterFilters
-            filters={filters}
-            onFilterChange={setFilters}
-            skillGroups={['Elite', 'Good', 'Mid', 'Beginner', 'Learning']}
-          />
+
 
           {/* Bulk Actions Bar */}
           {selectedPlayerIds.size > 0 && (
@@ -521,9 +627,10 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
             getSkillGroup={getSkillGroup}
             getSkillGroupInfo={getSkillGroupInfo}
             getSkillGradientStyle={getSkillGradientStyle}
+            columnVisibility={columnVisibility}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
 
 
@@ -685,6 +792,6 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }
