@@ -1,4 +1,4 @@
-import { Player, Team, LeagueConfig, TeamGenerationStats, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import { Player, Team, LeagueConfig, TeamGenerationStats, PlayerGroup } from '@/types';
 import { fuzzyMatcher } from './fuzzyNameMatcher';
 
 export interface GenerationResult {
@@ -100,45 +100,47 @@ function generateRandomTeams(
   // Create constraint groups but then assign them randomly
   const constraintGroups = createConstraintGroups(players, [], playerGroups); // No mutual pairs in random mode
   const shuffledGroups = [...constraintGroups].sort(() => Math.random() - 0.5);
-  
+
   const targetTeams = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
-  
+
   const teams: Team[] = [];
   for (let i = 0; i < targetTeams; i++) {
     teams.push(createEmptyTeam(`Team ${i + 1}`));
   }
-  
+
   const unassignedPlayers: Player[] = [];
-  
+
   for (const group of shuffledGroups) {
     const availableTeams = teams.filter(team => {
       // Check if team can accommodate the entire group
       if (team.players.length + group.length > config.maxTeamSize) return false;
-      
+
       // Check gender requirements for all players in the group
       if (!group.every(player => wouldMeetGenderRequirements(team, player, config))) return false;
-      
+
       // Check avoid constraints for all players in the group
       if (group.some(player => hasAvoidConflict(player, team, playerMap))) return false;
-      
+
       return true;
     });
-    
+
     if (availableTeams.length > 0) {
       const randomTeam = availableTeams[Math.floor(Math.random() * availableTeams.length)];
-      
-      // Assign entire group to the selected team
-      for (const player of group) {
-        player.teamId = randomTeam.id;
-        randomTeam.players.push(player);
+
+      if (randomTeam) {
+        // Assign entire group to the selected team
+        for (const player of group) {
+          player.teamId = randomTeam.id;
+          randomTeam.players.push(player);
+        }
+        updateTeamStats(randomTeam);
       }
-      updateTeamStats(randomTeam);
     } else {
       // If group can't be placed together, add all to unassigned
       unassignedPlayers.push(...group);
     }
   }
-  
+
   const stats = calculateStats(players, teams, unassignedPlayers, [], playerGroups, startTime);
 
   return {
@@ -187,18 +189,18 @@ function findMutualTeammateRequests(
 ): [Player, Player][] {
   const pairs: [Player, Player][] = [];
   const processed = new Set<string>();
-  
+
   for (const player of players) {
     if (processed.has(player.id)) continue;
-    
+
     for (const requestedName of player.teammateRequests) {
       const requestedPlayer = playerMap.get(requestedName.toLowerCase());
-      
-      if (requestedPlayer && 
-          !processed.has(requestedPlayer.id) &&
-          requestedPlayer.teammateRequests.some(name => 
-            name.toLowerCase() === player.name.toLowerCase()
-          )) {
+
+      if (requestedPlayer &&
+        !processed.has(requestedPlayer.id) &&
+        requestedPlayer.teammateRequests.some(name =>
+          name.toLowerCase() === player.name.toLowerCase()
+        )) {
         pairs.push([player, requestedPlayer]);
         processed.add(player.id);
         processed.add(requestedPlayer.id);
@@ -206,7 +208,7 @@ function findMutualTeammateRequests(
       }
     }
   }
-  
+
   return pairs;
 }
 
@@ -217,7 +219,7 @@ function createConstraintGroups(
 ): Player[][] {
   const groups: Player[][] = [];
   const assignedToGroup = new Set<string>();
-  
+
   // PRIORITY 1: Add custom player groups first (highest priority)
   for (const customGroup of playerGroups) {
     if (customGroup.players.length > 0) {
@@ -227,7 +229,7 @@ function createConstraintGroups(
       }
     }
   }
-  
+
   // PRIORITY 2: Add mutual pairs as groups (only if not already in custom groups)
   for (const [player1, player2] of mutualPairs) {
     if (!assignedToGroup.has(player1.id) && !assignedToGroup.has(player2.id)) {
@@ -236,14 +238,14 @@ function createConstraintGroups(
       assignedToGroup.add(player2.id);
     }
   }
-  
+
   // PRIORITY 3: Add individual players (only if not already grouped)
   for (const player of players) {
     if (!assignedToGroup.has(player.id)) {
       groups.push([player]);
     }
   }
-  
+
   return groups;
 }
 
@@ -256,31 +258,40 @@ function findBestTeamForGroup(
   const availableTeams = teams.filter(team => {
     // Check if team can accommodate the group
     if (!canAssignGroupToTeam(group, team, config)) return false;
-    
+
     // Check avoid constraints for all players in the group
     if (group.some(player => hasAvoidConflict(player, team, playerMap))) return false;
-    
+
     return true;
   });
-  
+
   if (availableTeams.length === 0) return null;
-  
+
   // Sort by current team size (prefer smaller teams) and skill balance
   return availableTeams.sort((a, b) => {
     if (a.players.length !== b.players.length) {
       return a.players.length - b.players.length;
     }
-    
-    // Prefer teams that would have better skill balance
+
+    // Prefer teams that would have better skill balance and handler balance
     const aNewAvg = calculateNewAverageSkill(a, group);
     const bNewAvg = calculateNewAverageSkill(b, group);
     const targetAvg = calculateOverallAverageSkill(teams);
-    
+
     const aDiff = Math.abs(aNewAvg - targetAvg);
     const bDiff = Math.abs(bNewAvg - targetAvg);
-    
-    return aDiff - bDiff;
-  })[0];
+
+    // Handler balance check
+    const aHandlers = (a.handlerCount || 0) + group.filter(p => p.isHandler).length;
+    const bHandlers = (b.handlerCount || 0) + group.filter(p => p.isHandler).length;
+    const targetHandlers = 3; // Target 3 handlers per team
+
+    const aHandlerDiff = Math.abs(aHandlers - targetHandlers);
+    const bHandlerDiff = Math.abs(bHandlers - targetHandlers);
+
+    // Weight handler balance slightly less than skill balance but significant enough
+    return (aDiff + aHandlerDiff * 0.5) - (bDiff + bHandlerDiff * 0.5);
+  })[0] ?? null;
 }
 
 function canAssignGroupToTeam(
@@ -292,14 +303,14 @@ function canAssignGroupToTeam(
   if (team.players.length + group.length > config.maxTeamSize) {
     return false;
   }
-  
+
   // Check gender requirements
   for (const player of group) {
     if (!wouldMeetGenderRequirements(team, player, config)) {
       return false;
     }
   }
-  
+
   return true;
 }
 
@@ -310,30 +321,30 @@ function wouldMeetGenderRequirements(
 ): boolean {
   const currentGender = { ...team.genderBreakdown };
   currentGender[newPlayer.gender]++;
-  
+
   const totalPlayers = team.players.length + 1;
-  
+
   // Check if we can still meet minimum requirements
   const remainingSlots = config.maxTeamSize - totalPlayers;
-  
+
   if (currentGender.F + remainingSlots < config.minFemales) return false;
   if (currentGender.M + remainingSlots < config.minMales) return false;
-  
+
   return true;
 }
 
 function calculateNewAverageSkill(team: Team, newPlayers: Player[]): number {
   const totalSkill = team.players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0) +
-                    newPlayers.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0);
+    newPlayers.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0);
   const totalPlayers = team.players.length + newPlayers.length;
-  
+
   return totalPlayers > 0 ? totalSkill / totalPlayers : 0;
 }
 
 function calculateOverallAverageSkill(teams: Team[]): number {
   const allPlayers = teams.flatMap(t => t.players);
   const totalSkill = allPlayers.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0);
-  
+
   return allPlayers.length > 0 ? totalSkill / allPlayers.length : 0;
 }
 
@@ -361,7 +372,11 @@ function balanceTeamsBySkill(teams: Team[], playerMap: Map<string, Player>): voi
 
     // Add most imbalanced pair if not already included
     if (sortedTeams.length > 2) {
-      pairsToCheck.push([sortedTeams[0], sortedTeams[sortedTeams.length - 1]]);
+      const firstTeam = sortedTeams[0];
+      const lastTeam = sortedTeams[sortedTeams.length - 1];
+      if (firstTeam && lastTeam) {
+        pairsToCheck.push([firstTeam, lastTeam]);
+      }
     }
 
     // Find single best swap across all team pairs
@@ -393,7 +408,7 @@ function balanceTeamsBySkill(teams: Team[], playerMap: Map<string, Player>): voi
             );
 
             if (improvement > minImprovementThreshold &&
-                (!bestSwap || improvement > bestSwap.improvement)) {
+              (!bestSwap || improvement > bestSwap.improvement)) {
               bestSwap = {
                 team1: weakerTeam,
                 team2: strongerTeam,
@@ -454,41 +469,40 @@ function calculateSwapImprovement(
 
   const newDiff = Math.abs(team1NewAvg - team2NewAvg);
 
-  return currentDiff - newDiff; // Positive value means improvement
-}
+  // Handler balance improvement
+  const targetHandlers = 3;
+  const t1Handlers = team1.handlerCount || 0;
+  const t2Handlers = team2.handlerCount || 0;
 
-function wouldImproveBalance(
-  team1: Team,
-  team2: Team,
-  player1: Player,
-  player2: Player
-): boolean {
-  const currentDiff = Math.abs(team1.averageSkill - team2.averageSkill);
-  
-  // Calculate new averages after swap
-  const p1Skill = player1.execSkillRating !== null ? player1.execSkillRating : player1.skillRating;
-  const p2Skill = player2.execSkillRating !== null ? player2.execSkillRating : player2.skillRating;
-  const team1NewAvg = (team1.averageSkill * team1.players.length - p1Skill + p2Skill) / team1.players.length;
-  const team2NewAvg = (team2.averageSkill * team2.players.length - p2Skill + p1Skill) / team2.players.length;
-  
-  const newDiff = Math.abs(team1NewAvg - team2NewAvg);
-  
-  return newDiff < currentDiff;
+  const currentHandlerDiff = Math.abs(t1Handlers - targetHandlers) + Math.abs(t2Handlers - targetHandlers);
+
+  const p1IsHandler = player1.isHandler ? 1 : 0;
+  const p2IsHandler = player2.isHandler ? 1 : 0;
+
+  const t1NewHandlers = t1Handlers - p1IsHandler + p2IsHandler;
+  const t2NewHandlers = t2Handlers - p2IsHandler + p1IsHandler;
+
+  const newHandlerDiff = Math.abs(t1NewHandlers - targetHandlers) + Math.abs(t2NewHandlers - targetHandlers);
+
+  const skillImprovement = currentDiff - newDiff;
+  const handlerImprovement = (currentHandlerDiff - newHandlerDiff) * 0.5; // Weight handler improvement
+
+  return skillImprovement + handlerImprovement; // Positive value means improvement
 }
 
 function swapPlayers(team1: Team, team2: Team, player1: Player, player2: Player): void {
   // Remove players from current teams
   team1.players = team1.players.filter(p => p.id !== player1.id);
   team2.players = team2.players.filter(p => p.id !== player2.id);
-  
+
   // Add players to new teams
   team1.players.push(player2);
   team2.players.push(player1);
-  
+
   // Update team IDs
   player1.teamId = team2.id;
   player2.teamId = team1.id;
-  
+
   // Update team stats
   updateTeamStats(team1);
   updateTeamStats(team2);
@@ -500,17 +514,22 @@ function createEmptyTeam(name: string): Team {
     name,
     players: [],
     averageSkill: 0,
-    genderBreakdown: { M: 0, F: 0, Other: 0 }
+    genderBreakdown: { M: 0, F: 0, Other: 0 },
+    handlerCount: 0
   };
 }
 
 function updateTeamStats(team: Team): void {
   const totalSkill = team.players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0);
   team.averageSkill = team.players.length > 0 ? totalSkill / team.players.length : 0;
-  
+
   team.genderBreakdown = { M: 0, F: 0, Other: 0 };
+  team.handlerCount = 0;
   team.players.forEach(player => {
     team.genderBreakdown[player.gender]++;
+    if (player.isHandler) {
+      team.handlerCount = (team.handlerCount || 0) + 1;
+    }
   });
 }
 
@@ -527,18 +546,18 @@ function calculateStats(
   startTime: number
 ): TeamGenerationStats {
   const assignedPlayers = teams.flatMap(t => t.players);
-  
+
   let mutualRequestsHonored = 0;
   let mutualRequestsBroken = 0;
-  
+
   // Count custom player groups (highest priority requests)
   for (const group of playerGroups) {
     if (group.players.length <= 1) continue; // Skip single-player groups
-    
+
     // Check if all players in the group are on the same team
     const teamIds = group.players.map(p => p.teamId).filter(id => id !== undefined);
     const uniqueTeamIds = new Set(teamIds);
-    
+
     if (uniqueTeamIds.size === 1 && teamIds.length === group.players.length) {
       // All group members are on the same team
       mutualRequestsHonored++;
@@ -547,13 +566,13 @@ function calculateStats(
       mutualRequestsBroken++;
     }
   }
-  
+
   // Count traditional mutual teammate requests (only if not already in custom groups)
   for (const [player1, player2] of mutualPairs) {
     // Skip if either player is in a custom group (already counted above)
     const player1InGroup = playerGroups.some(g => g.players.some(p => p.id === player1.id));
     const player2InGroup = playerGroups.some(g => g.players.some(p => p.id === player2.id));
-    
+
     if (!player1InGroup && !player2InGroup) {
       if (player1.teamId === player2.teamId && player1.teamId) {
         mutualRequestsHonored++;
@@ -562,7 +581,7 @@ function calculateStats(
       }
     }
   }
-  
+
   // Check for avoid request violations (with fuzzy matching)
   let avoidRequestsViolated = 0;
   for (const team of teams) {
@@ -574,7 +593,7 @@ function calculateStats(
       }
     }
   }
-  
+
   return {
     totalPlayers: allPlayers.length,
     assignedPlayers: assignedPlayers.length,

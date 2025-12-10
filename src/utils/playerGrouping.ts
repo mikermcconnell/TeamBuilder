@@ -25,15 +25,15 @@ function normalizeName(name: string): string {
 function namesMatch(name1: string, name2: string): boolean {
   const norm1 = normalizeName(name1);
   const norm2 = normalizeName(name2);
-  
+
   // Exact match
   if (norm1 === norm2) return true;
-  
+
   // Check if one is contained in the other (for nicknames)
   if (norm1.length >= 3 && norm2.length >= 3) {
     return norm1.includes(norm2) || norm2.includes(norm1);
   }
-  
+
   // Common nickname patterns
   const commonNicknames: { [key: string]: string[] } = {
     'alexander': ['alex', 'xander', 'al', 'alec', 'sandy'],
@@ -79,24 +79,24 @@ function namesMatch(name1: string, name2: string): boolean {
     'william': ['will', 'bill', 'billy', 'liam', 'willy'],
     'zachary': ['zach', 'zack', 'zac']
   };
-  
+
   // Check against common nicknames
   for (const [fullName, nicknames] of Object.entries(commonNicknames)) {
     // Check if either name matches the full name or any of its nicknames
     const isName1Match = norm1 === fullName || nicknames.includes(norm1);
     const isName2Match = norm2 === fullName || nicknames.includes(norm2);
-    
+
     // If both names are related to the same full name
     if (isName1Match && isName2Match) {
       return true;
     }
-    
+
     // Check if nicknames are directly related
     if (nicknames.includes(norm1) && nicknames.includes(norm2)) {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -105,7 +105,7 @@ function findPlayerByName(players: Player[], targetName: string): Player | null 
   // First try exact match
   let found = players.find(p => p.name.toLowerCase() === targetName.toLowerCase());
   if (found) return found;
-  
+
   // Try nickname matching
   found = players.find(p => namesMatch(p.name, targetName));
   return found || null;
@@ -116,27 +116,27 @@ export function processMutualRequests(players: Player[]): {
   cleanedPlayers: Player[];
   playerGroups: PlayerGroup[];
 } {
-  const cleanedPlayers = players.map(p => ({ ...p, teammateRequests: [] }));
+  const cleanedPlayers = players.map(p => ({ ...p, teammateRequests: [] as string[] }));
   const playerGroups: PlayerGroup[] = [];
   const processedPlayerIds = new Set<string>();
-  
+
   // Find all mutual connections
   const mutualConnections: { [playerId: string]: Set<string> } = {};
-  
+
   for (const player of players) {
     mutualConnections[player.id] = new Set();
-    
+
     for (const requestedName of player.teammateRequests) {
       const requestedPlayer = findPlayerByName(players, requestedName);
-      
+
       if (requestedPlayer && requestedPlayer.id !== player.id) {
         // Check if the request is mutual
-        const isMutual = requestedPlayer.teammateRequests.some(name => 
+        const isMutual = requestedPlayer.teammateRequests.some(name =>
           namesMatch(name, player.name)
         );
-        
+
         if (isMutual) {
-          mutualConnections[player.id].add(requestedPlayer.id);
+          mutualConnections[player.id]?.add(requestedPlayer.id);
           // Update cleaned player to only include mutual requests
           const cleanedPlayer = cleanedPlayers.find(p => p.id === player.id);
           if (cleanedPlayer && !cleanedPlayer.teammateRequests.includes(requestedPlayer.name)) {
@@ -146,24 +146,27 @@ export function processMutualRequests(players: Player[]): {
       }
     }
   }
-  
+
   // Form groups from mutual connections
   let groupIndex = 0;
-  
+
   for (const player of players) {
     if (processedPlayerIds.has(player.id)) continue;
-    
+
     const connections = mutualConnections[player.id];
-    if (connections.size === 0) continue;
-    
+    if (!connections || connections.size === 0) continue;
+
     // Build a group using BFS to find all connected players
     const groupPlayerIds = new Set<string>([player.id]);
     const queue = [player.id];
-    
+
     while (queue.length > 0 && groupPlayerIds.size < 4) {
       const currentPlayerId = queue.shift()!;
       const currentConnections = mutualConnections[currentPlayerId];
-      
+
+      // Safety check
+      if (!currentConnections) continue;
+
       for (const connectedId of currentConnections) {
         if (!groupPlayerIds.has(connectedId) && !processedPlayerIds.has(connectedId) && groupPlayerIds.size < 4) {
           groupPlayerIds.add(connectedId);
@@ -171,23 +174,23 @@ export function processMutualRequests(players: Player[]): {
         }
       }
     }
-    
+
     // Create group if it has more than 1 player
     if (groupPlayerIds.size > 1) {
-      const groupPlayers = Array.from(groupPlayerIds).map(id => 
+      const groupPlayers = Array.from(groupPlayerIds).map(id =>
         players.find(p => p.id === id)!
       );
-      
+
       const group: PlayerGroup = {
         id: `group-${groupIndex}`,
         label: String.fromCharCode(65 + groupIndex), // A, B, C, etc.
-        color: GROUP_COLORS[groupIndex % GROUP_COLORS.length],
+        color: GROUP_COLORS[groupIndex % GROUP_COLORS.length] || GROUP_COLORS[0],
         playerIds: Array.from(groupPlayerIds),
         players: groupPlayers,
       };
-      
+
       playerGroups.push(group);
-      
+
       // Mark players as processed and assign group ID
       for (const playerId of groupPlayerIds) {
         processedPlayerIds.add(playerId);
@@ -196,11 +199,42 @@ export function processMutualRequests(players: Player[]): {
           cleanedPlayer.groupId = group.id;
         }
       }
-      
+
       groupIndex++;
     }
   }
-  
+
+  // Calculate unfulfilled requests
+  for (const player of players) {
+    const cleanedPlayer = cleanedPlayers.find(p => p.id === player.id);
+    if (!cleanedPlayer) continue;
+
+    cleanedPlayer.unfulfilledRequests = [];
+
+    for (const requestedName of player.teammateRequests) {
+      const requestedPlayer = findPlayerByName(players, requestedName);
+
+      // If player wasn't found, we can't really do much (maybe track as "not found" later if needed)
+      if (!requestedPlayer) continue;
+
+      // Check if they ended up in the same group
+      const inSameGroup = arePlayersInSameGroup(playerGroups, player.id, requestedPlayer.id);
+
+      if (!inSameGroup) {
+        // Check if it was mutual
+        const isMutual = requestedPlayer.teammateRequests.some(name =>
+          namesMatch(name, player.name)
+        );
+
+        cleanedPlayer.unfulfilledRequests.push({
+          playerId: requestedPlayer.id,
+          name: requestedPlayer.name,
+          reason: isMutual ? 'group-full' : 'non-reciprocal'
+        });
+      }
+    }
+  }
+
   return { cleanedPlayers, playerGroups };
 }
 

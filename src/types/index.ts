@@ -9,6 +9,14 @@ export interface Player {
   teamId?: string;
   groupId?: string;
   email?: string;
+  isHandler?: boolean;
+  unfulfilledRequests?: UnfulfilledRequest[];
+}
+
+export interface UnfulfilledRequest {
+  playerId?: string;
+  name: string;
+  reason: 'non-reciprocal' | 'group-full';
 }
 
 export interface PlayerGroup {
@@ -29,6 +37,7 @@ export interface Team {
     F: number;
     Other: number;
   };
+  handlerCount?: number;
   isNameEditable?: boolean;
 }
 
@@ -66,7 +75,7 @@ export interface AppState {
   unassignedPlayers: Player[];
   playerGroups: PlayerGroup[];
   config: LeagueConfig;
-  execRatingHistory: Record<string, number>;
+  execRatingHistory: Record<string, { rating: number; updatedAt: number }>;
   stats?: TeamGenerationStats;
   savedConfigs: LeagueConfig[];
 }

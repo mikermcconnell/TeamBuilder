@@ -27,14 +27,15 @@ export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
     });
 
     const [search, setSearch] = useState('');
-    const [genderFilter, setGenderFilter] = useState<'ALL' | 'M' | 'F'>('ALL');
+    const [genderFilter, setGenderFilter] = useState<'ALL' | 'M' | 'F' | 'H'>('ALL');
     const [sortBy, setSortBy] = useState<'name' | 'skill'>('skill');
 
     const filteredPlayers = useMemo(() => {
         return players
             .filter(p => {
                 const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-                const matchesGender = genderFilter === 'ALL' || p.gender === genderFilter;
+                const matchesGender = genderFilter === 'ALL' ||
+                    (genderFilter === 'H' ? p.isHandler : p.gender === genderFilter);
                 return matchesSearch && matchesGender;
             })
             .sort((a, b) => {
@@ -74,10 +75,11 @@ export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
                 {/* Filters & Sort */}
                 <div className="flex items-center gap-2">
                     <Tabs value={genderFilter} onValueChange={(v) => setGenderFilter(v as any)} className="flex-1">
-                        <TabsList className="w-full grid grid-cols-3 h-8">
+                        <TabsList className="w-full grid grid-cols-4 h-8">
                             <TabsTrigger value="ALL" className="text-xs">All</TabsTrigger>
                             <TabsTrigger value="M" className="text-xs">M</TabsTrigger>
                             <TabsTrigger value="F" className="text-xs">F</TabsTrigger>
+                            <TabsTrigger value="H" className="text-xs">H</TabsTrigger>
                         </TabsList>
                     </Tabs>
 
@@ -117,6 +119,7 @@ export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
                                     <DraggablePlayerCard
                                         key={player.id}
                                         player={player}
+                                        compact
                                     />
                                 ))
                             )}

@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Users, 
-  AlertTriangle, 
-  CheckCircle, 
-  Move, 
+import {
+  Users,
+  AlertTriangle,
+  CheckCircle,
+  Move,
   RotateCcw,
   Trophy,
   Target,
@@ -113,7 +113,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
   const hasAvoidConflict = (player: Player, targetTeam: Team): { hasConflict: boolean; conflictPlayer?: string } => {
     // Check if player avoids anyone on target team
     for (const avoidName of player.avoidRequests) {
-      const conflictPlayer = targetTeam.players.find(p => 
+      const conflictPlayer = targetTeam.players.find(p =>
         p.name.toLowerCase() === avoidName.toLowerCase()
       );
       if (conflictPlayer) {
@@ -123,7 +123,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
 
     // Check if anyone on target team avoids this player
     for (const teamPlayer of targetTeam.players) {
-      if (teamPlayer.avoidRequests.some(avoidName => 
+      if (teamPlayer.avoidRequests.some(avoidName =>
         avoidName.toLowerCase() === player.name.toLowerCase()
       )) {
         return { hasConflict: true, conflictPlayer: teamPlayer.name };
@@ -149,13 +149,13 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
 
   const handleDrop = (e: React.DragEvent, targetTeamId: string | null) => {
     e.preventDefault();
-    
+
     if (draggedPlayer) {
       // Check if player is in a group - if so, ALWAYS move entire group
       if (isPlayerInGroup(draggedPlayer)) {
         const allGroupMembers = findAllGroupMembers(draggedPlayer);
         const groupLabel = getPlayerGroupLabel(playerGroups, draggedPlayer.id);
-        
+
         // Check avoid conflicts for dragged player and ALL group members
         if (targetTeamId) {
           const targetTeam = teams.find(t => t.id === targetTeamId);
@@ -166,7 +166,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
               toast.error(`Cannot move Group ${groupLabel}: ${draggedPlayer.name} has avoid conflict with ${draggedAvoidCheck.conflictPlayer}`);
               return;
             }
-            
+
             // Check avoid conflicts for all group members
             for (const teammate of allGroupMembers) {
               const teammateAvoidCheck = hasAvoidConflict(teammate, targetTeam);
@@ -177,7 +177,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
             }
           }
         }
-        
+
         // Move ALL group members together (mandatory)
         onPlayerMove(draggedPlayer.id, targetTeamId);
         for (const teammate of allGroupMembers) {
@@ -203,11 +203,11 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
 
       // Move single player
       onPlayerMove(draggedPlayer.id, targetTeamId);
-      
+
       // Show appropriate message
       if (targetTeamId) {
         const targetTeam = teams.find(t => t.id === targetTeamId);
-        if (targetTeam && isTeamOverCapacity({...targetTeam, players: [...targetTeam.players, draggedPlayer]})) {
+        if (targetTeam && isTeamOverCapacity({ ...targetTeam, players: [...targetTeam.players, draggedPlayer] })) {
           toast.warning(`Moved ${draggedPlayer.name} - Team now exceeds size limit`);
         } else {
           toast.success(`Moved ${draggedPlayer.name} to team`);
@@ -232,22 +232,28 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
   const getTeamConstraintViolations = (team: Team): { violations: string[]; sizeIssues: string[] } => {
     const violations: string[] = [];
     const sizeIssues: string[] = [];
-    
+
     // Check team size issues
     if (team.players.length > config.maxTeamSize) {
       sizeIssues.push(`${team.players.length - config.maxTeamSize} over capacity`);
     } else if (team.players.length < config.maxTeamSize - 2) {
       sizeIssues.push(`${config.maxTeamSize - team.players.length} spots available`);
     }
-    
+
     if (team.genderBreakdown.F < config.minFemales) {
       violations.push(`Needs ${config.minFemales - team.genderBreakdown.F} more females`);
     }
-    
+
     if (team.genderBreakdown.M < config.minMales) {
       violations.push(`Needs ${config.minMales - team.genderBreakdown.M} more males`);
     }
-    
+
+    // Check handler requirement (soft requirement)
+    const handlerCount = team.handlerCount || team.players.filter(p => p.isHandler).length;
+    if (handlerCount < 3) {
+      violations.push(`Needs ${3 - handlerCount} more handlers (target: 3)`);
+    }
+
     // Check avoid request violations
     for (const player of team.players) {
       for (const avoidName of player.avoidRequests) {
@@ -256,7 +262,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
         }
       }
     }
-    
+
     return { violations, sizeIssues };
   };
 
@@ -422,6 +428,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
           <div className="text-xs text-gray-600 flex flex-wrap gap-x-2 gap-y-1">
             <span>Skill: {!isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'}</span>
             <span>{team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O</span>
+            <span>Handlers: {team.handlerCount || team.players.filter(p => p.isHandler).length}/3</span>
             <span>M Avg: {formatAverage(genderAverageMap.M)}</span>
             <span>F Avg: {formatAverage(genderAverageMap.F)}</span>
           </div>
@@ -562,364 +569,365 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
 
     return (
       <>
-      <div className="space-y-6">
-        <div className="flex gap-4">
-          {/* Left Panel - Female Players and Unassigned Groups */}
-          <div className="w-80 flex-shrink-0 space-y-4">
-            {/* Female Players Card */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Users className="h-4 w-4 text-pink-600" />
-                  Females ({femaleNonGroupedPlayers.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div
-                  className="border-2 border-dashed border-pink-200 rounded-lg p-2 min-h-32 space-y-1.5 overflow-y-auto max-h-[300px]"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, null)}
-                >
-                  {femaleNonGroupedPlayers.map((player) => (
-                    <PlayerCard
-                      key={player.id}
-                      player={player}
-                      moveOptions={getMoveOptions(player)}
-                      onMove={onPlayerMove}
-                      onDragStart={() => handleDragStart(player)}
-                      onDragEnd={handleDragEnd}
-                      playerGroups={playerGroups}
-                      compact={true}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Unassigned Groups Card */}
-            {unassignedGroupedPlayers.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex gap-4">
+            {/* Left Panel - Female Players and Unassigned Groups */}
+            <div className="w-80 flex-shrink-0 space-y-4">
+              {/* Female Players Card */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm">
-                    <Link className="h-4 w-4 text-purple-600" />
-                    Unassigned Groups ({playerGroups.filter(g =>
-                      g.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id))
-                    ).length})
+                    <Users className="h-4 w-4 text-pink-600" />
+                    Females ({femaleNonGroupedPlayers.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div
-                    className="border-2 border-dashed border-purple-200 rounded-lg p-2 min-h-32 space-y-1.5 overflow-y-auto max-h-[250px]"
+                    className="border-2 border-dashed border-pink-200 rounded-lg p-2 min-h-32 space-y-1.5 overflow-y-auto max-h-[300px]"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, null)}
                   >
-                    {playerGroups
-                      .filter(group => group.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id)))
-                      .map((group) => (
-                        <GroupCard
-                          key={group.id}
-                          group={group}
-                          players={group.players.filter(p => unassignedGroupedPlayers.some(up => up.id === p.id))}
-                          moveOptions={getMoveOptions(group.players[0])} // Use first player for move options
-                          onMove={onPlayerMove}
-                          onDragStart={() => handleDragStart(group.players[0])} // Drag first player, which will move whole group
-                          onDragEnd={handleDragEnd}
-                          playerGroups={playerGroups}
-                          compact={true}
-                        />
-                      ))}
+                    {femaleNonGroupedPlayers.map((player) => (
+                      <PlayerCard
+                        key={player.id}
+                        player={player}
+                        moveOptions={getMoveOptions(player)}
+                        onMove={onPlayerMove}
+                        onDragStart={() => handleDragStart(player)}
+                        onDragEnd={handleDragEnd}
+                        playerGroups={playerGroups}
+                        compact={true}
+                      />
+                    ))}
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </div>
 
-          {/* Center - Teams Grid */}
-          <div className="flex-1 min-w-0">
-            {sortedTeams.length > 0 && (
-              <div className="flex items-center justify-end mb-3">
-                <div className="flex items-center gap-2 text-xs text-gray-600">
-                  <span>Sort teams by</span>
-                  <Select
-                    value={teamSortMode}
-                    onValueChange={(value) => setTeamSortMode(value as 'skill' | 'name')}
-                  >
-                    <SelectTrigger className="h-8 w-40">
-                      <SelectValue placeholder="Sort teams" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="skill">Skill (Low to High)</SelectItem>
-                      <SelectItem value="name">Team Name (A to Z)</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {/* Unassigned Groups Card */}
+              {unassignedGroupedPlayers.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <Link className="h-4 w-4 text-purple-600" />
+                      Unassigned Groups ({playerGroups.filter(g =>
+                        g.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id))
+                      ).length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div
+                      className="border-2 border-dashed border-purple-200 rounded-lg p-2 min-h-32 space-y-1.5 overflow-y-auto max-h-[250px]"
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, null)}
+                    >
+                      {playerGroups
+                        .filter(group => group.playerIds.some(id => unassignedGroupedPlayers.some(p => p.id === id)))
+                        .map((group) => (
+                          <GroupCard
+                            key={group.id}
+                            group={group}
+                            players={group.players.filter(p => unassignedGroupedPlayers.some(up => up.id === p.id))}
+                            moveOptions={getMoveOptions(group.players[0])} // Use first player for move options
+                            onMove={onPlayerMove}
+                            onDragStart={() => handleDragStart(group.players[0])} // Drag first player, which will move whole group
+                            onDragEnd={handleDragEnd}
+                            playerGroups={playerGroups}
+                            compact={true}
+                          />
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Center - Teams Grid */}
+            <div className="flex-1 min-w-0">
+              {sortedTeams.length > 0 && (
+                <div className="flex items-center justify-end mb-3">
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <span>Sort teams by</span>
+                    <Select
+                      value={teamSortMode}
+                      onValueChange={(value) => setTeamSortMode(value as 'skill' | 'name')}
+                    >
+                      <SelectTrigger className="h-8 w-40">
+                        <SelectValue placeholder="Sort teams" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="skill">Skill (Low to High)</SelectItem>
+                        <SelectItem value="name">Team Name (A to Z)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
-            )}
-            <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-              {sortedTeams.map((team) => {
-                const constraintCheck = getTeamConstraintViolations(team);
-                const violations = constraintCheck.violations;
-                const sizeIssues = constraintCheck.sizeIssues;
-                const isValid = violations.length === 0;
-                const isOverCapacity = isTeamOverCapacity(team);
-                const isUnderCapacity = isTeamUnderCapacity(team);
+              )}
+              <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                {sortedTeams.map((team) => {
+                  const constraintCheck = getTeamConstraintViolations(team);
+                  const violations = constraintCheck.violations;
+                  const sizeIssues = constraintCheck.sizeIssues;
+                  const isValid = violations.length === 0;
+                  const isOverCapacity = isTeamOverCapacity(team);
+                  const isUnderCapacity = isTeamUnderCapacity(team);
 
-                const genderPlayersMap = splitPlayersByGender(team.players);
-                const genderAverageMap: Record<Gender, number | null> = {
-                  M: calculateAverageSkill(genderPlayersMap.M),
-                  F: calculateAverageSkill(genderPlayersMap.F),
-                  Other: calculateAverageSkill(genderPlayersMap.Other),
-                };
+                  const genderPlayersMap = splitPlayersByGender(team.players);
+                  const genderAverageMap: Record<Gender, number | null> = {
+                    M: calculateAverageSkill(genderPlayersMap.M),
+                    F: calculateAverageSkill(genderPlayersMap.F),
+                    Other: calculateAverageSkill(genderPlayersMap.Other),
+                  };
 
-                let borderClass = 'border-green-200';
-                if (!isValid) borderClass = 'border-orange-200';
-                if (isOverCapacity) borderClass = 'border-red-300';
+                  let borderClass = 'border-green-200';
+                  if (!isValid) borderClass = 'border-orange-200';
+                  if (isOverCapacity) borderClass = 'border-red-300';
 
-                return (
-                  <Card key={team.id} className={borderClass}>
-                    <CardHeader className="pb-2 px-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center gap-1 text-xs">
-                          {isValid && !isOverCapacity && !isUnderCapacity ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          ) : isOverCapacity ? (
-                            <ArrowUp className="h-4 w-4 text-red-600" />
-                          ) : isUnderCapacity ? (
-                            <ArrowDown className="h-4 w-4 text-blue-600" />
-                          ) : (
-                            <AlertTriangle className="h-4 w-4 text-orange-600" />
-                          )}
-                          {editingTeamId === team.id ? (
-                            <Input
-                              value={tempTeamName}
-                              onChange={(e) => setTempTeamName(e.target.value)}
-                              onBlur={() => saveTeamName(team.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  saveTeamName(team.id);
-                                } else if (e.key === 'Escape') {
-                                  cancelEditingTeamName();
-                                }
-                              }}
-                              className="h-5 w-16 text-xs"
-                              autoFocus
-                            />
-                          ) : (
-                            <span
-                              className="cursor-pointer hover:bg-gray-100 px-1 rounded text-xs truncate"
-                              onClick={() => startEditingTeamName(team.id, team.name)}
-                              title="Click to edit team name"
+                  return (
+                    <Card key={team.id} className={borderClass}>
+                      <CardHeader className="pb-2 px-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="flex items-center gap-1 text-xs">
+                            {isValid && !isOverCapacity && !isUnderCapacity ? (
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            ) : isOverCapacity ? (
+                              <ArrowUp className="h-4 w-4 text-red-600" />
+                            ) : isUnderCapacity ? (
+                              <ArrowDown className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 text-orange-600" />
+                            )}
+                            {editingTeamId === team.id ? (
+                              <Input
+                                value={tempTeamName}
+                                onChange={(e) => setTempTeamName(e.target.value)}
+                                onBlur={() => saveTeamName(team.id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    saveTeamName(team.id);
+                                  } else if (e.key === 'Escape') {
+                                    cancelEditingTeamName();
+                                  }
+                                }}
+                                className="h-5 w-16 text-xs"
+                                autoFocus
+                              />
+                            ) : (
+                              <span
+                                className="cursor-pointer hover:bg-gray-100 px-1 rounded text-xs truncate"
+                                onClick={() => startEditingTeamName(team.id, team.name)}
+                                title="Click to edit team name"
+                              >
+                                {team.name}
+                              </span>
+                            )}
+                          </CardTitle>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={isOverCapacity ? 'destructive' : isUnderCapacity ? 'secondary' : 'default'}
+                              className={`text-xs ${isOverCapacity ? 'bg-red-600' : isUnderCapacity ? 'bg-blue-100 text-blue-800' : ''}`}
                             >
-                              {team.name}
-                            </span>
-                          )}
-                        </CardTitle>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={isOverCapacity ? 'destructive' : isUnderCapacity ? 'secondary' : 'default'}
-                            className={`text-xs ${isOverCapacity ? 'bg-red-600' : isUnderCapacity ? 'bg-blue-100 text-blue-800' : ''}`}
-                          >
-                            {team.players.length}/{config.maxTeamSize}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-gray-500 hover:text-gray-900"
-                            onClick={() => setExpandedTeamId(team.id)}
-                            title="Expand team view"
-                          >
-                            <Maximize2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="text-xs text-gray-600 flex flex-wrap gap-x-2 gap-y-1">
-                        <span>Skill: {!isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'}</span>
-                        <span>{team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O</span>
-                        <span>M Avg: {formatAverage(genderAverageMap.M)}</span>
-                        <span>F Avg: {formatAverage(genderAverageMap.F)}</span>
-                      </div>
-
-                      {/* Gender Requirements - Always visible for clarity */}
-                      <div className="mt-1 pt-1 border-t border-gray-200 space-y-0.5">
-                        {/* Female requirement */}
-                        <div className={`text-xs font-semibold ${team.genderBreakdown.F < config.minFemales ? 'text-red-600' : 'text-green-600'}`}>
-                          F: {team.genderBreakdown.F}/{config.minFemales}
-                          {team.genderBreakdown.F < config.minFemales ? (
-                            <span className="ml-1 font-bold">
-                              (Need {config.minFemales - team.genderBreakdown.F} more)
-                            </span>
-                          ) : (
-                            <span className="ml-1">✓</span>
-                          )}
-                        </div>
-
-                        {/* Male requirement */}
-                        <div className={`text-xs font-semibold ${team.genderBreakdown.M < config.minMales ? 'text-red-600' : 'text-green-600'}`}>
-                          M: {team.genderBreakdown.M}/{config.minMales}
-                          {team.genderBreakdown.M < config.minMales ? (
-                            <span className="ml-1 font-bold">
-                              (Need {config.minMales - team.genderBreakdown.M} more)
-                            </span>
-                          ) : (
-                            <span className="ml-1">✓</span>
-                          )}
-                        </div>
-
-                        {/* Size status if there are issues */}
-                        {sizeIssues.length > 0 && (
-                          <div className={`text-xs font-medium ${isOverCapacity ? 'text-red-600' : 'text-blue-600'}`}>
-                            {sizeIssues.join(', ')}
+                              {team.players.length}/{config.maxTeamSize}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-gray-500 hover:text-gray-900"
+                              onClick={() => setExpandedTeamId(team.id)}
+                              title="Expand team view"
+                            >
+                              <Maximize2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
-                        )}
-                      </div>
-                    </CardHeader>
+                        </div>
 
-                    <CardContent className="pt-0 px-3 pb-3">
-                      <div
-                        className="border-2 border-dashed border-gray-300 rounded-lg p-1 min-h-40 space-y-1"
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, team.id)}
-                      >
-                        {team.players.length === 0 ? (
-                          <div className="text-center text-gray-500 text-xs flex items-center justify-center h-36">
-                            <div>
-                              <UserPlus className="h-6 w-6 mx-auto mb-1 text-gray-400" />
-                              Drop players here
+                        <div className="text-xs text-gray-600 flex flex-wrap gap-x-2 gap-y-1">
+                          <span>Skill: {!isNaN(team.averageSkill) ? team.averageSkill.toFixed(1) : '0.0'}</span>
+                          <span>{team.genderBreakdown.M}M / {team.genderBreakdown.F}F / {team.genderBreakdown.Other}O</span>
+                          <span>Handlers: {team.handlerCount || team.players.filter(p => p.isHandler).length}/3</span>
+                          <span>M Avg: {formatAverage(genderAverageMap.M)}</span>
+                          <span>F Avg: {formatAverage(genderAverageMap.F)}</span>
+                        </div>
+
+                        {/* Gender Requirements - Always visible for clarity */}
+                        <div className="mt-1 pt-1 border-t border-gray-200 space-y-0.5">
+                          {/* Female requirement */}
+                          <div className={`text-xs font-semibold ${team.genderBreakdown.F < config.minFemales ? 'text-red-600' : 'text-green-600'}`}>
+                            F: {team.genderBreakdown.F}/{config.minFemales}
+                            {team.genderBreakdown.F < config.minFemales ? (
+                              <span className="ml-1 font-bold">
+                                (Need {config.minFemales - team.genderBreakdown.F} more)
+                              </span>
+                            ) : (
+                              <span className="ml-1">✓</span>
+                            )}
+                          </div>
+
+                          {/* Male requirement */}
+                          <div className={`text-xs font-semibold ${team.genderBreakdown.M < config.minMales ? 'text-red-600' : 'text-green-600'}`}>
+                            M: {team.genderBreakdown.M}/{config.minMales}
+                            {team.genderBreakdown.M < config.minMales ? (
+                              <span className="ml-1 font-bold">
+                                (Need {config.minMales - team.genderBreakdown.M} more)
+                              </span>
+                            ) : (
+                              <span className="ml-1">✓</span>
+                            )}
+                          </div>
+
+                          {/* Size status if there are issues */}
+                          {sizeIssues.length > 0 && (
+                            <div className={`text-xs font-medium ${isOverCapacity ? 'text-red-600' : 'text-blue-600'}`}>
+                              {sizeIssues.join(', ')}
                             </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {genderOrder.map((gender) => {
-                              const genderPlayers = genderPlayersMap[gender];
-                              if (genderPlayers.length === 0) {
-                                return null;
-                              }
+                          )}
+                        </div>
+                      </CardHeader>
 
-                              const average = genderAverageMap[gender];
-                              return (
-                                <div key={gender}>
-                                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600 mb-1">
-                                    <span>{`${genderLabels[gender]} (${genderPlayers.length})`}</span>
-                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">
-                                      Avg {average !== null ? average.toFixed(1) : '--'}
-                                    </Badge>
+                      <CardContent className="pt-0 px-3 pb-3">
+                        <div
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-1 min-h-40 space-y-1"
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => handleDrop(e, team.id)}
+                        >
+                          {team.players.length === 0 ? (
+                            <div className="text-center text-gray-500 text-xs flex items-center justify-center h-36">
+                              <div>
+                                <UserPlus className="h-6 w-6 mx-auto mb-1 text-gray-400" />
+                                Drop players here
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {genderOrder.map((gender) => {
+                                const genderPlayers = genderPlayersMap[gender];
+                                if (genderPlayers.length === 0) {
+                                  return null;
+                                }
+
+                                const average = genderAverageMap[gender];
+                                return (
+                                  <div key={gender}>
+                                    <div className="flex items-center justify-between text-[11px] font-semibold text-gray-600 mb-1">
+                                      <span>{`${genderLabels[gender]} (${genderPlayers.length})`}</span>
+                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">
+                                        Avg {average !== null ? average.toFixed(1) : '--'}
+                                      </Badge>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {genderPlayers.map((player) => (
+                                        <PlayerCard
+                                          key={player.id}
+                                          player={player}
+                                          moveOptions={getMoveOptions(player)}
+                                          onMove={onPlayerMove}
+                                          onDragStart={() => handleDragStart(player, team.id)}
+                                          onDragEnd={handleDragEnd}
+                                          playerGroups={playerGroups}
+                                          compact={true}
+                                        />
+                                      ))}
+                                    </div>
                                   </div>
-                                  <div className="space-y-1">
-                                    {genderPlayers.map((player) => (
-                                      <PlayerCard
-                                        key={player.id}
-                                        player={player}
-                                        moveOptions={getMoveOptions(player)}
-                                        onMove={onPlayerMove}
-                                        onDragStart={() => handleDragStart(player, team.id)}
-                                        onDragEnd={handleDragEnd}
-                                        playerGroups={playerGroups}
-                                        compact={true}
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right Panel - Male Players */}
+            <div className="w-80 flex-shrink-0">
+              <Card className="h-full">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-blue-600" />
+                    Males ({maleNonGroupedPlayers.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div
+                    className="border-2 border-dashed border-blue-200 rounded-lg p-2 min-h-32 space-y-2 overflow-y-auto max-h-[600px]"
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, null)}
+                  >
+                    {maleNonGroupedPlayers.map((player) => (
+                      <PlayerCard
+                        key={player.id}
+                        player={player}
+                        moveOptions={getMoveOptions(player)}
+                        onMove={onPlayerMove}
+                        onDragStart={() => handleDragStart(player)}
+                        onDragEnd={handleDragEnd}
+                        playerGroups={playerGroups}
+                        compact={true}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
-          {/* Right Panel - Male Players */}
-          <div className="w-80 flex-shrink-0">
-            <Card className="h-full">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Users className="h-4 w-4 text-blue-600" />
-                  Males ({maleNonGroupedPlayers.length})
+          {/* Grouped players in unassigned (if any) */}
+          {unassignedPlayers.filter(player => isPlayerInGroup(player)).length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserMinus className="h-5 w-5" />
+                  Unassigned Groups
                 </CardTitle>
+                <CardDescription>
+                  Player groups that couldn't be automatically assigned
+                </CardDescription>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div
-                  className="border-2 border-dashed border-blue-200 rounded-lg p-2 min-h-32 space-y-2 overflow-y-auto max-h-[600px]"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, null)}
-                >
-                  {maleNonGroupedPlayers.map((player) => (
-                    <PlayerCard
-                      key={player.id}
-                      player={player}
-                      moveOptions={getMoveOptions(player)}
-                      onMove={onPlayerMove}
-                      onDragStart={() => handleDragStart(player)}
-                      onDragEnd={handleDragEnd}
-                      playerGroups={playerGroups}
-                      compact={true}
-                    />
-                  ))}
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {unassignedPlayers
+                    .filter(player => isPlayerInGroup(player))
+                    .map((player) => (
+                      <PlayerCard
+                        key={player.id}
+                        player={player}
+                        moveOptions={getMoveOptions(player)}
+                        onMove={onPlayerMove}
+                        onDragStart={() => handleDragStart(player)}
+                        onDragEnd={handleDragEnd}
+                        playerGroups={playerGroups}
+                      />
+                    ))}
                 </div>
               </CardContent>
             </Card>
-          </div>
+          )}
         </div>
 
-        {/* Grouped players in unassigned (if any) */}
-        {unassignedPlayers.filter(player => isPlayerInGroup(player)).length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserMinus className="h-5 w-5" />
-                Unassigned Groups
-              </CardTitle>
-              <CardDescription>
-                Player groups that couldn't be automatically assigned
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {unassignedPlayers
-                  .filter(player => isPlayerInGroup(player))
-                  .map((player) => (
-                    <PlayerCard
-                      key={player.id}
-                      player={player}
-                      moveOptions={getMoveOptions(player)}
-                      onMove={onPlayerMove}
-                      onDragStart={() => handleDragStart(player)}
-                      onDragEnd={handleDragEnd}
-                      playerGroups={playerGroups}
-                    />
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {expandedTeam && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
-          onClick={() => setExpandedTeamId(null)}
-        >
-        <div
-          className="relative w-full max-w-4xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Button
-            variant="secondary"
-            size="icon"
-            className="absolute -top-4 -right-4 rounded-full shadow-lg z-50"
+        {expandedTeam && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
             onClick={() => setExpandedTeamId(null)}
-            title="Close expanded view"
           >
-            <X className="h-4 w-4" />
-            </Button>
-            {renderManualTeamCard(expandedTeam, { expanded: true, showExpandButton: false })}
+            <div
+              className="relative w-full max-w-4xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="secondary"
+                size="icon"
+                className="absolute -top-4 -right-4 rounded-full shadow-lg z-50"
+                onClick={() => setExpandedTeamId(null)}
+                title="Close expanded view"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              {renderManualTeamCard(expandedTeam, { expanded: true, showExpandButton: false })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </>
     );
   }
@@ -968,7 +976,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                               onDragEnd={handleDragEnd}
                               playerGroups={playerGroups}
                             />
-                        ))}
+                          ))}
                       </div>
                     </div>
                   )}
@@ -990,7 +998,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                               onDragEnd={handleDragEnd}
                               playerGroups={playerGroups}
                             />
-                        ))}
+                          ))}
                       </div>
                     </div>
                   )}
@@ -1012,7 +1020,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                               onDragEnd={handleDragEnd}
                               playerGroups={playerGroups}
                             />
-                        ))}
+                          ))}
                       </div>
                     </div>
                   )}
@@ -1066,7 +1074,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
           if (isOverCapacity) borderClass = 'border-red-300';
 
           return (
-            <Card 
+            <Card
               key={team.id}
               className={borderClass}
             >
@@ -1083,33 +1091,33 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                       <AlertTriangle className="h-5 w-5 text-orange-600" />
                     )}
                     {editingTeamId === team.id ? (
-                       <Input
-                         value={tempTeamName}
-                         onChange={(e) => setTempTeamName(e.target.value)}
-                         onBlur={() => saveTeamName(team.id)}
-                         onKeyDown={(e) => {
-                           if (e.key === 'Enter') {
-                             saveTeamName(team.id);
-                           } else if (e.key === 'Escape') {
-                             cancelEditingTeamName();
-                           }
-                         }}
-                         className="h-7 w-32 text-lg font-semibold"
-                         autoFocus
-                       />
-                     ) : (
-                       <span 
-                         className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
-                         onClick={() => startEditingTeamName(team.id, team.name)}
-                         title="Click to edit team name"
-                       >
-                         {team.name}
-                       </span>
-                     )}
+                      <Input
+                        value={tempTeamName}
+                        onChange={(e) => setTempTeamName(e.target.value)}
+                        onBlur={() => saveTeamName(team.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            saveTeamName(team.id);
+                          } else if (e.key === 'Escape') {
+                            cancelEditingTeamName();
+                          }
+                        }}
+                        className="h-7 w-32 text-lg font-semibold"
+                        autoFocus
+                      />
+                    ) : (
+                      <span
+                        className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                        onClick={() => startEditingTeamName(team.id, team.name)}
+                        title="Click to edit team name"
+                      >
+                        {team.name}
+                      </span>
+                    )}
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     {/* Size badge with color coding */}
-                    <Badge 
+                    <Badge
                       variant={isOverCapacity ? 'destructive' : isUnderCapacity ? 'secondary' : 'default'}
                       className={isOverCapacity ? 'bg-red-600' : isUnderCapacity ? 'bg-blue-100 text-blue-800' : ''}
                     >
@@ -1117,7 +1125,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                     </Badge>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-4 text-sm">
                     <div className="flex items-center gap-1">
@@ -1139,7 +1147,7 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                       <span>{formatAverage(genderAverageMap.F)}</span>
                     </div>
                   </div>
-                  
+
                   {/* Size Issues Alert */}
                   {sizeIssues.length > 0 && (
                     <Alert variant={isOverCapacity ? "destructive" : "default"} className={isUnderCapacity ? "border-blue-200 bg-blue-50" : ""}>
@@ -1173,9 +1181,9 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                   )}
                 </div>
               </CardHeader>
-              
+
               <CardContent>
-                <div 
+                <div
                   className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-32"
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, team.id)}
@@ -1401,6 +1409,9 @@ function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playe
             {player.name}
           </div>
           <div className="flex items-center gap-0.5 flex-shrink-0">
+            {player.isHandler && (
+              <Badge variant="secondary" className={compact ? "text-[10px] h-5 px-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-200" : "text-xs bg-yellow-100 text-yellow-800 hover:bg-yellow-200"}>H</Badge>
+            )}
             <Badge variant="outline" className={compact ? "text-[10px] h-5 px-1" : "text-xs"}>{player.gender}</Badge>
             <Badge className={`${compact ? "text-[10px] h-5 px-1" : "text-xs"} ${getSkillLevelColor(getEffectiveSkillRating(player))}`}>
               {getEffectiveSkillRating(player)}
@@ -1408,20 +1419,20 @@ function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playe
           </div>
         </div>
 
-      {!compact && (player.teammateRequests.length > 0 || player.avoidRequests.length > 0) && (
-        <div className="text-xs text-gray-600 mb-2">
-          {player.teammateRequests.length > 0 && (
-            <div className="text-green-600">
-              Wants: {player.teammateRequests.join(', ')}
-            </div>
-          )}
-          {player.avoidRequests.length > 0 && (
-            <div className="text-red-600">
-              Avoid: {player.avoidRequests.join(', ')}
-            </div>
-          )}
-        </div>
-      )}
+        {!compact && (player.teammateRequests.length > 0 || player.avoidRequests.length > 0) && (
+          <div className="text-xs text-gray-600 mb-2">
+            {player.teammateRequests.length > 0 && (
+              <div className="text-green-600">
+                Wants: {player.teammateRequests.join(', ')}
+              </div>
+            )}
+            {player.avoidRequests.length > 0 && (
+              <div className="text-red-600">
+                Avoid: {player.avoidRequests.join(', ')}
+              </div>
+            )}
+          </div>
+        )}
 
         {!compact && (
           <div className="flex items-center gap-2">

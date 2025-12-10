@@ -7,13 +7,19 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
-import { Users, MoreHorizontal } from 'lucide-react';
+import { Users, MoreHorizontal, Maximize2 } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 interface DroppableTeamCardProps {
     team: Team;
@@ -29,6 +35,7 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
     });
 
     const [isEditing, setIsEditing] = React.useState(false);
+    const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
     const [tempName, setTempName] = React.useState(team.name);
 
     const handleNameSave = () => {
@@ -58,21 +65,32 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
 
     const femaleCount = genderBreakdown.F || 0;
     const maleCount = genderBreakdown.M || 0;
+    const handlerCount = team.players.filter(p => p.isHandler).length;
+    const targetHandlers = 3; // Based on "three handlers per team" request
 
     const genderIssues =
         femaleCount < config.minFemales ||
         maleCount < config.minMales;
 
     // Status Color
-    let statusColor = 'border-gray-200';
-    if (isOver) statusColor = 'border-primary ring-2 ring-primary/50';
-    else if (isOverCapacity) statusColor = 'border-red-200 bg-red-50/30';
-    else if (genderIssues) statusColor = 'border-orange-200 bg-orange-50/30';
-    else if (!isUnderCapacity) statusColor = 'border-green-200 bg-green-50/30';
+    let statusColor = 'border-slate-200 bg-white hover:shadow-md hover:border-slate-300';
+    if (isOver) statusColor = 'border-indigo-400 ring-2 ring-indigo-50 shadow-md transform scale-[1.01]';
+    else if (isOverCapacity) statusColor = 'border-red-200 bg-red-50/10';
+    else if (genderIssues) statusColor = 'border-orange-200 bg-orange-50/10';
+
+    // Skill Color
+    const getSkillColor = (val: number) => {
+        if (val >= 8.0) return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+        if (val >= 5.0) return 'text-amber-600 bg-amber-50 border-amber-100';
+        return 'text-red-600 bg-red-50 border-red-100';
+    };
+
+    const avgSkillValue = parseFloat(avgSkill);
+    const skillColorClass = !isNaN(avgSkillValue) ? getSkillColor(avgSkillValue) : 'text-slate-500 bg-slate-50 border-slate-100';
 
     return (
-        <Card className={`h-full flex flex-col transition-all duration-200 ${statusColor}`}>
-            <CardHeader className="p-3 pb-2 space-y-0">
+        <Card className={`relative h-full flex flex-col transition-all duration-300 rounded-xl border shadow-sm group ${statusColor}`}>
+            <CardHeader className="p-3 pb-2 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                     {isEditing ? (
                         <Input
@@ -81,31 +99,37 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
                             onBlur={handleNameSave}
                             onKeyDown={(e) => e.key === 'Enter' && handleNameSave()}
                             autoFocus
-                            className="h-7 text-sm font-bold"
+                            className="h-8 text-sm font-bold border-slate-300 focus:ring-indigo-500"
                         />
                     ) : (
-                        <CardTitle
-                            className="text-sm font-bold truncate cursor-pointer hover:text-primary transition-colors"
+                        <div
+                            className="flex-1 min-w-0 group/name"
                             onClick={() => {
                                 setTempName(team.name);
                                 setIsEditing(true);
                             }}
                         >
-                            {team.name}
-                        </CardTitle>
+                            <CardTitle className="text-[15px] font-bold truncate text-slate-800 group-hover/name:text-indigo-600 transition-colors flex items-center gap-2 cursor-pointer">
+                                {team.name}
+                            </CardTitle>
+                        </div>
                     )}
 
                     <div className="flex items-center gap-1">
-                        <Badge variant={isOverCapacity ? "destructive" : "secondary"} className="text-[10px] px-1.5 h-5">
+                        <Badge variant={isOverCapacity ? "destructive" : "secondary"} className={`text-[10px] px-1.5 h-5 font-medium ${isOverCapacity ? '' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                             {playerCount}/{config.maxTeamSize}
                         </Badge>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                    <MoreHorizontal className="h-3 w-3" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-700">
+                                    <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem onClick={() => setIsDetailsOpen(true)}>
+                                    <Maximize2 className="h-4 w-4 mr-2" />
+                                    View Details
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setIsEditing(true)}>
                                     Rename Team
                                 </DropdownMenuItem>
@@ -119,25 +143,42 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
                                 )}
                             </DropdownMenuContent>
                         </DropdownMenu>
+
+                        <div className="hidden group-hover:block absolute top-2 right-10 md:static md:block md:static">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                onClick={() => setIsDetailsOpen(true)}
+                                title="Expand Team View"
+                            >
+                                <Maximize2 className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Mini Stats */}
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-medium">
-                    <div className="flex items-center gap-1">
-                        <span className="font-bold text-foreground">{avgSkill}</span> Avg
+                {/* Stats Bar */}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                    {/* Avg Skill Pill */}
+                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[11px] font-semibold ${skillColorClass} shadow-sm`}>
+                        <span>Avg</span>
+                        <span className="text-[12px]">{avgSkill}</span>
                     </div>
-                    <div className={`flex items-center gap-1 ${femaleCount < config.minFemales ? 'text-red-600 font-bold' : 'text-green-600'}`}>
-                        <span>{femaleCount}F</span>
-                        <span className="text-[9px] opacity-80">
-                            ({femaleCount - config.minFemales >= 0 ? '+' : ''}{femaleCount - config.minFemales})
-                        </span>
-                    </div>
-                    <div className={`flex items-center gap-1 ${maleCount < config.minMales ? 'text-red-600 font-bold' : 'text-green-600'}`}>
-                        <span>{maleCount}M</span>
-                        <span className="text-[9px] opacity-80">
-                            ({maleCount - config.minMales >= 0 ? '+' : ''}{maleCount - config.minMales})
-                        </span>
+
+                    <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500">
+                        <div className={`flex items-center gap-0.5 ${femaleCount < config.minFemales ? 'text-red-600 font-bold' : ''}`}>
+                            <span className="text-slate-400">F:</span>
+                            <span>{femaleCount}</span>
+                        </div>
+                        <div className={`flex items-center gap-0.5 ${maleCount < config.minMales ? 'text-red-600 font-bold' : ''}`}>
+                            <span className="text-slate-400">M:</span>
+                            <span>{maleCount}</span>
+                        </div>
+                        <div className={`flex items-center gap-0.5 ${handlerCount < targetHandlers ? 'text-orange-600 font-bold' : ''}`}>
+                            <span className="text-slate-400">H:</span>
+                            <span>{handlerCount}</span>
+                        </div>
                     </div>
                 </div>
             </CardHeader>
@@ -188,6 +229,102 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam }: 
                     </div>
                 </SortableContext>
             </CardContent>
-        </Card>
+
+            <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            {team.name}
+                            <Badge variant={isOverCapacity ? "destructive" : "secondary"}>
+                                {playerCount}/{config.maxTeamSize}
+                            </Badge>
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    {/* Stats Summary */}
+                    <div className="flex flex-wrap gap-4 py-2 border-b">
+                        <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground uppercase font-bold">Average Skill</span>
+                            <span className="text-2xl font-bold">{avgSkill}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground uppercase font-bold">Females</span>
+                            <div className={`flex items-baseline gap-1 ${femaleCount < config.minFemales ? 'text-red-600' : 'text-green-600'}`}>
+                                <span className="text-2xl font-bold">{femaleCount}</span>
+                                <span className="text-xs font-medium">/{config.minFemales}</span>
+                            </div>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground uppercase font-bold">Males</span>
+                            <div className={`flex items-baseline gap-1 ${maleCount < config.minMales ? 'text-red-600' : 'text-green-600'}`}>
+                                <span className="text-2xl font-bold">{maleCount}</span>
+                                <span className="text-xs font-medium">/{config.minMales}</span>
+                            </div>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground uppercase font-bold">Handlers</span>
+                            <div className={`flex items-baseline gap-1 ${handlerCount < targetHandlers ? 'text-orange-600' : 'text-green-600'}`}>
+                                <span className="text-2xl font-bold">{handlerCount}</span>
+                                <span className="text-xs font-medium">/{targetHandlers}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        {/* Females Column */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between border-b pb-1 border-pink-100">
+                                <h3 className="font-bold text-pink-700 flex items-center gap-2">
+                                    <Users className="h-4 w-4" />
+                                    Females
+                                </h3>
+                                <Badge variant="secondary" className="bg-pink-100 text-pink-700 hover:bg-pink-200">
+                                    {team.players.filter(p => p.gender === 'F').length}
+                                </Badge>
+                            </div>
+                            <div className="space-y-2">
+                                {team.players
+                                    .filter(p => p.gender === 'F')
+                                    .sort((a, b) => getEffectiveSkillRating(b) - getEffectiveSkillRating(a))
+                                    .map(player => (
+                                        <div key={player.id} className="pointer-events-none">
+                                            <DraggablePlayerCard player={player} />
+                                        </div>
+                                    ))}
+                                {team.players.filter(p => p.gender === 'F').length === 0 && (
+                                    <p className="text-sm text-gray-400 italic py-2">No female players assigned</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Males Column */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between border-b pb-1 border-blue-100">
+                                <h3 className="font-bold text-blue-700 flex items-center gap-2">
+                                    <Users className="h-4 w-4" />
+                                    Males
+                                </h3>
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200">
+                                    {team.players.filter(p => p.gender === 'M').length}
+                                </Badge>
+                            </div>
+                            <div className="space-y-2">
+                                {team.players
+                                    .filter(p => p.gender === 'M')
+                                    .sort((a, b) => getEffectiveSkillRating(b) - getEffectiveSkillRating(a))
+                                    .map(player => (
+                                        <div key={player.id} className="pointer-events-none">
+                                            <DraggablePlayerCard player={player} />
+                                        </div>
+                                    ))}
+                                {team.players.filter(p => p.gender === 'M').length === 0 && (
+                                    <p className="text-sm text-gray-400 italic py-2">No male players assigned</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </Card >
     );
 }

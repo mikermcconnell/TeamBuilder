@@ -49,6 +49,7 @@ interface SavedTeamsManagerProps {
   config: LeagueConfig;
   rosterId?: string;
   onLoadTeams: (teams: Team[], unassignedPlayers: Player[], config: LeagueConfig) => void;
+  mode?: 'default' | 'toolbar';
 }
 
 export function SavedTeamsManager({
@@ -56,7 +57,8 @@ export function SavedTeamsManager({
   unassignedPlayers,
   config,
   rosterId,
-  onLoadTeams
+  onLoadTeams,
+  mode = 'default'
 }: SavedTeamsManagerProps) {
   const [savedTeamsList, setSavedTeamsList] = useState<TeamsData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -199,186 +201,204 @@ export function SavedTeamsManager({
     return assignedCount + unassignedCount;
   };
 
+  const saveDialog = (
+    <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="default"
+          disabled={teams.length === 0}
+          className="gap-2"
+        >
+          <Save className="h-4 w-4" />
+          Save Current Teams
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Save Teams Configuration</DialogTitle>
+          <DialogDescription>
+            Save your current team configuration to load it again later.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div>
+            <Label htmlFor="save-name">Name *</Label>
+            <Input
+              id="save-name"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              placeholder="e.g., Spring Season Teams, Tournament A"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="save-description">Description (optional)</Label>
+            <Textarea
+              id="save-description"
+              value={saveDescription}
+              onChange={(e) => setSaveDescription(e.target.value)}
+              placeholder="Add notes about this team configuration..."
+              className="mt-1"
+              rows={3}
+            />
+          </div>
+          <div className="text-sm text-muted-foreground">
+            <p>This will save:</p>
+            <ul className="list-disc list-inside mt-1">
+              <li>{teams.length} teams with {teams.reduce((sum, t) => sum + t.players.length, 0)} assigned players</li>
+              <li>{unassignedPlayers.length} unassigned players</li>
+              <li>Team configuration settings</li>
+            </ul>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveTeams} disabled={isLoading}>
+            {isLoading ? 'Saving...' : 'Save Teams'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const loadDialog = (
+    <Dialog open={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          disabled={savedTeamsList.length === 0}
+          className="gap-2"
+        >
+          <FolderOpen className="h-4 w-4" />
+          Load Teams
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Load Saved Teams</DialogTitle>
+          <DialogDescription>
+            Select a saved team configuration to load.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          {savedTeamsList.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <p>No saved teams found</p>
+              <p className="text-sm mt-1">Save your current teams to load them later</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {savedTeamsList.map((teamsData) => (
+                <Card
+                  key={teamsData.id}
+                  className={`cursor-pointer transition-colors ${selectedTeamsId === teamsData.id
+                    ? 'ring-2 ring-primary'
+                    : 'hover:bg-accent/50'
+                    }`}
+                  onClick={() => setSelectedTeamsId(teamsData.id!)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          {selectedTeamsId === teamsData.id && (
+                            <CheckCircle className="h-4 w-4 text-primary" />
+                          )}
+                          {teamsData.name}
+                        </CardTitle>
+                        {teamsData.description && (
+                          <CardDescription className="text-sm">
+                            {teamsData.description}
+                          </CardDescription>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportTeamsToJSON(teamsData);
+                          }}
+                          title="Export to JSON"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTeams(teamsData.id!);
+                          }}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>{teamsData.teams.length} teams</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>{getTotalPlayers(teamsData)} players</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{teamsData.updatedAt ? format(teamsData.updatedAt, 'MMM d, h:mm a') : 'N/A'}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => {
+            setIsLoadDialogOpen(false);
+            setSelectedTeamsId(null);
+          }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleLoadTeams}
+            disabled={!selectedTeamsId || isLoading}
+          >
+            {isLoading ? 'Loading...' : 'Load Teams'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (mode === 'toolbar') {
+    return (
+      <div className="flex items-center gap-3 px-1">
+        <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">Saved Teams</span>
+        <div className="flex items-center gap-2">
+          {saveDialog}
+          {loadDialog}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Saved Teams</h3>
-        <div className="flex gap-2">
-          <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="default"
-                disabled={teams.length === 0}
-                className="gap-2"
-              >
-                <Save className="h-4 w-4" />
-                Save Current Teams
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Save Teams Configuration</DialogTitle>
-                <DialogDescription>
-                  Save your current team configuration to load it again later.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label htmlFor="save-name">Name *</Label>
-                  <Input
-                    id="save-name"
-                    value={saveName}
-                    onChange={(e) => setSaveName(e.target.value)}
-                    placeholder="e.g., Spring Season Teams, Tournament A"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="save-description">Description (optional)</Label>
-                  <Textarea
-                    id="save-description"
-                    value={saveDescription}
-                    onChange={(e) => setSaveDescription(e.target.value)}
-                    placeholder="Add notes about this team configuration..."
-                    className="mt-1"
-                    rows={3}
-                  />
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  <p>This will save:</p>
-                  <ul className="list-disc list-inside mt-1">
-                    <li>{teams.length} teams with {teams.reduce((sum, t) => sum + t.players.length, 0)} assigned players</li>
-                    <li>{unassignedPlayers.length} unassigned players</li>
-                    <li>Team configuration settings</li>
-                  </ul>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveTeams} disabled={isLoading}>
-                  {isLoading ? 'Saving...' : 'Save Teams'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                disabled={savedTeamsList.length === 0}
-                className="gap-2"
-              >
-                <FolderOpen className="h-4 w-4" />
-                Load Teams
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Load Saved Teams</DialogTitle>
-                <DialogDescription>
-                  Select a saved team configuration to load.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                {savedTeamsList.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                    <p>No saved teams found</p>
-                    <p className="text-sm mt-1">Save your current teams to load them later</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {savedTeamsList.map((teamsData) => (
-                      <Card
-                        key={teamsData.id}
-                        className={`cursor-pointer transition-colors ${
-                          selectedTeamsId === teamsData.id
-                            ? 'ring-2 ring-primary'
-                            : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => setSelectedTeamsId(teamsData.id!)}
-                      >
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                              <CardTitle className="text-base flex items-center gap-2">
-                                {selectedTeamsId === teamsData.id && (
-                                  <CheckCircle className="h-4 w-4 text-primary" />
-                                )}
-                                {teamsData.name}
-                              </CardTitle>
-                              {teamsData.description && (
-                                <CardDescription className="text-sm">
-                                  {teamsData.description}
-                                </CardDescription>
-                              )}
-                            </div>
-                            <div className="flex gap-1">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  exportTeamsToJSON(teamsData);
-                                }}
-                                title="Export to JSON"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteTeams(teamsData.id!);
-                                }}
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <Users className="h-3.5 w-3.5" />
-                              <span>{teamsData.teams.length} teams</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <Users className="h-3.5 w-3.5" />
-                              <span>{getTotalPlayers(teamsData)} players</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <Clock className="h-3.5 w-3.5" />
-                              <span>{teamsData.updatedAt ? format(teamsData.updatedAt, 'MMM d, h:mm a') : 'N/A'}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  setIsLoadDialogOpen(false);
-                  setSelectedTeamsId(null);
-                }}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleLoadTeams}
-                  disabled={!selectedTeamsId || isLoading}
-                >
-                  {isLoading ? 'Loading...' : 'Load Teams'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+        <div className="flex gap-6">
+          {saveDialog}
+          {loadDialog}
         </div>
       </div>
 

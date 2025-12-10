@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Player, getEffectiveSkillRating } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { BarChart3, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp } from 'lucide-react';
+import { BarChart3, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SkillDistributionChartProps {
   players: Player[];
@@ -46,10 +46,11 @@ export function SkillDistributionChart({ players }: SkillDistributionChartProps)
     // Create skill level buckets (1-10)
     const buckets: DistributionData[] = [];
     for (let i = 1; i <= 10; i++) {
+      // Round near-.5 values? Standard round: X.5 -> X+1
       const actualCount = skills.filter(skill => Math.round(skill) === i).length;
       const actualPercentage = players.length > 0 ? (actualCount / players.length) * 100 : 0;
 
-      const expectedPercentage = normalPercentiles[i - 1];
+      const expectedPercentage = normalPercentiles[i - 1] ?? 0;
       const expectedCount = Math.round((expectedPercentage / 100) * players.length);
 
       const difference = actualCount - expectedCount;
@@ -95,8 +96,6 @@ export function SkillDistributionChart({ players }: SkillDistributionChartProps)
 
   const skills = players.map(player => getEffectiveSkillRating(player));
   const mean = skills.reduce((sum, skill) => sum + skill, 0) / skills.length;
-  const variance = skills.reduce((sum, skill) => sum + Math.pow(skill - mean, 2), 0) / skills.length;
-  const stdDev = Math.sqrt(variance);
 
   return (
     <Card className="w-full">
@@ -117,135 +116,111 @@ export function SkillDistributionChart({ players }: SkillDistributionChartProps)
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0 pb-3">
-        <div className="space-y-3">
-          {/* Chart */}
-          <div className="relative">
-            <div className="grid grid-cols-10 gap-1 h-32">
-              {distributionData.map((data) => {
-                const actualHeight = maxPercentage > 0 ? (data.actualPercentage / maxPercentage) * 100 : 0;
-                const expectedHeight = maxPercentage > 0 ? (data.expectedPercentage / maxPercentage) * 100 : 0;
+            <div className="space-y-3">
+              {/* Chart */}
+              <div className="relative pl-10 mt-6">
+                <div className="grid grid-cols-10 gap-1 h-32">
+                  {distributionData.map((data) => {
+                    const actualHeight = maxPercentage > 0 ? (data.actualPercentage / maxPercentage) * 100 : 0;
+                    const expectedHeight = maxPercentage > 0 ? (data.expectedPercentage / maxPercentage) * 100 : 0;
+                    const labelBottom = Math.max(actualHeight, expectedHeight);
 
-                return (
-                  <div key={data.skillLevel} className="flex flex-col justify-end h-full relative group">
-                    {/* Expected (normal distribution) bar - background */}
-                    <div
-                      className="w-full bg-gray-200 border border-gray-300 rounded-sm opacity-60"
-                      style={{ height: `${expectedHeight}%` }}
-                    />
+                    return (
+                      <div key={data.skillLevel} className="flex flex-col justify-end h-full relative group">
+                        {/* Expected (normal distribution) bar - Dashed Line Top */}
+                        <div
+                          className="w-full absolute bottom-0 border-x border-t-2 border-dashed border-slate-300 rounded-t-sm z-0"
+                          style={{ height: `${expectedHeight}%` }}
+                        />
 
-                    {/* Actual percentage bar - overlay */}
-                    <div
-                      className={`w-full absolute bottom-0 rounded-sm border ${
-                        data.percentileDifference > 1
-                          ? 'bg-blue-500 border-blue-600'
-                          : data.percentileDifference < -1
-                          ? 'bg-red-400 border-red-500'
-                          : 'bg-green-500 border-green-600'
-                      }`}
-                      style={{ height: `${actualHeight}%` }}
-                    />
+                        {/* Actual percentage bar - Solid Fill */}
+                        <div
+                          className={`w-full absolute bottom-0 rounded-sm z-10 opacity-90 hover:opacity-100 transition-opacity ${(() => {
+                            const diff = Math.abs(data.percentileDifference);
+                            if (diff < 2) return 'bg-slate-600';
+                            if (diff < 5) return 'bg-red-400';
+                            if (diff < 10) return 'bg-red-600';
+                            return 'bg-red-800';
+                          })()}`}
+                          style={{ height: `${actualHeight}%` }}
+                        />
 
-                    {/* Skill level label */}
-                    <div className="text-xs text-center mt-1 font-medium">
+                        {/* Count Label */}
+                        <div
+                          className="absolute w-full text-center text-xs leading-tight font-bold transition-all z-20"
+                          style={{ bottom: `calc(${labelBottom}% + 4px)` }}
+                        >
+                          <span className="text-slate-900">{data.actualCount}</span>
+                          <span className="text-slate-400 mx-0.5">/</span>
+                          <span className="text-slate-500">{data.expectedCount}</span>
+                        </div>
+
+
+
+                        {/* Tooltip on hover */}
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30">
+                          <div>Skill {data.skillLevel}</div>
+                          <div>Actual: {data.actualPercentage.toFixed(1)}% ({data.actualCount})</div>
+                          <div>Expected: {data.expectedPercentage.toFixed(1)}% ({data.expectedCount})</div>
+                          <div>Diff: {data.percentileDifference > 0 ? '+' : ''}{data.percentileDifference.toFixed(1)}%</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Y-axis labels */}
+                <div className="absolute left-0 top-0 h-32 flex flex-col justify-between text-xs text-gray-400 w-10 pr-2 text-right">
+                  <span>{maxPercentage.toFixed(0)}%</span>
+                  <span>{(maxPercentage / 2).toFixed(0)}%</span>
+                  <span>0%</span>
+                </div>
+
+                {/* X-axis numbers */}
+                <div className="grid grid-cols-10 gap-1 mt-2">
+                  {distributionData.map((data) => (
+                    <div key={data.skillLevel} className="text-center text-xs font-medium text-slate-600">
                       {data.skillLevel}
                     </div>
+                  ))}
+                </div>
 
-                    {/* Tooltip on hover */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                      <div>Skill {data.skillLevel}</div>
-                      <div>Actual: {data.actualPercentage.toFixed(1)}% ({data.actualCount})</div>
-                      <div>Expected: {data.expectedPercentage.toFixed(1)}% ({data.expectedCount})</div>
-                      <div>Diff: {data.percentileDifference > 0 ? '+' : ''}{data.percentileDifference.toFixed(1)}%</div>
-                    </div>
-                  </div>
-                );
-              })}
+                {/* X-axis Label */}
+                <div className="text-center text-xs text-slate-500 font-medium mt-2">
+                  Skill Rating
+                </div>
+              </div>
+
+              {/* Distribution Quality Score */}
+              <div className="text-center pt-4 border-t mt-2">
+                <div className="text-xs text-gray-600">
+                  Distribution Variance: {(() => {
+                    const avgDeviation = distributionData.reduce((sum, d) => sum + Math.abs(d.percentileDifference), 0) / distributionData.length;
+                    return avgDeviation.toFixed(1);
+                  })()}% from normal
+                </div>
+              </div>
             </div>
 
-            {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 h-32 flex flex-col justify-between text-xs text-gray-500 -ml-10">
-              <span>{maxPercentage.toFixed(0)}%</span>
-              <span>{(maxPercentage / 2).toFixed(0)}%</span>
-              <span>0%</span>
+            {/* Normalization Guidance */}
+            <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-md text-sm text-slate-700">
+              <div className="font-semibold mb-1 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Improve Distribution
+              </div>
+              <p className="mb-2">
+                To achieve a more normalized distribution (bell curve), aim for:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-xs ml-1 text-slate-600">
+                <li>Most players (approx. 40%) should be rated <strong>5-6</strong> (Average).</li>
+                <li>Fewer players (approx. 30%) should be rated <strong>4 or 7</strong> (Below/Above Average).</li>
+                <li>Even fewer (approx. 20%) should be rated <strong>3 or 8</strong>.</li>
+                <li>Only exceptional cases (approx. 10%) should be rated <strong>1-2 or 9-10</strong>.</li>
+              </ul>
             </div>
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-4 text-xs">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded-sm"></div>
-              <span>Expected %</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-blue-500 border border-blue-600 rounded-sm"></div>
-              <span>Over-represented</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-red-400 border border-red-500 rounded-sm"></div>
-              <span>Under-represented</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-green-500 border border-green-600 rounded-sm"></div>
-              <span>Well-balanced</span>
-            </div>
-          </div>
-
-          {/* Analysis Summary */}
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t">
-            {(() => {
-              const overRepresented = distributionData.filter(d => d.percentileDifference > 1);
-              const underRepresented = distributionData.filter(d => d.percentileDifference < -1);
-              const balanced = distributionData.filter(d => Math.abs(d.percentileDifference) <= 1);
-
-              const avgDeviation = distributionData.reduce((sum, d) => sum + Math.abs(d.percentileDifference), 0) / distributionData.length;
-
-              return (
-                <>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1 text-blue-600">
-                      <TrendingUp className="h-3 w-3" />
-                      <span className="text-xs font-medium">Over</span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {overRepresented.length} levels
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1 text-red-600">
-                      <TrendingDown className="h-3 w-3" />
-                      <span className="text-xs font-medium">Under</span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {underRepresented.length} levels
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1 text-green-600">
-                      <Minus className="h-3 w-3" />
-                      <span className="text-xs font-medium">Balanced</span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {balanced.length} levels
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-
-          {/* Distribution Quality Score */}
-          <div className="text-center pt-2 border-t">
-            <div className="text-xs text-gray-600">
-              Distribution Variance: {(() => {
-                const avgDeviation = distributionData.reduce((sum, d) => sum + Math.abs(d.percentileDifference), 0) / distributionData.length;
-                return avgDeviation.toFixed(1);
-              })()}% from normal
-            </div>
-          </div>
-        </div>
-        </CardContent>
+          </CardContent>
         </CollapsibleContent>
       </Collapsible>
-    </Card>
+    </Card >
   );
 }

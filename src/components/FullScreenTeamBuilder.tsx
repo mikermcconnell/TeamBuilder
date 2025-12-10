@@ -22,6 +22,18 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
+import { SavedTeamsManager } from './SavedTeamsManager';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Sparkles } from 'lucide-react';
+import { AssistantPanel } from './ai/AssistantPanel';
+import { generateTeamSuggestions } from '@/services/geminiService';
+import { TeamSuggestion } from '@/types/ai';
 
 interface FullScreenTeamBuilderProps {
   teams: Team[];
@@ -33,6 +45,7 @@ interface FullScreenTeamBuilderProps {
   playerGroups: PlayerGroup[];
   onExitFullScreen: () => void;
   onLoadTeams?: (teams: Team[], unassignedPlayers: Player[], config: LeagueConfig) => void;
+  rosterId?: string;
 }
 
 export function FullScreenTeamBuilder({
@@ -44,10 +57,67 @@ export function FullScreenTeamBuilder({
   players,
   playerGroups,
   onExitFullScreen,
-  onLoadTeams
+  onLoadTeams,
+  rosterId
 }: FullScreenTeamBuilderProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activePlayer, setActivePlayer] = useState<Player | null>(null);
+
+  const [sortBy, setSortBy] = useState<'name' | 'skill-high' | 'skill-low'>('name');
+
+  // AI Assistant State
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<TeamSuggestion[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  const handleAiPrompt = async (prompt: string) => {
+    setIsAiLoading(true);
+    try {
+      const suggestions = await generateTeamSuggestions(prompt, players, teams, config);
+      setAiSuggestions(suggestions);
+    } catch (error) {
+      toast.error("Failed to generate suggestions. Please check your API key.");
+      console.error(error);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  const handleAcceptSuggestion = (suggestion: TeamSuggestion) => {
+    // Execute all actions in the suggestion
+    suggestion.actions.forEach(action => {
+      const targetId = action.targetTeamId === 'unassigned' ? null : action.targetTeamId;
+      onPlayerMove(action.playerId, targetId);
+    });
+
+    // Remove from list
+    setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+    toast.success(`Applied: ${suggestion.title}`);
+  };
+
+  const handleDismissSuggestion = (id: string) => {
+    setAiSuggestions(prev => prev.filter(s => s.id !== id));
+  };
+
+  // Sort teams
+  const sortedTeams = [...teams].sort((a, b) => {
+    if (sortBy === 'name') {
+      return a.name.localeCompare(b.name, undefined, { numeric: true });
+    }
+    const getAvgSkill = (team: Team) => {
+      if (team.players.length === 0) return 0;
+      const total = team.players.reduce((sum, p) => {
+        const skill = (p.execSkillRating !== null && p.execSkillRating !== undefined)
+          ? p.execSkillRating
+          : p.skillRating;
+        return sum + skill;
+      }, 0);
+      return total / team.players.length;
+    };
+    const skillA = getAvgSkill(a);
+    const skillB = getAvgSkill(b);
+    return sortBy === 'skill-high' ? skillB - skillA : skillA - skillB;
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -131,32 +201,82 @@ export function FullScreenTeamBuilder({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0 flex items-center justify-between shadow-sm z-10">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={onExitFullScreen}
-            className="flex items-center gap-2 hover:bg-gray-100"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <div className="h-6 w-px bg-gray-200" />
-          <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-1.5 rounded-md">
-              <Maximize2 className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900 leading-none">Team Builder Hub</h1>
-              <p className="text-xs text-gray-500 mt-0.5">Drag and drop to organize teams</p>
+    <div className="fixed inset-0 bg-slate-50 z-50 flex flex-col font-sans text-slate-900">
+      {/* Enterprise Header */}
+      <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-3 flex-shrink-0 flex items-center justify-between z-20 sticky top-0">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onExitFullScreen}
+              className="text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors -ml-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <div className="h-4 w-px bg-slate-200" />
+            <div className="flex items-center gap-2">
+              <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm">
+                <Maximize2 className="h-4 w-4 text-white" />
+              </div>
+              <h1 className="text-lg font-bold tracking-tight text-slate-800">Team Builder Hub</h1>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Future: Add Undo/Redo buttons here */}
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-2 ${isAssistantOpen ? 'bg-purple-50 border-purple-200 text-purple-700' : ''}`}
+            onClick={() => setIsAssistantOpen(!isAssistantOpen)}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">AI Assistant</span>
+          </Button>
+          {onLoadTeams && (
+            <div className="flex items-center gap-3">
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger className="w-[180px] h-9 bg-white border-slate-200">
+                  <SelectValue placeholder="Sort teams" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-500" />
+                      <span>Sort by Name</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="skill-high">
+                    <div className="flex items-center gap-2">
+                      <ArrowDownWideNarrow className="h-3.5 w-3.5 text-slate-500" />
+                      <span>Skill: High to Low</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="skill-low">
+                    <div className="flex items-center gap-2">
+                      <ArrowUpNarrowWide className="h-3.5 w-3.5 text-slate-500" />
+                      <span>Skill: Low to High</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="h-6 w-px bg-slate-200 mx-1" />
+              {onLoadTeams && (
+                <div className="flex items-center">
+                  <SavedTeamsManager
+                    teams={teams}
+                    unassignedPlayers={unassignedPlayers}
+                    config={config}
+                    rosterId={rosterId}
+                    onLoadTeams={onLoadTeams}
+                    mode="toolbar"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -177,9 +297,23 @@ export function FullScreenTeamBuilder({
             />
           </div>
 
+          {/* AI Assistant Panel */}
+          {isAssistantOpen && (
+            <div className="z-30 h-full border-r bg-white shadow-xl animate-in slide-in-from-left duration-200">
+              <AssistantPanel
+                suggestions={aiSuggestions}
+                isLoading={isAiLoading}
+                onSendPrompt={handleAiPrompt}
+                onAcceptSuggestion={handleAcceptSuggestion}
+                onDismissSuggestion={handleDismissSuggestion}
+                onClose={() => setIsAssistantOpen(false)}
+              />
+            </div>
+          )}
+
           {/* Board */}
           <TeamBoard
-            teams={teams}
+            teams={sortedTeams}
             config={config}
             onTeamNameChange={onTeamNameChange}
           // Add handlers for adding/removing teams if needed in future
@@ -187,15 +321,17 @@ export function FullScreenTeamBuilder({
         </div>
 
         {/* Drag Overlay */}
-        {createPortal(
-          <DragOverlay dropAnimation={dropAnimation}>
-            {activePlayer ? (
-              <DraggablePlayerCard player={activePlayer} />
-            ) : null}
-          </DragOverlay>,
-          document.body
-        )}
-      </DndContext>
-    </div>
+        {
+          createPortal(
+            <DragOverlay dropAnimation={dropAnimation}>
+              {activePlayer ? (
+                <DraggablePlayerCard player={activePlayer} />
+              ) : null}
+            </DragOverlay>,
+            document.body
+          )
+        }
+      </DndContext >
+    </div >
   );
 }

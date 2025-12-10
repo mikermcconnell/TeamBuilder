@@ -1,25 +1,22 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
-import { Player, Team, LeagueConfig, AppState, TeamGenerationStats, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import { Player, Team, LeagueConfig, AppState, PlayerGroup, getEffectiveSkillRating } from '@/types';
 import { getDefaultConfig, saveDefaultConfig } from '@/utils/configManager';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
-import { validateAndProcessCSV } from '@/utils/csvProcessor';
-import { debounce, safeJsonParse, validateObjectStructure, safeLocalStorageSave } from '@/utils/performance';
+import { validateAndProcessCSV, generateSampleCSV } from '@/utils/csvProcessor';
+import { debounce } from '@/utils/performance';
 import { validateAppState, validatePlayer, validateTeamName } from '@/utils/validation';
 import { dataStorageService } from '@/services/dataStorageService';
 import { saveRoster, updateRoster, RosterData, getUserRosters, getRoster } from '@/services/rosterService';
 import { CSVUploader } from '@/components/CSVUploader';
 import { ConfigurationPanel } from '@/components/ConfigurationPanel';
 import { PlayerRoster } from '@/components/PlayerRoster';
-import { TeamDisplay } from '@/components/TeamDisplay';
 import { FullScreenTeamBuilder } from '@/components/FullScreenTeamBuilder';
-import { GenerationStats } from '@/components/GenerationStats';
 import { ExportPanel } from '@/components/ExportPanel';
 import { PlayerGroups } from '@/components/PlayerGroups';
 import PlayerEmail from '@/components/PlayerEmail';
 import TutorialLanding from '@/components/TutorialLanding';
-import { SavedTeamsManager } from '@/components/SavedTeamsManager';
 import { AuthDialog } from '@/components/AuthDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -27,7 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, FolderOpen, Users, Settings, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2, Play, AlertTriangle, MousePointer, Maximize2 } from 'lucide-react';
+import { Save, FolderOpen, Users, FileSpreadsheet, BarChart3, Download, Shuffle, Zap, UserCheck, Trash2, Play, AlertTriangle, MousePointer } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
@@ -40,11 +37,10 @@ if (import.meta.env.DEV) {
 
 interface ComponentErrorBoundaryProps {
   children: React.ReactNode;
-  isolate?: boolean;
   componentName: string;
 }
 
-function ComponentErrorBoundary({ children, isolate, componentName }: ComponentErrorBoundaryProps) {
+function ComponentErrorBoundary({ children, componentName }: ComponentErrorBoundaryProps) {
   return (
     <ErrorBoundary
       FallbackComponent={ErrorFallback}
@@ -52,7 +48,6 @@ function ComponentErrorBoundary({ children, isolate, componentName }: ComponentE
         console.error(`Error in ${componentName}:`, error, errorInfo);
         toast.error(`Error in ${componentName}: ${error.message}`);
       }}
-      isolate={isolate}
     >
       {children}
     </ErrorBoundary>
@@ -81,7 +76,7 @@ const normalizeName = (name: string): string => name.trim().toLowerCase();
 function App() {
   // Auth state
   const [user, setUser] = useState<User | null>(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  // const [isLoadingAuth, setIsLoadingAuth] = useState(true); // Unused
   const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
@@ -211,7 +206,7 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       dataStorageService.setUser(firebaseUser);
-      setIsLoadingAuth(false);
+      // setIsLoadingAuth(false);
 
       // Load data when auth state changes
       try {
@@ -225,9 +220,26 @@ function App() {
               .filter((p): p is Player => p !== null);
 
             const execHistory = { ...(loadedState.execRatingHistory ?? {}) };
+            const migratedHistory: Record<string, { rating: number; updatedAt: number }> = {};
+
+            // Migrate old data if necessary
+            Object.entries(execHistory).forEach(([key, val]) => {
+              if (typeof val === 'number') {
+                migratedHistory[key] = { rating: val, updatedAt: 0 };
+              } else if (val && typeof val === 'object' && 'rating' in val) {
+                // @ts-ignore - we know this is likely valid from validation check
+                migratedHistory[key] = val;
+              }
+            });
+
             validatedPlayers.forEach(player => {
+              // Seed history from players if missing
               if (player.execSkillRating !== null) {
-                execHistory[normalizeName(player.name)] = player.execSkillRating;
+                const key = normalizeName(player.name);
+                // Only seed if not already present (prefer history)
+                if (!migratedHistory[key]) {
+                  migratedHistory[key] = { rating: player.execSkillRating, updatedAt: 0 };
+                }
               }
             });
 
@@ -235,11 +247,23 @@ function App() {
               ...loadedState,
               players: validatedPlayers,
               config: loadedState.config || getDefaultConfig(),
-              execRatingHistory: execHistory
+              execRatingHistory: migratedHistory
             });
           } else {
             console.warn('Invalid saved state structure');
             toast.warning('Some saved data was invalid and has been cleaned up');
+          }
+        } else if (localStorage.getItem('tutorialCompleted') === 'true') {
+          // Load sample data if user has completed tutorial but has no saved data
+          const sampleCSV = generateSampleCSV();
+          const result = validateAndProcessCSV(sampleCSV);
+          if (result.isValid && result.players.length > 0) {
+            setAppState(prev => ({
+              ...prev,
+              players: result.players,
+              playerGroups: result.playerGroups || []
+            }));
+            toast.info('Loaded sample roster to get you started!');
           }
         }
 
@@ -275,6 +299,7 @@ function App() {
       const timeoutId = setTimeout(saveData, 500);
       return () => clearTimeout(timeoutId);
     }
+    return undefined;
   }, [appState, dataLoaded]);
 
 
@@ -485,9 +510,29 @@ function App() {
 
       setAppState(prev => {
         const execHistory = { ...prev.execRatingHistory };
+        const rosterUpdatedAt = roster.updatedAt ? new Date(roster.updatedAt).getTime() : 0;
+
+        // Smart Merge: Compare roster data with local history
         (roster.players || []).forEach(player => {
           if (player.execSkillRating !== null && player.execSkillRating !== undefined) {
-            execHistory[normalizeName(player.name)] = player.execSkillRating;
+            const key = normalizeName(player.name);
+            const historyEntry = execHistory[key];
+
+            // If local history is newer, override the player's rating with history
+            if (historyEntry && historyEntry.updatedAt > rosterUpdatedAt) {
+              player.execSkillRating = historyEntry.rating;
+            } else {
+              // Otherwise, update history with roster's data (if roster is newer or no history)
+              // Note: If they are equal/unknown, we usually bias towards the loaded roster as it's what the user asked for
+              execHistory[key] = { rating: player.execSkillRating, updatedAt: rosterUpdatedAt };
+            }
+          } else {
+            // Player has no rating in roster, check history
+            const key = normalizeName(player.name);
+            const historyEntry = execHistory[key];
+            if (historyEntry) {
+              player.execSkillRating = historyEntry.rating;
+            }
           }
         });
 
@@ -596,25 +641,34 @@ function App() {
       // Seed history with any exec ratings already stored on current players
       prev.players.forEach(existingPlayer => {
         if (existingPlayer.execSkillRating !== null) {
-          execRatingHistory[normalizeName(existingPlayer.name)] = existingPlayer.execSkillRating;
+          const key = normalizeName(existingPlayer.name);
+          if (!execRatingHistory[key]) {
+            execRatingHistory[key] = { rating: existingPlayer.execSkillRating, updatedAt: 0 };
+          }
         }
       });
 
+      const now = Date.now();
       const updatedPlayers = players.map(player => {
         const nameKey = normalizeName(player.name);
         const csvExec = player.execSkillRating !== null && player.execSkillRating !== undefined
           ? player.execSkillRating
           : null;
 
-        const historyExec = execRatingHistory[nameKey];
-        const finalExec = csvExec !== null && csvExec !== undefined
-          ? csvExec
-          : historyExec !== undefined
-            ? historyExec
-            : null;
+        const historyEntry = execRatingHistory[nameKey];
 
-        if (finalExec !== null) {
-          execRatingHistory[nameKey] = finalExec;
+        let finalExec: number | null = null;
+        let isNewFromCSV = false;
+
+        if (csvExec !== null) {
+          finalExec = csvExec;
+          isNewFromCSV = true;
+        } else if (historyEntry) {
+          finalExec = historyEntry.rating;
+        }
+
+        if (finalExec !== null && isNewFromCSV) {
+          execRatingHistory[nameKey] = { rating: finalExec, updatedAt: now };
         }
 
         return {
@@ -670,7 +724,7 @@ function App() {
           if (response.ok) {
             const csvText = await response.text();
             const result = validateAndProcessCSV(csvText);
-            
+
             if (result.isValid && result.players.length > 0) {
               handlePlayersLoaded(result.players, result.playerGroups || []);
             }
@@ -713,15 +767,15 @@ function App() {
       }));
 
       setActiveTab('teams');
-      
+
       const message = manualMode
         ? `Created ${result.teams.length} manual teams - drag players to complete setup`
         : randomize
-        ? `Generated ${result.teams.length} random teams`
-        : `Generated ${result.teams.length} balanced teams`;
+          ? `Generated ${result.teams.length} random teams`
+          : `Generated ${result.teams.length} balanced teams`;
 
       toast.success(message);
-      
+
       if (result.unassignedPlayers.length > 0) {
         toast.warning(`${result.unassignedPlayers.length} players could not be assigned due to constraints`);
       }
@@ -739,20 +793,18 @@ function App() {
       const updatedHistory = { ...prev.execRatingHistory };
 
       if (existingPlayer) {
-        const oldKey = normalizeName(existingPlayer.name);
+        // const oldKey = normalizeName(existingPlayer.name);
         const newKey = normalizeName(updatedPlayer.name);
 
-        if (oldKey !== newKey && updatedHistory[oldKey] !== undefined) {
-          delete updatedHistory[oldKey];
-        }
+        // If name changed, clean up old key? Optionally keep it in case they change back contextually
+        // For now, if name changes, we treat it as a new entity usually, but let's keep it simple.
 
         if (updatedPlayer.execSkillRating !== null && updatedPlayer.execSkillRating !== undefined) {
-          updatedHistory[newKey] = updatedPlayer.execSkillRating;
-        } else {
-          delete updatedHistory[newKey];
+          // Manual update always sets timestamp to NOW
+          updatedHistory[newKey] = { rating: updatedPlayer.execSkillRating, updatedAt: Date.now() };
         }
       } else if (updatedPlayer.execSkillRating !== null && updatedPlayer.execSkillRating !== undefined) {
-        updatedHistory[normalizeName(updatedPlayer.name)] = updatedPlayer.execSkillRating;
+        updatedHistory[normalizeName(updatedPlayer.name)] = { rating: updatedPlayer.execSkillRating, updatedAt: Date.now() };
       }
 
       // Update player in the main players array
@@ -772,7 +824,7 @@ function App() {
           // Calculate new team stats
           const totalSkill = updatedTeamPlayers.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
           const averageSkill = updatedTeamPlayers.length > 0 ? totalSkill / updatedTeamPlayers.length : 0;
-          
+
           const genderBreakdown = { M: 0, F: 0, Other: 0 };
           updatedTeamPlayers.forEach(p => {
             genderBreakdown[p.gender]++;
@@ -808,7 +860,7 @@ function App() {
     setAppState(prev => {
       const updatedHistory = { ...prev.execRatingHistory };
       if (newPlayer.execSkillRating !== null && newPlayer.execSkillRating !== undefined) {
-        updatedHistory[normalizeName(newPlayer.name)] = newPlayer.execSkillRating;
+        updatedHistory[normalizeName(newPlayer.name)] = { rating: newPlayer.execSkillRating, updatedAt: Date.now() };
       }
 
       return {
@@ -840,7 +892,7 @@ function App() {
           // Calculate new team stats
           const totalSkill = updatedTeamPlayers.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
           const averageSkill = updatedTeamPlayers.length > 0 ? totalSkill / updatedTeamPlayers.length : 0;
-          
+
           const genderBreakdown = { M: 0, F: 0, Other: 0 };
           updatedTeamPlayers.forEach(p => {
             genderBreakdown[p.gender]++;
@@ -868,10 +920,10 @@ function App() {
       // Clean up teammate/avoid requests that reference the removed player
       const cleanedPlayers = updatedPlayers.map(player => ({
         ...player,
-        teammateRequests: player.teammateRequests.filter(name => 
+        teammateRequests: player.teammateRequests.filter(name =>
           name.toLowerCase() !== removedPlayer.name.toLowerCase()
         ),
-        avoidRequests: player.avoidRequests.filter(name => 
+        avoidRequests: player.avoidRequests.filter(name =>
           name.toLowerCase() !== removedPlayer.name.toLowerCase()
         )
       }));
@@ -895,11 +947,11 @@ function App() {
 
       let updatedUnassigned = [...prev.unassignedPlayers];
       const player = prev.players.find(p => p.id === playerId);
-      
+
       if (!player) return prev;
 
       // Create updated player with new teamId
-      const updatedPlayer = { ...player, teamId: targetTeamId };
+      const updatedPlayer = { ...player, teamId: targetTeamId || undefined };
 
       if (targetTeamId) {
         const targetTeam = updatedTeams.find(t => t.id === targetTeamId);
@@ -914,7 +966,7 @@ function App() {
       }
 
       // Update the main players array with the new teamId
-      const updatedPlayers = prev.players.map(p => 
+      const updatedPlayers = prev.players.map(p =>
         p.id === playerId ? updatedPlayer : p
       );
 
@@ -937,7 +989,7 @@ function App() {
       return {
         ...prev,
         players: updatedPlayers,
-        teams: isManualMode ? updatedTeams : updatedTeams.filter(t => t.players.length > 0),
+        teams: updatedTeams,
         unassignedPlayers: updatedUnassigned
       };
     });
@@ -988,7 +1040,7 @@ function App() {
     setAppState(prev => {
       const targetGroup = prev.playerGroups.find(g => g.id === groupId);
       const player = prev.players.find(p => p.id === playerId);
-      
+
       if (!targetGroup || !player || targetGroup.players.length >= 4) {
         return prev;
       }
@@ -1004,7 +1056,7 @@ function App() {
         return group;
       });
 
-      const updatedPlayers = prev.players.map(p => 
+      const updatedPlayers = prev.players.map(p =>
         p.id === playerId ? { ...p, groupId } : p
       );
 
@@ -1024,7 +1076,7 @@ function App() {
         players: group.players.filter(p => p.id !== playerId)
       })).filter(group => group.players.length > 0); // Remove empty groups
 
-      const updatedPlayers = prev.players.map(p => 
+      const updatedPlayers = prev.players.map(p =>
         p.id === playerId ? { ...p, groupId: undefined } : p
       );
 
@@ -1039,7 +1091,7 @@ function App() {
   const handleCreateNewGroup = useCallback((playerIds: string[]) => {
     setAppState(prev => {
       const selectedPlayers = prev.players.filter(p => playerIds.includes(p.id));
-      
+
       if (selectedPlayers.length === 0 || selectedPlayers.length > 4) {
         return prev;
       }
@@ -1070,7 +1122,7 @@ function App() {
         players: selectedPlayers
       };
 
-      const updatedPlayers = prev.players.map(p => 
+      const updatedPlayers = prev.players.map(p =>
         playerIds.includes(p.id) ? { ...p, groupId: newGroup.id } : p
       );
 
@@ -1088,7 +1140,7 @@ function App() {
       if (!groupToDelete) return prev;
 
       const updatedGroups = prev.playerGroups.filter(g => g.id !== groupId);
-      const updatedPlayers = prev.players.map(p => 
+      const updatedPlayers = prev.players.map(p =>
         groupToDelete.playerIds.includes(p.id) ? { ...p, groupId: undefined } : p
       );
 
@@ -1104,9 +1156,9 @@ function App() {
     setAppState(prev => {
       const sourceGroup = prev.playerGroups.find(g => g.id === sourceGroupId);
       const targetGroup = prev.playerGroups.find(g => g.id === targetGroupId);
-      
+
       if (!sourceGroup || !targetGroup) return prev;
-      
+
       // Update players to be in the target group
       const updatedPlayers = prev.players.map(player => {
         if (sourceGroup.playerIds.includes(player.id)) {
@@ -1245,33 +1297,67 @@ function App() {
         <main className="w-full max-w-full xl:max-w-[1600px] 2xl:max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 py-8">
           {/* Main Navigation Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-7 mb-6 bg-white/80 backdrop-blur-xl border border-green-200 shadow-lg">
-              <TabsTrigger value="upload" className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary font-medium">
-                <FileSpreadsheet className="h-4 w-4" />
+            <TabsList className="grid w-full grid-cols-7 mb-6 bg-white/80 backdrop-blur-xl border border-green-200 shadow-lg h-auto p-1">
+              <TabsTrigger
+                value="upload"
+                data-testid="nav-upload"
+                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary font-medium transition-all"
+              >
+                <FileSpreadsheet className="h-5 w-5 sm:h-6 sm:w-6" />
                 Upload
               </TabsTrigger>
-              <TabsTrigger value="roster" disabled={!hasPlayers} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
-                <Users className="h-4 w-4" />
+              <TabsTrigger
+                value="roster"
+                disabled={!hasPlayers}
+                data-testid="nav-roster"
+                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
+              >
+                <Users className="h-5 w-5 sm:h-6 sm:w-6" />
                 Roster
               </TabsTrigger>
-              <TabsTrigger value="groups" disabled={!hasPlayers} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
-                <UserCheck className="h-4 w-4" />
+              <TabsTrigger
+                value="groups"
+                disabled={!hasPlayers}
+                data-testid="nav-groups"
+                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
+              >
+                <UserCheck className="h-5 w-5 sm:h-6 sm:w-6" />
                 Groups
               </TabsTrigger>
-              <TabsTrigger value="config" disabled={!hasPlayers} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
-                <Zap className="h-4 w-4" />
+              <TabsTrigger
+                value="config"
+                disabled={!hasPlayers}
+                data-testid="nav-config"
+                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
+              >
+                <Zap className="h-5 w-5 sm:h-6 sm:w-6" />
                 Generate Teams
               </TabsTrigger>
-              <TabsTrigger value="teams" disabled={!hasTeams} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
-                <BarChart3 className="h-4 w-4" />
+              <TabsTrigger
+                value="teams"
+                disabled={!hasTeams}
+                data-testid="nav-teams"
+                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
+              >
+                <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6" />
                 Teams
               </TabsTrigger>
-              <TabsTrigger value="export" disabled={!hasTeams} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
-                <Download className="h-4 w-4" />
+              <TabsTrigger
+                value="export"
+                disabled={!hasTeams}
+                data-testid="nav-export"
+                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
+              >
+                <Download className="h-5 w-5 sm:h-6 sm:w-6" />
                 Export
               </TabsTrigger>
-              <TabsTrigger value="email" disabled={!hasTeams || appState.players.filter(p => p.email).length === 0} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium">
-                <Users className="h-4 w-4" />
+              <TabsTrigger
+                value="email"
+                disabled={!hasTeams || appState.players.filter(p => p.email).length === 0}
+                data-testid="nav-email"
+                className="flex flex-col sm:flex-row items-center justify-center gap-2 py-3 sm:py-4 text-base sm:text-lg text-gray-600 hover:text-gray-800 data-[state=active]:text-white data-[state=active]:bg-primary disabled:text-gray-400 font-medium transition-all"
+              >
+                <Users className="h-5 w-5 sm:h-6 sm:w-6" />
                 Email
               </TabsTrigger>
             </TabsList>
@@ -1299,11 +1385,11 @@ function App() {
                     Upload Player Roster
                   </CardTitle>
                   <CardDescription className="text-gray-600">
-                  Upload a CSV or Excel file with player information to get started building your teams
+                    Upload a CSV or Excel file with player information to get started building your teams
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ComponentErrorBoundary isolate componentName="CSVUploader">
+                  <ComponentErrorBoundary componentName="CSVUploader">
                     <CSVUploader onPlayersLoaded={handlePlayersLoaded} />
                   </ComponentErrorBoundary>
                 </CardContent>
@@ -1312,7 +1398,7 @@ function App() {
 
             {/* Player Groups Tab */}
             <TabsContent value="groups" className="space-y-6">
-              <PlayerGroups 
+              <PlayerGroups
                 playerGroups={appState.playerGroups}
                 players={appState.players}
                 onAddPlayerToGroup={handleAddPlayerToGroup}
@@ -1374,7 +1460,7 @@ function App() {
                   </div>
                 )}
               </div>
-              <ComponentErrorBoundary isolate componentName="PlayerRoster">
+              <ComponentErrorBoundary componentName="PlayerRoster">
                 <PlayerRoster
                   players={appState.players}
                   onPlayerUpdate={handlePlayerUpdate}
@@ -1598,7 +1684,7 @@ function App() {
                       ⚡ Manual Teams
                     </Button>
                   </div>
-                  
+
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-gray-700">
                       <strong>🏆 Balanced Teams:</strong> Honors teammate/avoid requests and balances skill levels
@@ -1613,70 +1699,24 @@ function App() {
             </TabsContent>
 
             {/* Teams Tab */}
-            <TabsContent value="teams" className="space-y-6">
-              {/* Full Screen Mode */}
-              {isFullScreenMode ? (
-                <FullScreenTeamBuilder
-                  teams={appState.teams}
-                  unassignedPlayers={appState.unassignedPlayers}
-                  config={appState.config}
-                  onPlayerMove={handlePlayerMove}
-                  onTeamNameChange={handleTeamNameChange}
-                  players={appState.players}
-                  playerGroups={appState.playerGroups}
-                  onExitFullScreen={() => setIsFullScreenMode(false)}
-                  onLoadTeams={handleLoadTeams}
-                />
-              ) : (
-                <>
-                  {/* Team Generation Statistics */}
-                  {appState.stats && (
-                    <div className="mb-6">
-                      <GenerationStats stats={appState.stats} totalTeams={appState.teams.length} />
-                    </div>
-                  )}
-
-                  {/* Save/Load Teams and Full Screen Button */}
-                  <div className="space-y-4 mb-6">
-                    <SavedTeamsManager
-                      teams={appState.teams}
-                      unassignedPlayers={appState.unassignedPlayers}
-                      config={appState.config}
-                      onLoadTeams={handleLoadTeams}
-                    />
-
-                    {/* Full Screen Button - Only show in manual mode */}
-                    {isManualMode && appState.teams.length > 0 && (
-                      <div className="flex justify-end">
-                        <Button
-                          onClick={() => setIsFullScreenMode(true)}
-                          variant="outline"
-                          className="flex items-center gap-2"
-                        >
-                          <Maximize2 className="h-4 w-4" />
-                          Full Screen Team Builder
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  <TeamDisplay
-                    teams={appState.teams}
-                    unassignedPlayers={appState.unassignedPlayers}
-                    config={appState.config}
-                    onPlayerMove={handlePlayerMove}
-                    onTeamNameChange={handleTeamNameChange}
-                    players={appState.players}
-                    playerGroups={appState.playerGroups}
-                    manualMode={isManualMode}
-                  />
-                </>
-              )}
+            <TabsContent value="teams" className="h-[calc(100vh-120px)]">
+              <FullScreenTeamBuilder
+                teams={appState.teams}
+                unassignedPlayers={appState.unassignedPlayers}
+                config={appState.config}
+                onPlayerMove={handlePlayerMove}
+                onTeamNameChange={handleTeamNameChange}
+                players={appState.players}
+                playerGroups={appState.playerGroups}
+                onExitFullScreen={() => setActiveTab('config')}
+                onLoadTeams={handleLoadTeams}
+                rosterId={appState.config?.name}
+              />
             </TabsContent>
 
             {/* Export Tab */}
             <TabsContent value="export" className="space-y-6">
-              <ExportPanel 
+              <ExportPanel
                 teams={appState.teams}
                 unassignedPlayers={appState.unassignedPlayers}
                 config={appState.config}
@@ -1687,7 +1727,7 @@ function App() {
 
             {/* Email Tab */}
             <TabsContent value="email" className="space-y-6">
-              <PlayerEmail 
+              <PlayerEmail
                 teams={appState.teams}
                 unassignedPlayers={appState.unassignedPlayers}
               />

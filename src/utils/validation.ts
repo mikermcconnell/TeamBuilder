@@ -2,7 +2,7 @@
  * Input validation utilities to prevent XSS and ensure data integrity
  */
 
-import { Player, Team, LeagueConfig, AppState } from '@/types';
+import { Player, LeagueConfig, AppState } from '@/types';
 
 /**
  * Sanitizes a string input to prevent XSS attacks
@@ -109,6 +109,7 @@ export function validatePlayer(player: any): Player | null {
       teamId: player.teamId || undefined,
       groupId: player.groupId || undefined,
       email: player.email || undefined,
+      isHandler: typeof player.isHandler === 'boolean' ? player.isHandler : undefined,
     };
   } catch (error) {
     console.error('Player validation failed:', error);
@@ -168,13 +169,18 @@ export function validateAppState(state: any): state is AppState {
 
   // Validate arrays
   if (!Array.isArray(state.players) ||
-      !Array.isArray(state.teams) ||
-      !Array.isArray(state.unassignedPlayers)) {
+    !Array.isArray(state.teams) ||
+    !Array.isArray(state.unassignedPlayers)) {
     return false;
   }
 
   // Validate config
   if (!state.config || typeof state.config !== 'object') {
+    return false;
+  }
+
+  // Validate execRatingHistory (allow migration from old format)
+  if (state.execRatingHistory && typeof state.execRatingHistory !== 'object') {
     return false;
   }
 
