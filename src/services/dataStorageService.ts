@@ -12,7 +12,7 @@ export class DataStorageService {
     this.user = user;
   }
 
-  async save(data: AppState): Promise<void> {
+  async save(data: AppState): Promise<{ type: 'cloud' | 'local'; error?: any }> {
     try {
       if (this.user) {
         // Save to Firestore - clean undefined values
@@ -22,15 +22,18 @@ export class DataStorageService {
           ...cleanData,
           lastUpdated: new Date().toISOString()
         });
+        return { type: 'cloud' };
       } else {
         // Save to localStorage
         localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(data));
+        return { type: 'local' };
       }
     } catch (error) {
       console.error('Error saving data:', error);
       // Fallback to localStorage on error
       localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(data));
-      throw error;
+      // Return local type with error info instead of throwing
+      return { type: 'local', error };
     }
   }
 

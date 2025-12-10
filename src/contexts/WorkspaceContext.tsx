@@ -90,11 +90,26 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
                 version: 1,
             };
 
-            const id = await WorkspaceService.saveWorkspace(payload, currentWorkspaceId || undefined);
+            const result = await WorkspaceService.saveWorkspace(payload, currentWorkspaceId || undefined);
+
+            // Handle result (check if string or object, though we updated service to return object)
+            // Ideally we update the interface to match, but JS runtime will return the object
+            const id = typeof result === 'string' ? result : result.id;
+
             setCurrentWorkspaceId(id);
 
             // Update the list smoothly without full reload if possible, but fetching is safer
             loadWorkspaces();
+
+            // Show appropriate feedback
+            if (typeof result !== 'string' && result.type === 'local') {
+                toast.warning('Cloud save blocked. Saved to this device only.', {
+                    description: 'Check your ad blocker if you want to sync.',
+                    duration: 5000,
+                });
+            } else {
+                toast.success('Project saved');
+            }
 
             return id;
         } catch (error) {

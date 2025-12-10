@@ -263,7 +263,11 @@ function App() {
     if (dataLoaded) {
       const saveData = async () => {
         try {
-          await dataStorageService.save(appState);
+          const result = await dataStorageService.save(appState);
+          setSaveStatus(result.type === 'local' ? 'saved' : 'saved'); // Could differentiate UI state here if desired
+          if (result.type === 'local' && result.error) {
+            console.warn('Auto-saved to local only due to error:', result.error);
+          }
         } catch (error) {
           console.error('Failed to save data:', error);
           setSaveStatus('error');

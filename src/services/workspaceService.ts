@@ -7,10 +7,7 @@ import {
     getDocs,
     query,
     where,
-    orderBy,
-    deleteDoc,
-    serverTimestamp,
-    Timestamp
+    deleteDoc
 } from 'firebase/firestore';
 import { SavedWorkspace } from '@/types';
 
@@ -20,29 +17,48 @@ export class WorkspaceService {
     /**
      * Save a workspace to Firestore. Creates new or updates existing.
      */
-    static async saveWorkspace(workspace: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<string> {
+    static async saveWorkspace(workspace: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<{ id: string; type: 'cloud' | 'local'; error?: any }> {
+        const workspaceId = id || doc(collection(db, this.COLLECTION)).id;
+        const now = new Date().toISOString();
+        const payload = {
+            ...workspace,
+            id: workspaceId,
+            updatedAt: now,
+            createdAt: id ? undefined : now,
+        };
+
+        // Remove undefined fields
+        Object.keys(payload).forEach(key => payload[key as keyof typeof payload] === undefined && delete payload[key as keyof typeof payload]);
+
         try {
-            const workspaceId = id || doc(collection(db, this.COLLECTION)).id;
             const workspaceRef = doc(db, this.COLLECTION, workspaceId);
-
-            const now = new Date().toISOString();
-            const payload = {
-                ...workspace,
-                id: workspaceId,
-                updatedAt: now,
-                createdAt: id ? undefined : now, // Only set createdAt on creation
-            };
-
-            // Remove undefined fields
-            Object.keys(payload).forEach(key => payload[key as keyof typeof payload] === undefined && delete payload[key as keyof typeof payload]);
-
-            // If updating, we merge. If creating, we set.
             await setDoc(workspaceRef, payload, { merge: true });
-
-            return workspaceId;
+            return { id: workspaceId, type: 'cloud' };
         } catch (error) {
-            console.error('Error saving workspace:', error);
-            throw new Error('Failed to save workspace');
+            console.error('Error saving workspace to cloud, falling back to local:', error);
+
+            // Fallback to LocalStorage
+            // We need to store it in a list in localStorage to simulate the collection
+            const LOCAL_KEY = 'local_saved_workspaces';
+            try {
+                const existingStr = localStorage.getItem(LOCAL_KEY);
+                const existing: SavedWorkspace[] = existingStr ? JSON.parse(existingStr) : [];
+
+                const existingIndex = existing.findIndex(w => w.id === workspaceId);
+                const completeWorkspace = payload as SavedWorkspace;
+
+                if (existingIndex >= 0) {
+                    existing[existingIndex] = completeWorkspace;
+                } else {
+                    existing.push(completeWorkspace);
+                }
+
+                localStorage.setItem(LOCAL_KEY, JSON.stringify(existing));
+                return { id: workspaceId, type: 'local', error };
+            } catch (localError) {
+                console.error('Failed to save locally:', localError);
+                throw new Error('Failed to save project everywhere');
+            }
         }
     }
 
@@ -54,12 +70,35 @@ export class WorkspaceService {
             const q = query(
                 collection(db, this.COLLECTION),
                 where('userId', '==', userId)
-                // Note: Composite index might be needed for orderBy('updatedAt', 'desc'). 
-                // We'll sort in memory for now to avoid blocking on index creation.
             );
 
-            const snapshot = await getDocs(q);
-            const workspaces = snapshot.docs.map(doc => doc.data() as SavedWorkspace);
+            let workspaces: SavedWorkspace[] = [];
+
+            // Try fetch from cloud
+            try {
+                const snapshot = await getDocs(q);
+                workspaces = snapshot.docs.map(doc => doc.data() as SavedWorkspace);
+            } catch (cloudError) {
+                console.warn('Failed to fetch cloud workspaces, showing local only:', cloudError);
+            }
+
+            // Always merge with local for resilience
+            const LOCAL_KEY = 'local_saved_workspaces';
+            const localStr = localStorage.getItem(LOCAL_KEY);
+            if (localStr) {
+                const localWorkspaces: SavedWorkspace[] = JSON.parse(localStr);
+                // Filter for this user
+                const userLocal = localWorkspaces.filter(w => w.userId === userId);
+
+                // Merge strategies: prefer cloud if newer, or simple concat if ID unique?
+                // Simple concat unique by ID
+                const cloudIds = new Set(workspaces.map(w => w.id));
+                userLocal.forEach(w => {
+                    if (!cloudIds.has(w.id)) {
+                        workspaces.push(w);
+                    }
+                });
+            }
 
             return workspaces.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
         } catch (error) {
