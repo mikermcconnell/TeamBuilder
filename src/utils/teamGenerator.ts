@@ -459,6 +459,11 @@ function calculateSwapImprovement(
   player1: Player,
   player2: Player
 ): number {
+  // Guard against division by zero with empty teams
+  if (team1.players.length === 0 || team2.players.length === 0) {
+    return 0; // No improvement possible with empty teams
+  }
+
   const currentDiff = Math.abs(team1.averageSkill - team2.averageSkill);
 
   // Calculate new averages after swap
@@ -534,7 +539,7 @@ function updateTeamStats(team: Team): void {
 }
 
 function generateTeamId(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substr(2, 5);
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).slice(2, 7);
 }
 
 function calculateStats(

@@ -13,6 +13,7 @@ service cloud.firestore {
     }
     
     // Checks if the user is owner of the resource being requested (existing data)
+    // Works for get, update, delete operations on single documents
     function isResourceOwner() {
       return isAuthenticated() && request.auth.uid == resource.data.userId;
     }
@@ -31,8 +32,10 @@ service cloud.firestore {
     
     // Rosters
     match /rosters/{document} {
-      // Read: Owner of existing resource
-      allow get, list: if isResourceOwner();
+      // Get: Owner of existing resource
+      allow get: if isResourceOwner();
+      // List: Allow authenticated users - queries filter by userId client-side
+      allow list: if isAuthenticated();
       // Update/Delete: Owner of existing resource
       allow update, delete: if isResourceOwner();
       // Create: Check incoming data ownership
@@ -41,7 +44,16 @@ service cloud.firestore {
     
     // Roster versions
     match /rosterVersions/{document} {
-      allow get, list: if isResourceOwner();
+      allow get: if isResourceOwner();
+      allow list: if isAuthenticated();
+      allow update, delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
+    }
+    
+    // Saved Rosters (CSV storage via rosterStorage.ts)
+    match /savedRosters/{document} {
+      allow get: if isResourceOwner();
+      allow list: if isAuthenticated();
       allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
@@ -57,14 +69,34 @@ service cloud.firestore {
     
     // Teams
     match /teams/{document} {
-      allow get, list: if isResourceOwner();
+      allow get: if isResourceOwner();
+      allow list: if isAuthenticated();
       allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
 
     // Workspaces
     match /workspaces/{document} {
-      allow get, list: if isResourceOwner();
+      allow get: if isResourceOwner();
+      allow list: if isAuthenticated();
+      // Update: Must own existing doc AND claim ownership in new data
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
+    }
+
+    // Sessions
+    match /sessions/{document} {
+      allow get: if isResourceOwner();
+      allow list: if isAuthenticated();
+      allow update, delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
+    }
+
+    // Config Presets
+    match /configPresets/{document} {
+      allow get: if isResourceOwner();
+      allow list: if isAuthenticated();
       allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }

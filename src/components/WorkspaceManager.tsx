@@ -166,15 +166,16 @@ export function WorkspaceManager({
                         config,
                         stats
                     });
-                    toast.success(`Project saved`);
+                    // Success toast is handled in WorkspaceContext
                     setIsSaveDialogOpen(false);
-                } catch (e) {
-                    console.error(e);
+                } catch (e: any) {
+                    console.error('Save failed in setTimeout:', e);
+                    toast.error(`Save failed: ${e?.message || 'Unknown error'}`);
                 }
             }, 100);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to save project:', error);
-            // toast handled in context
+            toast.error(`Save failed: ${error?.message || 'Unknown error'}`);
         }
     };
 

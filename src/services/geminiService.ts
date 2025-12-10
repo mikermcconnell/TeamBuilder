@@ -4,9 +4,14 @@ import { TeamSuggestion } from '@/types/ai';
 import { GEMINI_MODEL } from '@/config/constants';
 
 // Initialize the API client
-// Note: In a production app, this should be proxied through a backend to protect the key
+// SECURITY WARNING: In production, this API key should be proxied through a backend service
+// (Firebase Functions, Vercel Serverless, etc.) to protect from extraction via DevTools.
+// See: https://cloud.google.com/docs/authentication/api-keys#securing_an_api_key
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(API_KEY);
+
+// Default timeout for API requests (30 seconds)
+const API_TIMEOUT_MS = 30000;
 
 export async function generateTeamSuggestions(
     prompt: string,
@@ -79,8 +84,10 @@ export async function generateTeamSuggestions(
         unassignedCount: unassignedPlayers.length
     };
 
-    // DEBUG: Log context to ensure IDs are correct
-    console.log("Gemini Context:", JSON.stringify(context, null, 2));
+    // Only log in development mode to protect player PII
+    if (import.meta.env.DEV) {
+        console.log("[DEV] Gemini Context:", JSON.stringify(context, null, 2));
+    }
 
     const systemPrompt = `
     You are an AI Team Builder Assistant.
@@ -118,11 +125,17 @@ export async function generateTeamSuggestions(
     IMPORTANT: Return ONLY valid JSON. No markdown formatting.
   `;
 
+    // Create timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
     try {
         const result = await model.generateContent([
             systemPrompt,
             JSON.stringify(context)
         ]);
+
+        clearTimeout(timeoutId);
 
         const response = result.response;
         const text = response.text();
@@ -130,8 +143,24 @@ export async function generateTeamSuggestions(
         // Clean up potential markdown code blocks
         const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-        return JSON.parse(cleanJson) as TeamSuggestion[];
+        // Safe JSON parsing with validation
+        try {
+            const parsed = JSON.parse(cleanJson);
+            if (!Array.isArray(parsed)) {
+                console.error('Gemini response is not an array');
+                return [];
+            }
+            return parsed as TeamSuggestion[];
+        } catch (parseError) {
+            console.error('Failed to parse Gemini response as JSON:', parseError);
+            return [];
+        }
     } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.error('Gemini API request timed out');
+            throw new Error('Request timed out. Please try again.');
+        }
         console.error('Gemini API Error:', error);
         throw new Error('Failed to generate suggestions');
     }
@@ -187,15 +216,37 @@ export async function findPlayerMatches(
     ]
     `;
 
+    // Create timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
     try {
         const result = await model.generateContent([prompt]);
+        clearTimeout(timeoutId);
+
         const response = result.response;
         const text = response.text();
         const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-        return JSON.parse(cleanJson) as AIMatchResult[];
+        // Safe JSON parsing with validation
+        try {
+            const parsed = JSON.parse(cleanJson);
+            if (!Array.isArray(parsed)) {
+                console.error('AI match response is not an array');
+                return [];
+            }
+            return parsed as AIMatchResult[];
+        } catch (parseError) {
+            console.error('Failed to parse AI match response:', parseError);
+            return [];
+        }
     } catch (error) {
-        console.error('Gemini AI Matching Error:', error);
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.error('AI matching request timed out');
+        } else {
+            console.error('Gemini AI Matching Error:', error);
+        }
         return [];
     }
 }

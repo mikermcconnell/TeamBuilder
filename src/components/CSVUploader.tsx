@@ -420,7 +420,7 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
                     </p>
                   </div>
                   <p className="text-sm text-gray-500">
-                    Supports CSV (.csv) or Excel (.xls, .xlsx) up to 10MB
+                    Supports CSV (.csv) or Excel (.xls, .xlsx) up to 1MB
                   </p>
                 </div>
               </div>

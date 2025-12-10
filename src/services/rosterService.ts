@@ -1,10 +1,10 @@
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs, 
-  updateDoc, 
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  updateDoc,
   deleteDoc,
   doc,
   getDoc,
@@ -138,18 +138,18 @@ export const saveRoster = async (
       lastAccessedAt: Timestamp.now(),
       isArchived: false
     });
-    
+
     return docRef.id;
   } catch (error: any) {
     console.error('Error saving roster:', error);
-    
+
     // Handle specific Firebase errors
     if (error?.code === 'permission-denied') {
       throw new Error('Permission denied. Please make sure you are signed in.');
     } else if (error?.code === 'unavailable') {
       throw new Error('Service temporarily unavailable. Please try again.');
     }
-    
+
     throw error;
   }
 };
@@ -168,12 +168,12 @@ export const saveTeamsToRoster = async (
     }
 
     const docRef = doc(db, 'rosters', rosterId);
-    
+
     // Clean all data to remove undefined values
     const cleanedTeams = removeUndefinedValues(teams || []);
     const cleanedUnassignedPlayers = removeUndefinedValues(unassignedPlayers || []);
     const cleanedConfig = removeUndefinedValues(config || {});
-    
+
     // Build update data with cleaned values
     const updateData: any = {
       teams: cleanedTeams,
@@ -184,7 +184,7 @@ export const saveTeamsToRoster = async (
       'metadata.teamsCount': cleanedTeams.length,
       updatedAt: Timestamp.now()
     };
-    
+
     await updateDoc(docRef, updateData);
   } catch (error: any) {
     console.error('Error saving teams to roster:', error);
@@ -194,26 +194,26 @@ export const saveTeamsToRoster = async (
 
 // Update an existing roster (creates a new version)
 export const updateRoster = async (
-  rosterId: string, 
+  rosterId: string,
   rosterData: Partial<RosterData>,
   createNewVersion: boolean = true
 ): Promise<void> => {
   try {
     const docRef = doc(db, 'rosters', rosterId);
     const docSnap = await getDoc(docRef);
-    
+
     if (!docSnap.exists()) {
       throw new Error('Roster not found');
     }
-    
+
     const currentData = docSnap.data();
     const newVersion = createNewVersion ? (currentData.version || 1) + 1 : currentData.version || 1;
-    
+
     // If creating a new version, save the old version
     if (createNewVersion) {
       await saveRosterVersion(rosterId, currentData);
     }
-    
+
     const cleanedRosterData = removeUndefinedValues(rosterData) as Partial<RosterData>;
 
     // Recalculate metadata if players changed
@@ -224,7 +224,7 @@ export const updateRoster = async (
         cleanedRosterData.playerGroups || currentData.playerGroups
       );
     }
-    
+
     await updateDoc(docRef, {
       ...cleanedRosterData,
       metadata,
@@ -240,9 +240,17 @@ export const updateRoster = async (
 // Save a roster version (for version history)
 const saveRosterVersion = async (rosterId: string, rosterData: any): Promise<void> => {
   try {
+    // Ensure userId is always included for security rule compliance
+    const userId = rosterData.userId || auth.currentUser?.uid;
+    if (!userId) {
+      console.warn('Cannot save roster version without userId');
+      return;
+    }
+
     await addDoc(collection(db, 'rosterVersions'), {
       rosterId,
       ...rosterData,
+      userId, // Explicitly set for security rules
       versionedAt: Timestamp.now()
     });
   } catch (error) {
@@ -252,7 +260,7 @@ const saveRosterVersion = async (rosterId: string, rosterData: any): Promise<voi
 
 // Get all rosters for a user
 export const getUserRosters = async (
-  userId: string, 
+  userId: string,
   includeArchived: boolean = false
 ): Promise<RosterData[]> => {
   try {
@@ -270,16 +278,16 @@ export const getUserRosters = async (
     }
 
     let q = query(
-      collection(db, 'rosters'), 
+      collection(db, 'rosters'),
       where('userId', '==', userId)
     );
-    
+
     if (!includeArchived) {
       q = query(q, where('isArchived', '==', false));
     }
-    
+
     q = query(q, orderBy('lastAccessedAt', 'desc'), limit(50));
-    
+
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
       const data = doc.data();
@@ -293,7 +301,7 @@ export const getUserRosters = async (
     });
   } catch (error: any) {
     console.error('Error fetching user rosters:', error);
-    
+
     // Handle specific Firebase errors
     if (error?.code === 'permission-denied') {
       console.warn('Permission denied accessing rosters. User may not be authenticated properly.');
@@ -302,7 +310,7 @@ export const getUserRosters = async (
     } else if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
       console.warn('Database indexes are being built. This may take a few minutes. Please try again shortly.');
     }
-    
+
     return [];
   }
 };
@@ -312,15 +320,15 @@ export const getRoster = async (rosterId: string): Promise<RosterData | null> =>
   try {
     const docRef = doc(db, 'rosters', rosterId);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       const data = docSnap.data();
-      
+
       // Update last accessed time
       await updateDoc(docRef, {
         lastAccessedAt: Timestamp.now()
       });
-      
+
       return {
         id: docSnap.id,
         ...data,
@@ -329,7 +337,7 @@ export const getRoster = async (rosterId: string): Promise<RosterData | null> =>
         lastAccessedAt: data.lastAccessedAt?.toDate()
       } as RosterData;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error fetching roster:', error);
@@ -363,8 +371,8 @@ export const archiveRoster = async (rosterId: string, isArchived: boolean): Prom
 
 // Duplicate a roster
 export const duplicateRoster = async (
-  rosterId: string, 
-  userId: string, 
+  rosterId: string,
+  userId: string,
   newName: string
 ): Promise<string> => {
   try {
@@ -372,7 +380,7 @@ export const duplicateRoster = async (
     if (!originalRoster) {
       throw new Error('Original roster not found');
     }
-    
+
     const newRosterData: Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'> = {
       ...originalRoster,
       userId,
@@ -381,7 +389,7 @@ export const duplicateRoster = async (
       isTemplate: false,
       sharedWith: []
     };
-    
+
     return await saveRoster(newRosterData);
   } catch (error) {
     console.error('Error duplicating roster:', error);
@@ -406,19 +414,19 @@ export const searchRosters = async (
       where('userId', '==', userId),
       where('isArchived', '==', false)
     );
-    
+
     if (filters?.sport) {
       q = query(q, where('sport', '==', filters.sport));
     }
-    
+
     if (filters?.season) {
       q = query(q, where('season', '==', filters.season));
     }
-    
+
     if (filters?.hasGroups !== undefined) {
       q = query(q, where('metadata.hasGroups', '==', filters.hasGroups));
     }
-    
+
     const snapshot = await getDocs(q);
     let results = snapshot.docs.map(doc => {
       const data = doc.data();
@@ -430,22 +438,22 @@ export const searchRosters = async (
         lastAccessedAt: data.lastAccessedAt?.toDate()
       } as RosterData;
     });
-    
+
     // Client-side filtering for name/description search and tags
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      results = results.filter(roster => 
+      results = results.filter(roster =>
         roster.name.toLowerCase().includes(term) ||
         roster.description?.toLowerCase().includes(term)
       );
     }
-    
+
     if (filters?.tags && filters.tags.length > 0) {
       results = results.filter(roster =>
         filters.tags!.some(tag => roster.tags?.includes(tag))
       );
     }
-    
+
     return results;
   } catch (error) {
     console.error('Error searching rosters:', error);
@@ -460,13 +468,13 @@ export const getRosterTemplates = async (category?: string): Promise<RosterTempl
       collection(db, 'rosterTemplates'),
       where('isPublic', '==', true)
     );
-    
+
     if (category) {
       q = query(q, where('category', '==', category));
     }
-    
+
     q = query(q, orderBy('usageCount', 'desc'), limit(20));
-    
+
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
       const data = doc.data();
@@ -490,18 +498,18 @@ export const createFromTemplate = async (
 ): Promise<string> => {
   try {
     const templateDoc = await getDoc(doc(db, 'rosterTemplates', templateId));
-    
+
     if (!templateDoc.exists()) {
       throw new Error('Template not found');
     }
-    
+
     const template = templateDoc.data() as RosterTemplate;
-    
+
     // Increment template usage count
     await updateDoc(doc(db, 'rosterTemplates', templateId), {
       usageCount: (template.usageCount || 0) + 1
     });
-    
+
     // Create new roster from template
     const rosterData: Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'> = {
       userId,
@@ -512,7 +520,7 @@ export const createFromTemplate = async (
       tags: [`template-${template.category}`],
       isTemplate: false
     };
-    
+
     return await saveRoster(rosterData);
   } catch (error) {
     console.error('Error creating from template:', error);
@@ -533,7 +541,7 @@ export const exportRosterToJSON = (roster: RosterData): string => {
     exportedAt: new Date().toISOString(),
     version: roster.version
   };
-  
+
   return JSON.stringify(exportData, null, 2);
 };
 
@@ -544,11 +552,11 @@ export const importRosterFromJSON = async (
 ): Promise<RosterData> => {
   try {
     const importData = JSON.parse(jsonString);
-    
+
     if (!importData.players || !Array.isArray(importData.players)) {
       throw new Error('Invalid roster format: missing players array');
     }
-    
+
     const rosterData: Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'> = {
       userId,
       name: importData.name || 'Imported Roster',
@@ -560,14 +568,14 @@ export const importRosterFromJSON = async (
       tags: importData.tags || ['imported'],
       isTemplate: false
     };
-    
+
     const rosterId = await saveRoster(rosterData);
     const roster = await getRoster(rosterId);
-    
+
     if (!roster) {
       throw new Error('Failed to retrieve imported roster');
     }
-    
+
     return roster;
   } catch (error) {
     console.error('Error importing roster:', error);
@@ -577,19 +585,19 @@ export const importRosterFromJSON = async (
 
 // Helper function to calculate roster metadata
 const calculateRosterMetadata = (
-  players: Player[], 
+  players: Player[],
   playerGroups?: PlayerGroup[]
 ): RosterData['metadata'] => {
   const totalPlayers = players.length;
   const avgSkillRating = totalPlayers > 0
     ? players.reduce((sum, p) => sum + p.skillRating, 0) / totalPlayers
     : 0;
-  
+
   const genderBreakdown = { M: 0, F: 0, Other: 0 };
   players.forEach(player => {
     genderBreakdown[player.gender]++;
   });
-  
+
   return {
     totalPlayers,
     avgSkillRating: Math.round(avgSkillRating * 10) / 10,
@@ -621,7 +629,7 @@ export const getRecentRosters = async (userId: string, limitCount: number = 5): 
       orderBy('lastAccessedAt', 'desc'),
       limit(limitCount)
     );
-    
+
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
       const data = doc.data();
@@ -635,7 +643,7 @@ export const getRecentRosters = async (userId: string, limitCount: number = 5): 
     });
   } catch (error: any) {
     console.error('Error fetching recent rosters:', error);
-    
+
     // Handle specific Firebase errors
     if (error?.code === 'permission-denied') {
       console.warn('Permission denied accessing recent rosters. User may not be authenticated properly.');
@@ -644,7 +652,7 @@ export const getRecentRosters = async (userId: string, limitCount: number = 5): 
     } else if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
       console.warn('Database indexes are being built. This may take a few minutes. Please try again shortly.');
     }
-    
+
     return [];
   }
 };

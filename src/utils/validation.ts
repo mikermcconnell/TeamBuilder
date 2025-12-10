@@ -52,7 +52,7 @@ export function sanitizeString(input: string, maxLength = 100): string {
 // --- Zod Schemas ---
 
 export const PlayerSchema = z.object({
-  id: z.string().default(() => `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`),
+  id: z.string().default(() => `player-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`),
   name: z.string().min(1, "Player name cannot be empty").transform(val => sanitizeString(val, MAX_PLAYER_NAME_LENGTH)),
   gender: z.enum(['M', 'F', 'Other']).default('Other'),
   skillRating: z.number().min(1).max(10).catch(5), // Default to 5 if invalid

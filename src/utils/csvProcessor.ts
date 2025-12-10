@@ -605,7 +605,7 @@ function parsePlayerList(str: string): string[] {
 }
 
 function generatePlayerId(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substr(2, 5);
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).slice(2, 7);
 }
 
 export function generateSampleCSV(): string {

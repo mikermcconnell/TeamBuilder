@@ -15,27 +15,57 @@ export class WorkspaceService {
     private static readonly COLLECTION = 'workspaces';
 
     /**
+     * Recursively removes undefined values from objects and arrays.
+     * Firestore doesn't accept undefined values.
+     */
+    private static removeUndefinedDeep(obj: any): any {
+        if (obj === null || obj === undefined) {
+            return null;
+        }
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.removeUndefinedDeep(item));
+        }
+        if (typeof obj === 'object') {
+            const cleaned: Record<string, any> = {};
+            for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key) && obj[key] !== undefined) {
+                    cleaned[key] = this.removeUndefinedDeep(obj[key]);
+                }
+            }
+            return cleaned;
+        }
+        return obj;
+    }
+
+    /**
      * Save a workspace to Firestore. Creates new or updates existing.
      */
     static async saveWorkspace(workspace: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<{ id: string; type: 'cloud' | 'local'; error?: any }> {
         const workspaceId = id || doc(collection(db, this.COLLECTION)).id;
         const now = new Date().toISOString();
-        const payload = {
+        const rawPayload = {
             ...workspace,
             id: workspaceId,
             updatedAt: now,
             createdAt: id ? undefined : now,
         };
 
-        // Remove undefined fields
-        Object.keys(payload).forEach(key => payload[key as keyof typeof payload] === undefined && delete payload[key as keyof typeof payload]);
+        // Recursively remove all undefined values (Firestore doesn't allow them)
+        const payload = this.removeUndefinedDeep(rawPayload);
 
         try {
             const workspaceRef = doc(db, this.COLLECTION, workspaceId);
             await setDoc(workspaceRef, payload, { merge: true });
             return { id: workspaceId, type: 'cloud' };
-        } catch (error) {
-            console.error('Error saving workspace to cloud, falling back to local:', error);
+        } catch (error: any) {
+            // Log detailed error info for debugging
+            console.error('Error saving workspace to cloud, falling back to local:', {
+                error,
+                code: error?.code,
+                message: error?.message,
+                userId: workspace.userId,
+                workspaceId
+            });
 
             // Fallback to LocalStorage
             // We need to store it in a list in localStorage to simulate the collection
@@ -45,7 +75,7 @@ export class WorkspaceService {
                 const existing: SavedWorkspace[] = existingStr ? JSON.parse(existingStr) : [];
 
                 const existingIndex = existing.findIndex(w => w.id === workspaceId);
-                const completeWorkspace = payload as SavedWorkspace;
+                const completeWorkspace = payload as unknown as SavedWorkspace;
 
                 if (existingIndex >= 0) {
                     existing[existingIndex] = completeWorkspace;
@@ -53,11 +83,20 @@ export class WorkspaceService {
                     existing.push(completeWorkspace);
                 }
 
-                localStorage.setItem(LOCAL_KEY, JSON.stringify(existing));
+                try {
+                    localStorage.setItem(LOCAL_KEY, JSON.stringify(existing));
+                } catch (storageError) {
+                    // Handle localStorage quota exceeded
+                    if (storageError instanceof DOMException &&
+                        (storageError.name === 'QuotaExceededError' || storageError.code === 22)) {
+                        throw new Error('Local storage is full. Please delete old projects or sign in for cloud storage.');
+                    }
+                    throw storageError;
+                }
                 return { id: workspaceId, type: 'local', error };
             } catch (localError) {
                 console.error('Failed to save locally:', localError);
-                throw new Error('Failed to save project everywhere');
+                throw localError instanceof Error ? localError : new Error('Failed to save project everywhere');
             }
         }
     }

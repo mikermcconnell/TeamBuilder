@@ -103,12 +103,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
             // Show appropriate feedback
             if (typeof result !== 'string' && result.type === 'local') {
-                toast.warning('Cloud save blocked. Saved to this device only.', {
-                    description: 'Check your ad blocker if you want to sync.',
-                    duration: 5000,
+                // Log the actual error that caused fallback
+                console.error('Cloud save failed, error details:', result.error);
+                const errorCode = result.error?.code || 'unknown';
+                const errorMsg = result.error?.message || 'Check your ad blocker';
+                toast.warning(`Cloud save blocked (${errorCode}). Saved locally.`, {
+                    description: errorMsg.substring(0, 100),
+                    duration: 8000,
                 });
             } else {
-                toast.success('Project saved');
+                toast.success('Project saved to cloud');
             }
 
             return id;
