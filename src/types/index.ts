@@ -141,6 +141,7 @@ export interface AppState {
   execRatingHistory: Record<string, { rating: number; updatedAt: number }>;
   stats?: TeamGenerationStats;
   savedConfigs: LeagueConfig[];
+  pendingWarnings?: import('./StructuredWarning').StructuredWarning[]; // Warnings awaiting resolution on Roster page
 }
 
 export interface SavedWorkspace {

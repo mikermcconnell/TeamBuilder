@@ -42,15 +42,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SkillDistributionChart } from './SkillDistributionChart';
 import { RosterFilters, RosterFilterState, initialFilterState } from './roster/RosterFilters';
 import { RosterTable } from './roster/RosterTable';
+import { WarningBanner } from './roster/WarningBanner';
+import { StructuredWarning } from '@/types/StructuredWarning';
 
 interface PlayerRosterProps {
   players: Player[];
   onPlayerUpdate: (player: Player) => void;
   onPlayerAdd?: (player: Player) => void;
   onPlayerRemove?: (playerId: string) => void;
+  pendingWarnings?: StructuredWarning[];
+  onResolveWarning?: (warning: StructuredWarning) => void;
+  onDismissWarning?: (warningId: string) => void;
+  onDismissAllWarnings?: () => void;
 }
 
-export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRemove }: PlayerRosterProps) {
+export function PlayerRoster({
+  players,
+  onPlayerUpdate,
+  onPlayerAdd,
+  onPlayerRemove,
+  pendingWarnings = [],
+  onResolveWarning,
+  onDismissWarning,
+  onDismissAllWarnings
+}: PlayerRosterProps) {
   // State
   const [filters, setFilters] = useState<RosterFilterState>(initialFilterState);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set());
@@ -341,6 +356,19 @@ export function PlayerRoster({ players, onPlayerUpdate, onPlayerAdd, onPlayerRem
 
   return (
     <div className="space-y-6">
+      {/* Warning Banner - persistent at top of roster */}
+      {pendingWarnings && pendingWarnings.length > 0 && onResolveWarning && onDismissWarning && onDismissAllWarnings && (
+        <div className="px-8">
+          <WarningBanner
+            warnings={pendingWarnings}
+            players={players}
+            onResolveWarning={onResolveWarning}
+            onDismissWarning={onDismissWarning}
+            onDismissAll={onDismissAllWarnings}
+          />
+        </div>
+      )}
+
       {/* Stats Cards Dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 px-8">
         {/* Total Players */}

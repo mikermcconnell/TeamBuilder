@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { TeamSuggestion } from '@/types/ai';
 import { Player, Team } from '@/types';
-import { ArrowRight, Check, X, TrendingUp, Users, Activity } from 'lucide-react';
+import { ArrowRight, Check, TrendingUp, Users, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SuggestionReviewModalProps {
@@ -31,7 +31,7 @@ export function SuggestionReviewModal({
     // Ensure selectedId is valid when suggestions change
     React.useEffect(() => {
         if (suggestions.length > 0 && !suggestions.find(s => s.id === selectedId)) {
-            setSelectedId(suggestions[0].id);
+            setSelectedId(suggestions[0]?.id || '');
         }
     }, [suggestions, selectedId]);
 

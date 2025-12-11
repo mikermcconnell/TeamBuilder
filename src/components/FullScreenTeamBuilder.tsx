@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -20,7 +20,7 @@ import { PlayerSidebar } from './PlayerSidebar';
 import { TeamBoard } from './TeamBoard';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Maximize2 } from 'lucide-react';
+import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { WorkspaceManager } from './WorkspaceManager';
@@ -50,6 +50,9 @@ interface FullScreenTeamBuilderProps {
   onLoadWorkspace: (id: string) => void;
   currentWorkspaceId?: string | null;
   isEmbedded?: boolean;
+  onReset?: () => void;
+  onUndo?: () => void;
+  canUndo?: boolean;
 }
 
 export function FullScreenTeamBuilder({
@@ -63,12 +66,33 @@ export function FullScreenTeamBuilder({
   onExitFullScreen,
   onLoadWorkspace,
   currentWorkspaceId,
-  isEmbedded = false
+  isEmbedded = false,
+  onReset,
+  onUndo,
+  canUndo = false
 }: FullScreenTeamBuilderProps) {
+
+  // Handle Undo Shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        if (canUndo && onUndo) {
+          onUndo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canUndo, onUndo]);
 
   const [activePlayer, setActivePlayer] = useState<Player | null>(null);
 
   const [sortBy, setSortBy] = useState<'name' | 'skill-high' | 'skill-low'>('name');
+
+  // Sidebar state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // AI Assistant State
   const [isAssistantOpen, setIsAssistantOpen] = useState(true);
@@ -246,9 +270,9 @@ export function FullScreenTeamBuilder({
               <div className="h-4 w-px bg-slate-200" />
               <div className="flex items-center gap-2">
                 <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm">
-                  <Maximize2 className="h-4 w-4 text-white" />
+                  <img src="/logo-new.jpg" alt="Logo" className="h-4 w-4 object-cover rounded" />
                 </div>
-                <h1 className="text-lg font-bold tracking-tight text-slate-800">Team Builder Hub</h1>
+                <h1 className="text-lg font-bold tracking-tight text-slate-800">Ulti-Team Hub</h1>
               </div>
             </div>
           )}
@@ -260,6 +284,35 @@ export function FullScreenTeamBuilder({
         </div>
 
         <div className="flex items-center gap-3">
+          {onUndo && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onUndo}
+              disabled={!canUndo}
+              className="gap-2 text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Undo</span>
+            </Button>
+          )}
+          {onReset && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (confirm('Reset all teams? This will move all players back to the Player Pool.')) {
+                  onReset();
+                  toast.success('All players moved to Player Pool');
+                }
+              }}
+              className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span className="hidden sm:inline">Reset</span>
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -325,12 +378,34 @@ export function FullScreenTeamBuilder({
         onDragEnd={handleDragEnd}
       >
         <div className="flex-1 flex overflow-hidden">
-          {/* Sidebar */}
-          <div className="w-80 flex-shrink-0 z-20 shadow-xl">
-            <PlayerSidebar
-              players={unassignedPlayers}
-              playerGroups={playerGroups}
-            />
+          {/* Sidebar - Collapsible */}
+          <div className={`relative flex-shrink-0 z-20 shadow-xl transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-12' : 'w-80'}`}>
+            {/* Toggle button */}
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="absolute -right-3 top-4 z-30 bg-white border border-slate-200 rounded-full p-1.5 shadow-md hover:bg-slate-50 transition-colors"
+              title={isSidebarCollapsed ? 'Expand Player Pool' : 'Collapse Player Pool'}
+            >
+              {isSidebarCollapsed ? (
+                <PanelLeft className="h-4 w-4 text-slate-600" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4 text-slate-600" />
+              )}
+            </button>
+
+            {/* Collapsed state - minimal indicator */}
+            {isSidebarCollapsed ? (
+              <div className="h-full bg-white flex flex-col items-center pt-16 border-r border-slate-200">
+                <div className="writing-mode-vertical text-xs font-medium text-slate-500 tracking-wider rotate-180" style={{ writingMode: 'vertical-rl' }}>
+                  PLAYER POOL ({unassignedPlayers.length})
+                </div>
+              </div>
+            ) : (
+              <PlayerSidebar
+                players={unassignedPlayers}
+                playerGroups={playerGroups}
+              />
+            )}
           </div>
 
           {/* AI Assistant - Clippy (Floating) */}

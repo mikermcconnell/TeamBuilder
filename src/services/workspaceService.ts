@@ -168,10 +168,36 @@ export class WorkspaceService {
      * Delete a workspace.
      */
     static async deleteWorkspace(id: string): Promise<void> {
+        const LOCAL_KEY = 'local_saved_workspaces';
+        let cloudDeleted = false;
+        let localDeleted = false;
+
+        // Try to delete from Firestore
         try {
             await deleteDoc(doc(db, this.COLLECTION, id));
+            cloudDeleted = true;
         } catch (error) {
-            console.error('Error deleting workspace:', error);
+            console.warn('Failed to delete workspace from cloud:', error);
+            // Continue to try local deletion
+        }
+
+        // Also delete from localStorage (in case it was saved locally)
+        try {
+            const existingStr = localStorage.getItem(LOCAL_KEY);
+            if (existingStr) {
+                const existing: SavedWorkspace[] = JSON.parse(existingStr);
+                const filtered = existing.filter(w => w.id !== id);
+                if (filtered.length < existing.length) {
+                    localStorage.setItem(LOCAL_KEY, JSON.stringify(filtered));
+                    localDeleted = true;
+                }
+            }
+        } catch (localError) {
+            console.warn('Failed to delete workspace from local storage:', localError);
+        }
+
+        // If neither succeeded, throw an error
+        if (!cloudDeleted && !localDeleted) {
             throw new Error('Failed to delete workspace');
         }
     }

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Player, Gender, getEffectiveSkillRating } from '@/types';
+import { Player } from '@/types';
 import {
     Table,
     TableBody,
@@ -84,10 +84,10 @@ export function RosterTable({
             const existingIndex = current.findIndex(s => s.field === field);
             let newConfig = [...current];
 
-            if (existingIndex >= 0) {
+            if (existingIndex >= 0 && newConfig[existingIndex]) {
                 // Toggle direction or remove if it's the only sort and we want to toggle off? 
                 // Usually just toggle direction.
-                if (newConfig[existingIndex]?.direction === 'asc') {
+                if (newConfig[existingIndex].direction === 'asc') {
                     newConfig[existingIndex].direction = 'desc';
                 } else {
                     // If multi-sort, remove it on 3rd click? Or just toggle back to asc?

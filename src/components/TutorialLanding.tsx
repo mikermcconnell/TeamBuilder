@@ -3,26 +3,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Users, 
-  FileSpreadsheet, 
-  Settings, 
-  Zap, 
-  BarChart3, 
+import {
+  Users,
+  FileSpreadsheet,
+  Settings,
+  Zap,
+  BarChart3,
   Download,
   Play,
   Pause,
   ChevronRight,
   CheckCircle,
   ArrowRight,
-  Sparkles,
   Target,
   Brain,
   Shield,
   RotateCcw,
   Mail
 } from 'lucide-react';
-import logoUrl from '@/assets/logo.svg';
+
 
 interface TutorialLandingProps {
   onStartApp: () => void;
@@ -194,15 +193,15 @@ const TutorialLanding: React.FC<TutorialLandingProps> = ({ onStartApp }) => {
         <div className="container mx-auto px-4 py-12">
           <div className="text-center max-w-4xl mx-auto mb-16">
 
-            
+
             <div className="flex items-center justify-center gap-4 mb-6">
-              <img src={logoUrl} alt="TeamBuilder Logo" className="h-12 w-12 md:h-16 md:w-16" />
-              <h1 className="text-5xl md:text-7xl font-bold">
-                <span className="text-gray-800">Team</span>
-                <span className="text-green-600">Builder</span>
+              <img src="/logo-new.jpg" alt="Ulti-Team Logo" className="h-16 w-16 md:h-20 md:w-20 object-cover rounded-full" />
+              <h1 className="text-5xl md:text-7xl font-black tracking-tight">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-900 to-indigo-600">Ulti-</span>
+                <span className="text-orange-500">Team</span>
               </h1>
             </div>
-            
+
             <p className="text-xl md:text-2xl text-gray-800 mb-8 leading-relaxed">
               Create perfectly balanced sports teams with our intelligent AI system.
               <br />
@@ -210,17 +209,17 @@ const TutorialLanding: React.FC<TutorialLandingProps> = ({ onStartApp }) => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
                 onClick={startTutorial}
               >
                 <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
                 ⚡ Start Interactive Tutorial
               </Button>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 size="lg"
                 className="border-2 border-orange-600 bg-orange-600 hover:bg-orange-700 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
                 onClick={onStartApp}
@@ -262,7 +261,7 @@ const TutorialLanding: React.FC<TutorialLandingProps> = ({ onStartApp }) => {
                 </div>
                 <CardTitle className="text-2xl mb-2 text-gray-800">🏆 {tutorialSteps[currentStep].title}</CardTitle>
                 <CardDescription className="text-lg text-gray-700">{tutorialSteps[currentStep].description}</CardDescription>
-                
+
                 {/* Tutorial Controls */}
                 <div className="flex justify-center gap-3 mt-4 mb-4">
                   <Button
@@ -300,10 +299,10 @@ const TutorialLanding: React.FC<TutorialLandingProps> = ({ onStartApp }) => {
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
-                
+
                 <Progress value={progress} className="mt-2" />
               </CardHeader>
-              
+
               <CardContent>
                 <div key={currentStep}>
                   {renderStepContent()}
@@ -323,13 +322,12 @@ const TutorialLanding: React.FC<TutorialLandingProps> = ({ onStartApp }) => {
                           setProgress(0);
                           setIsPlaying(false);
                         }}
-                        className={`w-8 h-8 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center font-semibold text-sm border-2 ${
-                          completedSteps.has(index) 
-                            ? 'bg-green-500 hover:bg-green-400 border-green-400 text-white shadow-lg shadow-green-500/25' 
-                            : index === currentStep 
-                              ? 'bg-green-600 border-green-600 text-white scale-110 shadow-lg shadow-green-600/25' 
-                              : 'bg-gray-200 hover:bg-gray-300 border-gray-300 text-gray-600'
-                        }`}
+                        className={`w-8 h-8 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center font-semibold text-sm border-2 ${completedSteps.has(index)
+                          ? 'bg-green-500 hover:bg-green-400 border-green-400 text-white shadow-lg shadow-green-500/25'
+                          : index === currentStep
+                            ? 'bg-green-600 border-green-600 text-white scale-110 shadow-lg shadow-green-600/25'
+                            : 'bg-gray-200 hover:bg-gray-300 border-gray-300 text-gray-600'
+                          }`}
                         title={`Go to ${step.title}`}
                       >
                         {completedSteps.has(index) ? (
@@ -338,9 +336,8 @@ const TutorialLanding: React.FC<TutorialLandingProps> = ({ onStartApp }) => {
                           <span>{index + 1}</span>
                         )}
                       </button>
-                      <span className={`text-xs font-medium transition-colors ${
-                        index === currentStep ? 'text-green-600' : 'text-gray-700'
-                      }`}>
+                      <span className={`text-xs font-medium transition-colors ${index === currentStep ? 'text-green-600' : 'text-gray-700'
+                        }`}>
                         Step {index + 1}
                       </span>
                     </div>
@@ -360,7 +357,7 @@ const TutorialLanding: React.FC<TutorialLandingProps> = ({ onStartApp }) => {
                 <p className="text-xl mb-6 text-white/90">
                   Join thousands of coaches, event organizers, and team leaders who trust our sports team builder
                 </p>
-                <Button 
+                <Button
                   size="lg"
                   variant="secondary"
                   className="bg-white text-green-700 hover:bg-white/90 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 interactive-button"
@@ -389,17 +386,17 @@ const CSVUploadDemo: React.FC = () => {
   useEffect(() => {
     // Show callout first
     const calloutTimer = setTimeout(() => setShowCallout(true), 500);
-    
+
     // Show CSV file animation
     const csvTimer = setTimeout(() => {
       setCsvFile({ name: 'team_roster.csv', visible: true });
     }, 1500);
-    
+
     // Start drag animation
     const dragTimer = setTimeout(() => {
       setIsDragging(true);
     }, 2500);
-    
+
     // Complete upload process
     const uploadTimer = setTimeout(() => {
       setIsDragging(false);
@@ -415,7 +412,7 @@ const CSVUploadDemo: React.FC = () => {
       }, 150);
       return () => clearInterval(interval);
     }, 4000);
-    
+
     return () => {
       clearTimeout(calloutTimer);
       clearTimeout(csvTimer);
@@ -434,13 +431,12 @@ const CSVUploadDemo: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       {/* Floating CSV File */}
       {csvFile.visible && (
-        <div 
-          className={`absolute top-8 right-8 z-10 transition-all duration-2000 ${
-            isDragging ? 'transform translate-x-[-400px] translate-y-[150px] rotate-12' : ''
-          }`}
+        <div
+          className={`absolute top-8 right-8 z-10 transition-all duration-2000 ${isDragging ? 'transform translate-x-[-400px] translate-y-[150px] rotate-12' : ''
+            }`}
         >
           <div className="bg-green-100 border-2 border-green-300 rounded-lg p-3 shadow-lg">
             <div className="flex items-center gap-2">
@@ -466,17 +462,16 @@ const CSVUploadDemo: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div>
           <h3 className="text-lg font-semibold mb-4 text-gray-800">Upload Zone</h3>
-          <div 
-            className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${
-              isDragging 
-                ? 'border-accent bg-accent/10 scale-105' 
-                : uploadProgress > 0
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-300 bg-gray-50'
-            }`}
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${isDragging
+              ? 'border-accent bg-accent/10 scale-105'
+              : uploadProgress > 0
+                ? 'border-green-500 bg-green-50'
+                : 'border-gray-300 bg-gray-50'
+              }`}
           >
             {uploadProgress === 0 ? (
               <div className="text-gray-600">
@@ -518,8 +513,8 @@ const CSVUploadDemo: React.FC = () => {
               <span>Status</span>
             </div>
             {mockPlayers.map((player, index) => (
-              <div 
-                key={player.id} 
+              <div
+                key={player.id}
                 className="grid grid-cols-4 gap-4 py-2 border-b border-gray-200 last:border-b-0 animate-fade-in"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -551,7 +546,7 @@ const ConfigurationDemo: React.FC = () => {
       color: "bg-orange-500/20 border-orange-500"
     },
     {
-      title: "🏐 Mixed Volleyball League", 
+      title: "🏐 Mixed Volleyball League",
       problem: "48 players need co-ed teams with gender balance",
       config: { maxTeamSize: 6, minFemales: 2, skillBalance: "medium", totalPlayers: 48 },
       result: "Ensures inclusive participation",
@@ -569,7 +564,7 @@ const ConfigurationDemo: React.FC = () => {
   useEffect(() => {
     // Show initial scenario
     const scenarioTimer = setTimeout(() => setShowScenario(true), 1000);
-    
+
     // Progress through scenarios
     const progressTimer = setTimeout(() => {
       const interval = setInterval(() => {
@@ -582,7 +577,7 @@ const ConfigurationDemo: React.FC = () => {
           return prev + 1;
         });
       }, 3000);
-      
+
       return () => clearInterval(interval);
     }, 2000);
 
@@ -615,7 +610,7 @@ const ConfigurationDemo: React.FC = () => {
               <div className="text-2xl text-gray-800">{currentScenario + 1}</div>
               <h3 className="text-xl font-bold text-gray-800">{currentScenarioData.title}</h3>
             </div>
-            
+
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <h4 className="font-semibold text-accent mb-2">Challenge:</h4>
               <p className="text-gray-700">{currentScenarioData.problem}</p>
@@ -623,12 +618,12 @@ const ConfigurationDemo: React.FC = () => {
 
             <div className="space-y-3">
               <h4 className="font-semibold text-gray-800">Optimal Settings:</h4>
-              
+
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <span className="text-gray-700">Team Size</span>
                 <span className="font-bold text-accent text-lg">{currentScenarioData.config.maxTeamSize} players</span>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <span className="text-gray-700">Gender Balance</span>
                 <span className="font-bold text-secondary text-lg">
@@ -642,14 +637,14 @@ const ConfigurationDemo: React.FC = () => {
         {/* Results Preview */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-800">Configuration Impact</h3>
-          
+
           <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 <span className="text-gray-800 font-medium">{currentScenarioData.result}</span>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4 mt-6">
                 <div className="text-center p-3 bg-white rounded-lg border border-gray-200">
                   <div className="text-2xl font-bold text-accent">{Math.ceil(currentScenarioData.config.totalPlayers / currentScenarioData.config.maxTeamSize)}</div>
@@ -678,7 +673,7 @@ const ConfigurationDemo: React.FC = () => {
                   )}
                   {currentScenario === 1 && (
                     <>
-                      <li>• Creates 8 diverse teams from 48 players</li>  
+                      <li>• Creates 8 diverse teams from 48 players</li>
                       <li>• 6 players standard for volleyball teams</li>
                       <li>• Gender balance promotes inclusivity</li>
                     </>
@@ -710,9 +705,8 @@ const ConfigurationDemo: React.FC = () => {
           {scenarios.map((_, index) => (
             <div
               key={index}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                index <= currentScenario ? 'bg-primary' : 'bg-gray-300'
-              }`}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${index <= currentScenario ? 'bg-primary' : 'bg-gray-300'
+                }`}
             />
           ))}
         </div>
@@ -740,7 +734,7 @@ const TeamGenerationDemo: React.FC = () => {
   useEffect(() => {
     // Start loading immediately - 7 seconds (half of 14)
     setIsGenerating(true);
-    
+
     // Cycle through analysis steps during loading
     const stepInterval = setInterval(() => {
       setAnalysisStep(prev => {
@@ -750,41 +744,41 @@ const TeamGenerationDemo: React.FC = () => {
           setTimeout(() => {
             setIsGenerating(false);
             setShowTeams(true);
-            
+
             // Start click and drag animation after teams appear (other 7 seconds)
             setTimeout(() => {
               // Phase 1: Click - Alex gets highlighted
               setDragPhase('clicked');
               const alexPlayer = teams[0].players.find(p => p.name === 'Alex Johnson');
               setFloatingPlayer(alexPlayer);
-              
+
               setTimeout(() => {
                 // Phase 2: Drag - Alex moves across screen
                 setDragPhase('dragging');
-                
+
                 setTimeout(() => {
                   // Phase 3: Drop - Alex appears in new team
                   setDragPhase('dropped');
-                  
+
                   setTimeout(() => {
                     // Complete the switch
                     const newTeams = [...teams];
                     const alexPlayer = newTeams[0].players.find(p => p.name === 'Alex Johnson');
                     const davidPlayer = newTeams[1].players.find(p => p.name === 'David Kim');
-                    
+
                     if (alexPlayer && davidPlayer) {
                       // Remove players from current teams
                       newTeams[0].players = newTeams[0].players.filter(p => p.name !== 'Alex Johnson');
                       newTeams[1].players = newTeams[1].players.filter(p => p.name !== 'David Kim');
-                      
+
                       // Add players to new teams
                       newTeams[0].players.push(davidPlayer);
                       newTeams[1].players.push(alexPlayer);
-                      
+
                       // Recalculate averages
                       newTeams[0].averageSkill = Number((newTeams[0].players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0) / newTeams[0].players.length).toFixed(1));
                       newTeams[1].averageSkill = Number((newTeams[1].players.reduce((sum, p) => sum + (p.execSkillRating !== null ? p.execSkillRating : p.skillRating), 0) / newTeams[1].players.length).toFixed(1));
-                      
+
                       setTeams(newTeams);
                       setDragPhase('none');
                       setFloatingPlayer(null);
@@ -799,7 +793,7 @@ const TeamGenerationDemo: React.FC = () => {
         return prev + 1;
       });
     }, 1200);
-    
+
     return () => clearInterval(stepInterval);
   }, [teams]);
 
@@ -819,9 +813,8 @@ const TeamGenerationDemo: React.FC = () => {
               {analysisSteps.map((_, index) => (
                 <div
                   key={index}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    index <= analysisStep ? 'bg-primary' : 'bg-gray-300'
-                  }`}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${index <= analysisStep ? 'bg-primary' : 'bg-gray-300'
+                    }`}
                 />
               ))}
             </div>
@@ -848,8 +841,8 @@ const TeamGenerationDemo: React.FC = () => {
 
           <div className="grid md:grid-cols-2 gap-6">
             {teams.map((team, index) => (
-              <div 
-                key={team.id} 
+              <div
+                key={team.id}
                 className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-4 border border-gray-200 hover-lift card-reveal"
                 style={{ animationDelay: `${index * 200}ms` }}
               >
@@ -859,26 +852,24 @@ const TeamGenerationDemo: React.FC = () => {
                     const isPlayerClicked = dragPhase === 'clicked' && player.name === 'Alex Johnson';
                     const isPlayerDragging = dragPhase === 'dragging' && player.name === 'Alex Johnson';
                     const isPlayerDropped = dragPhase === 'dropped' && player.name === 'Alex Johnson';
-                    
+
                     return (
-                      <div 
-                        key={player.id} 
-                        className={`flex items-center justify-between text-sm transition-all duration-1000 cursor-pointer ${
-                          isPlayerClicked 
-                            ? 'transform scale-110 bg-accent/30 border-2 border-accent rounded-lg p-2 shadow-xl animate-pulse' 
-                            : isPlayerDragging
+                      <div
+                        key={player.id}
+                        className={`flex items-center justify-between text-sm transition-all duration-1000 cursor-pointer ${isPlayerClicked
+                          ? 'transform scale-110 bg-accent/30 border-2 border-accent rounded-lg p-2 shadow-xl animate-pulse'
+                          : isPlayerDragging
                             ? 'opacity-30 scale-95 p-2 rounded-lg'
                             : isPlayerDropped && team.name === 'Team Beta'
-                            ? 'transform scale-110 bg-green-500/30 border-2 border-green-500 rounded-lg p-2 shadow-xl animate-bounce'
-                            : 'hover:bg-gray-100 p-2 rounded-lg'
-                        }`}
+                              ? 'transform scale-110 bg-green-500/30 border-2 border-green-500 rounded-lg p-2 shadow-xl animate-bounce'
+                              : 'hover:bg-gray-100 p-2 rounded-lg'
+                          }`}
                       >
-                        <span className={`${
-                          isPlayerClicked ? 'text-accent font-bold' : 
+                        <span className={`${isPlayerClicked ? 'text-accent font-bold' :
                           isPlayerDragging ? 'text-gray-400' :
-                          isPlayerDropped && team.name === 'Team Beta' ? 'text-green-600 font-bold' :
-                          'text-gray-800'
-                        }`}>
+                            isPlayerDropped && team.name === 'Team Beta' ? 'text-green-600 font-bold' :
+                              'text-gray-800'
+                          }`}>
                           {player.name}
                           {isPlayerClicked && (
                             <span className="ml-2 text-xs animate-bounce">👆 Clicked!</span>
@@ -1023,8 +1014,8 @@ const AnalyticsDemo: React.FC = () => {
             <h3 className="font-semibold mb-4 text-gray-800">Detailed Team Analysis</h3>
             <div className="space-y-4">
               {expandedMockTeams.map((team, index) => (
-                <div 
-                  key={team.id} 
+                <div
+                  key={team.id}
                   className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 animate-fade-in"
                   style={{ animationDelay: `${index * 300}ms` }}
                 >
@@ -1107,7 +1098,7 @@ const ExportDemo: React.FC = () => {
               </div>
               <p className="text-sm text-gray-600">Send each player their specific team assignment</p>
             </div>
-            
+
             <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-2xl">📧</span>
@@ -1115,7 +1106,7 @@ const ExportDemo: React.FC = () => {
               </div>
               <p className="text-sm text-gray-600">Complete roster overview for coaches and organizers</p>
             </div>
-            
+
             <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-2xl">🔗</span>
@@ -1125,7 +1116,7 @@ const ExportDemo: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="relative">
           <div className="absolute -top-2 right-0 z-10">
             <div className="bg-green-500 text-white px-2 py-1 rounded text-xs animate-pulse">
@@ -1133,7 +1124,7 @@ const ExportDemo: React.FC = () => {
             </div>
           </div>
           <h3 className="text-lg font-semibold mb-4 text-gray-800">Email Preview</h3>
-          
+
           {!showEmailPreview ? (
             <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
               <div className="text-sm text-accent mb-2 font-medium">Team Assignment Email</div>
@@ -1149,7 +1140,7 @@ const ExportDemo: React.FC = () => {
                   {emailStep >= 0 && "🏀 Your Team Assignment - Basketball Tournament"}
                 </div>
               </div>
-              
+
               <div className="space-y-3 text-sm">
                 {emailStep >= 0 && (
                   <div className="animate-fade-in">
@@ -1157,7 +1148,7 @@ const ExportDemo: React.FC = () => {
                     <p className="text-gray-600">You've been assigned to <strong className="text-primary">Team Thunder</strong></p>
                   </div>
                 )}
-                
+
                 {emailStep >= 1 && (
                   <div className="animate-fade-in bg-gray-50 rounded p-3" style={{ animationDelay: '200ms' }}>
                     <div className="font-medium text-gray-800 mb-2">Your Team:</div>
@@ -1171,7 +1162,7 @@ const ExportDemo: React.FC = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {emailStep >= 2 && (
                   <div className="animate-fade-in bg-green-50 rounded p-3 border border-green-200" style={{ animationDelay: '400ms' }}>
                     <div className="flex items-center gap-2 mb-2">
@@ -1186,8 +1177,8 @@ const ExportDemo: React.FC = () => {
               </div>
             </div>
           )}
-          
-          <Button 
+
+          <Button
             onClick={handleExport}
             disabled={isExporting}
             className="w-full bg-green-600 hover:bg-green-700 interactive-button"

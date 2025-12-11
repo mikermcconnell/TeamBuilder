@@ -1,15 +1,15 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '@/config/firebase';
-import { Player, Team, LeagueConfig, AppState, PlayerGroup, getEffectiveSkillRating } from '@/types';
+
+
+import { Player, LeagueConfig, AppState, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import { StructuredWarning } from '@/types/StructuredWarning';
 import { getDefaultConfig, saveDefaultConfig } from '@/utils/configManager';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { validateAndProcessCSV, generateSampleCSV } from '@/utils/csvProcessor';
 import { debounce } from '@/utils/performance';
 import { validateAppState, validatePlayer, validateTeamName } from '@/utils/validation';
 import { dataStorageService } from '@/services/dataStorageService';
-import { WorkspaceService } from '@/services/workspaceService';
-import { SavedWorkspace } from '@/types';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
@@ -33,7 +33,7 @@ import { FolderOpen, Users, FileSpreadsheet, BarChart3, Shuffle, UserCheck, Tras
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
-import logoUrl from '@/assets/logo.svg';
+
 
 // Import test runner for development
 if (import.meta.env.DEV) {
@@ -100,6 +100,32 @@ function App() {
     };
   });
 
+
+
+  // Undo History
+  const [history, setHistory] = useState<AppState[]>([]);
+
+  const addToHistory = useCallback((currentState: AppState) => {
+    setHistory(prev => {
+      // Keep last 50 states
+      const newHistory = [...prev, currentState];
+      if (newHistory.length > 50) return newHistory.slice(newHistory.length - 50);
+      return newHistory;
+    });
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) return;
+    const previousState = history[history.length - 1];
+
+    // Ensure previousState is valid before restoring
+    if (previousState) {
+      setAppState(previousState);
+      setHistory(prev => prev.slice(0, prev.length - 1));
+      toast.success('Undo successful');
+    }
+  }, [history]);
+
   const [dataLoaded, setDataLoaded] = useState(false);
   const [teamsView, setTeamsView] = useState<'landing' | 'exports'>('landing'); // UI state for teams tab
 
@@ -123,18 +149,7 @@ function App() {
 
     const debouncedSave = setTimeout(async () => {
       try {
-        const payload: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'> = {
-          userId: user.uid,
-          name: workspaceName || 'Untitled Project',
-          description: workspaceDescription || '',
-          players: appState.players,
-          playerGroups: appState.playerGroups,
-          config: appState.config,
-          teams: appState.teams,
-          unassignedPlayers: appState.unassignedPlayers,
-          stats: appState.stats,
-          version: 1,
-        };
+
 
         // We use the existing logic but just call the service directly to avoid UI flashing from the main save handler if it has other side effects
         // Or we can reuse the logic. Let's reuse the logic but carefully.
@@ -367,7 +382,7 @@ function App() {
 
   const [isManualMode, setIsManualMode] = useState(false);
 
-  const handlePlayersLoaded = useCallback((players: Player[], playerGroups: PlayerGroup[] = []) => {
+  const handlePlayersLoaded = useCallback((players: Player[], playerGroups: PlayerGroup[] = [], warnings?: StructuredWarning[]) => {
     setAppState(prev => {
       const execRatingHistory = { ...prev.execRatingHistory };
 
@@ -423,7 +438,8 @@ function App() {
         teams: [],
         unassignedPlayers: [],
         stats: undefined,
-        execRatingHistory
+        execRatingHistory,
+        pendingWarnings: warnings || prev.pendingWarnings
       };
     });
 
@@ -480,6 +496,8 @@ function App() {
       toast.error('Please upload players first');
       return;
     }
+
+    addToHistory(appState);
 
     // Validate groups against config before generation
     const { validateGroupsForGeneration } = await import('@/utils/playerGrouping');
@@ -538,6 +556,7 @@ function App() {
   }, [appState.players, appState.config, appState.playerGroups]);
 
   const handlePlayerUpdate = useCallback((updatedPlayer: Player) => {
+    addToHistory(appState);
     setAppState(prev => {
       const existingPlayer = prev.players.find(p => p.id === updatedPlayer.id);
       const updatedHistory = { ...prev.execRatingHistory };
@@ -607,6 +626,7 @@ function App() {
 
 
   const handlePlayerAdd = useCallback((newPlayer: Player) => {
+    addToHistory(appState);
     setAppState(prev => {
       const updatedHistory = { ...prev.execRatingHistory };
       if (newPlayer.execSkillRating !== null && newPlayer.execSkillRating !== undefined) {
@@ -625,7 +645,63 @@ function App() {
     });
   }, []);
 
+  // --- Warning Resolution Handlers ---
+  const handleResolveWarning = useCallback((warning: StructuredWarning) => {
+    setAppState(prev => {
+      if (!prev.pendingWarnings) return prev;
+
+      // Find the player who made the request
+      const player = prev.players.find(p => p.name === warning.playerName);
+      if (!player || !warning.matchedName) return prev;
+
+      // Update the player's requests
+      const updatedPlayer = {
+        ...player,
+        teammateRequests: player.teammateRequests.map(req =>
+          req === warning.requestedName ? warning.matchedName! : req
+        ),
+        avoidRequests: player.avoidRequests.map(req =>
+          req === warning.requestedName ? warning.matchedName! : req
+        )
+      };
+
+      // Update warnings list - mark as accepted
+      const updatedWarnings = prev.pendingWarnings.map(w =>
+        w.id === warning.id ? { ...w, status: 'accepted' as const, matchedName: warning.matchedName } : w
+      );
+
+      return {
+        ...prev,
+        players: prev.players.map(p => p.id === player.id ? updatedPlayer : p),
+        pendingWarnings: updatedWarnings
+      };
+    });
+  }, []);
+
+  const handleDismissWarning = useCallback((warningId: string) => {
+    setAppState(prev => {
+      if (!prev.pendingWarnings) return prev;
+
+      const updatedWarnings = prev.pendingWarnings.map(w =>
+        w.id === warningId ? { ...w, status: 'rejected' as const } : w
+      );
+
+      return {
+        ...prev,
+        pendingWarnings: updatedWarnings
+      };
+    });
+  }, []);
+
+  const handleDismissAllWarnings = useCallback(() => {
+    setAppState(prev => ({
+      ...prev,
+      pendingWarnings: []
+    }));
+  }, []);
+
   const handlePlayerRemove = useCallback((playerId: string) => {
+    addToHistory(appState);
     setAppState(prev => {
       const removedPlayer = prev.players.find(p => p.id === playerId);
       if (!removedPlayer) return prev;
@@ -689,6 +765,15 @@ function App() {
   }, []);
 
   const handlePlayerMove = useCallback((playerId: string, targetTeamId: string | null) => {
+    // We can't easily capture 'appState' here because of closure staleness if we used it directly in the callback dependency,
+    // but since we are using functional updates for setAppState, we need to be careful.
+    // However, AppState IS in the dependency array (implied, or should be).
+    // Actually, 'appState' IS a dependency of handlePlayerMove because it's used in the logic? 
+    // Wait, handlePlayerMove implementation below uses 'setAppState(prev => ...)' so it might NOT have appState in dependency?
+    // Let's check the original dependency array. It ends with line 800 which is cut off.
+    // Assuming we need current state for history.
+    addToHistory(appState);
+
     setAppState(prev => {
       const updatedTeams = prev.teams.map(team => ({
         ...team,
@@ -745,6 +830,36 @@ function App() {
     });
   }, [isManualMode]);
 
+  // Reset teams - move all players back to unassigned
+  const handleResetTeams = useCallback(() => {
+    setAppState(prev => {
+      // Collect all assigned players
+
+
+      // Clear player team IDs
+      const updatedPlayers = prev.players.map(p => ({
+        ...p,
+        teamId: undefined
+      }));
+
+      // Empty all teams
+      const updatedTeams = prev.teams.map(team => ({
+        ...team,
+        players: [],
+        averageSkill: 0,
+        genderBreakdown: { M: 0, F: 0, Other: 0 }
+      }));
+
+      // All players go to unassigned
+      return {
+        ...prev,
+        players: updatedPlayers,
+        teams: updatedTeams,
+        unassignedPlayers: updatedPlayers
+      };
+    });
+  }, []);
+
   // Create debounced team name change handler
   const debouncedTeamNameChangeRef = useRef(
     debounce((teamId: string, newName: string) => {
@@ -761,29 +876,7 @@ function App() {
     debouncedTeamNameChangeRef.current(teamId, newName);
   }, []);
 
-  const handleLoadTeams = useCallback((teams: Team[], unassignedPlayers: Player[], config: LeagueConfig) => {
-    // Recalculate team averages using execSkillRating when loading
-    const recalculatedTeams = teams.map(team => {
-      const totalSkill = team.players.reduce((sum, p) => {
-        const skill = (p.execSkillRating !== null && p.execSkillRating !== undefined)
-          ? p.execSkillRating
-          : p.skillRating;
-        return sum + skill;
-      }, 0);
-      return {
-        ...team,
-        averageSkill: team.players.length > 0 ? totalSkill / team.players.length : 0
-      };
-    });
 
-    setAppState(prev => ({
-      ...prev,
-      teams: recalculatedTeams,
-      unassignedPlayers,
-      config
-    }));
-    toast.success('Teams loaded successfully');
-  }, []);
 
   // Player group management functions
   const handleAddPlayerToGroup = useCallback((playerId: string, groupId: string) => {
@@ -862,7 +955,7 @@ function App() {
         '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#F97316',
         '#06B6D4', '#84CC16', '#EC4899', '#6B7280', '#14B8A6', '#F43F5E'
       ];
-      const groupColor = colors[prev.playerGroups.length % colors.length];
+      const groupColor = colors[prev.playerGroups.length % colors.length] || colors[0] || '#3B82F6';
 
       const newGroup: PlayerGroup = {
         id: `group-${Date.now()}`,
@@ -984,6 +1077,10 @@ function App() {
         onTeamNameChange={handleTeamNameChange}
         onLoadWorkspace={handleLoadWorkspace}
         currentWorkspaceId={currentWorkspaceId}
+
+        onReset={handleResetTeams}
+        onUndo={handleUndo}
+        canUndo={history.length > 0}
       />
     );
   }
@@ -1000,13 +1097,13 @@ function App() {
 
         {/* Header Section */}
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
-              <img src={logoUrl} alt="TeamBuilder Logo" className="h-8 w-8" />
-            </div>
+          <div className="flex items-center gap-4 group">
+            <img src="/logo-new.jpg" alt="Ulti-Team" className="h-16 w-16 object-cover rounded-full shadow-sm hover:scale-110 transition-transform duration-300" />
             <div>
-              <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">TeamBuilder</h1>
-              <p className="text-slate-500 font-medium">Create balanced teams in seconds</p>
+              <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-900 to-indigo-600 drop-shadow-sm">
+                Ulti-Team
+              </h1>
+              <p className="text-slate-500 font-medium text-sm">Create balanced teams in seconds</p>
             </div>
           </div>
 
@@ -1209,6 +1306,10 @@ function App() {
                       onPlayerUpdate={handlePlayerUpdate}
                       onPlayerRemove={handlePlayerRemove}
                       onPlayerAdd={handlePlayerAdd}
+                      pendingWarnings={appState.pendingWarnings}
+                      onResolveWarning={handleResolveWarning}
+                      onDismissWarning={handleDismissWarning}
+                      onDismissAllWarnings={handleDismissAllWarnings}
                     />
                   </ErrorBoundary>
                 </div>

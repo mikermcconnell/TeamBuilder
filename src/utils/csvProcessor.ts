@@ -514,7 +514,10 @@ function finalizePlayers(players: Player[], result: CSVValidationResult): CSVVal
         if (bestMatch.confidence === 'exact' || bestMatch.confidence === 'high') {
           // Auto-accept high confidence matches
           resolvedTeammateRequests.push(bestMatch.match);
-          if (bestMatch.match !== requestedName) {
+          // Only add a warning if there's a meaningful difference (not just capitalization)
+          const isCaseOnlyDiff = requestedName.toLowerCase() === bestMatch.match.toLowerCase();
+          const isHighConfidence = bestMatch.score >= 0.95;
+          if (bestMatch.match !== requestedName && !isCaseOnlyDiff && !isHighConfidence) {
             result.warnings.push(
               `Player "${player.name}": Teammate request "${requestedName}" matched to "${bestMatch.match}" (${bestMatch.reason})`
             );
@@ -547,7 +550,10 @@ function finalizePlayers(players: Player[], result: CSVValidationResult): CSVVal
         if (bestMatch.confidence === 'exact' || bestMatch.confidence === 'high') {
           // Auto-accept high confidence matches
           resolvedAvoidRequests.push(bestMatch.match);
-          if (bestMatch.match !== requestedName) {
+          // Only add a warning if there's a meaningful difference (not just capitalization)
+          const isCaseOnlyDiff = requestedName.toLowerCase() === bestMatch.match.toLowerCase();
+          const isHighConfidence = bestMatch.score >= 0.95;
+          if (bestMatch.match !== requestedName && !isCaseOnlyDiff && !isHighConfidence) {
             result.warnings.push(
               `Player "${player.name}": Avoid request "${requestedName}" matched to "${bestMatch.match}" (${bestMatch.reason})`
             );

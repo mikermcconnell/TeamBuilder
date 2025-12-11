@@ -18,10 +18,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RosterStorageService } from '@/services/rosterStorage';
 import * as XLSX from 'xlsx';
 import { findPlayerMatches } from '@/services/geminiService';
-import { parseWarningMessage } from '@/types/StructuredWarning';
+import { StructuredWarning, parseWarnings, parseWarningMessage } from '@/types/StructuredWarning';
 
 interface CSVUploaderProps {
-  onPlayersLoaded: (players: Player[], playerGroups?: PlayerGroup[]) => void;
+  onPlayersLoaded: (players: Player[], playerGroups?: PlayerGroup[], warnings?: StructuredWarning[]) => void;
   onNavigateToRoster?: () => void;
 }
 
@@ -75,7 +75,7 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
 
   const getFileExtension = (fileName: string) => {
     const match = fileName && fileName.match(/(\.[^.]+)$/);
-    return match ? match[1].toLowerCase() : '';
+    return (match && match[1]) ? match[1].toLowerCase() : '';
   };
 
   const convertExcelToCSV = async (file: File) => {
@@ -85,7 +85,9 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
       throw new Error('Excel file does not contain any sheets');
     }
     const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) throw new Error('No sheets found');
     const worksheet = workbook.Sheets[firstSheetName];
+    if (!worksheet) throw new Error('Sheet not found');
     return XLSX.utils.sheet_to_csv(worksheet, { FS: ',', RS: '\n' });
   };
 
@@ -200,7 +202,12 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
 
   const handleConfirmLoad = () => {
     if (validationResult && validationResult.players.length > 0) {
-      onPlayersLoaded(validationResult.players, validationResult.playerGroups);
+      // Parse warnings into structured format for persistence
+      const structuredWarnings = validationResult.warnings.length > 0
+        ? parseWarnings(validationResult.warnings).filter(w => w.status === 'pending')
+        : undefined;
+
+      onPlayersLoaded(validationResult.players, validationResult.playerGroups, structuredWarnings);
 
       // Prompt the user to save the uploaded CSV file
       setShowSaveDialog(true);
@@ -213,7 +220,11 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
       if (validationResult.isValid) {
         toast.success(`Loaded ${validationResult.players.length} players successfully`);
       } else {
-        toast.warning(`Loaded ${validationResult.players.length} players with warnings (errors ignored)`);
+        const warningCount = structuredWarnings?.length || 0;
+        if (warningCount > 0) {
+          toast.info(`${warningCount} warning${warningCount === 1 ? '' : 's'} to resolve on Roster page`);
+        }
+        toast.warning(`Loaded ${validationResult.players.length} players with warnings`);
       }
     }
   };
