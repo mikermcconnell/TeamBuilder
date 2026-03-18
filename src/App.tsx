@@ -26,11 +26,10 @@ import { PlayerRoster } from '@/components/PlayerRoster';
 import { FullScreenTeamBuilder } from '@/components/FullScreenTeamBuilder';
 import { ExportPanel } from '@/components/ExportPanel';
 import { PlayerGroups } from '@/components/PlayerGroups';
-import { TeamIterationTabs } from '@/components/TeamIterationTabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, BarChart3, Users, LayoutGrid, ArrowRight, FileText, ArrowLeft, AlertTriangle, FolderOpen, Sparkles, SquarePen, RotateCcw } from 'lucide-react';
+import { FileSpreadsheet, BarChart3, Users, LayoutGrid, ArrowRight, FileText, ArrowLeft, AlertTriangle, FolderOpen, Sparkles, SquarePen } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
@@ -910,26 +909,6 @@ function App() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <TeamIterationTabs
-                          iterations={teamIterations}
-                          activeIterationId={activeIteration?.id ?? null}
-                          onSelectIteration={selectIteration}
-                          onAddManualIteration={handleAddManualIteration}
-                          onAddAiIteration={handleAddAiIteration}
-                        />
-                        <Button
-                          variant="outline"
-                          onClick={handleDeleteAllIterations}
-                          className="border-2 border-red-200 bg-white text-red-600 hover:bg-red-50"
-                        >
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                          Delete Teams and Start Over
-                        </Button>
-                      </div>
-                    </div>
-
                     {activeIteration?.status === 'generating' ? (
                       <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
                         <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-purple-50 text-purple-500">
