@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StructuredWarning, WarningCategory, parseWarnings } from '@/types/StructuredWarning';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -650,13 +650,12 @@ export function WarningPanel({ warnings, onNavigateToRoster, onConfirmLoad, know
     const hasWizardWarnings = wizardWarnings.length > 0 && !wizardComplete;
     const currentWizardWarning = hasWizardWarnings ? wizardWarnings[currentWizardIndex] : null;
 
-    const duplicateCount = useMemo(() => {
-        if (!currentWizardWarning) return 0;
-        return wizardWarnings.filter(w =>
+    const duplicateCount = currentWizardWarning
+        ? wizardWarnings.filter(w =>
             w.id !== currentWizardWarning.id &&
             w.requestedName === currentWizardWarning.requestedName
-        ).length;
-    }, [currentWizardWarning, wizardWarnings]);
+        ).length
+        : 0;
 
     return (
         <Alert className="border-amber-200 bg-amber-50/50">

@@ -4,6 +4,7 @@ import { SavedWorkspace, AppState, LeagueConfig } from '@/types';
 import { WorkspaceService } from '@/services/workspaceService';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import type { WorkspaceSaveResult } from '@/hooks/useAppPersistence';
 
 interface WorkspaceContextType {
     currentWorkspaceId: string | null;
@@ -15,7 +16,16 @@ interface WorkspaceContextType {
 
     // Actions
     loadWorkspaces: () => Promise<void>;
-    saveWorkspace: (data: Partial<AppState>) => Promise<string | undefined>;
+    saveWorkspace: (
+        data: Partial<AppState>,
+        options?: {
+            id?: string | null;
+            name?: string;
+            description?: string;
+            silent?: boolean;
+            refreshList?: boolean;
+        }
+    ) => Promise<WorkspaceSaveResult | undefined>;
     loadWorkspace: (id: string) => Promise<SavedWorkspace | null>;
     deleteWorkspace: (id: string) => Promise<void>;
     setCurrentWorkspaceInfo: (id: string | null, name: string, description: string) => void;
@@ -37,18 +47,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Reset state when user logs out
-    useEffect(() => {
-        if (!user) {
-            setCurrentWorkspaceId(null);
-            setWorkspaceName('');
-            setWorkspaceDescription('');
-            setSavedWorkspaces([]);
-        } else {
-            loadWorkspaces();
-        }
-    }, [user]);
-
     const loadWorkspaces = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
@@ -63,15 +61,43 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user]);
 
-    const saveWorkspace = useCallback(async (appState: Partial<AppState>) => {
+    // Reset state when user logs out
+    useEffect(() => {
         if (!user) {
-            toast.error('Please sign in to save projects');
+            setCurrentWorkspaceId(null);
+            setWorkspaceName('');
+            setWorkspaceDescription('');
+            setSavedWorkspaces([]);
+        } else {
+            void loadWorkspaces();
+        }
+    }, [user, loadWorkspaces]);
+
+    const saveWorkspace = useCallback(async (
+        appState: Partial<AppState>,
+        options?: {
+            id?: string | null;
+            name?: string;
+            description?: string;
+            silent?: boolean;
+            refreshList?: boolean;
+        }
+    ) => {
+        if (!user) {
+            if (!options?.silent) {
+                toast.error('Please sign in to save projects');
+            }
             return;
         }
 
-        const trimmedName = workspaceName.trim();
+        const effectiveId = options?.id ?? currentWorkspaceId;
+        const trimmedName = (options?.name ?? workspaceName).trim();
+        const trimmedDescription = (options?.description ?? workspaceDescription).trim();
+
         if (!trimmedName) {
-            toast.error('Please enter a project name');
+            if (!options?.silent) {
+                toast.error('Please enter a project name');
+            }
             return;
         }
 
@@ -80,45 +106,57 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             const payload: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'> = {
                 userId: user.uid,
                 name: trimmedName,
-                description: workspaceDescription.trim(),
+                description: trimmedDescription,
                 players: appState.players || [],
                 playerGroups: appState.playerGroups || [],
                 config: appState.config || ({} as LeagueConfig), // Should be safe if called correctly
                 teams: appState.teams || [],
                 unassignedPlayers: appState.unassignedPlayers || [],
                 stats: appState.stats,
+                teamIterations: appState.teamIterations || [],
+                activeTeamIterationId: appState.activeTeamIterationId ?? null,
                 version: 1,
             };
 
-            const result = await WorkspaceService.saveWorkspace(payload, currentWorkspaceId || undefined);
+            const result = await WorkspaceService.saveWorkspace(payload, effectiveId || undefined);
 
             // Handle result (check if string or object, though we updated service to return object)
             // Ideally we update the interface to match, but JS runtime will return the object
             const id = typeof result === 'string' ? result : result.id;
 
             setCurrentWorkspaceId(id);
+            setWorkspaceName(trimmedName);
+            setWorkspaceDescription(trimmedDescription);
 
             // Update the list smoothly without full reload if possible, but fetching is safer
-            loadWorkspaces();
+            if (options?.refreshList !== false) {
+                await loadWorkspaces();
+            }
 
             // Show appropriate feedback
             if (typeof result !== 'string' && result.type === 'local') {
                 // Log the actual error that caused fallback
                 console.error('Cloud save failed, error details:', result.error);
-                const errorCode = result.error?.code || 'unknown';
-                const errorMsg = result.error?.message || 'Check your ad blocker';
-                toast.warning(`Cloud save blocked (${errorCode}). Saved locally.`, {
-                    description: errorMsg.substring(0, 100),
-                    duration: 8000,
-                });
-            } else {
+                if (!options?.silent) {
+                    const errorCode = result.error?.code || 'unknown';
+                    const errorMsg = result.error?.message || 'Check your ad blocker';
+                    toast.warning(`Cloud save blocked (${errorCode}). Saved locally.`, {
+                        description: errorMsg.substring(0, 100),
+                        duration: 8000,
+                    });
+                }
+            } else if (!options?.silent) {
                 toast.success('Project saved to cloud');
             }
 
-            return id;
+            return typeof result === 'string'
+                ? { id, type: 'cloud' }
+                : { id, type: result.type, error: result.error };
         } catch (error) {
             console.error('Failed to save project:', error);
-            toast.error('Failed to save project');
+            if (!options?.silent) {
+                toast.error('Failed to save project');
+            }
             throw error;
         } finally {
             setIsSaving(false);

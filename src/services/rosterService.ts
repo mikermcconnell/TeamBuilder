@@ -56,6 +56,24 @@ const ensureAuthenticated = (): Promise<boolean> => {
   });
 };
 
+const ensureCurrentUserMatches = async (userId: string): Promise<boolean> => {
+  if (!userId) {
+    return false;
+  }
+
+  const isAuthenticated = await ensureAuthenticated();
+  if (!isAuthenticated || !auth.currentUser) {
+    return false;
+  }
+
+  if (auth.currentUser.uid !== userId) {
+    console.warn('Blocked roster query for mismatched userId');
+    return false;
+  }
+
+  return true;
+};
+
 export interface RosterData {
   id?: string;
   userId: string;
@@ -264,16 +282,9 @@ export const getUserRosters = async (
   includeArchived: boolean = false
 ): Promise<RosterData[]> => {
   try {
-    // Check if we have a valid userId
-    if (!userId) {
-      console.warn('No userId provided to getUserRosters');
-      return [];
-    }
-
-    // Ensure user is authenticated before making Firestore calls
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
-      console.warn('User not authenticated for getUserRosters');
+    const isAuthorized = await ensureCurrentUserMatches(userId);
+    if (!isAuthorized) {
+      console.warn('Unauthorized attempt blocked for getUserRosters');
       return [];
     }
 
@@ -409,6 +420,12 @@ export const searchRosters = async (
   }
 ): Promise<RosterData[]> => {
   try {
+    const isAuthorized = await ensureCurrentUserMatches(userId);
+    if (!isAuthorized) {
+      console.warn('Unauthorized attempt blocked for searchRosters');
+      return [];
+    }
+
     let q = query(
       collection(db, 'rosters'),
       where('userId', '==', userId),
@@ -609,16 +626,9 @@ const calculateRosterMetadata = (
 // Get recent rosters (for quick access)
 export const getRecentRosters = async (userId: string, limitCount: number = 5): Promise<RosterData[]> => {
   try {
-    // Check if we have a valid userId
-    if (!userId) {
-      console.warn('No userId provided to getRecentRosters');
-      return [];
-    }
-
-    // Ensure user is authenticated before making Firestore calls
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
-      console.warn('User not authenticated for getRecentRosters');
+    const isAuthorized = await ensureCurrentUserMatches(userId);
+    if (!isAuthorized) {
+      console.warn('Unauthorized attempt blocked for getRecentRosters');
       return [];
     }
 

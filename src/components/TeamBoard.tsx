@@ -1,20 +1,29 @@
 import React from 'react';
-import { Team, LeagueConfig, PlayerGroup } from '@/types';
+import { Team, LeagueConfig, Player, PlayerGroup } from '@/types';
 import { DroppableTeamCard } from './DroppableTeamCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Palette, Plus } from 'lucide-react';
 
 interface TeamBoardProps {
     teams: Team[];
+    players: Player[];
     config: LeagueConfig;
     onTeamNameChange: (id: string, name: string) => void;
+    onTeamBrandingChange?: (id: string, updates: {
+        name?: string;
+        color?: string;
+        colorName?: string;
+        resetName?: boolean;
+        resetColor?: boolean;
+    }) => void;
     onRemoveTeam?: (id: string) => void;
     onAddTeam?: () => void;
+    onRefreshBranding?: () => void;
     playerGroups?: PlayerGroup[];
 }
 
-export function TeamBoard({ teams, config, onTeamNameChange, onRemoveTeam, onAddTeam, playerGroups = [] }: TeamBoardProps) {
+export function TeamBoard({ teams, players, config, onTeamNameChange, onTeamBrandingChange, onRemoveTeam, onAddTeam, onRefreshBranding, playerGroups = [] }: TeamBoardProps) {
     return (
         <div className="flex-1 h-full bg-gray-100/50 p-6 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between mb-6">
@@ -22,12 +31,20 @@ export function TeamBoard({ teams, config, onTeamNameChange, onRemoveTeam, onAdd
                     <h1 className="text-2xl font-bold text-gray-900">Team Board</h1>
                     <p className="text-sm text-gray-500">Drag and drop players to build balanced teams</p>
                 </div>
-                {onAddTeam && (
-                    <Button onClick={onAddTeam} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Add Team
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    {onRefreshBranding && (
+                        <Button onClick={onRefreshBranding} variant="outline" className="gap-2">
+                            <Palette className="h-4 w-4" />
+                            Refresh Names & Colors
+                        </Button>
+                    )}
+                    {onAddTeam && (
+                        <Button onClick={onAddTeam} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Add Team
+                        </Button>
+                    )}
+                </div>
             </div>
 
             <ScrollArea className="flex-1 -mx-6 px-6">
@@ -36,8 +53,10 @@ export function TeamBoard({ teams, config, onTeamNameChange, onRemoveTeam, onAdd
                         <div key={team.id} className="min-h-[200px]">
                             <DroppableTeamCard
                                 team={team}
+                                allPlayers={players}
                                 config={config}
                                 onNameChange={onTeamNameChange}
+                                onBrandingChange={onTeamBrandingChange}
                                 onRemoveTeam={onRemoveTeam}
                                 playerGroups={playerGroups}
                             />

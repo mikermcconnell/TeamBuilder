@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Player, Team, LeagueConfig, PlayerGroup } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, TeamGenerationStats } from '@/types';
 import { TeamSuggestion } from '@/types/ai';
 import { GEMINI_MODEL } from '@/config/constants';
+import { buildGenerationResult, generateBalancedTeams } from '@/utils/teamGenerator';
+import { fuzzyMatcher } from '@/utils/fuzzyNameMatcher';
 
 // Initialize the API client
 // SECURITY WARNING: In production, this API key should be proxied through a backend service
@@ -12,6 +14,382 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 // Default timeout for API requests (30 seconds)
 const API_TIMEOUT_MS = 30000;
+
+export interface AITeamDraftPayload {
+    summary?: string;
+    teams: Array<{
+        slot: number;
+        playerIds: string[];
+    }>;
+    unassignedPlayerIds?: string[];
+}
+
+interface AITeamDraftValidationResult {
+    valid: boolean;
+    errors: string[];
+}
+
+export interface AIFullTeamResult {
+    teams: Team[];
+    unassignedPlayers: Player[];
+    stats: TeamGenerationStats;
+    source: 'ai' | 'fallback';
+    summary?: string;
+}
+
+function calculateAverageSkillByGender(players: Player[]) {
+    const groups: Record<'M' | 'F' | 'Other', number[]> = {
+        M: [],
+        F: [],
+        Other: [],
+    };
+
+    players.forEach(player => {
+        groups[player.gender].push(player.execSkillRating ?? player.skillRating);
+    });
+
+    return {
+        M: groups.M.length > 0 ? Number((groups.M.reduce((sum, value) => sum + value, 0) / groups.M.length).toFixed(2)) : null,
+        F: groups.F.length > 0 ? Number((groups.F.reduce((sum, value) => sum + value, 0) / groups.F.length).toFixed(2)) : null,
+        Other: groups.Other.length > 0 ? Number((groups.Other.reduce((sum, value) => sum + value, 0) / groups.Other.length).toFixed(2)) : null,
+    };
+}
+
+function cleanJsonResponse(text: string): string {
+    return text.replace(/```json/g, '').replace(/```/g, '').trim();
+}
+
+function calculateTeamStats(team: Team): Team {
+    const totalSkill = team.players.reduce((sum, player) => sum + (player.execSkillRating ?? player.skillRating), 0);
+    const genderBreakdown = { M: 0, F: 0, Other: 0 };
+    let handlerCount = 0;
+
+    team.players.forEach(player => {
+        genderBreakdown[player.gender]++;
+        if (player.isHandler) {
+            handlerCount += 1;
+        }
+    });
+
+    return {
+        ...team,
+        averageSkill: team.players.length > 0 ? totalSkill / team.players.length : 0,
+        genderBreakdown,
+        handlerCount,
+    };
+}
+
+export function validateAiTeamDraft(
+    payload: AITeamDraftPayload,
+    players: Player[],
+    config: LeagueConfig,
+    playerGroups: PlayerGroup[]
+): AITeamDraftValidationResult {
+    const errors: string[] = [];
+    const expectedTeamCount = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
+    const playerIds = new Set(players.map(player => player.id));
+    const assignedIds = new Set<string>();
+    const destinationByPlayer = new Map<string, string>();
+
+    if (!Array.isArray(payload.teams) || payload.teams.length !== expectedTeamCount) {
+        errors.push(`Expected exactly ${expectedTeamCount} teams in the AI response.`);
+        return { valid: false, errors };
+    }
+
+    const normalizedUnassigned = new Set(payload.unassignedPlayerIds ?? []);
+
+    payload.teams.forEach((team, index) => {
+        if (team.slot !== index + 1) {
+            errors.push('AI team slots must be sequential and start at 1.');
+        }
+
+        if (!Array.isArray(team.playerIds)) {
+            errors.push(`Team slot ${index + 1} is missing a playerIds array.`);
+            return;
+        }
+
+        if (team.playerIds.length > config.maxTeamSize) {
+            errors.push(`Team slot ${index + 1} exceeds the max team size.`);
+        }
+
+        team.playerIds.forEach(playerId => {
+            if (!playerIds.has(playerId)) {
+                errors.push(`Unknown player id "${playerId}" returned by AI.`);
+                return;
+            }
+
+            if (assignedIds.has(playerId) || normalizedUnassigned.has(playerId)) {
+                errors.push(`Player "${playerId}" was assigned more than once.`);
+                return;
+            }
+
+            assignedIds.add(playerId);
+            destinationByPlayer.set(playerId, `team-${team.slot}`);
+        });
+    });
+
+    normalizedUnassigned.forEach(playerId => {
+        if (!playerIds.has(playerId)) {
+            errors.push(`Unknown unassigned player id "${playerId}" returned by AI.`);
+            return;
+        }
+
+        if (assignedIds.has(playerId)) {
+            errors.push(`Player "${playerId}" appears in both a team and the unassigned list.`);
+            return;
+        }
+
+        assignedIds.add(playerId);
+        destinationByPlayer.set(playerId, 'unassigned');
+    });
+
+    if (assignedIds.size !== players.length) {
+        errors.push('AI response did not account for every player exactly once.');
+    }
+
+    playerGroups.forEach(group => {
+        const destinations = new Set(
+            group.playerIds
+                .map(playerId => destinationByPlayer.get(playerId))
+                .filter((destination): destination is string => Boolean(destination))
+        );
+
+        if (destinations.size > 1) {
+            errors.push(`Group ${group.label} was split across multiple destinations.`);
+        }
+    });
+
+    payload.teams.forEach(team => {
+        const teamPlayers = team.playerIds
+            .map(playerId => players.find(player => player.id === playerId))
+            .filter((player): player is Player => Boolean(player));
+
+        const femaleCount = teamPlayers.filter(player => player.gender === 'F').length;
+        const maleCount = teamPlayers.filter(player => player.gender === 'M').length;
+
+        if (femaleCount < config.minFemales) {
+            errors.push(`Team slot ${team.slot} does not meet the minimum female requirement.`);
+        }
+
+        if (maleCount < config.minMales) {
+            errors.push(`Team slot ${team.slot} does not meet the minimum male requirement.`);
+        }
+
+        for (const player of teamPlayers) {
+            const hasAvoidConflict = teamPlayers.some(otherPlayer => (
+                otherPlayer.id !== player.id
+                && (
+                    player.avoidRequests.some(name => fuzzyMatcher.isLikelyMatch(name, otherPlayer.name, 0.8))
+                    || otherPlayer.avoidRequests.some(name => fuzzyMatcher.isLikelyMatch(name, player.name, 0.8))
+                )
+            ));
+
+            if (hasAvoidConflict) {
+                errors.push(`Team slot ${team.slot} contains at least one avoid conflict.`);
+                break;
+            }
+        }
+    });
+
+    return {
+        valid: errors.length === 0,
+        errors,
+    };
+}
+
+export function parseAiTeamDraftResponse(text: string): AITeamDraftPayload | null {
+    const cleanJson = cleanJsonResponse(text);
+
+    try {
+        const parsed = JSON.parse(cleanJson) as AITeamDraftPayload;
+        if (!parsed || !Array.isArray(parsed.teams)) {
+            return null;
+        }
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
+function buildTeamsFromDraft(
+    payload: AITeamDraftPayload,
+    players: Player[],
+    seedTeams: Team[]
+): { teams: Team[]; unassignedPlayers: Player[] } {
+    const playerMap = new Map(players.map(player => [player.id, player]));
+    const teams = payload.teams.map((teamDraft, index) => {
+        const seedTeam = seedTeams[index];
+        const teamPlayers = teamDraft.playerIds
+            .map(playerId => playerMap.get(playerId))
+            .filter((player): player is Player => Boolean(player))
+            .map(player => ({ ...player, teamId: seedTeam?.id }));
+
+        return calculateTeamStats({
+            id: seedTeam?.id || `team-${index + 1}`,
+            name: seedTeam?.name || `Team ${index + 1}`,
+            color: seedTeam?.color,
+            colorName: seedTeam?.colorName,
+            players: teamPlayers,
+            averageSkill: 0,
+            genderBreakdown: { M: 0, F: 0, Other: 0 },
+            handlerCount: 0,
+            isNameEditable: true,
+        });
+    });
+
+    const assignedIds = new Set(teams.flatMap(team => team.players.map(player => player.id)));
+    const unassignedIds = payload.unassignedPlayerIds ?? [];
+    const unassignedPlayers = unassignedIds
+        .map(playerId => playerMap.get(playerId))
+        .filter((player): player is Player => Boolean(player))
+        .map(player => ({ ...player, teamId: undefined }));
+
+    players.forEach(player => {
+        if (!assignedIds.has(player.id) && !unassignedIds.includes(player.id)) {
+            unassignedPlayers.push({ ...player, teamId: undefined });
+        }
+    });
+
+    return {
+        teams,
+        unassignedPlayers,
+    };
+}
+
+export async function generateFullAiTeams(
+    players: Player[],
+    config: LeagueConfig,
+    playerGroups: PlayerGroup[] = [],
+    variant: 'primary' | 'alternate' = 'primary'
+): Promise<AIFullTeamResult> {
+    const fallbackResult = generateBalancedTeams(players, config, playerGroups, variant === 'alternate', false);
+
+    if (!API_KEY) {
+        return {
+            ...fallbackResult,
+            source: 'fallback',
+            summary: 'AI key missing, so the standard team builder was used.',
+        };
+    }
+
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+    const teamCount = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
+
+    const context = {
+        variant,
+        strategy: variant === 'alternate'
+            ? 'Create a meaningfully different but still balanced option. Prioritize skill spread and different pairings where possible.'
+            : 'Create the strongest all-around option. Prioritize hard constraints, avoid requests, teammate requests, and balanced skill.',
+        teamCount,
+        constraints: {
+            maxTeamSize: config.maxTeamSize,
+            minFemales: config.minFemales,
+            minMales: config.minMales,
+        },
+        targetAverageSkillByGender: calculateAverageSkillByGender(players),
+        playerGroups: playerGroups.map(group => ({
+            label: group.label,
+            playerIds: group.playerIds,
+            playerNames: group.players.map(player => player.name),
+        })),
+        seedTeams: fallbackResult.teams.map((team, index) => ({
+            slot: index + 1,
+            teamId: team.id,
+            playerIds: team.players.map(player => player.id),
+            playerNames: team.players.map(player => player.name),
+        })),
+        players: players.map(player => ({
+            id: player.id,
+            name: player.name,
+            gender: player.gender,
+            skill: player.execSkillRating ?? player.skillRating,
+            isHandler: Boolean(player.isHandler),
+            teammateRequests: player.teammateRequests,
+            avoidRequests: player.avoidRequests,
+            groupId: player.groupId || null,
+        })),
+    };
+
+    const prompt = `
+You are generating a full sports team draft.
+
+Create exactly ${teamCount} team assignments.
+Use the provided player IDs exactly as given.
+
+Priorities, in order:
+1. Respect avoid requests and keep grouped players together.
+2. Meet min male and min female counts on each team.
+3. Honor teammate requests where possible.
+4. Keep overall team skill balanced.
+5. Keep male average skill and female average skill as balanced as possible across teams.
+6. Keep handlers balanced.
+7. For the "${variant}" variant, ${variant === 'alternate'
+            ? 'make this option meaningfully different from the seed while staying reasonable.'
+            : 'make this the strongest overall option.'}
+
+Return ONLY valid JSON with this exact shape:
+{
+  "summary": "one sentence summary",
+  "teams": [
+    { "slot": 1, "playerIds": ["player-id-1", "player-id-2"] }
+  ],
+  "unassignedPlayerIds": []
+}
+
+Rules:
+- Include all ${players.length} players exactly once across teams or unassignedPlayerIds.
+- Do not invent player IDs.
+- Do not split a player group across teams.
+- Do not exceed max team size.
+- Team slots must run from 1 to ${teamCount}.
+- Use the provided targetAverageSkillByGender values as a guide when balancing the male and female skill averages on each team.
+`;
+
+    try {
+        const result = await model.generateContent([prompt, JSON.stringify(context)]);
+        const payload = parseAiTeamDraftResponse(result.response.text());
+
+        if (!payload) {
+            return {
+                ...fallbackResult,
+                source: 'fallback',
+                summary: 'AI returned an unreadable response, so the standard team builder was used.',
+            };
+        }
+
+        const validation = validateAiTeamDraft(payload, players, config, playerGroups);
+        if (!validation.valid) {
+            console.warn('AI full-team draft failed validation, using fallback:', validation.errors);
+            return {
+                ...fallbackResult,
+                source: 'fallback',
+                summary: 'AI produced an invalid draft, so the standard team builder was used.',
+            };
+        }
+
+        const built = buildTeamsFromDraft(payload, players, fallbackResult.teams);
+        const finalResult = buildGenerationResult(
+            players,
+            built.teams,
+            built.unassignedPlayers,
+            config,
+            playerGroups
+        );
+
+        return {
+            ...finalResult,
+            source: 'ai',
+            summary: payload.summary,
+        };
+    } catch (error) {
+        console.error('Full AI team generation failed, using fallback:', error);
+        return {
+            ...fallbackResult,
+            source: 'fallback',
+            summary: 'AI request failed, so the standard team builder was used.',
+        };
+    }
+}
 
 export async function generateTeamSuggestions(
     prompt: string,
@@ -46,6 +424,7 @@ export async function generateTeamSuggestions(
             gender: { minM: config.minMales, minF: config.minFemales },
             handlers: "Try to balance handlers evenly (target 3 per team)"
         },
+        targetAverageSkillByGender: calculateAverageSkillByGender(players),
         // Include player groups so AI knows who must move together
         playerGroups: playerGroups.map(g => ({
             id: g.id,
@@ -93,6 +472,7 @@ export async function generateTeamSuggestions(
     You are an AI Team Builder Assistant.
     Analyze the provided team data and the user's request.
     Suggest specific MOVES or SWAPS to improve the teams based on the goal.
+    While doing that, try to keep overall team skill balanced, and also keep male average skill and female average skill balanced across teams.
     
     Current request: "${prompt}"
 
@@ -121,6 +501,7 @@ export async function generateTeamSuggestions(
        - Check the "playerGroups" array to see which players belong to the same group.
        - When suggesting a move for a grouped player, include actions for ALL members of that group.
        - NEVER suggest moving only some members of a group - this would split them up!
+    6. Use the provided "targetAverageSkillByGender" as guidance. Avoid suggestions that improve one team by making male or female skill balance noticeably worse overall.
     
     IMPORTANT: Return ONLY valid JSON. No markdown formatting.
   `;

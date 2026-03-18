@@ -1,19 +1,20 @@
-# 🏆 TeamBuilder - AI-Powered Sports Team Generator
+# 🏆 TeamBuilder - Sports Team Generator
 
-**Generate perfectly balanced sports teams in seconds!** TeamBuilder is an intelligent web application that automatically creates fair, balanced teams from your player roster using advanced algorithms that consider skill levels, gender balance, and player preferences.
+**Generate perfectly balanced sports teams in seconds.** TeamBuilder helps organizers create fair teams from a player roster using skill balancing, gender rules, player preferences, saved workspaces, and interactive team editing.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/teambuilder)
 
 ## ⚡ Key Features
 
-- **🎯 Smart Team Generation**: AI-powered algorithm balances teams by skill rating and constraints
+- **🎯 Smart Team Generation**: Constraint-based balancing for skill, team size, and player requests
 - **📊 CSV Upload Support**: Easy player roster management with CSV file import
 - **⚖️ Gender Balance**: Automatic gender distribution for fair team composition  
 - **👥 Player Preferences**: Honor teammate requests and avoid pairings
-- **📧 Email Integration**: Direct Gmail integration for player notifications
-- **📈 Analytics Dashboard**: Detailed statistics on team generation performance
-- **💾 Multiple Export Options**: PDF, CSV, and email formats for team rosters
+- **🤖 AI Assist Features**: Optional AI help for name matching and team adjustment suggestions
+- **📈 Generation Analytics**: Detailed statistics on team generation performance
+- **💾 Export & Reporting**: CSV exports and text reports for team rosters
 - **🎮 Interactive Management**: Drag-and-drop player management between teams
+- **☁️ Saved Projects**: Save and reload workspaces and rosters when signed in
 - **📱 Mobile Responsive**: Works perfectly on all devices
 
 ## 🚀 Perfect For
@@ -28,7 +29,7 @@
 
 ## 🌐 Live Demo
 
-🎮 **Try it now**: [teambuilder.vercel.app](https://teambuilder.vercel.app)
+🎮 **Try it now**: [teambuilder-mu.vercel.app](https://teambuilder-mu.vercel.app)
 
 No signup required - upload your CSV and start generating teams instantly!
 
@@ -54,9 +55,9 @@ No signup required - upload your CSV and start generating teams instantly!
 - Review detailed statistics
 
 ### 4. Export & Share
-- Export to PDF, CSV, or email
-- Send team assignments to players
-- Print team rosters
+- Export detailed or summary CSVs
+- Generate a text report for sharing or printing
+- Save the project for future edits
 
 ## 📊 CSV Format
 

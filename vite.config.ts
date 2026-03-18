@@ -10,6 +10,20 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/tests/setup.ts',
+    globals: true,
+    css: false,
+    clearMocks: true,
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'src/tests/execSkillRating.test.ts',
+      'src/tests/firebase-integration.test.ts',
+      'src/tests/firestoreRules.test.ts',
+    ],
+  },
   build: {
     minify: 'terser',
     cssMinify: true,

@@ -1,8 +1,9 @@
 import { Team, Player, PlayerGroup, LeagueConfig, TeamGenerationStats } from '@/types';
-import { getPlayerGroup, getPlayerGroupLabel } from './playerGrouping';
+import { getPlayerGroupLabel } from './playerGrouping';
+import { generateShareableSummary } from './teamBranding';
 
 export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], playerGroups: PlayerGroup[] = []): string {
-  const headers = ['Team', 'Player Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Player Group', 'Average Team Skill', 'Team Size', 'Males', 'Females', 'Other'];
+  const headers = ['Team', 'Team Color', 'Player Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Player Group', 'Average Team Skill', 'Team Size', 'Males', 'Females', 'Other'];
   const rows: string[][] = [headers];
 
   // Add team data
@@ -11,6 +12,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
       const groupLabel = getPlayerGroupLabel(playerGroups, player.id) || '';
       const row = [
         team.name,
+        index === 0 ? (team.colorName || '') : '',
         player.name,
         player.gender,
         player.skillRating.toString(),
@@ -40,6 +42,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
       const groupLabel = getPlayerGroupLabel(playerGroups, player.id) || '';
       rows.push([
         'UNASSIGNED',
+        '',
         player.name,
         player.gender,
         player.skillRating.toString(),
@@ -60,7 +63,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
 }
 
 export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[] = [], config?: LeagueConfig, stats?: TeamGenerationStats): string {
-  const headers = ['Team Name', 'Total Players', 'Average Skill', 'Males', 'Females', 'Other', 'Player Groups', 'Skill Variance', 'Player Names'];
+  const headers = ['Team Name', 'Team Color', 'Total Players', 'Average Skill', 'Males', 'Females', 'Other', 'Player Groups', 'Skill Variance', 'Player Names'];
   const rows: string[][] = [headers];
 
   teams.forEach(team => {
@@ -83,6 +86,7 @@ export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[
 
     const row = [
       team.name,
+      team.colorName || '',
       team.players.length.toString(),
       team.averageSkill.toFixed(2),
       team.genderBreakdown.M.toString(),
@@ -167,6 +171,9 @@ export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], p
   teams.forEach((team, index) => {
     report += `${team.name.toUpperCase()}\n`;
     report += '-'.repeat(team.name.length) + '\n';
+    if (team.colorName) {
+      report += `Brand: ${team.colorName}\n`;
+    }
     report += `Players: ${team.players.length}\n`;
     report += `Average Skill: ${team.averageSkill.toFixed(2)}\n`;
     report += `Gender Breakdown: ${team.genderBreakdown.M}M, ${team.genderBreakdown.F}F, ${team.genderBreakdown.Other} Other\n`;
@@ -243,4 +250,8 @@ export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], p
   }
 
   return report;
+}
+
+export function generateShareSummaryText(teams: Team[], config: LeagueConfig, stats?: TeamGenerationStats, unassignedPlayers: Player[] = []): string {
+  return generateShareableSummary(teams, config, stats, unassignedPlayers.length);
 }

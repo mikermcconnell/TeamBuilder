@@ -3,36 +3,41 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { AppState } from '@/types';
 
+interface LocalAppStateSnapshot {
+  data: AppState;
+  lastUpdated: string;
+}
+
 export class DataStorageService {
   private user: User | null = null;
   private readonly LOCAL_STORAGE_KEY = 'teamBuilderState';
-  private readonly MIGRATION_FLAG_KEY = 'teamBuilderMigrated';
 
   setUser(user: User | null) {
     this.user = user;
   }
 
   async save(data: AppState): Promise<{ type: 'cloud' | 'local'; error?: any }> {
+    const lastUpdated = new Date().toISOString();
+
     try {
       if (this.user) {
-        // Save to Firestore - clean undefined values
         const cleanData = this.removeUndefinedValues(data);
         const userDoc = doc(db, 'users', this.user.uid, 'data', 'appState');
+
         await setDoc(userDoc, {
           ...cleanData,
-          lastUpdated: new Date().toISOString()
+          lastUpdated
         });
+
+        this.saveToLocalStorage(data, lastUpdated);
         return { type: 'cloud' };
-      } else {
-        // Save to localStorage
-        localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(data));
-        return { type: 'local' };
       }
+
+      this.saveToLocalStorage(data, lastUpdated);
+      return { type: 'local' };
     } catch (error) {
       console.error('Error saving data:', error);
-      // Fallback to localStorage on error
-      localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(data));
-      // Return local type with error info instead of throwing
+      this.saveToLocalStorage(data, lastUpdated);
       return { type: 'local', error };
     }
   }
@@ -47,7 +52,7 @@ export class DataStorageService {
     }
 
     if (typeof obj === 'object') {
-      const cleaned: any = {};
+      const cleaned: Record<string, any> = {};
       for (const key in obj) {
         if (obj[key] !== undefined) {
           cleaned[key] = this.removeUndefinedValues(obj[key]);
@@ -60,73 +65,104 @@ export class DataStorageService {
   }
 
   async load(): Promise<AppState | null> {
+    const localSnapshot = this.loadFromLocalStorage();
+
     try {
       if (this.user) {
-        // Try to load from Firestore
         const userDoc = doc(db, 'users', this.user.uid, 'data', 'appState');
         const docSnap = await getDoc(userDoc);
 
         if (docSnap.exists()) {
-          const data = docSnap.data();
-          // Remove Firestore metadata
-          delete data.lastUpdated;
-          return data as AppState;
+          const { data: cloudData, lastUpdated: cloudLastUpdated } = this.extractCloudSnapshot(docSnap.data());
+
+          if (localSnapshot && this.isLocalSnapshotNewer(localSnapshot.lastUpdated, cloudLastUpdated)) {
+            await this.save(localSnapshot.data);
+            return localSnapshot.data;
+          }
+
+          return cloudData;
         }
 
-        // If no Firestore data, check for localStorage data to migrate
-        const localData = this.loadFromLocalStorage();
-        if (localData && !this.hasMigrated()) {
-          // Migrate localStorage data to Firestore
-          await this.save(localData);
-          this.setMigrationFlag();
-          // Clear localStorage after successful migration
-          localStorage.removeItem(this.LOCAL_STORAGE_KEY);
-          return localData;
+        if (localSnapshot) {
+          await this.save(localSnapshot.data);
+          return localSnapshot.data;
         }
 
         return null;
-      } else {
-        // Load from localStorage when not signed in
-        return this.loadFromLocalStorage();
       }
+
+      return localSnapshot?.data ?? null;
     } catch (error) {
       console.error('Error loading data:', error);
-      // Fallback to localStorage on error
-      return this.loadFromLocalStorage();
+      return localSnapshot?.data ?? null;
     }
   }
 
-  private loadFromLocalStorage(): AppState | null {
+  private extractCloudSnapshot(rawData: Record<string, unknown>): LocalAppStateSnapshot {
+    const data = { ...rawData };
+    const lastUpdated = typeof data.lastUpdated === 'string' ? data.lastUpdated : '';
+    delete data.lastUpdated;
+
+    return {
+      data: data as AppState,
+      lastUpdated,
+    };
+  }
+
+  private saveToLocalStorage(data: AppState, lastUpdated: string): void {
+    const snapshot: LocalAppStateSnapshot = {
+      data,
+      lastUpdated,
+    };
+
+    localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
+  }
+
+  private loadFromLocalStorage(): LocalAppStateSnapshot | null {
     const savedState = localStorage.getItem(this.LOCAL_STORAGE_KEY);
-    if (savedState) {
-      try {
-        return JSON.parse(savedState);
-      } catch (e) {
-        console.error('Failed to parse localStorage data:', e);
-        return null;
-      }
+    if (!savedState) {
+      return null;
     }
-    return null;
+
+    try {
+      const parsed = JSON.parse(savedState);
+
+      if (parsed && typeof parsed === 'object' && 'data' in parsed && 'lastUpdated' in parsed) {
+        return parsed as LocalAppStateSnapshot;
+      }
+
+      return {
+        data: parsed as AppState,
+        lastUpdated: '',
+      };
+    } catch (error) {
+      console.error('Failed to parse localStorage data:', error);
+      return null;
+    }
   }
 
-  private hasMigrated(): boolean {
-    return localStorage.getItem(this.MIGRATION_FLAG_KEY) === 'true';
-  }
+  private isLocalSnapshotNewer(localLastUpdated: string, cloudLastUpdated: string): boolean {
+    if (!localLastUpdated) {
+      return false;
+    }
 
-  private setMigrationFlag(): void {
-    localStorage.setItem(this.MIGRATION_FLAG_KEY, 'true');
-  }
+    if (!cloudLastUpdated) {
+      return true;
+    }
 
-  clearMigrationFlag(): void {
-    localStorage.removeItem(this.MIGRATION_FLAG_KEY);
+    const localTimestamp = new Date(localLastUpdated).getTime();
+    const cloudTimestamp = new Date(cloudLastUpdated).getTime();
+
+    if (Number.isNaN(localTimestamp) || Number.isNaN(cloudTimestamp)) {
+      return false;
+    }
+
+    return localTimestamp > cloudTimestamp;
   }
 
   async clearAll(): Promise<void> {
-    // Clear localStorage
     localStorage.removeItem(this.LOCAL_STORAGE_KEY);
-    localStorage.removeItem(this.MIGRATION_FLAG_KEY);
 
-    // Clear Firestore if authenticated
     if (this.user) {
       try {
         const userDoc = doc(db, 'users', this.user.uid, 'data', 'appState');
@@ -147,5 +183,4 @@ export class DataStorageService {
   }
 }
 
-// Create singleton instance
 export const dataStorageService = new DataStorageService();

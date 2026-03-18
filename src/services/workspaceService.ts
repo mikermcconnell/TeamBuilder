@@ -13,6 +13,7 @@ import { SavedWorkspace } from '@/types';
 
 export class WorkspaceService {
     private static readonly COLLECTION = 'workspaces';
+    private static readonly LOCAL_KEY = 'local_saved_workspaces';
 
     /**
      * Recursively removes undefined values from objects and arrays.
@@ -37,25 +38,69 @@ export class WorkspaceService {
         return obj;
     }
 
+    private static readLocalWorkspaces(): SavedWorkspace[] {
+        try {
+            const existingStr = localStorage.getItem(this.LOCAL_KEY);
+            return existingStr ? JSON.parse(existingStr) : [];
+        } catch (error) {
+            console.warn('Failed to read local workspaces:', error);
+            return [];
+        }
+    }
+
+    private static writeLocalWorkspaces(workspaces: SavedWorkspace[]): void {
+        localStorage.setItem(this.LOCAL_KEY, JSON.stringify(workspaces));
+    }
+
+    private static getWorkspaceTimestamp(workspace?: SavedWorkspace | null): number {
+        if (!workspace?.updatedAt) {
+            return 0;
+        }
+
+        const timestamp = new Date(workspace.updatedAt).getTime();
+        return Number.isNaN(timestamp) ? 0 : timestamp;
+    }
+
+    private static preferNewerWorkspace(first?: SavedWorkspace | null, second?: SavedWorkspace | null): SavedWorkspace | null {
+        if (!first) return second ?? null;
+        if (!second) return first;
+        return this.getWorkspaceTimestamp(second) > this.getWorkspaceTimestamp(first) ? second : first;
+    }
+
+    private static upsertLocalWorkspace(workspace: SavedWorkspace): void {
+        const existing = this.readLocalWorkspaces();
+        const existingIndex = existing.findIndex(w => w.id === workspace.id);
+
+        if (existingIndex >= 0) {
+            existing[existingIndex] = workspace;
+        } else {
+            existing.push(workspace);
+        }
+
+        this.writeLocalWorkspaces(existing);
+    }
+
     /**
      * Save a workspace to Firestore. Creates new or updates existing.
      */
     static async saveWorkspace(workspace: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<{ id: string; type: 'cloud' | 'local'; error?: any }> {
         const workspaceId = id || doc(collection(db, this.COLLECTION)).id;
         const now = new Date().toISOString();
+        const existingLocalWorkspace = this.readLocalWorkspaces().find(w => w.id === workspaceId);
         const rawPayload = {
             ...workspace,
             id: workspaceId,
             updatedAt: now,
-            createdAt: id ? undefined : now,
+            createdAt: existingLocalWorkspace?.createdAt || now,
         };
 
         // Recursively remove all undefined values (Firestore doesn't allow them)
-        const payload = this.removeUndefinedDeep(rawPayload);
+        const payload = this.removeUndefinedDeep(rawPayload) as SavedWorkspace;
 
         try {
             const workspaceRef = doc(db, this.COLLECTION, workspaceId);
             await setDoc(workspaceRef, payload, { merge: true });
+            this.upsertLocalWorkspace(payload);
             return { id: workspaceId, type: 'cloud' };
         } catch (error: any) {
             // Log detailed error info for debugging
@@ -69,22 +114,9 @@ export class WorkspaceService {
 
             // Fallback to LocalStorage
             // We need to store it in a list in localStorage to simulate the collection
-            const LOCAL_KEY = 'local_saved_workspaces';
             try {
-                const existingStr = localStorage.getItem(LOCAL_KEY);
-                const existing: SavedWorkspace[] = existingStr ? JSON.parse(existingStr) : [];
-
-                const existingIndex = existing.findIndex(w => w.id === workspaceId);
-                const completeWorkspace = payload as unknown as SavedWorkspace;
-
-                if (existingIndex >= 0) {
-                    existing[existingIndex] = completeWorkspace;
-                } else {
-                    existing.push(completeWorkspace);
-                }
-
                 try {
-                    localStorage.setItem(LOCAL_KEY, JSON.stringify(existing));
+                    this.upsertLocalWorkspace(payload);
                 } catch (storageError) {
                     // Handle localStorage quota exceeded
                     if (storageError instanceof DOMException &&
@@ -122,24 +154,22 @@ export class WorkspaceService {
             }
 
             // Always merge with local for resilience
-            const LOCAL_KEY = 'local_saved_workspaces';
-            const localStr = localStorage.getItem(LOCAL_KEY);
-            if (localStr) {
-                const localWorkspaces: SavedWorkspace[] = JSON.parse(localStr);
-                // Filter for this user
-                const userLocal = localWorkspaces.filter(w => w.userId === userId);
+            const mergedById = new Map<string, SavedWorkspace>();
+            workspaces.forEach(workspace => {
+                mergedById.set(workspace.id, workspace);
+            });
 
-                // Merge strategies: prefer cloud if newer, or simple concat if ID unique?
-                // Simple concat unique by ID
-                const cloudIds = new Set(workspaces.map(w => w.id));
-                userLocal.forEach(w => {
-                    if (!cloudIds.has(w.id)) {
-                        workspaces.push(w);
-                    }
+            this.readLocalWorkspaces()
+                .filter(workspace => workspace.userId === userId)
+                .forEach(localWorkspace => {
+                    const existingWorkspace = mergedById.get(localWorkspace.id);
+                    mergedById.set(
+                        localWorkspace.id,
+                        this.preferNewerWorkspace(existingWorkspace, localWorkspace) as SavedWorkspace
+                    );
                 });
-            }
 
-            return workspaces.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+            return Array.from(mergedById.values()).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
         } catch (error) {
             console.error('Error fetching workspaces:', error);
             throw new Error('Failed to fetch workspaces');
@@ -150,17 +180,20 @@ export class WorkspaceService {
      * Get a single workspace by ID.
      */
     static async getWorkspace(id: string): Promise<SavedWorkspace | null> {
+        const localWorkspace = this.readLocalWorkspaces().find(workspace => workspace.id === id) || null;
+
         try {
             const docRef = doc(db, this.COLLECTION, id);
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
-                return docSnap.data() as SavedWorkspace;
+                const cloudWorkspace = docSnap.data() as SavedWorkspace;
+                return this.preferNewerWorkspace(cloudWorkspace, localWorkspace);
             }
-            return null;
+            return localWorkspace;
         } catch (error) {
-            console.error('Error getting workspace:', error);
-            throw new Error('Failed to get workspace');
+            console.error('Error getting workspace, falling back to local copy:', error);
+            return localWorkspace;
         }
     }
 
@@ -168,7 +201,6 @@ export class WorkspaceService {
      * Delete a workspace.
      */
     static async deleteWorkspace(id: string): Promise<void> {
-        const LOCAL_KEY = 'local_saved_workspaces';
         let cloudDeleted = false;
         let localDeleted = false;
 
@@ -183,14 +215,11 @@ export class WorkspaceService {
 
         // Also delete from localStorage (in case it was saved locally)
         try {
-            const existingStr = localStorage.getItem(LOCAL_KEY);
-            if (existingStr) {
-                const existing: SavedWorkspace[] = JSON.parse(existingStr);
-                const filtered = existing.filter(w => w.id !== id);
-                if (filtered.length < existing.length) {
-                    localStorage.setItem(LOCAL_KEY, JSON.stringify(filtered));
-                    localDeleted = true;
-                }
+            const existing = this.readLocalWorkspaces();
+            const filtered = existing.filter(w => w.id !== id);
+            if (filtered.length < existing.length) {
+                this.writeLocalWorkspaces(filtered);
+                localDeleted = true;
             }
         } catch (localError) {
             console.warn('Failed to delete workspace from local storage:', localError);

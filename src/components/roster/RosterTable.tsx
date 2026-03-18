@@ -19,6 +19,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
 import {
     ArrowUpDown,
     ArrowUp,
@@ -321,7 +322,10 @@ export function RosterTable({
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            sortedPlayers.map((player) => (
+                            sortedPlayers.map((player) => {
+                                const registrationInfo = getPlayerRegistrationInfo(player);
+
+                                return (
                                 <TableRow
                                     key={player.id}
                                     className={`
@@ -348,7 +352,21 @@ export function RosterTable({
                                                     {getInitials(player.name)}
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-slate-700">{player.name}</span>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <span className="w-fit cursor-help text-slate-700 underline decoration-dotted underline-offset-2">
+                                                                    {player.name}
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="max-w-xs whitespace-pre-wrap text-left leading-relaxed">
+                                                                <div className="space-y-1">
+                                                                    <div className="font-semibold">Registration notes</div>
+                                                                    <div>{registrationInfo}</div>
+                                                                </div>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
                                                     {player.email && (
                                                         <span className="text-[10px] text-muted-foreground hidden sm:inline-block">
                                                             {player.email}
@@ -527,7 +545,8 @@ export function RosterTable({
                                         </TableCell>
                                     )}
                                 </TableRow>
-                            ))
+                                );
+                            })
                         )}
                     </TableBody>
                 </Table>

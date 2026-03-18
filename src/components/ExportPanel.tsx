@@ -1,25 +1,28 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Team, Player, LeagueConfig, TeamGenerationStats, PlayerGroup } from '@/types';
-import { 
-  exportTeamsToCSV, 
-  exportTeamSummaryToCSV, 
-  downloadCSV, 
-  generateTeamReport 
+import {
+  exportTeamsToCSV,
+  exportTeamSummaryToCSV,
+  downloadCSV,
+  generateTeamReport,
+  generateShareSummaryText
 } from '@/utils/exportUtils';
+import { hexToRgba } from '@/utils/teamBranding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Download, 
-  FileSpreadsheet, 
-  FileText, 
-  Eye, 
-  Copy, 
+import {
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Eye,
+  Copy,
   CheckCircle,
-  Printer
+  Printer,
+  Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,8 +35,13 @@ interface ExportPanelProps {
 }
 
 export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGroups }: ExportPanelProps) {
-  const [previewType, setPreviewType] = useState<'detailed' | 'summary' | 'report'>('detailed');
+  const [previewType, setPreviewType] = useState<'detailed' | 'summary' | 'report' | 'share'>('detailed');
   const [reportText, setReportText] = useState<string>('');
+
+  const shareSummary = useMemo(
+    () => generateShareSummaryText(teams, config, stats, unassignedPlayers),
+    [teams, config, stats, unassignedPlayers]
+  );
 
   const handleExportDetailed = () => {
     const csvContent = exportTeamsToCSV(teams, unassignedPlayers, playerGroups);
@@ -62,6 +70,11 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
     }
   };
 
+  const handleCopyShareSummary = () => {
+    navigator.clipboard.writeText(shareSummary);
+    toast.success('Shareable summary copied to clipboard');
+  };
+
   const handlePrintReport = () => {
     if (reportText) {
       const printWindow = window.open('', '_blank');
@@ -87,13 +100,14 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
   };
 
   const getDetailedPreview = () => {
-    const headers = ['Team', 'Player', 'Gender', 'Skill', 'Exec Skill', 'Avg Skill', 'Size', 'M', 'F', 'Other'];
+    const headers = ['Team', 'Color', 'Player', 'Gender', 'Skill', 'Exec Skill', 'Avg Skill', 'Size', 'M', 'F', 'Other'];
     const rows = [headers];
-    
+
     teams.forEach(team => {
       team.players.forEach((player, index) => {
         rows.push([
           team.name,
+          index === 0 ? (team.colorName || '') : '',
           player.name,
           player.gender,
           player.skillRating?.toString() || 'N/A',
@@ -110,6 +124,7 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
     unassignedPlayers.forEach(player => {
       rows.push([
         'Unassigned',
+        '',
         player.name,
         player.gender,
         player.skillRating?.toString() || 'N/A',
@@ -126,10 +141,9 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
   };
 
   const getSummaryPreview = () => {
-    const headers = ['Team', 'Players', 'Avg Skill', 'M', 'F', 'Other', 'Player Names'];
-    
     return teams.map(team => [
       team.name,
+      team.colorName || '',
       team.players.length.toString(),
       team.averageSkill.toFixed(1),
       team.genderBreakdown.M.toString(),
@@ -142,7 +156,7 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
   return (
     <div className="space-y-6">
       {/* Export Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -180,7 +194,7 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
               Export Summary CSV
             </Button>
             <p className="text-sm text-gray-600">
-              Compact format with team names and player lists
+              Compact format with branded team names and player lists
             </p>
           </CardContent>
         </Card>
@@ -202,6 +216,27 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
             </Button>
             <p className="text-sm text-gray-600">
               Formatted text report for sharing or printing
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5" />
+              Shareable Summary
+            </CardTitle>
+            <CardDescription>
+              Copy a polished summary for chat, email, or announcements
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button onClick={handleCopyShareSummary} className="w-full" variant="outline">
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Share Summary
+            </Button>
+            <p className="text-sm text-gray-600">
+              Includes branded team names, colors, and player lists
             </p>
           </CardContent>
         </Card>
@@ -244,24 +279,25 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             Export Preview
-            <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as any)}>
+            <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as 'detailed' | 'summary' | 'report' | 'share')}>
               <TabsList>
                 <TabsTrigger value="detailed">Detailed</TabsTrigger>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
+                <TabsTrigger value="share">Shareable</TabsTrigger>
                 {reportText && <TabsTrigger value="report">Report</TabsTrigger>}
               </TabsList>
             </Tabs>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as any)}>
-            {/* Detailed Preview */}
+          <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as 'detailed' | 'summary' | 'report' | 'share')}>
             <TabsContent value="detailed" className="space-y-4">
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Team</TableHead>
+                      <TableHead>Color</TableHead>
                       <TableHead>Player</TableHead>
                       <TableHead>Gender</TableHead>
                       <TableHead>Skill</TableHead>
@@ -292,13 +328,13 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
               </div>
             </TabsContent>
 
-            {/* Summary Preview */}
             <TabsContent value="summary" className="space-y-4">
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Team</TableHead>
+                      <TableHead>Color</TableHead>
                       <TableHead>Players</TableHead>
                       <TableHead>Avg Skill</TableHead>
                       <TableHead>M</TableHead>
@@ -316,8 +352,9 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
                         <TableCell>{row[3]}</TableCell>
                         <TableCell>{row[4]}</TableCell>
                         <TableCell>{row[5]}</TableCell>
+                        <TableCell>{row[6]}</TableCell>
                         <TableCell className="text-sm max-w-xs truncate">
-                          {row[6]}
+                          {row[7]}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -326,7 +363,48 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
               </div>
             </TabsContent>
 
-            {/* Report Preview */}
+            <TabsContent value="share" className="space-y-4">
+              <div className="flex gap-2 mb-4">
+                <Button onClick={handleCopyShareSummary} variant="outline" size="sm">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Summary
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {teams.map((team) => {
+                  const teamColor = team.color || '#94A3B8';
+                  return (
+                    <Card key={team.id} className="overflow-hidden border-2" style={{ borderColor: hexToRgba(teamColor, 0.35) }}>
+                      <CardHeader style={{ backgroundColor: hexToRgba(teamColor, 0.12) }}>
+                        <CardTitle className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: teamColor }} />
+                            {team.name}
+                          </span>
+                          {team.colorName && <Badge variant="secondary">{team.colorName}</Badge>}
+                        </CardTitle>
+                        <CardDescription>
+                          {team.players.length} players • Avg skill {team.averageSkill.toFixed(1)} • {team.genderBreakdown.F}F / {team.genderBreakdown.M}M / {team.genderBreakdown.Other}O
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="text-sm text-slate-700 leading-6">
+                          {team.players.map(player => player.name).join(', ')}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              <Textarea
+                value={shareSummary}
+                readOnly
+                className="min-h-64 font-mono text-sm"
+              />
+            </TabsContent>
+
             {reportText && (
               <TabsContent value="report" className="space-y-4">
                 <div className="flex gap-2 mb-4">
@@ -350,7 +428,6 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
         </CardContent>
       </Card>
 
-      {/* Generation Stats Summary */}
       {stats && (
         <Card>
           <CardHeader>
@@ -370,17 +447,17 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
                 </div>
                 <div className="text-sm text-green-600">Assignment Rate</div>
               </div>
-              
+
               <div className="text-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="font-semibold text-blue-600">{stats.mutualRequestsHonored}</div>
                 <div className="text-sm text-blue-600">Requests Honored</div>
               </div>
-              
+
               <div className="text-center p-3 bg-orange-50 border border-orange-200 rounded-lg">
                 <div className="font-semibold text-orange-600">{stats.avoidRequestsViolated}</div>
                 <div className="text-sm text-orange-600">Violations</div>
               </div>
-              
+
               <div className="text-center p-3 bg-purple-50 border border-purple-200 rounded-lg">
                 <div className="font-semibold text-purple-600">{stats.generationTime}ms</div>
                 <div className="text-sm text-purple-600">Process Time</div>

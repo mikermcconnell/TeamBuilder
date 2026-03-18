@@ -1,8 +1,8 @@
-# TeamBuilder Pro - Tutorial Landing Page Implementation Guide
+# TeamBuilder - Tutorial Landing Page Implementation Guide
 
 ## Overview
 
-This guide covers the implementation of a stunning, interactive tutorial landing page for TeamBuilder Pro. The tutorial serves as a comprehensive introduction to the application's features, designed to educate new users and build confidence before they access the main application.
+This guide covers the implementation of a stunning, interactive tutorial landing page for TeamBuilder. The tutorial serves as a comprehensive introduction to the application's features, designed to educate new users and build confidence before they access the main application.
 
 ## 🎨 Design Features
 
@@ -351,4 +351,4 @@ For questions about the tutorial implementation:
 - Test thoroughly across different devices and browsers
 - Consider user feedback for continuous improvement
 
-The tutorial landing page is designed to be both impressive and functional, creating a positive first impression while effectively educating users about your TeamBuilder Pro application's capabilities. 
+The tutorial landing page is designed to be both impressive and functional, creating a positive first impression while effectively educating users about your TeamBuilder application's capabilities.

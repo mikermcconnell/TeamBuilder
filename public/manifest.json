@@ -1,7 +1,7 @@
 {
-  "name": "TeamBuilder - AI-Powered Sports Team Generator",
+  "name": "TeamBuilder - Sports Team Generator",
   "short_name": "TeamBuilder",
-  "description": "Generate perfectly balanced sports teams in seconds with AI-powered algorithms",
+  "description": "Build balanced sports teams with roster uploads, drag-and-drop editing, saved workspaces, and export tools",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#22C55E",
@@ -54,9 +54,9 @@
   ],
   "features": [
     "CSV roster upload",
-    "AI team balancing",
+    "Team balancing",
     "Player preferences",
-    "Email integration",
-    "Multi-format export"
+    "Text reports",
+    "Saved workspaces"
   ]
 }

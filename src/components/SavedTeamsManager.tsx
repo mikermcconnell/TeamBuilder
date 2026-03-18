@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   saveTeams,
   getUserTeams,
@@ -6,8 +6,8 @@ import {
   updateTeams,
   TeamsData
 } from '@/services/teamsService';
-import { auth } from '@/config/firebase';
 import { Team, Player, LeagueConfig } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -60,6 +60,7 @@ export function SavedTeamsManager({
   onLoadTeams,
   mode = 'default'
 }: SavedTeamsManagerProps) {
+  const { user } = useAuth();
   const [savedTeamsList, setSavedTeamsList] = useState<TeamsData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -69,16 +70,12 @@ export function SavedTeamsManager({
   const [selectedTeamsId, setSelectedTeamsId] = useState<string | null>(null);
 
   // Load saved teams when component mounts or user changes
-  useEffect(() => {
-    loadSavedTeams();
-  }, [auth.currentUser]);
-
-  const loadSavedTeams = async () => {
-    if (!auth.currentUser) return;
+  const loadSavedTeams = useCallback(async () => {
+    if (!user) return;
 
     setIsLoading(true);
     try {
-      const teams = await getUserTeams(auth.currentUser.uid, rosterId);
+      const teams = await getUserTeams(user.uid, rosterId);
       setSavedTeamsList(teams);
     } catch (error) {
       console.error('Failed to load saved teams:', error);
@@ -86,10 +83,14 @@ export function SavedTeamsManager({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, rosterId]);
+
+  useEffect(() => {
+    void loadSavedTeams();
+  }, [loadSavedTeams]);
 
   const handleSaveTeams = async () => {
-    if (!auth.currentUser) {
+    if (!user) {
       toast.error('Please sign in to save teams');
       return;
     }
@@ -107,7 +108,7 @@ export function SavedTeamsManager({
     setIsLoading(true);
     try {
       const teamsData: Omit<TeamsData, 'id' | 'createdAt' | 'updatedAt'> = {
-        userId: auth.currentUser.uid,
+        userId: user.uid,
         rosterId: rosterId,
         name: saveName.trim(),
         description: saveDescription.trim(),

@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { LeagueConfig, Player } from '@/types';
-import { loadSavedConfigs, saveConfig, deleteConfig, validateConfig } from '@/utils/configManager';
+import { loadSavedConfigs, saveConfig, deleteConfig, validateConfig, loadLeaguePresets, updateConfig as updateSavedConfig, duplicateConfig } from '@/utils/configManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -14,13 +13,14 @@ import {
   Settings,
   Save,
   Trash2,
-  Plus,
+  Pencil,
+  Copy,
   AlertCircle,
   Users,
   Target,
   Calculator,
   UserCheck,
-  UserX,
+  Check,
   Info
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,9 +34,16 @@ interface ConfigurationPanelProps {
 
 export function ConfigurationPanel({ config, onConfigChange, playerCount, players = [] }: ConfigurationPanelProps) {
   const [savedConfigs, setSavedConfigs] = useState(() => loadSavedConfigs());
+  const builtInPresets = useMemo(() => loadLeaguePresets(), []);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newConfigName, setNewConfigName] = useState('');
+  const [saveMode, setSaveMode] = useState<'create' | 'rename' | 'duplicate'>('create');
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const activeSavedPreset = useMemo(
+    () => savedConfigs.find(savedConfig => savedConfig.id === config.id) || null,
+    [config.id, savedConfigs]
+  );
 
   // Calculate gender breakdown
   const genderStats = useMemo(() => {
@@ -55,16 +62,50 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
   };
 
   const loadPreset = (configId: string) => {
-    const preset = savedConfigs.find(c => c.id === configId);
-    if (preset) {
-      onConfigChange(preset);
-      toast.success(`Loaded preset: ${preset.name}`);
+    const customPreset = savedConfigs.find(c => c.id === configId);
+    const builtInPreset = builtInPresets.find(c => c.id === configId);
+    const selectedPreset = customPreset || builtInPreset;
+
+    if (selectedPreset) {
+      onConfigChange(selectedPreset);
+      toast.success(`Loaded preset: ${selectedPreset.name}`);
     }
+  };
+
+  const closeSaveDialog = () => {
+    setShowSaveDialog(false);
+    setNewConfigName('');
+    setSaveMode('create');
+    setSelectedPresetId(null);
+  };
+
+  const openSaveDialog = (mode: 'create' | 'rename' | 'duplicate', preset?: LeagueConfig) => {
+    setSaveMode(mode);
+    setSelectedPresetId(preset?.id || null);
+    setNewConfigName(
+      mode === 'duplicate'
+        ? `${preset?.name || config.name} Copy`
+        : preset?.name || config.name || ''
+    );
+    setShowSaveDialog(true);
+  };
+
+  const hasDuplicateName = (name: string, excludeId?: string | null) => {
+    const normalizedName = name.trim().toLowerCase();
+    return savedConfigs.some(savedConfig => (
+      savedConfig.id !== excludeId &&
+      savedConfig.name.trim().toLowerCase() === normalizedName
+    ));
   };
 
   const saveCurrentConfig = () => {
     if (!newConfigName.trim()) {
       toast.error('Please enter a configuration name');
+      return;
+    }
+
+    if (hasDuplicateName(newConfigName, saveMode === 'rename' ? selectedPresetId : null)) {
+      toast.error('A saved preset with that name already exists');
       return;
     }
 
@@ -74,17 +115,70 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
       return;
     }
 
-    const newConfig: LeagueConfig = {
+    if (saveMode === 'rename' && selectedPresetId) {
+      const renamedPreset = updateSavedConfig(selectedPresetId, { name: newConfigName.trim() });
+
+      if (!renamedPreset) {
+        toast.error('Could not rename that preset');
+        return;
+      }
+
+      setSavedConfigs(loadSavedConfigs());
+      if (config.id === renamedPreset.id) {
+        onConfigChange(renamedPreset);
+      }
+      toast.success(`Renamed preset to ${renamedPreset.name}`);
+      closeSaveDialog();
+      return;
+    }
+
+    if (saveMode === 'duplicate' && selectedPresetId) {
+      const sourcePreset = savedConfigs.find(savedConfig => savedConfig.id === selectedPresetId);
+      if (!sourcePreset) {
+        toast.error('Could not duplicate that preset');
+        return;
+      }
+
+      const duplicatedPreset = duplicateConfig(sourcePreset, newConfigName.trim());
+      setSavedConfigs(loadSavedConfigs());
+      toast.success(`Created preset copy: ${duplicatedPreset.name}`);
+      closeSaveDialog();
+      return;
+    }
+
+    const customConfig: LeagueConfig = {
       ...config,
       id: `custom-${Date.now()}`,
       name: newConfigName.trim()
     };
 
-    saveConfig(newConfig);
+    saveConfig(customConfig);
     setSavedConfigs(loadSavedConfigs());
-    toast.success(`Configuration saved: ${newConfig.name}`);
-    setShowSaveDialog(false);
-    setNewConfigName('');
+    toast.success(`Configuration saved: ${customConfig.name}`);
+    closeSaveDialog();
+  };
+
+  const updateSavedPresetFromCurrent = (configId: string) => {
+    const presetToUpdate = savedConfigs.find(savedConfig => savedConfig.id === configId);
+    if (!presetToUpdate) {
+      toast.error('Could not find that saved preset');
+      return;
+    }
+
+    const updatedPreset: LeagueConfig = {
+      ...config,
+      id: presetToUpdate.id,
+      name: presetToUpdate.name,
+    };
+
+    saveConfig(updatedPreset);
+    setSavedConfigs(loadSavedConfigs());
+
+    if (config.id === presetToUpdate.id) {
+      onConfigChange(updatedPreset);
+    }
+
+    toast.success(`Updated preset: ${presetToUpdate.name}`);
   };
 
   const deletePreset = (configId: string) => {
@@ -132,6 +226,41 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
 
   return (
     <div className="space-y-6">
+      {/* League Presets */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            League Presets
+          </CardTitle>
+          <CardDescription>
+            Start quickly with common league formats
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {builtInPresets.map((preset) => (
+              <Card key={preset.id} className="border-2 border-slate-100 shadow-sm">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-semibold text-slate-800">{preset.name}</h4>
+                    <Badge variant="secondary">Preset</Badge>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div>Max team size: {preset.maxTeamSize}</div>
+                    <div>Min females: {preset.minFemales}</div>
+                    <div>Min males: {preset.minMales}</div>
+                  </div>
+                  <Button size="sm" className="w-full" variant="outline" onClick={() => loadPreset(preset.id)}>
+                    Load Preset
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Saved Configurations */}
       <Card>
         <CardHeader>
@@ -140,15 +269,28 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
               <Settings className="h-5 w-5" />
               Saved Configurations
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() => setShowSaveDialog(true)}
-            >
-              <Save className="h-4 w-4" />
-              Save Current
-            </Button>
+            <div className="flex items-center gap-2">
+              {activeSavedPreset && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => updateSavedPresetFromCurrent(activeSavedPreset.id)}
+                >
+                  <Check className="h-4 w-4" />
+                  Update Current
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => openSaveDialog('create')}
+              >
+                <Save className="h-4 w-4" />
+                Save Current
+              </Button>
+            </div>
           </CardTitle>
           <CardDescription>
             Load or manage your saved configurations
@@ -158,32 +300,58 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
           {savedConfigs.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {savedConfigs.map((preset) => (
-                <Card key={preset.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                <Card key={preset.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium">{preset.name}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium">{preset.name}</h4>
+                          {config.id === preset.id && <Badge variant="secondary">Current</Badge>}
+                        </div>
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <div>Max team size: {preset.maxTeamSize}</div>
                         <div>Min females: {preset.minFemales}</div>
                         <div>Min males: {preset.minMales}</div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="flex-1"
                           onClick={() => loadPreset(preset.id)}
                         >
                           Load
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateSavedPresetFromCurrent(preset.id)}
+                        >
+                          Update
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openSaveDialog('rename', preset)}
+                        >
+                          <Pencil className="h-3 w-3 mr-1" />
+                          Rename
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openSaveDialog('duplicate', preset)}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy
                         </Button>
                         <Button 
                           size="sm" 
                           variant="outline"
                           onClick={() => deletePreset(preset.id)}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
                         </Button>
                       </div>
                     </div>
@@ -202,7 +370,13 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
           {/* Save Configuration Dialog */}
           {showSaveDialog && (
             <div className="border rounded-lg p-4 mt-4 bg-gray-50">
-              <h4 className="font-medium mb-2">Save Current Configuration</h4>
+              <h4 className="font-medium mb-2">
+                {saveMode === 'rename'
+                  ? 'Rename Saved Preset'
+                  : saveMode === 'duplicate'
+                    ? 'Duplicate Saved Preset'
+                    : 'Save Current Configuration'}
+              </h4>
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="configName">Configuration Name</Label>
@@ -215,13 +389,16 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={saveCurrentConfig} className="flex-1">
-                    Save Configuration
+                    {saveMode === 'rename'
+                      ? 'Save New Name'
+                      : saveMode === 'duplicate'
+                        ? 'Create Copy'
+                        : 'Save Configuration'}
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => {
-                      setShowSaveDialog(false);
-                      setNewConfigName('');
+                      closeSaveDialog();
                     }}
                   >
                     Cancel

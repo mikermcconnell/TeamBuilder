@@ -1,13 +1,13 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Team, LeagueConfig, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, getEffectiveSkillRating } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
-import { Users, MoreHorizontal, Maximize2 } from 'lucide-react';
+import { Users, MoreHorizontal, Maximize2, Palette } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -20,16 +20,26 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { TEAM_BRAND_PALETTE, getColorName, hexToRgba } from '@/utils/teamBranding';
 
 interface DroppableTeamCardProps {
     team: Team;
+    allPlayers: Player[];
     config: LeagueConfig;
     onNameChange: (id: string, name: string) => void;
+    onBrandingChange?: (id: string, updates: {
+        name?: string;
+        color?: string;
+        colorName?: string;
+        resetName?: boolean;
+        resetColor?: boolean;
+    }) => void;
     onRemoveTeam?: (id: string) => void;
     playerGroups?: PlayerGroup[];
 }
 
-export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, playerGroups = [] }: DroppableTeamCardProps) {
+export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBrandingChange, onRemoveTeam, playerGroups = [] }: DroppableTeamCardProps) {
     // Helper to get group info for a player
     const getPlayerGroupInfo = (playerId: string) => {
         const group = playerGroups.find(g => g.playerIds.includes(playerId));
@@ -42,7 +52,16 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
 
     const [isEditing, setIsEditing] = React.useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
+    const [isBrandingOpen, setIsBrandingOpen] = React.useState(false);
     const [tempName, setTempName] = React.useState(team.name);
+    const [brandingName, setBrandingName] = React.useState(team.name);
+    const [brandingColor, setBrandingColor] = React.useState(team.color || '#94A3B8');
+
+    React.useEffect(() => {
+        setTempName(team.name);
+        setBrandingName(team.name);
+        setBrandingColor(team.color || '#94A3B8');
+    }, [team.color, team.name]);
 
     const handleNameSave = () => {
         if (tempName.trim()) {
@@ -51,6 +70,29 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
             setTempName(team.name);
         }
         setIsEditing(false);
+    };
+
+    const handleBrandingSave = () => {
+        if (!onBrandingChange) {
+            setIsBrandingOpen(false);
+            return;
+        }
+
+        const trimmedName = brandingName.trim();
+        if (trimmedName) {
+            onBrandingChange(team.id, {
+                name: trimmedName,
+                color: safeBrandingColor,
+                colorName: getColorName(safeBrandingColor),
+            });
+        } else {
+            onBrandingChange(team.id, {
+                color: safeBrandingColor,
+                colorName: getColorName(safeBrandingColor),
+            });
+        }
+
+        setIsBrandingOpen(false);
     };
 
     // Stats
@@ -74,6 +116,67 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
     const handlerCount = team.players.filter(p => p.isHandler).length;
     const targetHandlers = 3; // Based on "three handlers per team" request
 
+    const getAverageSkillForGender = (gender: 'M' | 'F' | 'Other') => {
+        const genderPlayers = team.players.filter(player => player.gender === gender);
+        if (genderPlayers.length === 0) {
+            return null;
+        }
+
+        const totalGenderSkill = genderPlayers.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0);
+        return totalGenderSkill / genderPlayers.length;
+    };
+
+    const maleAverageSkill = getAverageSkillForGender('M');
+    const femaleAverageSkill = getAverageSkillForGender('F');
+    const formatAverageSkill = (value: number | null) => (value === null ? '--' : value.toFixed(1));
+
+    const getLeagueAverageSkillForGender = (gender: 'M' | 'F' | 'Other') => {
+        const genderPlayers = allPlayers.filter(player => player.gender === gender);
+        if (genderPlayers.length === 0) {
+            return null;
+        }
+
+        const totalGenderSkill = genderPlayers.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0);
+        return totalGenderSkill / genderPlayers.length;
+    };
+
+    const maleTargetAverageSkill = getLeagueAverageSkillForGender('M');
+    const femaleTargetAverageSkill = getLeagueAverageSkillForGender('F');
+
+    const getAverageComparisonMeta = (value: number | null, target: number | null, accent: 'blue' | 'pink') => {
+        if (value === null || target === null) {
+            return {
+                className: 'border-slate-200 bg-slate-50 text-slate-600',
+                deltaLabel: 'no target',
+            };
+        }
+
+        const difference = value - target;
+        if (Math.abs(difference) <= 0.25) {
+            return {
+                className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                deltaLabel: 'on target',
+            };
+        }
+
+        if (difference > 0) {
+            return {
+                className: accent === 'blue'
+                    ? 'border-blue-200 bg-blue-50 text-blue-700'
+                    : 'border-pink-200 bg-pink-50 text-pink-700',
+                deltaLabel: `+${difference.toFixed(1)} vs target`,
+            };
+        }
+
+        return {
+            className: 'border-amber-200 bg-amber-50 text-amber-700',
+            deltaLabel: `${difference.toFixed(1)} vs target`,
+        };
+    };
+
+    const maleAverageMeta = getAverageComparisonMeta(maleAverageSkill, maleTargetAverageSkill, 'blue');
+    const femaleAverageMeta = getAverageComparisonMeta(femaleAverageSkill, femaleTargetAverageSkill, 'pink');
+
     const genderIssues =
         femaleCount < config.minFemales ||
         maleCount < config.minMales;
@@ -93,9 +196,18 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
 
     const avgSkillValue = parseFloat(avgSkill);
     const skillColorClass = !isNaN(avgSkillValue) ? getSkillColor(avgSkillValue) : 'text-slate-500 bg-slate-100 border-slate-200';
+    const teamColor = team.color || '#94A3B8';
+    const safeBrandingColor = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(brandingColor) ? brandingColor : '#94A3B8';
 
     return (
-        <Card className={`relative h-full flex flex-col transition-all duration-300 rounded-2xl border-2 border-b-4 shadow-sm group ${statusColor}`}>
+        <Card
+            className={`relative h-full flex flex-col transition-all duration-300 rounded-2xl border-2 border-b-4 shadow-sm group ${statusColor}`}
+            style={{
+                borderColor: isOver || isOverCapacity || genderIssues ? undefined : hexToRgba(teamColor, 0.35),
+                backgroundColor: isOver || isOverCapacity || genderIssues ? undefined : hexToRgba(teamColor, 0.06),
+            }}
+        >
+            <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl" style={{ backgroundColor: teamColor }} />
             <CardHeader className="p-3 pb-2 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                     {isEditing ? (
@@ -117,6 +229,19 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
                         >
                             <CardTitle className="text-[15px] font-bold truncate text-slate-800 group-hover/name:text-indigo-600 transition-colors flex items-center gap-2 cursor-pointer">
                                 {team.name}
+                                {team.colorName && (
+                                    <Badge
+                                        variant="secondary"
+                                        className="hidden sm:inline-flex text-[10px] font-semibold border"
+                                        style={{
+                                            backgroundColor: hexToRgba(teamColor, 0.12),
+                                            color: teamColor,
+                                            borderColor: hexToRgba(teamColor, 0.25),
+                                        }}
+                                    >
+                                        {team.colorName}
+                                    </Badge>
+                                )}
                             </CardTitle>
                         </div>
                     )}
@@ -139,6 +264,12 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
                                 <DropdownMenuItem onClick={() => setIsEditing(true)}>
                                     Rename Team
                                 </DropdownMenuItem>
+                                {onBrandingChange && (
+                                    <DropdownMenuItem onClick={() => setIsBrandingOpen(true)}>
+                                        <Palette className="h-4 w-4 mr-2" />
+                                        Edit Branding
+                                    </DropdownMenuItem>
+                                )}
                                 {onRemoveTeam && (
                                     <DropdownMenuItem
                                         className="text-red-600 focus:text-red-600"
@@ -197,6 +328,19 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
                             <span>H:</span>
                             <span>{handlerCount}</span>
                         </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                    <div className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${maleAverageMeta.className}`}>
+                        <span>M Avg</span>
+                        <span className="text-[12px]">{formatAverageSkill(maleAverageSkill)}</span>
+                        <span className="text-[10px] opacity-80">({maleAverageMeta.deltaLabel})</span>
+                    </div>
+                    <div className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${femaleAverageMeta.className}`}>
+                        <span>F Avg</span>
+                        <span className="text-[12px]">{formatAverageSkill(femaleAverageSkill)}</span>
+                        <span className="text-[10px] opacity-80">({femaleAverageMeta.deltaLabel})</span>
                     </div>
                 </div>
             </CardHeader>
@@ -270,6 +414,7 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-xl">
+                            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: teamColor }} />
                             {team.name}
                             <Badge variant={isOverCapacity ? "destructive" : "secondary"}>
                                 {playerCount}/{config.maxTeamSize}
@@ -303,6 +448,20 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
                                 <span className="text-2xl font-bold">{handlerCount}</span>
                                 <span className="text-xs font-medium">/{targetHandlers}</span>
                             </div>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground uppercase font-bold">Male Avg</span>
+                            <span className={`text-2xl font-bold ${maleAverageMeta.className.includes('emerald') ? 'text-emerald-700' : maleAverageMeta.className.includes('amber') ? 'text-amber-700' : 'text-blue-700'}`}>
+                                {formatAverageSkill(maleAverageSkill)}
+                            </span>
+                            <span className="text-xs text-muted-foreground">Target {formatAverageSkill(maleTargetAverageSkill)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground uppercase font-bold">Female Avg</span>
+                            <span className={`text-2xl font-bold ${femaleAverageMeta.className.includes('emerald') ? 'text-emerald-700' : femaleAverageMeta.className.includes('amber') ? 'text-amber-700' : 'text-pink-700'}`}>
+                                {formatAverageSkill(femaleAverageSkill)}
+                            </span>
+                            <span className="text-xs text-muted-foreground">Target {formatAverageSkill(femaleTargetAverageSkill)}</span>
                         </div>
                     </div>
 
@@ -357,6 +516,118 @@ export function DroppableTeamCard({ team, config, onNameChange, onRemoveTeam, pl
                                     <p className="text-sm text-gray-400 italic py-2">No male players assigned</p>
                                 )}
                             </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isBrandingOpen} onOpenChange={setIsBrandingOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Palette className="h-5 w-5" />
+                            Edit Team Branding
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-5">
+                        <div className="space-y-2">
+                            <Label htmlFor={`team-name-${team.id}`}>Team Name</Label>
+                            <Input
+                                id={`team-name-${team.id}`}
+                                value={brandingName}
+                                onChange={(e) => setBrandingName(e.target.value)}
+                                placeholder="Enter a team name"
+                            />
+                            <div className="flex justify-end">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        onBrandingChange?.(team.id, { resetName: true });
+                                        setIsBrandingOpen(false);
+                                    }}
+                                >
+                                    Reset to Auto Name
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <Label htmlFor={`team-color-${team.id}`}>Team Color</Label>
+                                <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold text-slate-600">
+                                    <span className="h-3 w-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: brandingColor }} />
+                                    {getColorName(safeBrandingColor)}
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-4 gap-2">
+                                {TEAM_BRAND_PALETTE.map((palette) => {
+                                    const isSelected = palette.color.toLowerCase() === brandingColor.toLowerCase();
+                                    return (
+                                        <button
+                                            key={palette.color}
+                                            type="button"
+                                            onClick={() => setBrandingColor(palette.color)}
+                                            className={`rounded-xl border p-2 text-left transition-all ${isSelected ? 'border-slate-900 shadow-sm' : 'border-slate-200 hover:border-slate-400'
+                                                }`}
+                                        >
+                                            <div className="h-8 rounded-lg mb-2" style={{ backgroundColor: palette.color }} />
+                                            <div className="text-xs font-semibold text-slate-700">{palette.colorName}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor={`team-color-custom-${team.id}`}>Custom Hex Color</Label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        id={`team-color-custom-${team.id}`}
+                                        type="color"
+                                        value={safeBrandingColor}
+                                        onChange={(e) => setBrandingColor(e.target.value)}
+                                        className="h-10 w-14 rounded border border-slate-200 bg-white p-1"
+                                    />
+                                    <Input
+                                        value={brandingColor}
+                                        onChange={(e) => setBrandingColor(e.target.value)}
+                                        placeholder="#2563EB"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        onBrandingChange?.(team.id, { resetColor: true });
+                                        setIsBrandingOpen(false);
+                                    }}
+                                >
+                                    Reset to Auto Color
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border p-4" style={{ backgroundColor: hexToRgba(safeBrandingColor, 0.08), borderColor: hexToRgba(safeBrandingColor, 0.25) }}>
+                            <div className="flex items-center gap-3">
+                                <span className="h-4 w-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: safeBrandingColor }} />
+                                <div>
+                                    <div className="font-bold text-slate-800">{brandingName || team.name}</div>
+                                    <div className="text-sm text-slate-500">{getColorName(safeBrandingColor)} team preview</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setIsBrandingOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleBrandingSave}>
+                                Save Branding
+                            </Button>
                         </div>
                     </div>
                 </DialogContent>

@@ -1,10 +1,30 @@
 import { Player, Team, LeagueConfig, TeamGenerationStats, PlayerGroup } from '@/types';
 import { fuzzyMatcher } from './fuzzyNameMatcher';
+import { applyTeamBranding } from './teamBranding';
 
 export interface GenerationResult {
   teams: Team[];
   unassignedPlayers: Player[];
   stats: TeamGenerationStats;
+}
+
+export function buildGenerationResult(
+  players: Player[],
+  teams: Team[],
+  unassignedPlayers: Player[],
+  config: LeagueConfig,
+  playerGroups: PlayerGroup[] = [],
+  startTime: number = Date.now()
+): GenerationResult {
+  const playerMap = new Map(players.map(p => [p.name.toLowerCase(), p]));
+  const mutualPairs = findMutualTeammateRequests(players, playerMap);
+  const stats = calculateStats(players, teams, unassignedPlayers, mutualPairs, playerGroups, startTime);
+
+  return {
+    teams: applyTeamBranding(teams, playerGroups, config, { forceRename: true }),
+    unassignedPlayers,
+    stats,
+  };
 }
 
 export function generateBalancedTeams(
@@ -83,7 +103,7 @@ export function generateBalancedTeams(
   const stats = calculateStats(players, teams, unassignedPlayers, mutualPairs, playerGroups, startTime);
 
   return {
-    teams: teams.filter(t => t.players.length > 0),
+    teams: applyTeamBranding(teams.filter(t => t.players.length > 0), playerGroups, config, { forceRename: true }),
     unassignedPlayers,
     stats
   };
@@ -144,7 +164,7 @@ function generateRandomTeams(
   const stats = calculateStats(players, teams, unassignedPlayers, [], playerGroups, startTime);
 
   return {
-    teams: teams.filter(t => t.players.length > 0),
+    teams: applyTeamBranding(teams.filter(t => t.players.length > 0), playerGroups, config, { forceRename: true }),
     unassignedPlayers,
     stats
   };
@@ -177,7 +197,7 @@ function generateManualTeams(
   const stats = calculateStats(players, teams, unassignedPlayers, [], playerGroups, startTime);
 
   return {
-    teams: teams,
+    teams: applyTeamBranding(teams, playerGroups, config, { forceRename: true }),
     unassignedPlayers,
     stats
   };

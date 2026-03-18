@@ -1,6 +1,7 @@
 export interface Player {
   id: string;
   name: string;
+  registrationInfo?: string;
   gender: 'M' | 'F' | 'Other';
   skillRating: number;
   execSkillRating: number | null;  // null indicates "N/A" - no previous rating
@@ -86,6 +87,10 @@ export interface PlayerGroup {
 export interface Team {
   id: string;
   name: string;
+  color?: string;
+  colorName?: string;
+  isNameManuallySet?: boolean;
+  isColorManuallySet?: boolean;
   players: Player[];
   averageSkill: number;
   genderBreakdown: {
@@ -105,6 +110,22 @@ export interface LeagueConfig {
   minMales: number;
   targetTeams?: number;
   allowMixedGender: boolean;
+}
+
+export type TeamIterationType = 'manual' | 'ai' | 'generated';
+export type TeamIterationStatus = 'ready' | 'generating' | 'failed';
+
+export interface TeamIteration {
+  id: string;
+  name: string;
+  type: TeamIterationType;
+  status: TeamIterationStatus;
+  generationSource?: 'ai' | 'fallback' | 'manual' | 'generated';
+  teams: Team[];
+  unassignedPlayers: Player[];
+  stats?: TeamGenerationStats;
+  errorMessage?: string;
+  createdAt: string;
 }
 
 export interface CSVValidationResult {
@@ -141,6 +162,8 @@ export interface AppState {
   execRatingHistory: Record<string, { rating: number; updatedAt: number }>;
   stats?: TeamGenerationStats;
   savedConfigs: LeagueConfig[];
+  teamIterations?: TeamIteration[];
+  activeTeamIterationId?: string | null;
   pendingWarnings?: import('./StructuredWarning').StructuredWarning[]; // Warnings awaiting resolution on Roster page
 }
 
@@ -157,6 +180,8 @@ export interface SavedWorkspace {
   teams: Team[];          // Empty if not yet generated
   unassignedPlayers: Player[]; // Empty if not yet generated
   stats?: TeamGenerationStats;
+  teamIterations?: TeamIteration[];
+  activeTeamIterationId?: string | null;
 
   // Metadata
   createdAt: string; // ISO string

@@ -3,6 +3,45 @@ import { LeagueConfig } from '@/types';
 const STORAGE_KEY = 'teambuilder-configs';
 const DEFAULT_CONFIG_KEY = 'teambuilder-default-config';
 
+export const BUILT_IN_LEAGUE_PRESETS: LeagueConfig[] = [
+  {
+    id: 'preset-indoor-5v5',
+    name: 'Indoor 5v5',
+    maxTeamSize: 5,
+    minFemales: 2,
+    minMales: 0,
+    allowMixedGender: true
+  },
+  {
+    id: 'preset-summer-league',
+    name: 'Summer League',
+    maxTeamSize: 14,
+    minFemales: 3,
+    minMales: 0,
+    allowMixedGender: true
+  },
+  {
+    id: 'preset-hat-tournament',
+    name: 'Hat Tournament',
+    maxTeamSize: 7,
+    minFemales: 2,
+    minMales: 0,
+    allowMixedGender: true
+  },
+  {
+    id: 'preset-youth-clinic',
+    name: 'Youth Clinic',
+    maxTeamSize: 8,
+    minFemales: 0,
+    minMales: 0,
+    allowMixedGender: true
+  }
+];
+
+export function loadLeaguePresets(): LeagueConfig[] {
+  return BUILT_IN_LEAGUE_PRESETS;
+}
+
 export function getDefaultConfig(): LeagueConfig {
   const saved = localStorage.getItem(DEFAULT_CONFIG_KEY);
   if (saved) {
@@ -66,10 +105,41 @@ export function saveConfig(config: LeagueConfig): void {
   saveConfigs(configs);
 }
 
+export function updateConfig(configId: string, updates: Partial<LeagueConfig>): LeagueConfig | null {
+  const configs = loadSavedConfigs();
+  const existingIndex = configs.findIndex(config => config.id === configId);
+
+  if (existingIndex < 0) {
+    return null;
+  }
+
+  const updatedConfig = {
+    ...configs[existingIndex],
+    ...updates,
+    id: configs[existingIndex].id,
+  };
+
+  configs[existingIndex] = updatedConfig;
+  saveConfigs(configs);
+
+  return updatedConfig;
+}
+
 export function deleteConfig(configId: string): void {
   const configs = loadSavedConfigs();
   const filtered = configs.filter(c => c.id !== configId);
   saveConfigs(filtered);
+}
+
+export function duplicateConfig(config: LeagueConfig, name: string): LeagueConfig {
+  const duplicate = {
+    ...config,
+    id: generateConfigId(name),
+    name,
+  };
+
+  saveConfig(duplicate);
+  return duplicate;
 }
 
 export function createConfigFromTemplate(name: string, template: LeagueConfig): LeagueConfig {

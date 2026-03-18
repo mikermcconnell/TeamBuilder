@@ -53,8 +53,16 @@ export function AuthDialog({
   const handleEmailSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!email || !password) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
       toast.error('Email and password are required');
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(normalizedEmail)) {
+      toast.error('Enter a valid email address');
       return;
     }
 
@@ -63,13 +71,18 @@ export function AuthDialog({
       return;
     }
 
+    if (mode === 'signup' && password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       if (mode === 'signin') {
-        await signInWithEmail(email, password);
+        await signInWithEmail(normalizedEmail, password);
         toast.success('Signed in successfully. Cloud sync is enabled.');
       } else {
-        await createAccount(email, password);
+        await createAccount(normalizedEmail, password);
         toast.success('Account created! You are now signed in.');
       }
       closeDialog();
@@ -97,14 +110,22 @@ export function AuthDialog({
   };
 
   const handleResetPassword = async () => {
-    if (!email) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
       toast.error('Enter your email to reset the password');
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(normalizedEmail)) {
+      toast.error('Enter a valid email address');
       return;
     }
 
     setIsResetting(true);
     try {
-      await resetPassword(email);
+      await resetPassword(normalizedEmail);
       toast.success('Password reset email sent');
     } catch (error: any) {
       console.error('Reset password error:', error);
@@ -220,7 +241,7 @@ export function AuthDialog({
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Create a password"
+                    placeholder="Create a password (min. 6 characters)"
                     className="pl-10"
                     autoComplete="new-password"
                   />

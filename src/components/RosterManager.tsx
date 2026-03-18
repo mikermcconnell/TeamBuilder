@@ -95,17 +95,7 @@ export function RosterManager({ players, playerGroups, user, onLoadRoster }: Ros
   const [tagInput, setTagInput] = useState('');
 
   // Load user rosters when user changes
-  useEffect(() => {
-    if (user) {
-      loadUserRosters(user.uid);
-      loadRecentRosters(user.uid);
-    } else {
-      setRosters([]);
-      setRecentRosters([]);
-    }
-  }, [user, showArchived]);
-
-  const loadUserRosters = async (userId: string) => {
+  const loadUserRosters = useCallback(async (userId: string) => {
     try {
       const userRosters = await getUserRosters(userId, showArchived);
       setRosters(userRosters);
@@ -125,16 +115,26 @@ export function RosterManager({ players, playerGroups, user, onLoadRoster }: Ros
         sessionStorage.setItem('indexBuildingNotified', 'true');
       }
     }
-  };
+  }, [showArchived]);
 
-  const loadRecentRosters = async (userId: string) => {
+  const loadRecentRosters = useCallback(async (userId: string) => {
     try {
       const recent = await getRecentRosters(userId, 3);
       setRecentRosters(recent);
     } catch (error) {
       console.error('Error loading recent rosters:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      void loadUserRosters(user.uid);
+      void loadRecentRosters(user.uid);
+    } else {
+      setRosters([]);
+      setRecentRosters([]);
+    }
+  }, [user, loadUserRosters, loadRecentRosters]);
 
   const handleSaveRoster = async () => {
     if (!user) {

@@ -1,17 +1,22 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, ChangeEvent, useMemo } from 'react';
 
 
-import { Player, LeagueConfig, AppState, PlayerGroup, getEffectiveSkillRating } from '@/types';
-import { StructuredWarning } from '@/types/StructuredWarning';
-import { getDefaultConfig, saveDefaultConfig } from '@/utils/configManager';
-import { generateBalancedTeams } from '@/utils/teamGenerator';
-import { validateAndProcessCSV, generateSampleCSV } from '@/utils/csvProcessor';
-import { debounce } from '@/utils/performance';
-import { validateAppState, validatePlayer, validateTeamName } from '@/utils/validation';
-import { dataStorageService } from '@/services/dataStorageService';
+import { AppState, getEffectiveSkillRating } from '@/types';
+import { getDefaultConfig } from '@/utils/configManager';
+import { getProjectBackupFilename, parseProjectBackup, serializeProjectBackup } from '@/utils/projectRecovery';
+import {
+  applyTeamIterationToState,
+  createAiTeamIteration,
+  createManualTeamIteration,
+  createPendingTeamIteration,
+  syncActiveTeamIterationToState,
+} from '@/utils/teamIterations';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAppPersistence } from '@/hooks/useAppPersistence';
+import { useTeamBuilderActions } from '@/hooks/useTeamBuilderActions';
+import { ProjectWorkspaceControls } from '@/components/ProjectWorkspaceControls';
 
 // Removed legacy imports
 // Removed rosterService imports
@@ -21,15 +26,11 @@ import { PlayerRoster } from '@/components/PlayerRoster';
 import { FullScreenTeamBuilder } from '@/components/FullScreenTeamBuilder';
 import { ExportPanel } from '@/components/ExportPanel';
 import { PlayerGroups } from '@/components/PlayerGroups';
-import TutorialLanding from '@/components/TutorialLanding';
-import { AuthDialog } from '@/components/AuthDialog';
+import { TeamIterationTabs } from '@/components/TeamIterationTabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { FolderOpen, Users, FileSpreadsheet, BarChart3, Shuffle, UserCheck, Trash2, LayoutGrid, ArrowRight, FileText, ArrowLeft, Save, AlertTriangle } from 'lucide-react';
+import { FileSpreadsheet, BarChart3, Users, LayoutGrid, ArrowRight, FileText, ArrowLeft, AlertTriangle, FolderOpen, Sparkles, SquarePen, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
@@ -39,8 +40,6 @@ import { Analytics } from '@vercel/analytics/react';
 if (import.meta.env.DEV) {
   import('@/utils/firebaseTestRunner');
 }
-
-
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
@@ -58,8 +57,6 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
     </div>
   );
 }
-
-const normalizeName = (name: string): string => name.trim().toLowerCase();
 
 function App() {
   // Auth state from Context
@@ -82,11 +79,6 @@ function App() {
 
   const [isFullScreenMode, setIsFullScreenMode] = useState(false);
 
-  // Check if user has seen the tutorial before
-  const [showTutorial, setShowTutorial] = useState(() => {
-    return !localStorage.getItem('tutorialCompleted');
-  });
-
   const [appState, setAppState] = useState<AppState>(() => {
     // Default state - will be overridden by useEffect load
     return {
@@ -96,7 +88,9 @@ function App() {
       playerGroups: [],
       config: getDefaultConfig(),
       execRatingHistory: {},
-      savedConfigs: []
+      savedConfigs: [],
+      teamIterations: [],
+      activeTeamIterationId: null,
     };
   });
 
@@ -104,6 +98,7 @@ function App() {
 
   // Undo History
   const [history, setHistory] = useState<AppState[]>([]);
+  const appStateRef = useRef(appState);
 
   const addToHistory = useCallback((currentState: AppState) => {
     setHistory(prev => {
@@ -113,6 +108,14 @@ function App() {
       return newHistory;
     });
   }, []);
+
+  useEffect(() => {
+    appStateRef.current = appState;
+  }, [appState]);
+
+  const snapshotCurrentState = useCallback(() => {
+    addToHistory(appStateRef.current);
+  }, [addToHistory]);
 
   const handleUndo = useCallback(() => {
     if (history.length === 0) return;
@@ -126,7 +129,6 @@ function App() {
     }
   }, [history]);
 
-  const [dataLoaded, setDataLoaded] = useState(false);
   const [teamsView, setTeamsView] = useState<'landing' | 'exports'>('landing'); // UI state for teams tab
 
   // Workspace Dialog State (UI only)
@@ -134,170 +136,33 @@ function App() {
   const [isLoadWorkspaceDialogOpen, setIsLoadWorkspaceDialogOpen] = useState(false);
   const [loadingWorkspaceId, setLoadingWorkspaceId] = useState<string | null>(null);
   const [workspaceSearchTerm, setWorkspaceSearchTerm] = useState('');
+  const importFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isGenerateTeamsDialogOpen, setIsGenerateTeamsDialogOpen] = useState(false);
 
-  // Auto-save logic
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-
-  // Debounced auto-save effect
-  useEffect(() => {
-    // Only auto-save if we have a current workspace loaded and a user is signed in
-    if (!currentWorkspaceId || !user) {
-      return;
-    }
-
-    setSaveStatus('saving');
-
-    const debouncedSave = setTimeout(async () => {
-      try {
-
-
-        // We use the existing logic but just call the service directly to avoid UI flashing from the main save handler if it has other side effects
-        // Or we can reuse the logic. Let's reuse the logic but carefully.
-        // Actually, handleSaveWorkspace sets 'isSavingWorkspace' which might show a big spinner. We want this to be subtle.
-        // So let's call the service directly here.
-
-        await saveWorkspace({
-          players: appState.players,
-          playerGroups: appState.playerGroups,
-          config: appState.config,
-          teams: appState.teams,
-          unassignedPlayers: appState.unassignedPlayers,
-          stats: appState.stats,
-        });
-        setSaveStatus('saved');
-
-        // Reset back to idle after a moment, or keep as 'saved' until next change?
-        // Let's keep 'saved' visible for a bit then fade out or just stay 'saved'.
-        setTimeout(() => setSaveStatus('idle'), 3000);
-
-      } catch (error) {
-        console.error('Auto-save failed:', error);
-        setSaveStatus('error');
-      }
-    }, 3000); // 3 second delay
-
-    return () => clearTimeout(debouncedSave);
-  }, [appState, currentWorkspaceId, user, workspaceName, workspaceDescription]);
+  const {
+    persistenceStatus,
+    applyLoadedWorkspace,
+    restoreImportedState,
+    syncWorkspaceSaveStatus,
+  } = useAppPersistence({
+    user,
+    appState,
+    setAppState,
+    currentWorkspaceId,
+    workspaceName,
+    workspaceDescription,
+    saveWorkspace,
+  });
 
 
   // Removed local auth effects and fetchUserWorkspaces effects as they are handled in contexts
 
 
 
-  const handleStartApp = useCallback(() => {
-    localStorage.setItem('tutorialCompleted', 'true');
-    setShowTutorial(false);
-  }, []);
-
   // Auth handlers
   const handleSignOut = useCallback(async () => {
     await signOut();
   }, [signOut]);
-
-  // Set up auth listener and load data
-  // Set up auth listener and load data
-  useEffect(() => {
-    // NOTE: We don't need onAuthStateChanged here anymore, but we do need to load DATA into AppState when user changes (or on mount).
-    // DataStorageService handles loading from Firestore/Local.
-    // We should trigger this when user *value* changes from context.
-
-    const loadData = async () => {
-      dataStorageService.setUser(user);
-
-      // Load data when auth state changes
-      try {
-        const loadedState = await dataStorageService.load();
-        if (loadedState) {
-          // Validate the loaded state
-          if (validateAppState(loadedState)) {
-            // Additional validation: ensure all players are valid
-            const validatedPlayers = loadedState.players
-              .map(p => validatePlayer(p))
-              .filter((p): p is Player => p !== null);
-
-            const execHistory = { ...(loadedState.execRatingHistory ?? {}) };
-            const migratedHistory: Record<string, { rating: number; updatedAt: number }> = {};
-
-            // Migrate old data if necessary
-            Object.entries(execHistory).forEach(([key, val]) => {
-              if (typeof val === 'number') {
-                migratedHistory[key] = { rating: val, updatedAt: 0 };
-              } else if (val && typeof val === 'object' && 'rating' in val) {
-                // @ts-ignore - we know this is likely valid from validation check
-                migratedHistory[key] = val;
-              }
-            });
-
-            validatedPlayers.forEach(player => {
-              // Seed history from players if missing
-              if (player.execSkillRating !== null) {
-                const key = normalizeName(player.name);
-                // Only seed if not already present (prefer history)
-                if (!migratedHistory[key]) {
-                  migratedHistory[key] = { rating: player.execSkillRating, updatedAt: 0 };
-                }
-              }
-            });
-
-            setAppState({
-              ...loadedState,
-              players: validatedPlayers,
-              config: loadedState.config || getDefaultConfig(),
-              execRatingHistory: migratedHistory
-            });
-          } else {
-            console.warn('Invalid saved state structure');
-            toast.warning('Some saved data was invalid and has been cleaned up');
-          }
-        } else if (localStorage.getItem('tutorialCompleted') === 'true') {
-          // Load sample data if user has completed tutorial but has no saved data
-          const sampleCSV = generateSampleCSV();
-          const result = validateAndProcessCSV(sampleCSV);
-          if (result.isValid && result.players.length > 0) {
-            setAppState(prev => ({
-              ...prev,
-              players: result.players,
-              playerGroups: result.playerGroups || []
-            }));
-            toast.info('Loaded sample roster to get you started!');
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load data:', error);
-        toast.error('Failed to load saved data');
-      } finally {
-        setDataLoaded(true);
-      }
-    };
-
-    loadData();
-  }, [user]);
-
-  // Save state whenever it changes (after initial load)
-  useEffect(() => {
-    if (dataLoaded) {
-      const saveData = async () => {
-        try {
-          const result = await dataStorageService.save(appState);
-          setSaveStatus(result.type === 'local' ? 'saved' : 'saved'); // Could differentiate UI state here if desired
-          if (result.type === 'local' && result.error) {
-            console.warn('Auto-saved to local only due to error:', result.error);
-          }
-        } catch (error) {
-          console.error('Failed to save data:', error);
-          setSaveStatus('error');
-        }
-      };
-
-      // Debounce the save
-      const timeoutId = setTimeout(saveData, 500);
-      return () => clearTimeout(timeoutId);
-    }
-    return undefined;
-  }, [appState, dataLoaded]);
-
-
-
 
   // --- Workspace Handlers ---
 
@@ -323,48 +188,28 @@ function App() {
 
   const handleSaveWorkspace = useCallback(async () => {
     try {
-      await saveWorkspace(appState);
-      toast.success('Project saved successfully');
+      const result = await saveWorkspace(appState, {
+        id: currentWorkspaceId,
+        name: workspaceName,
+        description: workspaceDescription,
+      });
+      syncWorkspaceSaveStatus(result);
       setIsSaveWorkspaceDialogOpen(false);
     } catch (e) {
       // Toast handled in context
     }
-  }, [saveWorkspace, appState]);
+  }, [saveWorkspace, appState, currentWorkspaceId, workspaceName, workspaceDescription, syncWorkspaceSaveStatus]);
 
   const handleLoadWorkspace = useCallback(async (id: string) => {
     setLoadingWorkspaceId(id);
     const workspace = await loadWorkspace(id);
     if (workspace) {
-      setAppState(prev => {
-        // Seed execRatingHistory from the loaded workspace's players
-        const execRatingHistory = { ...prev.execRatingHistory };
-        (workspace.players || []).forEach(player => {
-          if (player.execSkillRating !== null && player.execSkillRating !== undefined) {
-            const key = normalizeName(player.name);
-            // Only update if not already present or if the loaded value is newer
-            if (!execRatingHistory[key]) {
-              execRatingHistory[key] = { rating: player.execSkillRating, updatedAt: 0 };
-            }
-          }
-        });
-
-        return {
-          ...prev,
-          players: workspace.players || [],
-          playerGroups: workspace.playerGroups || [],
-          config: workspace.config || getDefaultConfig(),
-          teams: workspace.teams || [],
-          unassignedPlayers: workspace.unassignedPlayers || [],
-          stats: workspace.stats,
-          execRatingHistory,
-        };
-      });
-
+      applyLoadedWorkspace(workspace);
       toast.success(`Loaded project "${workspace.name}"`);
       setIsLoadWorkspaceDialogOpen(false);
     }
     setLoadingWorkspaceId(null);
-  }, [loadWorkspace]);
+  }, [applyLoadedWorkspace, loadWorkspace]);
 
   const handleDeleteWorkspaceAction = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -372,665 +217,415 @@ function App() {
     await deleteWorkspace(id);
   }, [deleteWorkspace]);
 
+  const handleExportProjectBackup = useCallback(() => {
+    const backupJson = serializeProjectBackup(appState, {
+      currentWorkspaceId,
+      workspaceName,
+      workspaceDescription,
+    });
+
+    const blob = new Blob([backupJson], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = getProjectBackupFilename(workspaceName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Project backup exported');
+  }, [appState, currentWorkspaceId, workspaceDescription, workspaceName]);
+
+  const handleOpenProjectImport = useCallback(() => {
+    importFileInputRef.current?.click();
+  }, []);
+
+  const handleImportProjectBackup = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const fileText = await file.text();
+      const backup = parseProjectBackup(fileText);
+
+      const confirmRestore = window.confirm(
+        `Restore "${backup.project.name}" from backup? This will replace the project currently open on screen.`
+      );
+
+      if (!confirmRestore) {
+        return;
+      }
+
+      restoreImportedState(backup.data);
+      setCurrentWorkspaceInfo(
+        null,
+        backup.project.name || `Recovered ${new Date().toLocaleDateString()}`,
+        backup.project.description || ''
+      );
+      setHistory([]);
+      setActiveTab(
+        (backup.data.teamIterations?.length ?? 0) > 0 || backup.data.teams.length > 0
+          ? 'teams'
+          : backup.data.players.length > 0
+            ? 'roster'
+            : 'upload'
+      );
+      setTeamsView('landing');
+      setIsFullScreenMode(false);
+      setIsSaveWorkspaceDialogOpen(false);
+      setIsLoadWorkspaceDialogOpen(false);
+
+      toast.success('Backup restored. Save it as a project when you are ready.');
+    } catch (error) {
+      console.error('Failed to import project backup:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to restore backup');
+    }
+  }, [restoreImportedState, setCurrentWorkspaceInfo]);
+
 
 
   const [activeTab, setActiveTab] = useState<string>('upload');
 
+  const [, setIsManualMode] = useState(false);
 
+  const {
+    handlePlayersLoaded,
+    handleConfigChange,
+    handlePlayerUpdate,
+    handlePlayerAdd,
+    handleResolveWarning,
+    handleDismissWarning,
+    handleDismissAllWarnings,
+    handlePlayerRemove,
+    handlePlayerMove,
+    handleClearExecRankings,
+    handleResetTeams,
+    handleTeamNameChange,
+    handleTeamBrandingChange,
+    handleRefreshTeamBranding,
+    handleAddPlayerToGroup,
+    handleRemovePlayerFromGroup,
+    handleCreateNewGroup,
+    handleDeleteGroup,
+    handleMergeGroups,
+  } = useTeamBuilderActions({
+    appState,
+    setAppState,
+    snapshotCurrentState,
+    setActiveTab,
+    setIsManualMode,
+    setIsFullScreenMode,
+    setCurrentWorkspaceInfo,
+  });
 
+  const teamIterations = useMemo(() => appState.teamIterations ?? [], [appState.teamIterations]);
+  const activeIteration = teamIterations.find(iteration => iteration.id === appState.activeTeamIterationId) ?? null;
 
-
-  const [isManualMode, setIsManualMode] = useState(false);
-
-  const handlePlayersLoaded = useCallback((players: Player[], playerGroups: PlayerGroup[] = [], warnings?: StructuredWarning[]) => {
-    setAppState(prev => {
-      const execRatingHistory = { ...prev.execRatingHistory };
-
-      // Seed history with any exec ratings already stored on current players
-      prev.players.forEach(existingPlayer => {
-        if (existingPlayer.execSkillRating !== null) {
-          const key = normalizeName(existingPlayer.name);
-          if (!execRatingHistory[key]) {
-            execRatingHistory[key] = { rating: existingPlayer.execSkillRating, updatedAt: 0 };
-          }
-        }
-      });
-
-      const now = Date.now();
-      const updatedPlayers = players.map(player => {
-        const nameKey = normalizeName(player.name);
-        const csvExec = player.execSkillRating !== null && player.execSkillRating !== undefined
-          ? player.execSkillRating
-          : null;
-
-        const historyEntry = execRatingHistory[nameKey];
-
-        let finalExec: number | null = null;
-        let isNewFromCSV = false;
-
-        if (csvExec !== null) {
-          finalExec = csvExec;
-          isNewFromCSV = true;
-        } else if (historyEntry) {
-          finalExec = historyEntry.rating;
-        }
-
-        if (finalExec !== null && isNewFromCSV) {
-          execRatingHistory[nameKey] = { rating: finalExec, updatedAt: now };
-        }
-
-        return {
-          ...player,
-          execSkillRating: finalExec
-        };
-      });
-
-      const playersById = new Map(updatedPlayers.map(player => [player.id, player]));
-      const updatedPlayerGroups = playerGroups.map(group => ({
-        ...group,
-        players: group.players.map(groupPlayer => playersById.get(groupPlayer.id) ?? groupPlayer)
-      }));
-
-      return {
-        ...prev,
-        players: updatedPlayers,
-        playerGroups: updatedPlayerGroups,
-        teams: [],
-        unassignedPlayers: [],
-        stats: undefined,
-        execRatingHistory,
-        pendingWarnings: warnings || prev.pendingWarnings
-      };
-    });
-
-    setIsManualMode(false);
-    setIsFullScreenMode(false);
-
-    if (players.length > 0) {
-      setActiveTab('roster');
-      const groupedPlayerCount = playerGroups.reduce((sum, group) => sum + group.players.length, 0);
-      if (groupedPlayerCount > 0) {
-        toast.success('Loaded ' + players.length + ' players with ' + playerGroups.length + ' groups');
-      } else {
-        toast.success('Loaded ' + players.length + ' players successfully');
+  const getNextIterationName = useCallback((type: 'manual' | 'ai') => {
+    const prefix = type === 'manual' ? 'Manual' : 'AI';
+    const highestNumber = teamIterations.reduce((max, iteration) => {
+      if (iteration.type !== type) {
+        return max;
       }
+
+      const match = iteration.name.match(/(\d+)$/);
+      return Math.max(max, match ? Number(match[1]) : 0);
+    }, 0);
+
+    return `${prefix} ${highestNumber + 1}`;
+  }, [teamIterations]);
+
+  const selectIteration = useCallback((iterationId: string) => {
+    setAppState(prev => applyTeamIterationToState(prev, iterationId));
+    setTeamsView('landing');
+  }, []);
+
+  const validateGenerationSetup = useCallback(async () => {
+    if (appState.players.length === 0) {
+      toast.error('Please upload players first');
+      return false;
     }
 
-    setCurrentWorkspaceInfo(null, '', '');
-  }, []);
+    const { validateGroupsForGeneration } = await import('@/utils/playerGrouping');
+    const validation = validateGroupsForGeneration(appState.playerGroups, appState.config.maxTeamSize);
 
+    if (!validation.valid) {
+      validation.errors.forEach(error => {
+        toast.error(error, { duration: 5000 });
+      });
+      return false;
+    }
 
+    validation.warnings.forEach(warning => {
+      toast.warning(warning, { duration: 4000 });
+    });
 
-  // Auto-load sample roster if no players are loaded
-  useEffect(() => {
-    const autoLoadSampleRoster = async () => {
-      // Only load if no players are currently loaded, tutorial is complete, and data has been loaded
-      if (appState.players.length === 0 && !showTutorial && dataLoaded) {
-        try {
-          const response = await fetch('/sample_players.csv');
-          if (response.ok) {
-            const csvText = await response.text();
-            const result = validateAndProcessCSV(csvText);
+    return true;
+  }, [appState.config.maxTeamSize, appState.playerGroups, appState.players.length]);
 
-            if (result.isValid && result.players.length > 0) {
-              handlePlayersLoaded(result.players, result.playerGroups || []);
+  const buildAiIterationInBackground = useCallback(async (
+    iterationId: string,
+    iterationName: string,
+    variant: 'primary' | 'alternate',
+    snapshot: {
+      players: AppState['players'];
+      config: AppState['config'];
+      playerGroups: AppState['playerGroups'];
+    },
+    successMessage?: string
+  ) => {
+    try {
+      await new Promise(resolve => window.setTimeout(resolve, 150));
+
+      const builtIteration = createAiTeamIteration(
+        snapshot.players,
+        snapshot.config,
+        snapshot.playerGroups,
+        iterationName,
+        variant
+      );
+
+      let iterationWasUpdated = false;
+      setAppState(prev => {
+        if (!(prev.teamIterations ?? []).some(iteration => iteration.id === iterationId)) {
+          return prev;
+        }
+
+        iterationWasUpdated = true;
+        const updatedIterations = (prev.teamIterations ?? []).map(iteration => (
+          iteration.id === iterationId
+            ? {
+              ...builtIteration,
+              id: iterationId,
+              createdAt: iteration.createdAt,
             }
-          }
-        } catch (error) {
-          console.log('Could not auto-load sample roster:', error);
-          // Silently fail - this is just a convenience feature
+            : iteration
+        ));
+
+        const nextState = {
+          ...prev,
+          teamIterations: updatedIterations,
+        };
+
+        return prev.activeTeamIterationId === iterationId
+          ? applyTeamIterationToState(nextState, iterationId)
+          : nextState;
+      });
+
+      if (iterationWasUpdated) {
+        if (builtIteration.generationSource === 'fallback') {
+          toast.warning(`${iterationName} is ready. AI could not complete it, so the standard builder was used.`);
+        } else if (successMessage) {
+          toast.success(successMessage);
         }
       }
-    };
+    } catch (error) {
+      console.error('AI iteration generation failed:', error);
 
-    autoLoadSampleRoster();
-  }, [appState.players.length, showTutorial, dataLoaded, handlePlayersLoaded]);
+      let iterationWasUpdated = false;
+      setAppState(prev => {
+        if (!(prev.teamIterations ?? []).some(iteration => iteration.id === iterationId)) {
+          return prev;
+        }
 
-  const handleConfigChange = useCallback((config: LeagueConfig) => {
-    setAppState(prev => ({ ...prev, config }));
-    saveDefaultConfig(config);
+        iterationWasUpdated = true;
+        const updatedIterations = (prev.teamIterations ?? []).map(iteration => (
+          iteration.id === iterationId
+            ? {
+              ...iteration,
+              status: 'failed',
+              errorMessage: 'Unable to generate this AI option.',
+            }
+            : iteration
+        ));
+
+        const nextState = {
+          ...prev,
+          teamIterations: updatedIterations,
+        };
+
+        return prev.activeTeamIterationId === iterationId
+          ? applyTeamIterationToState(nextState, iterationId)
+          : nextState;
+      });
+
+      if (iterationWasUpdated) {
+        toast.error(`Could not generate ${iterationName}. Please try again.`);
+      }
+    }
   }, []);
 
-  const handleGenerateTeams = useCallback(async (randomize: boolean = false, manualMode: boolean = false) => {
+  const handleOpenGenerateTeamsDialog = useCallback(() => {
     if (appState.players.length === 0) {
       toast.error('Please upload players first');
       return;
     }
 
-    addToHistory(appState);
+    setIsGenerateTeamsDialogOpen(true);
+  }, [appState.players.length]);
 
-    // Validate groups against config before generation
-    const { validateGroupsForGeneration } = await import('@/utils/playerGrouping');
-    const validation = validateGroupsForGeneration(appState.playerGroups, appState.config.maxTeamSize);
-
-    // Show errors if any group is too large
-    if (!validation.valid) {
-      validation.errors.forEach(error => {
-        toast.error(error, { duration: 5000 });
-      });
-      return; // Don't proceed with generation
+  const handleCreateManualIterations = useCallback(async () => {
+    if (!(await validateGenerationSetup())) {
+      return;
     }
 
-    // Show warnings (but continue)
-    validation.warnings.forEach(warning => {
-      toast.warning(warning, { duration: 4000 });
-    });
+    snapshotCurrentState();
 
-    setIsManualMode(manualMode); // Track manual mode state
+    const manualOne = createManualTeamIteration(appState.players, appState.config, appState.playerGroups, 'Manual 1');
+    const manualTwo = createManualTeamIteration(appState.players, appState.config, appState.playerGroups, 'Manual 2');
 
-    try {
-      // Add a small delay to show loading state
-      await new Promise(resolve => setTimeout(resolve, 100));
+    setAppState(prev => applyTeamIterationToState({
+      ...prev,
+      teamIterations: [manualOne, manualTwo],
+      activeTeamIterationId: manualOne.id,
+    }, manualOne.id));
 
-      const result = generateBalancedTeams(appState.players, appState.config, appState.playerGroups, randomize, manualMode);
+    setActiveTab('teams');
+    setTeamsView('landing');
+    setIsFullScreenMode(false);
+    setIsGenerateTeamsDialogOpen(false);
+    toast.success('Created two manual team tabs');
+  }, [appState.config, appState.playerGroups, appState.players, snapshotCurrentState, validateGenerationSetup]);
 
-      setAppState(prev => ({
-        ...prev,
-        teams: result.teams,
-        unassignedPlayers: result.unassignedPlayers,
-        stats: result.stats
-      }));
-
-      setActiveTab('teams');
-
-      const message = manualMode
-        ? `Created ${result.teams.length} manual teams - drag players to complete setup`
-        : randomize
-          ? `Generated ${result.teams.length} random teams`
-          : `Generated ${result.teams.length} balanced teams`;
-
-      toast.success(message);
-
-      // Show detailed stats for must-have requests
-      if (result.stats.mustHaveRequestsBroken > 0) {
-        toast.warning(`${result.stats.mustHaveRequestsBroken} must-have requests could not be honored`, { duration: 4000 });
-      }
-
-      if (result.unassignedPlayers.length > 0) {
-        toast.warning(`${result.unassignedPlayers.length} players could not be assigned due to constraints`);
-      }
-    } catch (error) {
-      console.error('Team generation failed:', error);
-      toast.error('Failed to generate teams. Please check your configuration.');
+  const handleCreateAiIterations = useCallback(async () => {
+    if (!(await validateGenerationSetup())) {
+      return;
     }
-  }, [appState.players, appState.config, appState.playerGroups]);
 
-  const handlePlayerUpdate = useCallback((updatedPlayer: Player) => {
-    addToHistory(appState);
-    setAppState(prev => {
-      const existingPlayer = prev.players.find(p => p.id === updatedPlayer.id);
-      const updatedHistory = { ...prev.execRatingHistory };
+    snapshotCurrentState();
 
-      if (existingPlayer) {
-        // const oldKey = normalizeName(existingPlayer.name);
-        const newKey = normalizeName(updatedPlayer.name);
+    const aiOne = createPendingTeamIteration('AI 1', 'ai');
+    const aiTwo = createPendingTeamIteration('AI 2', 'ai');
+    const snapshot = {
+      players: appState.players,
+      config: appState.config,
+      playerGroups: appState.playerGroups,
+    };
 
-        // If name changed, clean up old key? Optionally keep it in case they change back contextually
-        // For now, if name changes, we treat it as a new entity usually, but let's keep it simple.
+    setAppState(prev => applyTeamIterationToState({
+      ...prev,
+      teamIterations: [aiOne, aiTwo],
+      activeTeamIterationId: aiOne.id,
+    }, aiOne.id));
 
-        if (updatedPlayer.execSkillRating !== null && updatedPlayer.execSkillRating !== undefined) {
-          // Manual update always sets timestamp to NOW
-          updatedHistory[newKey] = { rating: updatedPlayer.execSkillRating, updatedAt: Date.now() };
-        }
-      } else if (updatedPlayer.execSkillRating !== null && updatedPlayer.execSkillRating !== undefined) {
-        updatedHistory[normalizeName(updatedPlayer.name)] = { rating: updatedPlayer.execSkillRating, updatedAt: Date.now() };
-      }
+    setActiveTab('teams');
+    setTeamsView('landing');
+    setIsFullScreenMode(false);
+    setIsGenerateTeamsDialogOpen(false);
 
-      // Update player in the main players array
-      const updatedPlayers = prev.players.map(p =>
-        p.id === updatedPlayer.id ? updatedPlayer : p
-      );
+    void buildAiIterationInBackground(aiOne.id, aiOne.name, 'primary', snapshot);
+    void buildAiIterationInBackground(aiTwo.id, aiTwo.name, 'alternate', snapshot, 'AI team options are ready');
+  }, [appState.config, appState.playerGroups, appState.players, buildAiIterationInBackground, snapshotCurrentState, validateGenerationSetup]);
 
-      // Update player in teams and recalculate team stats
-      const updatedTeams = prev.teams.map(team => {
-        const playerInTeam = team.players.find(p => p.id === updatedPlayer.id);
-        if (playerInTeam) {
-          // Update the player in this team
-          const updatedTeamPlayers = team.players.map(p =>
-            p.id === updatedPlayer.id ? updatedPlayer : p
-          );
+  const handleCreateBothIterations = useCallback(async () => {
+    if (!(await validateGenerationSetup())) {
+      return;
+    }
 
-          // Calculate new team stats
-          const totalSkill = updatedTeamPlayers.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
-          const averageSkill = updatedTeamPlayers.length > 0 ? totalSkill / updatedTeamPlayers.length : 0;
+    snapshotCurrentState();
 
-          const genderBreakdown = { M: 0, F: 0, Other: 0 };
-          updatedTeamPlayers.forEach(p => {
-            genderBreakdown[p.gender]++;
-          });
+    const manualIteration = createManualTeamIteration(appState.players, appState.config, appState.playerGroups, 'Manual 1');
+    const aiIteration = createPendingTeamIteration('AI 1', 'ai');
+    const snapshot = {
+      players: appState.players,
+      config: appState.config,
+      playerGroups: appState.playerGroups,
+    };
 
-          return {
-            ...team,
-            players: updatedTeamPlayers,
-            averageSkill,
-            genderBreakdown
-          };
-        }
-        return team;
-      });
+    setAppState(prev => applyTeamIterationToState({
+      ...prev,
+      teamIterations: [manualIteration, aiIteration],
+      activeTeamIterationId: manualIteration.id,
+    }, manualIteration.id));
 
-      // Update player in unassigned players if present
-      const updatedUnassigned = prev.unassignedPlayers.map(p =>
-        p.id === updatedPlayer.id ? updatedPlayer : p
-      );
+    setActiveTab('teams');
+    setTeamsView('landing');
+    setIsFullScreenMode(false);
+    setIsGenerateTeamsDialogOpen(false);
 
-      return {
-        ...prev,
-        players: updatedPlayers,
-        teams: updatedTeams,
-        unassignedPlayers: updatedUnassigned,
-        execRatingHistory: updatedHistory
-      };
-    });
-  }, []);
+    void buildAiIterationInBackground(aiIteration.id, aiIteration.name, 'primary', snapshot, 'Your AI tab is ready');
+  }, [appState.config, appState.playerGroups, appState.players, buildAiIterationInBackground, snapshotCurrentState, validateGenerationSetup]);
 
+  const handleAddManualIteration = useCallback(async () => {
+    if (!(await validateGenerationSetup())) {
+      return;
+    }
 
-  const handlePlayerAdd = useCallback((newPlayer: Player) => {
-    addToHistory(appState);
-    setAppState(prev => {
-      const updatedHistory = { ...prev.execRatingHistory };
-      if (newPlayer.execSkillRating !== null && newPlayer.execSkillRating !== undefined) {
-        updatedHistory[normalizeName(newPlayer.name)] = { rating: newPlayer.execSkillRating, updatedAt: Date.now() };
-      }
+    snapshotCurrentState();
 
-      return {
-        ...prev,
-        players: [...prev.players, newPlayer],
-        // Clear teams when adding new players to force regeneration
-        teams: [],
-        unassignedPlayers: [],
-        stats: undefined,
-        execRatingHistory: updatedHistory
-      };
-    });
-  }, []);
+    const iterationName = getNextIterationName('manual');
+    const manualIteration = createManualTeamIteration(appState.players, appState.config, appState.playerGroups, iterationName);
 
-  // --- Warning Resolution Handlers ---
-  const handleResolveWarning = useCallback((warning: StructuredWarning) => {
-    setAppState(prev => {
-      if (!prev.pendingWarnings) return prev;
+    setAppState(prev => applyTeamIterationToState({
+      ...prev,
+      teamIterations: [...(prev.teamIterations ?? []), manualIteration],
+      activeTeamIterationId: manualIteration.id,
+    }, manualIteration.id));
 
-      // Find the player who made the request
-      const player = prev.players.find(p => p.name === warning.playerName);
-      if (!player || !warning.matchedName) return prev;
+    setActiveTab('teams');
+    setTeamsView('landing');
+    toast.success(`Added ${iterationName}`);
+  }, [appState.config, appState.playerGroups, appState.players, getNextIterationName, snapshotCurrentState, validateGenerationSetup]);
 
-      // Update the player's requests
-      const updatedPlayer = {
-        ...player,
-        teammateRequests: player.teammateRequests.map(req =>
-          req === warning.requestedName ? warning.matchedName! : req
-        ),
-        avoidRequests: player.avoidRequests.map(req =>
-          req === warning.requestedName ? warning.matchedName! : req
-        )
-      };
+  const handleAddAiIteration = useCallback(async () => {
+    if (!(await validateGenerationSetup())) {
+      return;
+    }
 
-      // Update warnings list - mark as accepted
-      const updatedWarnings = prev.pendingWarnings.map(w =>
-        w.id === warning.id ? { ...w, status: 'accepted' as const, matchedName: warning.matchedName } : w
-      );
+    snapshotCurrentState();
 
-      return {
-        ...prev,
-        players: prev.players.map(p => p.id === player.id ? updatedPlayer : p),
-        pendingWarnings: updatedWarnings
-      };
-    });
-  }, []);
+    const iterationName = getNextIterationName('ai');
+    const pendingIteration = createPendingTeamIteration(iterationName, 'ai');
+    const snapshot = {
+      players: appState.players,
+      config: appState.config,
+      playerGroups: appState.playerGroups,
+    };
 
-  const handleDismissWarning = useCallback((warningId: string) => {
-    setAppState(prev => {
-      if (!prev.pendingWarnings) return prev;
+    setAppState(prev => applyTeamIterationToState({
+      ...prev,
+      teamIterations: [...(prev.teamIterations ?? []), pendingIteration],
+      activeTeamIterationId: pendingIteration.id,
+    }, pendingIteration.id));
 
-      const updatedWarnings = prev.pendingWarnings.map(w =>
-        w.id === warningId ? { ...w, status: 'rejected' as const } : w
-      );
+    setActiveTab('teams');
+    setTeamsView('landing');
 
-      return {
-        ...prev,
-        pendingWarnings: updatedWarnings
-      };
-    });
-  }, []);
+    void buildAiIterationInBackground(
+      pendingIteration.id,
+      pendingIteration.name,
+      'alternate',
+      snapshot,
+      `${pendingIteration.name} is ready`
+    );
+  }, [appState.config, appState.playerGroups, appState.players, buildAiIterationInBackground, getNextIterationName, snapshotCurrentState, validateGenerationSetup]);
 
-  const handleDismissAllWarnings = useCallback(() => {
+  const handleDeleteAllIterations = useCallback(() => {
+    if (!window.confirm('Delete all team tabs and start over?')) {
+      return;
+    }
+
+    snapshotCurrentState();
+
     setAppState(prev => ({
       ...prev,
-      pendingWarnings: []
+      players: prev.players.map(player => ({ ...player, teamId: undefined })),
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      teamIterations: [],
+      activeTeamIterationId: null,
     }));
-  }, []);
 
-  const handlePlayerRemove = useCallback((playerId: string) => {
-    addToHistory(appState);
-    setAppState(prev => {
-      const removedPlayer = prev.players.find(p => p.id === playerId);
-      if (!removedPlayer) return prev;
-
-      // Remove from main players array
-      const updatedPlayers = prev.players.filter(p => p.id !== playerId);
-
-      // Remove from teams and recalculate team stats
-      const updatedTeams = prev.teams.map(team => {
-        const playerInTeam = team.players.find(p => p.id === playerId);
-        if (playerInTeam) {
-          const updatedTeamPlayers = team.players.filter(p => p.id !== playerId);
-
-          // Calculate new team stats
-          const totalSkill = updatedTeamPlayers.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
-          const averageSkill = updatedTeamPlayers.length > 0 ? totalSkill / updatedTeamPlayers.length : 0;
-
-          const genderBreakdown = { M: 0, F: 0, Other: 0 };
-          updatedTeamPlayers.forEach(p => {
-            genderBreakdown[p.gender]++;
-          });
-
-          return {
-            ...team,
-            players: updatedTeamPlayers,
-            averageSkill,
-            genderBreakdown
-          };
-        }
-        return team;
-      });
-
-      // Remove from unassigned players
-      const updatedUnassigned = prev.unassignedPlayers.filter(p => p.id !== playerId);
-
-      // Remove from player groups
-      const updatedPlayerGroups = prev.playerGroups.map(group => ({
-        ...group,
-        players: group.players.filter(p => p.id !== playerId)
-      })).filter(group => group.players.length > 0); // Remove empty groups
-
-      // Clean up teammate/avoid requests that reference the removed player
-      const cleanedPlayers = updatedPlayers.map(player => ({
-        ...player,
-        teammateRequests: player.teammateRequests.filter(name =>
-          name.toLowerCase() !== removedPlayer.name.toLowerCase()
-        ),
-        avoidRequests: player.avoidRequests.filter(name =>
-          name.toLowerCase() !== removedPlayer.name.toLowerCase()
-        )
-      }));
-
-      return {
-        ...prev,
-        players: cleanedPlayers,
-        teams: updatedTeams,
-        unassignedPlayers: updatedUnassigned,
-        playerGroups: updatedPlayerGroups
-      };
-    });
-  }, []);
-
-  const handlePlayerMove = useCallback((playerId: string, targetTeamId: string | null) => {
-    // We can't easily capture 'appState' here because of closure staleness if we used it directly in the callback dependency,
-    // but since we are using functional updates for setAppState, we need to be careful.
-    // However, AppState IS in the dependency array (implied, or should be).
-    // Actually, 'appState' IS a dependency of handlePlayerMove because it's used in the logic? 
-    // Wait, handlePlayerMove implementation below uses 'setAppState(prev => ...)' so it might NOT have appState in dependency?
-    // Let's check the original dependency array. It ends with line 800 which is cut off.
-    // Assuming we need current state for history.
-    addToHistory(appState);
-
-    setAppState(prev => {
-      const updatedTeams = prev.teams.map(team => ({
-        ...team,
-        players: team.players.filter(p => p.id !== playerId)
-      }));
-
-      let updatedUnassigned = [...prev.unassignedPlayers];
-      const player = prev.players.find(p => p.id === playerId);
-
-      if (!player) return prev;
-
-      // Create updated player with new teamId
-      const updatedPlayer = { ...player, teamId: targetTeamId || undefined };
-
-      if (targetTeamId) {
-        const targetTeam = updatedTeams.find(t => t.id === targetTeamId);
-        if (targetTeam) {
-          targetTeam.players.push(updatedPlayer);
-          updatedUnassigned = updatedUnassigned.filter(p => p.id !== playerId);
-        }
-      } else {
-        if (!updatedUnassigned.find(p => p.id === playerId)) {
-          updatedUnassigned.push(updatedPlayer);
-        }
-      }
-
-      // Update the main players array with the new teamId
-      const updatedPlayers = prev.players.map(p =>
-        p.id === playerId ? updatedPlayer : p
-      );
-
-      // Recalculate team stats
-      updatedTeams.forEach(team => {
-        // Use execSkillRating if available, otherwise fall back to skillRating
-        const totalSkill = team.players.reduce((sum, p) => {
-          const skill = (p.execSkillRating !== null && p.execSkillRating !== undefined)
-            ? p.execSkillRating
-            : p.skillRating;
-          return sum + skill;
-        }, 0);
-        team.averageSkill = team.players.length > 0 ? totalSkill / team.players.length : 0;
-        team.genderBreakdown = { M: 0, F: 0, Other: 0 };
-        team.players.forEach(p => {
-          team.genderBreakdown[p.gender]++;
-        });
-      });
-
-      return {
-        ...prev,
-        players: updatedPlayers,
-        teams: updatedTeams,
-        unassignedPlayers: updatedUnassigned
-      };
-    });
-  }, [isManualMode]);
-
-  // Reset teams - move all players back to unassigned
-  const handleResetTeams = useCallback(() => {
-    setAppState(prev => {
-      // Collect all assigned players
-
-
-      // Clear player team IDs
-      const updatedPlayers = prev.players.map(p => ({
-        ...p,
-        teamId: undefined
-      }));
-
-      // Empty all teams
-      const updatedTeams = prev.teams.map(team => ({
-        ...team,
-        players: [],
-        averageSkill: 0,
-        genderBreakdown: { M: 0, F: 0, Other: 0 }
-      }));
-
-      // All players go to unassigned
-      return {
-        ...prev,
-        players: updatedPlayers,
-        teams: updatedTeams,
-        unassignedPlayers: updatedPlayers
-      };
-    });
-  }, []);
-
-  // Create debounced team name change handler
-  const debouncedTeamNameChangeRef = useRef(
-    debounce((teamId: string, newName: string) => {
-      setAppState(prev => ({
-        ...prev,
-        teams: prev.teams.map(team =>
-          team.id === teamId ? { ...team, name: validateTeamName(newName) } : team
-        )
-      }));
-    }, 300)
-  );
-
-  const handleTeamNameChange = useCallback((teamId: string, newName: string) => {
-    debouncedTeamNameChangeRef.current(teamId, newName);
-  }, []);
-
-
-
-  // Player group management functions
-  const handleAddPlayerToGroup = useCallback((playerId: string, groupId: string) => {
-    setAppState(prev => {
-      const targetGroup = prev.playerGroups.find(g => g.id === groupId);
-      const player = prev.players.find(p => p.id === playerId);
-
-      if (!targetGroup || !player || targetGroup.players.length >= 4) {
-        return prev;
-      }
-
-      const updatedGroups = prev.playerGroups.map(group => {
-        if (group.id === groupId) {
-          return {
-            ...group,
-            playerIds: [...group.playerIds, playerId],
-            players: [...group.players, player]
-          };
-        }
-        return group;
-      });
-
-      const updatedPlayers = prev.players.map(p =>
-        p.id === playerId ? { ...p, groupId } : p
-      );
-
-      return {
-        ...prev,
-        playerGroups: updatedGroups,
-        players: updatedPlayers
-      };
-    });
-  }, []);
-
-  const handleRemovePlayerFromGroup = useCallback((playerId: string) => {
-    setAppState(prev => {
-      const updatedGroups = prev.playerGroups.map(group => ({
-        ...group,
-        playerIds: group.playerIds.filter(id => id !== playerId),
-        players: group.players.filter(p => p.id !== playerId)
-      })).filter(group => group.players.length > 0); // Remove empty groups
-
-      const updatedPlayers = prev.players.map(p =>
-        p.id === playerId ? { ...p, groupId: undefined } : p
-      );
-
-      return {
-        ...prev,
-        playerGroups: updatedGroups,
-        players: updatedPlayers
-      };
-    });
-  }, []);
-
-  const handleCreateNewGroup = useCallback((playerIds: string[]) => {
-    setAppState(prev => {
-      const selectedPlayers = prev.players.filter(p => playerIds.includes(p.id));
-
-      if (selectedPlayers.length === 0 || selectedPlayers.length > 4) {
-        return prev;
-      }
-
-      // Generate next group label
-      const usedLabels = prev.playerGroups.map(g => g.label);
-      let nextLabel = 'A';
-      for (let i = 0; i < 26; i++) {
-        const label = String.fromCharCode(65 + i); // A, B, C, ...
-        if (!usedLabels.includes(label)) {
-          nextLabel = label;
-          break;
-        }
-      }
-
-      // Generate color (reuse existing color logic)
-      const colors = [
-        '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#F97316',
-        '#06B6D4', '#84CC16', '#EC4899', '#6B7280', '#14B8A6', '#F43F5E'
-      ];
-      const groupColor = colors[prev.playerGroups.length % colors.length] || colors[0] || '#3B82F6';
-
-      const newGroup: PlayerGroup = {
-        id: `group-${Date.now()}`,
-        label: nextLabel,
-        color: groupColor,
-        playerIds: playerIds,
-        players: selectedPlayers
-      };
-
-      const updatedPlayers = prev.players.map(p =>
-        playerIds.includes(p.id) ? { ...p, groupId: newGroup.id } : p
-      );
-
-      return {
-        ...prev,
-        playerGroups: [...prev.playerGroups, newGroup],
-        players: updatedPlayers
-      };
-    });
-  }, []);
-
-  const handleDeleteGroup = useCallback((groupId: string) => {
-    setAppState(prev => {
-      const groupToDelete = prev.playerGroups.find(g => g.id === groupId);
-      if (!groupToDelete) return prev;
-
-      const updatedGroups = prev.playerGroups.filter(g => g.id !== groupId);
-      const updatedPlayers = prev.players.map(p =>
-        groupToDelete.playerIds.includes(p.id) ? { ...p, groupId: undefined } : p
-      );
-
-      return {
-        ...prev,
-        playerGroups: updatedGroups,
-        players: updatedPlayers
-      };
-    });
-  }, []);
-
-  const handleMergeGroups = useCallback((sourceGroupId: string, targetGroupId: string) => {
-    setAppState(prev => {
-      const sourceGroup = prev.playerGroups.find(g => g.id === sourceGroupId);
-      const targetGroup = prev.playerGroups.find(g => g.id === targetGroupId);
-
-      if (!sourceGroup || !targetGroup) return prev;
-
-      // Update players to be in the target group
-      const updatedPlayers = prev.players.map(player => {
-        if (sourceGroup.playerIds.includes(player.id)) {
-          return { ...player, groupId: targetGroupId };
-        }
-        return player;
-      });
-
-      // Merge the players into the target group
-      const updatedGroups = prev.playerGroups.map(group => {
-        if (group.id === targetGroupId) {
-          return {
-            ...group,
-            playerIds: [...group.playerIds, ...sourceGroup.playerIds],
-            players: [...group.players, ...sourceGroup.players]
-          };
-        }
-        return group;
-      }).filter(group => group.id !== sourceGroupId); // Remove the source group
-
-      return {
-        ...prev,
-        playerGroups: updatedGroups,
-        players: updatedPlayers
-      };
-    });
-  }, []);
-
-
+    setTeamsView('landing');
+    setIsFullScreenMode(false);
+    toast.success('Deleted all team tabs. You can generate new ones when ready.');
+  }, [snapshotCurrentState]);
 
   // Reset full screen mode when switching away from teams tab
   useEffect(() => {
@@ -1041,11 +636,18 @@ function App() {
 
   // Recalculate team stats when switching to teams tab (in case players were edited)
   useEffect(() => {
-    if (activeTab === 'teams' && appState.teams.length > 0) {
-      setAppState(prev => ({
+    if (activeTab !== 'teams') {
+      return;
+    }
+
+    setAppState(prev => {
+      if (prev.teams.length === 0) {
+        return prev;
+      }
+
+      return syncActiveTeamIterationToState({
         ...prev,
         teams: prev.teams.map(team => {
-          // Recalculate team stats with current player data
           const totalSkill = team.players.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
           const averageSkill = team.players.length > 0 ? totalSkill / team.players.length : 0;
 
@@ -1060,8 +662,8 @@ function App() {
             genderBreakdown
           };
         })
-      }));
-    }
+      });
+    });
   }, [activeTab, appState.players]);
 
   if (isFullScreenMode) {
@@ -1073,105 +675,62 @@ function App() {
         config={appState.config}
         players={appState.players}
         playerGroups={appState.playerGroups}
+        stats={appState.stats}
         onPlayerMove={handlePlayerMove}
         onTeamNameChange={handleTeamNameChange}
+        onTeamBrandingChange={handleTeamBrandingChange}
         onLoadWorkspace={handleLoadWorkspace}
         currentWorkspaceId={currentWorkspaceId}
-
         onReset={handleResetTeams}
         onUndo={handleUndo}
         canUndo={history.length > 0}
+        onRefreshBranding={handleRefreshTeamBranding}
+        iterations={teamIterations}
+        activeIterationId={activeIteration?.id ?? null}
+        onSelectIteration={selectIteration}
+        onAddManualIteration={handleAddManualIteration}
+        onAddAiIteration={handleAddAiIteration}
+        onStartOver={handleDeleteAllIterations}
+        activeIterationStatus={activeIteration?.status}
       />
     );
   }
 
   // --- Main Render ---
 
-  if (showTutorial) {
-    return <TutorialLanding onStartApp={handleStartApp} />;
-  }
-
   return (
     <div className="min-h-screen bg-neutral-100 font-sans text-slate-800">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-
-        {/* Header Section */}
-        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 group">
-            <img src="/logo-new.jpg" alt="Ulti-Team" className="h-16 w-16 object-cover rounded-full shadow-sm hover:scale-110 transition-transform duration-300" />
-            <div>
-              <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-900 to-indigo-600 drop-shadow-sm">
-                Ulti-Team
-              </h1>
-              <p className="text-slate-500 font-medium text-sm">Create balanced teams in seconds</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Sync Status */}
-
-
-            {/* Auth & Save Controls */}
-            {!user ? (
-              <Button
-                onClick={() => setAuthDialogOpen(true)}
-                className="bg-white hover:bg-slate-50 text-slate-700 border-b-4 border-slate-200 active:border-b-0 rounded-xl font-bold px-6 h-12 transition-all active:translate-y-1"
-              >
-                Sign In
-              </Button>
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 mr-2">
-                  <Button
-                    onClick={handleOpenLoadWorkspaceDialog}
-                    variant="ghost"
-                    className="h-10 px-3 rounded-xl text-slate-600 hover:bg-slate-100 font-bold"
-                  >
-                    <FolderOpen className="h-4 w-4 mr-2" /> Load Project
-                  </Button>
-                  <Button
-                    onClick={handleOpenSaveWorkspaceDialog}
-                    variant="ghost"
-                    className="h-10 px-3 rounded-xl text-slate-600 hover:bg-slate-100 font-bold"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Save className="h-4 w-4 mr-2" />
-                      <span className="hidden xl:inline">Save Project</span>
-                      <span className="xl:hidden">Save</span>
-                    </div>
-                  </Button>
-
-                  {/* Auto-save Status Indicator */}
-                  {currentWorkspaceId && (
-                    <div className="text-sm font-medium transition-colors w-24 text-right">
-                      {saveStatus === 'saving' && <span className="text-slate-500 italic">Saving...</span>}
-                      {saveStatus === 'saved' && <span className="text-green-600">All saved</span>}
-                      {saveStatus === 'error' && <span className="text-red-500">Save failed</span>}
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-white px-4 h-12 flex items-center gap-3 rounded-xl border border-slate-200 shadow-sm hidden md:flex">
-                  <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <UserCheck className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Logged in as</div>
-                    <div className="text-sm font-bold text-slate-800 leading-none">{user.displayName || user.email}</div>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleSignOut}
-                  variant="ghost"
-                  className="h-12 w-12 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                >
-                  <Users className="h-5 w-5" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </header>
+        <ProjectWorkspaceControls
+          user={user}
+          authDialogOpen={authDialogOpen}
+          onAuthDialogOpenChange={setAuthDialogOpen}
+          onSignOut={handleSignOut}
+          persistenceStatus={persistenceStatus}
+          importFileInputRef={importFileInputRef}
+          onImportProjectBackup={handleImportProjectBackup}
+          onExportProjectBackup={handleExportProjectBackup}
+          onOpenProjectImport={handleOpenProjectImport}
+          onOpenSaveWorkspaceDialog={handleOpenSaveWorkspaceDialog}
+          onOpenLoadWorkspaceDialog={handleOpenLoadWorkspaceDialog}
+          isSaveWorkspaceDialogOpen={isSaveWorkspaceDialogOpen}
+          onSaveWorkspaceDialogOpenChange={setIsSaveWorkspaceDialogOpen}
+          isLoadWorkspaceDialogOpen={isLoadWorkspaceDialogOpen}
+          onLoadWorkspaceDialogOpenChange={setIsLoadWorkspaceDialogOpen}
+          workspaceName={workspaceName}
+          workspaceDescription={workspaceDescription}
+          currentWorkspaceId={currentWorkspaceId}
+          setCurrentWorkspaceInfo={setCurrentWorkspaceInfo}
+          isSavingWorkspace={isSavingWorkspace}
+          onSaveWorkspace={handleSaveWorkspace}
+          workspaceSearchTerm={workspaceSearchTerm}
+          onWorkspaceSearchTermChange={setWorkspaceSearchTerm}
+          isFetchingWorkspaces={isFetchingWorkspaces}
+          savedWorkspaces={savedWorkspaces}
+          loadingWorkspaceId={loadingWorkspaceId}
+          onLoadWorkspace={handleLoadWorkspace}
+          onDeleteWorkspaceAction={handleDeleteWorkspaceAction}
+        />
 
         {/* Main Content Area */}
         {/* Main Content Area */}
@@ -1213,9 +772,9 @@ function App() {
                   className="flex-1 rounded-xl py-3 font-bold text-slate-600 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
                 >
                   Teams
-                  {appState.teams.length > 0 && (
+                  {teamIterations.length > 0 && (
                     <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
-                      {appState.teams.length}
+                      {teamIterations.length}
                     </span>
                   )}
                 </TabsTrigger>
@@ -1306,6 +865,7 @@ function App() {
                       onPlayerUpdate={handlePlayerUpdate}
                       onPlayerRemove={handlePlayerRemove}
                       onPlayerAdd={handlePlayerAdd}
+                      onClearExecRankings={handleClearExecRankings}
                       pendingWarnings={appState.pendingWarnings}
                       onResolveWarning={handleResolveWarning}
                       onDismissWarning={handleDismissWarning}
@@ -1331,29 +891,75 @@ function App() {
               </TabsContent>
 
               <TabsContent value="teams" className="space-y-6 focus-visible:outline-none">
-                {appState.teams.length === 0 ? (
+                {teamIterations.length === 0 ? (
                   <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-slate-200">
                     <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-6">
                       <Users className="h-10 w-10" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-700 mb-2">No Teams Generated Yet</h3>
+                    <h3 className="text-xl font-bold text-slate-700 mb-2">No Team Tabs Yet</h3>
                     <p className="text-slate-500 mb-8 max-w-md mx-auto">
-                      Upload your roster and configure your settings to generate balanced teams instantly.
+                      Choose whether you want a manual workspace, AI-built options, or both.
                     </p>
                     <Button
-                      onClick={() => handleGenerateTeams(false)}
+                      onClick={handleOpenGenerateTeamsDialog}
                       size="lg"
                       className="bg-primary hover:bg-primary/90 text-white border-b-4 border-primary-shadow active:border-b-0 rounded-xl font-bold px-8 h-14 text-lg transition-all active:translate-y-1"
                     >
-                      Generate Teams Now
+                      Generate Team Tabs
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {teamsView === 'landing' ? (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <TeamIterationTabs
+                          iterations={teamIterations}
+                          activeIterationId={activeIteration?.id ?? null}
+                          onSelectIteration={selectIteration}
+                          onAddManualIteration={handleAddManualIteration}
+                          onAddAiIteration={handleAddAiIteration}
+                        />
+                        <Button
+                          variant="outline"
+                          onClick={handleDeleteAllIterations}
+                          className="border-2 border-red-200 bg-white text-red-600 hover:bg-red-50"
+                        >
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Delete Teams and Start Over
+                        </Button>
+                      </div>
+                    </div>
+
+                    {activeIteration?.status === 'generating' ? (
+                      <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
+                        <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-purple-50 text-purple-500">
+                          <Sparkles className="h-10 w-10" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">Building {activeIteration.name}</h3>
+                        <p className="text-slate-500 max-w-md mx-auto">
+                          This AI option is being prepared in the background. You can switch tabs or wait here.
+                        </p>
+                      </div>
+                    ) : activeIteration?.status === 'failed' ? (
+                      <div className="bg-white rounded-2xl p-12 text-center border border-red-200">
+                        <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-50 text-red-500">
+                          <AlertTriangle className="h-10 w-10" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">This AI tab could not be generated</h3>
+                        <p className="text-slate-500 max-w-md mx-auto">
+                          {activeIteration.errorMessage || 'Please create a new AI iteration and try again.'}
+                        </p>
+                      </div>
+                    ) : teamsView === 'landing' ? (
                       <div className="space-y-8 py-8">
+                        {activeIteration?.generationSource === 'fallback' && (
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+                            <div className="font-bold">This tab used the standard builder</div>
+                            <div className="mt-1">{activeIteration.errorMessage || 'AI was unavailable for this option, so TeamBuilder created the draft automatically.'}</div>
+                          </div>
+                        )}
                         <div className="text-center space-y-2">
-                          <h2 className="text-3xl font-extrabold text-slate-800">Select Workspace</h2>
+                          <h2 className="text-3xl font-extrabold text-slate-800">{activeIteration?.name || 'Select Workspace'}</h2>
                           <p className="text-slate-500 max-w-lg mx-auto">
                             Choose between the interactive Team Builder for drag-and-drop adjustments, or view Exports & Reports.
                           </p>
@@ -1363,10 +969,6 @@ function App() {
                           {/* Team Builder Card */}
                           <div
                             onClick={() => {
-                              // Only generate teams if none exist; otherwise preserve current state
-                              if (appState.teams.length === 0) {
-                                handleGenerateTeams(false, true); // Generate in manual mode (empty teams)
-                              }
                               setIsFullScreenMode(true);
                             }}
                             className="group bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 hover:-translate-y-1 transition-all cursor-pointer flex flex-col items-center text-center"
@@ -1400,16 +1002,6 @@ function App() {
                             </div>
                           </div>
                         </div>
-
-                        <div className="flex justify-center mt-8">
-                          <Button
-                            onClick={() => handleGenerateTeams(false)}
-                            variant="outline"
-                            className="border-2 border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold"
-                          >
-                            <Shuffle className="h-4 w-4 mr-2" /> Re-Balance Teams
-                          </Button>
-                        </div>
                       </div>
                     ) : (
                       <div className="space-y-6">
@@ -1441,122 +1033,60 @@ function App() {
         </div>
       </div>
 
-      {/* Dialogs */}
-      <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
-
-      <Dialog open={isSaveWorkspaceDialogOpen} onOpenChange={setIsSaveWorkspaceDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+      <Dialog open={isGenerateTeamsDialogOpen} onOpenChange={setIsGenerateTeamsDialogOpen}>
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-extrabold text-slate-800">Save Project</DialogTitle>
-            <DialogDescription>Save your entire workspace (players, teams, and settings) to the cloud.</DialogDescription>
+            <DialogTitle className="text-2xl font-extrabold text-slate-800">Generate Team Tabs</DialogTitle>
+            <DialogDescription>
+              Pick the kind of workspace you want to start with. You can always add more tabs later with the + button.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="ws-name" className="font-bold text-slate-700">Project Name</Label>
-              <Input
-                id="ws-name"
-                value={workspaceName}
-                onChange={(e) => setCurrentWorkspaceInfo(currentWorkspaceId, e.target.value, workspaceDescription)}
-                placeholder="e.g., Summer Tournament 2024"
-                className="rounded-xl border-2 border-slate-200 focus-visible:ring-primary"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="ws-desc" className="font-bold text-slate-700">Description (Optional)</Label>
-              <Input
-                id="ws-desc"
-                value={workspaceDescription}
-                onChange={(e) => setCurrentWorkspaceInfo(currentWorkspaceId, workspaceName, e.target.value)}
-                placeholder="Notes about this session..."
-                className="rounded-xl border-2 border-slate-200 focus-visible:ring-primary"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsSaveWorkspaceDialogOpen(false)} className="rounded-xl font-bold">Cancel</Button>
-            <Button
-              onClick={handleSaveWorkspace}
-              disabled={isSavingWorkspace}
-              className="bg-primary hover:bg-primary/90 text-white rounded-xl font-bold"
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => void handleCreateManualIterations()}
+              className="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
             >
-              {isSavingWorkspace ? 'Saving...' : 'Save Project'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isLoadWorkspaceDialogOpen} onOpenChange={setIsLoadWorkspaceDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] rounded-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-extrabold text-slate-800">Load Project</DialogTitle>
-            <DialogDescription>Select a previously saved workspace to restore.</DialogDescription>
-            <div className="relative mt-2">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FolderOpen className="h-4 w-4 text-slate-400" />
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                <SquarePen className="h-6 w-6" />
               </div>
-              <Input
-                placeholder="Search projects..."
-                className="pl-10 rounded-xl bg-slate-50 border-slate-200"
-                value={workspaceSearchTerm}
-                onChange={(e) => setWorkspaceSearchTerm(e.target.value)}
-              />
-            </div>
-          </DialogHeader>
+              <div className="text-lg font-bold text-slate-800">Manual Team</div>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Creates two blank team tabs so you can build and compare manual versions side by side.
+              </p>
+            </button>
 
-          <div className="flex-1 overflow-y-auto min-h-[300px] py-2 space-y-2">
-            {isFetchingWorkspaces ? (
-              <div className="flex items-center justify-center h-40">
-                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            <button
+              type="button"
+              onClick={() => void handleCreateAiIterations()}
+              className="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600">
+                <Sparkles className="h-6 w-6" />
               </div>
-            ) : savedWorkspaces.length === 0 ? (
-              <div className="text-center py-10 text-slate-500">
-                No saved projects found.
+              <div className="text-lg font-bold text-slate-800">AI Team</div>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Builds two separate auto-generated team options in their own tabs.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleCreateBothIterations()}
+              className="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <LayoutGrid className="h-6 w-6" />
               </div>
-            ) : (
-              savedWorkspaces
-                .filter(ws => ws.name.toLowerCase().includes(workspaceSearchTerm.toLowerCase()))
-                .map(ws => (
-                  <button
-                    key={ws.id}
-                    onClick={() => handleLoadWorkspace(ws.id)}
-                    disabled={loadingWorkspaceId === ws.id}
-                    className="w-full flex items-center p-4 bg-white border border-slate-100 hover:border-primary/30 hover:bg-slate-50 rounded-xl transition-all group text-left relative"
-                  >
-                    <div className="h-12 w-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 group-hover:bg-primary group-hover:text-white transition-colors">
-                      <FolderOpen className="h-6 w-6" />
-                    </div>
-                    <div className="ml-4 flex-1">
-                      <div className="font-bold text-slate-800 flex items-center gap-2">
-                        {ws.name}
-                      </div>
-                      <div className="text-sm text-slate-500 line-clamp-1">{ws.description}</div>
-                      <div className="text-xs text-slate-400 mt-1 flex gap-3">
-                        <span>{new Date(ws.updatedAt).toLocaleDateString()}</span>
-                        <span>•</span>
-                        <span>{ws.players?.length || 0} players</span>
-                        <span>•</span>
-                        <span>{ws.teams?.length || 0} teams</span>
-                      </div>
-                    </div>
-
-                    <div className="absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50"
-                        onClick={(e) => handleDeleteWorkspaceAction(ws.id, e)}
-
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </button>
-                ))
-            )}
+              <div className="text-lg font-bold text-slate-800">Both</div>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Opens a manual tab right away and prepares an AI tab in the background so the user can keep working.
+              </p>
+            </button>
           </div>
         </DialogContent>
       </Dialog>
-
 
       <Analytics />
     </div>

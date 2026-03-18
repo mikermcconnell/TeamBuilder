@@ -34,6 +34,24 @@ const ensureAuthenticated = (): Promise<boolean> => {
   });
 };
 
+const ensureCurrentUserMatches = async (userId: string): Promise<boolean> => {
+  if (!userId) {
+    return false;
+  }
+
+  const isAuthenticated = await ensureAuthenticated();
+  if (!isAuthenticated || !auth.currentUser) {
+    return false;
+  }
+
+  if (auth.currentUser.uid !== userId) {
+    console.warn('Blocked teams query for mismatched userId');
+    return false;
+  }
+
+  return true;
+};
+
 
 const removeUndefinedValues = (value: any): any => {
   if (value === undefined || value === null) {
@@ -115,6 +133,10 @@ export const updateTeams = async (
       throw new Error('User must be authenticated to update teams');
     }
 
+    if (teamsData.userId && auth.currentUser && teamsData.userId !== auth.currentUser.uid) {
+      throw new Error('Authentication mismatch');
+    }
+
     const docRef = doc(db, 'teams', teamsId);
     const payload = removeUndefinedValues({
       ...teamsData,
@@ -134,8 +156,8 @@ export const getUserTeams = async (
   rosterId?: string
 ): Promise<TeamsData[]> => {
   try {
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
+    const isAuthorized = await ensureCurrentUserMatches(userId);
+    if (!isAuthorized) {
       return [];
     }
 

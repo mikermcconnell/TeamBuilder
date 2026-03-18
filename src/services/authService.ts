@@ -8,27 +8,63 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
 import { auth } from '@/config/firebase';
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+const getFirebaseAuthErrorMessage = (error: unknown): string => {
+  if (!(error instanceof FirebaseError)) {
+    return 'Something went wrong. Please try again.';
+  }
+
+  switch (error.code) {
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists. Try signing in instead.';
+    case 'auth/invalid-email':
+      return 'Enter a valid email address.';
+    case 'auth/weak-password':
+      return 'Password must be at least 6 characters long.';
+    case 'auth/missing-password':
+      return 'Enter a password.';
+    case 'auth/invalid-credential':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+      return 'That email or password is incorrect.';
+    case 'auth/operation-not-allowed':
+      return 'Email/password sign-in is not enabled for this app yet.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please wait a moment and try again.';
+    case 'auth/network-request-failed':
+      return 'Network error. Check your connection and try again.';
+    case 'auth/popup-closed-by-user':
+      return 'Google sign-in was cancelled before it finished.';
+    case 'auth/popup-blocked':
+      return 'Your browser blocked the sign-in popup. Please allow popups and try again.';
+    default:
+      return error.message || 'Authentication failed. Please try again.';
+  }
+};
 
 // Sign in with email and password
 export const signInWithEmail = async (email: string, password: string): Promise<User> => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, normalizeEmail(email), password);
     return userCredential.user;
   } catch (error) {
     console.error('Error signing in with email:', error);
-    throw new Error('Failed to sign in');
+    throw new Error(getFirebaseAuthErrorMessage(error));
   }
 };
 
 // Create a new user account
 export const createAccount = async (email: string, password: string): Promise<User> => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, normalizeEmail(email), password);
     return userCredential.user;
   } catch (error) {
     console.error('Error creating account:', error);
-    throw new Error('Failed to create account');
+    throw new Error(getFirebaseAuthErrorMessage(error));
   }
 };
 
@@ -45,10 +81,10 @@ export const signOutUser = async (): Promise<void> => {
 // Send password reset email
 export const resetPassword = async (email: string): Promise<void> => {
   try {
-    await sendPasswordResetEmail(auth, email);
+    await sendPasswordResetEmail(auth, normalizeEmail(email));
   } catch (error) {
     console.error('Error sending password reset email:', error);
-    throw new Error('Failed to send password reset email');
+    throw new Error(getFirebaseAuthErrorMessage(error));
   }
 };
 
@@ -75,6 +111,6 @@ export const signInWithGoogle = async (): Promise<User> => {
     return result.user;
   } catch (error) {
     console.error('Error signing in with Google:', error);
-    throw error; // Throw original error to expose specific reason (e.g. domain not authorized)
+    throw new Error(getFirebaseAuthErrorMessage(error));
   }
 };

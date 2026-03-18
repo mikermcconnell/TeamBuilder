@@ -77,6 +77,10 @@ export const PlayerSchema = z.object({
 export const TeamSchema = z.object({
   id: z.string(),
   name: z.string().transform(val => sanitizeString(val, MAX_TEAM_NAME_LENGTH)),
+  color: z.string().optional(),
+  colorName: z.string().optional(),
+  isNameManuallySet: z.boolean().optional(),
+  isColorManuallySet: z.boolean().optional(),
   players: z.array(PlayerSchema),
   averageSkill: z.number().default(0),
   genderBreakdown: z.object({

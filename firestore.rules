@@ -32,10 +32,7 @@ service cloud.firestore {
     
     // Rosters
     match /rosters/{document} {
-      // Get: Owner of existing resource
-      allow get: if isResourceOwner();
-      // List: Allow authenticated users - queries filter by userId client-side
-      allow list: if isAuthenticated();
+      allow read: if isResourceOwner();
       // Update/Delete: Owner of existing resource
       allow update, delete: if isResourceOwner();
       // Create: Check incoming data ownership
@@ -44,16 +41,14 @@ service cloud.firestore {
     
     // Roster versions
     match /rosterVersions/{document} {
-      allow get: if isResourceOwner();
-      allow list: if isAuthenticated();
+      allow read: if isResourceOwner();
       allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
     
     // Saved Rosters (CSV storage via rosterStorage.ts)
     match /savedRosters/{document} {
-      allow get: if isResourceOwner();
-      allow list: if isAuthenticated();
+      allow read: if isResourceOwner();
       allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
@@ -69,16 +64,14 @@ service cloud.firestore {
     
     // Teams
     match /teams/{document} {
-      allow get: if isResourceOwner();
-      allow list: if isAuthenticated();
+      allow read: if isResourceOwner();
       allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
 
     // Workspaces
     match /workspaces/{document} {
-      allow get: if isResourceOwner();
-      allow list: if isAuthenticated();
+      allow read: if isResourceOwner();
       // Update: Must own existing doc AND claim ownership in new data
       allow update: if isResourceOwner() && isClaimingOwnership();
       allow delete: if isResourceOwner();
@@ -87,16 +80,14 @@ service cloud.firestore {
 
     // Sessions
     match /sessions/{document} {
-      allow get: if isResourceOwner();
-      allow list: if isAuthenticated();
+      allow read: if isResourceOwner();
       allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
 
     // Config Presets
     match /configPresets/{document} {
-      allow get: if isResourceOwner();
-      allow list: if isAuthenticated();
+      allow read: if isResourceOwner();
       allow update, delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Player, PlayerGroup, getEffectiveSkillRating } from '@/types';
@@ -31,17 +31,17 @@ export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
     const [sortBy, setSortBy] = useState<'name' | 'skill' | 'group'>('skill');
 
     // Filter players based on search and gender
-    const filterPlayer = (p: Player) => {
+    const filterPlayer = useCallback((p: Player) => {
         const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
         const matchesGender = genderFilter === 'ALL' ||
             (genderFilter === 'H' ? p.isHandler : p.gender === genderFilter);
         return matchesSearch && matchesGender;
-    };
+    }, [search, genderFilter]);
 
     // Helper to check if player is in a group
-    const isInGroup = (playerId: string) => {
+    const isInGroup = useCallback((playerId: string) => {
         return playerGroups.some(g => g.playerIds.includes(playerId));
-    };
+    }, [playerGroups]);
 
     // When sorting by group, prepare grouped data
     const { groupedDisplay, ungroupedPlayers, filteredPlayers } = useMemo(() => {
@@ -97,7 +97,7 @@ export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
             .sort((a, b) => getEffectiveSkillRating(b) - getEffectiveSkillRating(a));
 
         return { groupedDisplay: groupsWithPlayers, ungroupedPlayers: ungrouped, filteredPlayers: [] };
-    }, [players, search, genderFilter, sortBy, playerGroups]);
+    }, [players, sortBy, genderFilter, filterPlayer, isInGroup, playerGroups]);
 
     // Get all player IDs for SortableContext
     const allPlayerIds = useMemo(() => {

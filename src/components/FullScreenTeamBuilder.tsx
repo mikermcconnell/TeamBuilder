@@ -14,13 +14,14 @@ import {
   DropAnimation
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Player, Team, LeagueConfig, PlayerGroup } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, TeamGenerationStats, TeamIteration, TeamIterationStatus } from '@/types';
 import { getPlayerGroup } from '@/utils/playerGrouping';
 import { PlayerSidebar } from './PlayerSidebar';
 import { TeamBoard } from './TeamBoard';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
+import { TeamIterationTabs } from './TeamIterationTabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2 } from 'lucide-react';
+import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { WorkspaceManager } from './WorkspaceManager';
@@ -44,8 +45,16 @@ interface FullScreenTeamBuilderProps {
   config: LeagueConfig;
   onPlayerMove: (playerId: string, targetTeamId: string | null) => void;
   onTeamNameChange: (teamId: string, newName: string) => void;
+  onTeamBrandingChange?: (teamId: string, updates: {
+    name?: string;
+    color?: string;
+    colorName?: string;
+    resetName?: boolean;
+    resetColor?: boolean;
+  }) => void;
   players: Player[];
   playerGroups: PlayerGroup[];
+  stats?: TeamGenerationStats;
   onExitFullScreen?: () => void;
   onLoadWorkspace: (id: string) => void;
   currentWorkspaceId?: string | null;
@@ -53,6 +62,14 @@ interface FullScreenTeamBuilderProps {
   onReset?: () => void;
   onUndo?: () => void;
   canUndo?: boolean;
+  onRefreshBranding?: () => void;
+  iterations: TeamIteration[];
+  activeIterationId: string | null;
+  onSelectIteration: (iterationId: string) => void;
+  onAddManualIteration: () => void;
+  onAddAiIteration: () => void;
+  onStartOver?: () => void;
+  activeIterationStatus?: TeamIterationStatus;
 }
 
 export function FullScreenTeamBuilder({
@@ -61,15 +78,25 @@ export function FullScreenTeamBuilder({
   config,
   onPlayerMove,
   onTeamNameChange,
+  onTeamBrandingChange,
   players,
   playerGroups,
+  stats,
   onExitFullScreen,
   onLoadWorkspace,
   currentWorkspaceId,
   isEmbedded = false,
   onReset,
   onUndo,
-  canUndo = false
+  canUndo = false,
+  onRefreshBranding,
+  iterations,
+  activeIterationId,
+  onSelectIteration,
+  onAddManualIteration,
+  onAddAiIteration,
+  onStartOver,
+  activeIterationStatus = 'ready',
 }: FullScreenTeamBuilderProps) {
 
   // Handle Undo Shortcut
@@ -254,8 +281,9 @@ export function FullScreenTeamBuilder({
       : "fixed inset-0 bg-slate-50 z-50 flex flex-col font-sans text-slate-900"
     }>
       {/* Enterprise Header */}
-      <div className={`bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-3 flex-shrink-0 flex items-center justify-between z-20 sticky top-0 ${isEmbedded ? 'bg-white' : ''}`}>
-        <div className="flex items-center gap-6">
+      <div className={`bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-3 flex-shrink-0 z-20 sticky top-0 ${isEmbedded ? 'bg-white' : ''}`}>
+        <div className="flex items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
           {!isEmbedded && (
             <div className="flex items-center gap-3">
               <Button
@@ -270,9 +298,9 @@ export function FullScreenTeamBuilder({
               <div className="h-4 w-px bg-slate-200" />
               <div className="flex items-center gap-2">
                 <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm">
-                  <img src="/logo-new.jpg" alt="Logo" className="h-4 w-4 object-cover rounded" />
+                  <img src="/logo-new.jpg" alt="TeamBuilder" className="h-4 w-4 object-cover rounded" />
                 </div>
-                <h1 className="text-lg font-bold tracking-tight text-slate-800">Ulti-Team Hub</h1>
+                <h1 className="text-lg font-bold tracking-tight text-slate-800">TeamBuilder Workspace</h1>
               </div>
             </div>
           )}
@@ -281,103 +309,145 @@ export function FullScreenTeamBuilder({
               <span className="text-sm font-semibold uppercase tracking-wider">Interactive Workspace</span>
             </div>
           )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {onUndo && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onUndo}
+                disabled={!canUndo}
+                className="gap-2 text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                title="Undo (Ctrl+Z)"
+              >
+                <Undo2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Undo</span>
+              </Button>
+            )}
+            {onReset && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (confirm('Reset this iteration? This will move all players back to the Player Pool for the current tab.')) {
+                    onReset();
+                    toast.success('Current tab reset');
+                  }
+                }}
+                className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span className="hidden sm:inline">Clear Tab</span>
+              </Button>
+            )}
+            {onStartOver && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onStartOver}
+                className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                <span className="hidden sm:inline">Start Over</span>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className={`gap-2 ${isAssistantOpen ? 'bg-purple-50 border-purple-200 text-purple-700' : ''}`}
+              onClick={() => setIsAssistantOpen(!isAssistantOpen)}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">AI Assistant</span>
+            </Button>
+            {onLoadWorkspace && (
+              <div className="flex items-center gap-3">
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="w-[180px] h-9 bg-white border-slate-200">
+                    <SelectValue placeholder="Sort teams" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">
+                      <div className="flex items-center gap-2">
+                        <ArrowUpDown className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Sort by Name</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="skill-high">
+                      <div className="flex items-center gap-2">
+                        <ArrowDownWideNarrow className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Skill: High to Low</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="skill-low">
+                      <div className="flex items-center gap-2">
+                        <ArrowUpNarrowWide className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Skill: Low to High</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="h-6 w-px bg-slate-200 mx-1" />
+                {onLoadWorkspace && (
+                  <div className="flex items-center">
+                    <WorkspaceManager
+                      players={players}
+                      playerGroups={playerGroups}
+                      teams={teams}
+                      unassignedPlayers={unassignedPlayers}
+                      config={config}
+                      stats={stats}
+                      onLoadWorkspace={onLoadWorkspace}
+                      currentWorkspaceId={currentWorkspaceId}
+                      mode="toolbar"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {onUndo && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onUndo}
-              disabled={!canUndo}
-              className="gap-2 text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-50"
-              title="Undo (Ctrl+Z)"
-            >
-              <Undo2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Undo</span>
-            </Button>
-          )}
-          {onReset && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (confirm('Reset all teams? This will move all players back to the Player Pool.')) {
-                  onReset();
-                  toast.success('All players moved to Player Pool');
-                }
-              }}
-              className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">Reset</span>
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className={`gap-2 ${isAssistantOpen ? 'bg-purple-50 border-purple-200 text-purple-700' : ''}`}
-            onClick={() => setIsAssistantOpen(!isAssistantOpen)}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span className="hidden sm:inline">AI Assistant</span>
-          </Button>
-          {onLoadWorkspace && (
-            <div className="flex items-center gap-3">
-              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                <SelectTrigger className="w-[180px] h-9 bg-white border-slate-200">
-                  <SelectValue placeholder="Sort teams" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">
-                    <div className="flex items-center gap-2">
-                      <ArrowUpDown className="h-3.5 w-3.5 text-slate-500" />
-                      <span>Sort by Name</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="skill-high">
-                    <div className="flex items-center gap-2">
-                      <ArrowDownWideNarrow className="h-3.5 w-3.5 text-slate-500" />
-                      <span>Skill: High to Low</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="skill-low">
-                    <div className="flex items-center gap-2">
-                      <ArrowUpNarrowWide className="h-3.5 w-3.5 text-slate-500" />
-                      <span>Skill: Low to High</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="h-6 w-px bg-slate-200 mx-1" />
-              {onLoadWorkspace && (
-                <div className="flex items-center">
-                  <WorkspaceManager
-                    players={players}
-                    playerGroups={playerGroups}
-                    teams={teams}
-                    unassignedPlayers={unassignedPlayers}
-                    config={config}
-                    onLoadWorkspace={onLoadWorkspace}
-                    currentWorkspaceId={currentWorkspaceId}
-                    mode="toolbar"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {iterations.length > 0 && (
+          <div className="mt-3">
+            <TeamIterationTabs
+              iterations={iterations}
+              activeIterationId={activeIterationId}
+              onSelectIteration={onSelectIteration}
+              onAddManualIteration={onAddManualIteration}
+              onAddAiIteration={onAddAiIteration}
+            />
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex-1 flex overflow-hidden">
+      {activeIterationStatus !== 'ready' ? (
+        <div className="flex flex-1 items-center justify-center p-8">
+          <div className="max-w-md rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+            <div className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full ${activeIterationStatus === 'failed' ? 'bg-red-50 text-red-500' : 'bg-purple-50 text-purple-500'}`}>
+              {activeIterationStatus === 'failed' ? <AlertTriangle className="h-8 w-8" /> : <Sparkles className="h-8 w-8" />}
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">
+              {activeIterationStatus === 'failed' ? 'This AI tab could not be built' : 'Building this AI tab'}
+            </h2>
+            <p className="mt-3 text-slate-500">
+              {activeIterationStatus === 'failed'
+                ? 'Create another AI iteration when you are ready.'
+                : 'Your manual tab is still available while this version finishes in the background.'}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex-1 flex overflow-hidden">
           {/* Sidebar - Collapsible */}
           <div className={`relative flex-shrink-0 z-20 shadow-xl transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-12' : 'w-80'}`}>
             {/* Toggle button */}
@@ -439,8 +509,11 @@ export function FullScreenTeamBuilder({
           {/* Board */}
           <TeamBoard
             teams={sortedTeams}
+            players={players}
             config={config}
             onTeamNameChange={onTeamNameChange}
+            onTeamBrandingChange={onTeamBrandingChange}
+            onRefreshBranding={onRefreshBranding}
             playerGroups={playerGroups}
           // Add handlers for adding/removing teams if needed in future
           />
@@ -457,7 +530,8 @@ export function FullScreenTeamBuilder({
             document.body
           )
         }
-      </DndContext >
+        </DndContext >
+      )}
     </div >
   );
 }

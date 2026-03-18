@@ -30,6 +30,7 @@ import {
   UserMinus,
   UserCheck,
   MoreVertical,
+  RotateCcw,
   Search,
   Settings2,
   Zap,
@@ -50,6 +51,7 @@ interface PlayerRosterProps {
   onPlayerUpdate: (player: Player) => void;
   onPlayerAdd?: (player: Player) => void;
   onPlayerRemove?: (playerId: string) => void;
+  onClearExecRankings?: () => void;
   pendingWarnings?: StructuredWarning[];
   onResolveWarning?: (warning: StructuredWarning) => void;
   onDismissWarning?: (warningId: string) => void;
@@ -61,6 +63,7 @@ export function PlayerRoster({
   onPlayerUpdate,
   onPlayerAdd,
   onPlayerRemove,
+  onClearExecRankings,
   pendingWarnings = [],
   onResolveWarning,
   onDismissWarning,
@@ -85,6 +88,7 @@ export function PlayerRoster({
   // Dialog states
   const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
+  const [isClearExecOpen, setIsClearExecOpen] = useState(false);
   const [viewPlayer, setViewPlayer] = useState<Player | null>(null);
   const [editPlayer, setEditPlayer] = useState<Player | null>(null);
 
@@ -127,6 +131,11 @@ export function PlayerRoster({
       execMin, execMax, execAvg: Math.round(execAvg * 10) / 10
     };
   }, [players]);
+
+  const playersWithExecRankings = useMemo(
+    () => players.filter(player => player.execSkillRating !== null).length,
+    [players]
+  );
 
   // Skill Group Logic
   const getSkillGroupThresholds = useCallback((playersList: Player[]) => {
@@ -344,6 +353,15 @@ export function PlayerRoster({
       setIsDeleteAllOpen(false);
       toast.success(`All ${players.length} players removed`);
     }
+  };
+
+  const handleClearExecRankings = () => {
+    if (!onClearExecRankings || playersWithExecRankings === 0) {
+      return;
+    }
+
+    onClearExecRankings();
+    setIsClearExecOpen(false);
   };
 
   const handleBulkDelete = () => {
@@ -574,12 +592,44 @@ export function PlayerRoster({
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg border-2 border-slate-100">
+              <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-2 border-slate-100">
                 <DropdownMenuLabel>Roster Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleExportRosters} disabled={players.length === 0} className="cursor-pointer">
                   <Download className="h-4 w-4 mr-2" /> Export to CSV
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <Dialog open={isClearExecOpen} onOpenChange={setIsClearExecOpen}>
+                  <DialogTrigger asChild>
+                    <div className="w-full">
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        disabled={playersWithExecRankings === 0}
+                        className="cursor-pointer"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" /> Clear Exec Rankings
+                      </DropdownMenuItem>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">Clear exec rankings?</DialogTitle>
+                      <DialogDescription className="text-base pt-2">
+                        This will remove exec rankings from <span className="font-bold text-foreground">{playersWithExecRankings} player{playersWithExecRankings === 1 ? '' : 's'}</span>.
+                        <br /><br />
+                        Team balancing will fall back to each player's regular skill rating, and the saved exec ranking history in this project will also be cleared.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                      <Button variant="outline" onClick={() => setIsClearExecOpen(false)} className="h-10 rounded-xl font-bold">
+                        Cancel
+                      </Button>
+                      <Button onClick={handleClearExecRankings} className="h-10 rounded-xl font-bold">
+                        Clear Exec Rankings
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
                 <DropdownMenuSeparator />
                 <Dialog open={isDeleteAllOpen} onOpenChange={setIsDeleteAllOpen}>
                   <DialogTrigger asChild>

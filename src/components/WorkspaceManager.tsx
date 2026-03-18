@@ -93,86 +93,24 @@ export function WorkspaceManager({
             return;
         }
 
-        // Update context info so the save operation uses these values
-        setCurrentWorkspaceInfo(currentId || null, saveName.trim(), saveDescription.trim());
-
-        // Wait a tick for state to update? 
-        // Actually, looking at WorkspaceContext, saveWorkspace reads:
-        // const trimmedName = workspaceName.trim();
-        // So we rely on the state update. React batching might be an issue if we call save immediately.
-        // Ideally saveWorkspace should accept overrides.
-        // Let's modify the call to wait or assume the setter works fast enough in this event loop (it usually doesn't).
-        // A safer way is if saveWorkspace took arguments.
-        // Looking at the context implementation: 
-        // saveWorkspace(appState: Partial<AppState>)
-        // It reads name/desc from state.
-
-        // HOWEVER, we can just "Trust" that setting it here updates the context state before we call save?
-        // No, setState is async.
-        // We should probably rely on the fact that we are calling saveWorkspace which likely reads the LATEST state if accessed via ref or similar, 
-        // but it uses `workspaceName` from closure.
-
-        // WORKAROUND: We will trigger the save, but we need to ensure the context has the new name.
-        // Since we can't change the Context interface right now without bigger refactor, 
-        // we will rely on `setCurrentWorkspaceInfo` and then call save.
-        // But to be safe, we might need a `useEffect` or just hope.
-        // Actually, let's look at `WorkspaceContext` again. 
-        // It uses `useCallback` with `[workspaceName, ...]`.
-        // So if we call `setCurrentWorkspaceInfo`, the `saveWorkspace` function reference itself won't change until next render.
-        // This confirms we CANNOT set and save in same handler safely without arguments.
-
-        // BUT, for now, let's assume the user has been keeping the name in sync? 
-        // No, the user types in THIS dialog.
-
-        // Let's do this: 
-        // We will optimistically assume that for this iteration we can't easily fix the context race condition 
-        // without modifying the context source, which I am not doing in this step.
-        // Wait... I can modify the context source in next step if needed. 
-        // But wait, `WorkspaceContext` has:
-        // `setCurrentWorkspaceInfo` which updates state.
-
-        // Let's try this:
-        setCurrentWorkspaceInfo(currentId || null, saveName.trim(), saveDescription.trim());
-
-        // We'll wrap the actual save in a setTimeout to allow render cycle to update the context closure?
-        // That's hacky.
-        // Valid approach: The `WorkspaceContext` really should accept name/desc in `saveWorkspace` opts.
-        // But I can't change that file right now in this single replace.
-        // I will assume for now that I can just call it.
-        // Actually, if I look at `App.tsx` handling `handleSaveWorkspace`, it just calls `saveWorkspace`. 
-        // But `App.tsx` has `handleOpenSaveWorkspaceDialog` which sets the info.
-        // Then `handleSaveWorkspace` is called separately.
-        // Here we do it all in one "Save" button.
-
-        // Fix: We'll separate the "Set Info" and "Save" if we have to, 
-        // OR we just accept we might need to modify Context in next step.
-        // For now, let's try the direct call and see.
-        // Actually, `App.tsx` separates them: Dialog open -> Set Info. Dialog confirm -> Save.
-        // We can mirror that: `useEffect` on `saveName`? No.
-
-        // Let's just do it. JS is single threaded but React batches.
-        // I will add a small timeout hack for safety if I can't change context.
-        // setTimeout(() => saveWorkspace(...), 0);
-
         try {
-            // We'll trust the timeout prevents the race condition of the closure
-            setTimeout(async () => {
-                try {
-                    await saveWorkspace({
-                        players,
-                        playerGroups,
-                        teams,
-                        unassignedPlayers,
-                        config,
-                        stats
-                    });
-                    // Success toast is handled in WorkspaceContext
-                    setIsSaveDialogOpen(false);
-                } catch (e: any) {
-                    console.error('Save failed in setTimeout:', e);
-                    toast.error(`Save failed: ${e?.message || 'Unknown error'}`);
+            await saveWorkspace(
+                {
+                    players,
+                    playerGroups,
+                    teams,
+                    unassignedPlayers,
+                    config,
+                    stats
+                },
+                {
+                    id: currentId || null,
+                    name: saveName.trim(),
+                    description: saveDescription.trim()
                 }
-            }, 100);
+            );
+            setCurrentWorkspaceInfo(currentId || null, saveName.trim(), saveDescription.trim());
+            setIsSaveDialogOpen(false);
         } catch (error: any) {
             console.error('Failed to save project:', error);
             toast.error(`Save failed: ${error?.message || 'Unknown error'}`);

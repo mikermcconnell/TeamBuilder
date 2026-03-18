@@ -16,7 +16,7 @@ To ensure this file remains useful for future models and developers:
 ## App Overview
 **TeamBuilder** is a React-based web application that automatically generates balanced sports teams from player rosters with smart constraint handling. It's designed for sports league organizers who need to create fair teams quickly. The app features cloud storage, user authentication, and collaborative session management.
 
-**Live Demo:** https://5msdtx5yti.space.minimax.io
+**Live Demo:** https://teambuilder-mu.vercel.app
 
 ## Tech Stack
 - **Frontend:** React 18 + TypeScript

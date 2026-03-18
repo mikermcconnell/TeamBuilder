@@ -2,7 +2,9 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Player, getEffectiveSkillRating } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { GripVertical, Unlink, Users, AlertTriangle } from 'lucide-react';
+import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
 
 interface DraggablePlayerCardProps {
   player: Player;
@@ -35,6 +37,7 @@ export function DraggablePlayerCard({
   };
 
   const effectiveSkill = getEffectiveSkillRating(player);
+  const registrationInfo = getPlayerRegistrationInfo(player);
 
   const getSkillColor = (skill: number) => {
     const roundedSkill = Math.round(skill);
@@ -106,21 +109,35 @@ export function DraggablePlayerCard({
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className={`font-medium truncate leading-tight ${compact ? 'text-xs' : 'text-sm'}`}>
-          {compact ? (
-            <>
-              <span className="lg:hidden">
-                {(() => {
-                  const parts = player.name.trim().split(/\s+/);
-                  if (parts.length > 1) {
-                    const lastName = parts[parts.length - 1] || '';
-                    return `${parts[0]} ${lastName.charAt(0)}.`;
-                  }
-                  return player.name;
-                })()}
-              </span>
-              <span className="hidden lg:inline">{player.name}</span>
-            </>
-          ) : player.name}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-help underline decoration-dotted underline-offset-2">
+                  {compact ? (
+                    <>
+                      <span className="lg:hidden">
+                        {(() => {
+                          const parts = player.name.trim().split(/\s+/);
+                          if (parts.length > 1) {
+                            const lastName = parts[parts.length - 1] || '';
+                            return `${parts[0]} ${lastName.charAt(0)}.`;
+                          }
+                          return player.name;
+                        })()}
+                      </span>
+                      <span className="hidden lg:inline">{player.name}</span>
+                    </>
+                  ) : player.name}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs whitespace-pre-wrap text-left leading-relaxed">
+                <div className="space-y-1">
+                  <div className="font-semibold">Registration notes</div>
+                  <div>{registrationInfo}</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {player.isHandler && (
             <span className="ml-1 inline-flex items-center justify-center bg-yellow-100 text-yellow-800 text-[9px] font-bold px-1 rounded h-3.5 align-middle" title="Handler">
               H

@@ -102,6 +102,22 @@ function detectCSVFormat(headers: string[]): FormatDetectionResult {
   }
 }
 
+function findRegistrationInfoColumn(headers: string[]): string {
+  return headers.find(h => {
+    const lowerH = h.toLowerCase().trim();
+    return (
+      lowerH.includes('other_notes') ||
+      lowerH.includes('other notes') ||
+      lowerH.includes('sign up note') ||
+      lowerH.includes('signup note') ||
+      lowerH.includes('registration note') ||
+      lowerH.includes('registration info') ||
+      lowerH === 'notes' ||
+      lowerH === 'note'
+    );
+  }) || '';
+}
+
 export function validateAndProcessCSV(csvText: string): CSVValidationResult {
   const result: CSVValidationResult = {
     isValid: false,
@@ -166,6 +182,7 @@ function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVVa
   const teammateCol = headers.find(h => h.toLowerCase().includes('teammate')) || '';
   const avoidCol = headers.find(h => h.toLowerCase().includes('avoid')) || '';
   const emailCol = headers.find(h => h.toLowerCase().includes('email')) || '';
+  const registrationInfoCol = findRegistrationInfoColumn(headers);
 
   const seenNames = new Set<string>();
   const players: Player[] = [];
@@ -263,6 +280,7 @@ function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVVa
     const player: Player = {
       id: generatePlayerId(name),
       name,
+      ...(row[registrationInfoCol]?.trim() ? { registrationInfo: row[registrationInfoCol].trim() } : {}),
       gender,
       skillRating,
       execSkillRating,
@@ -302,6 +320,7 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
   const genderCol = headers.find(h => h.toLowerCase().includes('gender')) || '';
   const skillCol = headers.find(h => h.toLowerCase() === 'skill') || '';
   const execCol = headers.find(h => h.toLowerCase() === 'exec') || '';
+  const registrationInfoCol = findRegistrationInfoColumn(headers);
 
   // Find player request columns (Player_Request_#1, Player_Request_#2, Player_Request_#3)
   const playerRequestCols = headers.filter(h =>
@@ -461,6 +480,7 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
     const player: Player = {
       id: generatePlayerId(name),
       name,
+      ...(row[registrationInfoCol]?.trim() ? { registrationInfo: row[registrationInfoCol].trim() } : {}),
       gender,
       skillRating,
       execSkillRating, // Will be set to exec value if exec > 0, otherwise null
@@ -615,21 +635,21 @@ function generatePlayerId(name: string): string {
 }
 
 export function generateSampleCSV(): string {
-  const headers = ['Name', 'Gender (Optional)', 'Skill Rating (Optional)', 'Exec Skill Rating (Optional)', 'Teammate Requests', 'Avoid Requests', 'Email (Optional)'];
+  const headers = ['Name', 'Gender (Optional)', 'Skill Rating (Optional)', 'Exec Skill Rating (Optional)', 'Teammate Requests', 'Avoid Requests', 'Email (Optional)', 'Registration Notes (Optional)'];
 
   const sampleData = [
-    ['Alice Johnson', 'F', '8', '7.5', 'Bob Smith', '', 'alice.johnson@email.com'],
-    ['Bob Smith', 'M', '7', '7', 'Alice Johnson', 'Charlie Brown', 'bob.smith@email.com'],
-    ['Charlie Brown', 'M', '6', '5.5', '', 'Bob Smith', ''],
-    ['Diana Prince', 'F', '', '', '', '', 'diana.prince@email.com'],
-    ['Eve Adams', '', '5', '5', 'Frank Miller', '', ''],
-    ['Frank Miller', 'M', '7', '6.5', 'Eve Adams', '', 'frank.miller@email.com'],
-    ['Grace Lee', '', '', '', '', '', 'grace.lee@email.com'],
-    ['Henry Wilson', 'M', '6', '6', '', '', ''],
-    ['Iris Chen', 'F', '7', '7', '', '', 'iris.chen@email.com'],
-    ['Jack Davis', 'M', '8', '8.5', '', '', 'jack.davis@email.com'],
-    ['Karen Taylor', 'F', '6', '6', '', '', ''],
-    ['Luke Martinez', 'M', '9', '8', '', '', 'luke.martinez@email.com']
+    ['Alice Johnson', 'F', '8', '7.5', 'Bob Smith', '', 'alice.johnson@email.com', 'Prefers early games.'],
+    ['Bob Smith', 'M', '7', '7', 'Alice Johnson', 'Charlie Brown', 'bob.smith@email.com', 'Coming off an ankle injury.'],
+    ['Charlie Brown', 'M', '6', '5.5', '', 'Bob Smith', '', ''],
+    ['Diana Prince', 'F', '', '', '', '', 'diana.prince@email.com', ''],
+    ['Eve Adams', '', '5', '5', 'Frank Miller', '', '', 'Can sub if a team is short.'],
+    ['Frank Miller', 'M', '7', '6.5', 'Eve Adams', '', 'frank.miller@email.com', ''],
+    ['Grace Lee', '', '', '', '', '', 'grace.lee@email.com', ''],
+    ['Henry Wilson', 'M', '6', '6', '', '', '', 'Prefers to avoid late starts.'],
+    ['Iris Chen', 'F', '7', '7', '', '', 'iris.chen@email.com', ''],
+    ['Jack Davis', 'M', '8', '8.5', '', '', 'jack.davis@email.com', 'Strong handler.'],
+    ['Karen Taylor', 'F', '6', '6', '', '', '', ''],
+    ['Luke Martinez', 'M', '9', '8', '', '', 'luke.martinez@email.com', '']
   ];
 
   return [headers.join(',')].concat(sampleData.map(row => row.join(','))).join('\n');
