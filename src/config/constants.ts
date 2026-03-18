@@ -36,7 +36,7 @@ export const MAX_TARGET_TEAMS = 50;
 
 // --- AI Configuration ---
 
-export const GEMINI_MODEL = "gemini-3.1-pro-preview";
+export const OPENAI_MODEL = 'gpt-5.4-mini';
 export const DEFAULT_AI_MAX_RETRIES = 3;
 
 // --- UI Constants ---

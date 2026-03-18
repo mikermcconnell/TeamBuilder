@@ -1,0 +1,27 @@
+import { ZodError } from 'zod';
+
+import { parseRequestBody, allowOnlyPost, sendError, sendSuccess, type ServerlessRequest, type ServerlessResponse } from '../../src/server/ai/http';
+import { parseGroupSuggestionsRequest, validateGroupSuggestions } from '../../src/server/ai/guards';
+import { requestGroupSuggestions } from '../../src/server/ai/openaiService';
+
+export default async function handler(req: ServerlessRequest, res: ServerlessResponse) {
+  if (!allowOnlyPost(req, res)) {
+    return;
+  }
+
+  try {
+    const input = parseGroupSuggestionsRequest(parseRequestBody(req.body));
+    const response = await requestGroupSuggestions(input);
+    const suggestions = validateGroupSuggestions(input, response.suggestions);
+    sendSuccess(res, suggestions);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      sendError(res, 'BAD_REQUEST', 'Invalid request payload for group suggestions.', 400, error.issues.map(issue => issue.message));
+      return;
+    }
+
+    const message = error instanceof Error ? error.message : 'Failed to generate group suggestions.';
+    const statusCode = message.includes('OPENAI_API_KEY') ? 500 : 502;
+    sendError(res, 'MODEL_ERROR', message, statusCode);
+  }
+}

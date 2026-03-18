@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LeagueConfig, Player, PlayerGroup } from '@/types';
-import { parseAiTeamDraftResponse, validateAiTeamDraft } from '@/services/geminiService';
+import { parseAiTeamDraftResponse, validateAiTeamDraft } from '@/services/aiService';
 
 const config: LeagueConfig = {
   id: 'league-1',
@@ -62,7 +62,7 @@ const groups: PlayerGroup[] = [
   },
 ];
 
-describe('gemini full-team draft helpers', () => {
+describe('AI full-team draft helpers', () => {
   it('parses a JSON response with fenced code blocks', () => {
     const payload = parseAiTeamDraftResponse(`\`\`\`json
 {

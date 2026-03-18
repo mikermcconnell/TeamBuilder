@@ -10,7 +10,7 @@ import {
 } from '@/types';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { applyTeamBranding } from '@/utils/teamBranding';
-import { generateFullAiTeams } from '@/services/geminiService';
+import { generateFullAiTeams } from '@/services/aiService';
 
 function clonePlayer(player: Player): Player {
   return {

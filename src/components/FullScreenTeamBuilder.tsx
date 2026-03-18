@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Sparkles } from 'lucide-react';
 import { AssistantPanel } from './ai/AssistantPanel';
-import { generateTeamSuggestions } from '@/services/geminiService';
+import { generateTeamSuggestions } from '@/services/aiService';
 import { TeamSuggestion } from '@/types/ai';
 
 import { SuggestionReviewModal } from './ai/SuggestionReviewModal';
@@ -133,7 +133,7 @@ export function FullScreenTeamBuilder({
       const suggestions = await generateTeamSuggestions(prompt, players, teams, config, playerGroups);
       setAiSuggestions(suggestions);
     } catch (error) {
-      toast.error("Failed to generate suggestions. Please check your API key.");
+      toast.error(error instanceof Error ? error.message : 'Failed to generate suggestions.');
       console.error(error);
     } finally {
       setIsAiLoading(false);

@@ -24,7 +24,7 @@ To ensure this file remains useful for future models and developers:
 - **Build Tool:** Vite
 - **State Management:** React Context + Hooks + localStorage + Firestore
 - **Backend:** Firebase (Authentication + Firestore Database)
-- **AI Integration:** Google Gemini API (via Vercel Edge Functions)
+- **AI Integration:** OpenAI GPT-5.4 mini (via Vercel serverless API routes)
 - **Performance:** React Window for virtualization, optimized rendering
 - **Package Manager:** pnpm
 - **Analytics:** Vercel Analytics
@@ -74,7 +74,7 @@ src/
 │   ├── rosterService.ts      # Roster persistence
 │   ├── rosterStorage.ts      # Roster version management
 │   ├── dataStorageService.ts # Unified data storage layer
-│   ├── geminiService.ts      # AI team generation service
+│   ├── aiService.ts          # Front-end AI service wrapper for server-side OpenAI routes
 │   └── ...
 ├── config/
 │   └── firebase.ts    # Firebase configuration
@@ -173,7 +173,7 @@ interface PlayerGroup {
 2. **Generation Types:**
    - Balanced Teams: Honors constraints and balances skill
    - Random Teams: Ignores preferences, random distribution
-   - **AI Suggestions (New):** Intelligent team adjustments via Gemini
+   - **AI Suggestions (New):** Intelligent team adjustments via OpenAI
 
 ### Enhanced UI Features
 - **Full-Screen Team Builder:** Dedicated mode with drag-and-drop

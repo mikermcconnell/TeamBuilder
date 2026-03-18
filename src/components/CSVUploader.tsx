@@ -17,7 +17,7 @@ import { auth } from '@/config/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RosterStorageService } from '@/services/rosterStorage';
 import * as XLSX from 'xlsx';
-import { findPlayerMatches } from '@/services/geminiService';
+import { findPlayerMatches } from '@/services/aiService';
 import { StructuredWarning, parseWarnings, parseWarningMessage } from '@/types/StructuredWarning';
 
 interface CSVUploaderProps {
@@ -459,7 +459,7 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
                       {refiningStatus || 'Processing CSV file...'}
                     </p>
                     <p className="text-sm text-slate-500">
-                      {refiningStatus ? 'Consulting Gemini AI to resolve names...' : 'Validating structure and player data...'}
+                      {refiningStatus ? 'Consulting AI to resolve names...' : 'Validating structure and player data...'}
                     </p>
                   </div>
                 )}

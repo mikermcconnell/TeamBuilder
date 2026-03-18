@@ -127,12 +127,20 @@ cd teambuilder
 # Install dependencies
 npm install
 
-# Start development server
+# Add your server-side OpenAI key to .env.local
+# OPENAI_API_KEY=your_key_here
+
+# Start frontend-only development server
 npm run dev
+
+# Start the app with Vercel API routes enabled
+npm run dev:vercel
 
 # Build for production
 npm run build
 ```
+
+Use `npm run dev:vercel` if you want the server-side AI features to work locally.
 
 ## 🌟 Use Cases & Examples
 
