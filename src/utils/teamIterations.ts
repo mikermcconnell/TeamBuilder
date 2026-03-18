@@ -15,8 +15,8 @@ import { generateFullAiTeams } from '@/services/geminiService';
 function clonePlayer(player: Player): Player {
   return {
     ...player,
-    teammateRequests: [...player.teammateRequests],
-    avoidRequests: [...player.avoidRequests],
+    teammateRequests: [...(player.teammateRequests ?? [])],
+    avoidRequests: [...(player.avoidRequests ?? [])],
     teammateRequestsParsed: player.teammateRequestsParsed?.map(request => ({ ...request })),
     unfulfilledRequests: player.unfulfilledRequests?.map(request => ({ ...request })),
   };
@@ -25,8 +25,12 @@ function clonePlayer(player: Player): Player {
 function cloneTeam(team: Team): Team {
   return {
     ...team,
-    players: team.players.map(clonePlayer),
-    genderBreakdown: { ...team.genderBreakdown },
+    players: (team.players ?? []).map(clonePlayer),
+    genderBreakdown: {
+      M: team.genderBreakdown?.M ?? 0,
+      F: team.genderBreakdown?.F ?? 0,
+      Other: team.genderBreakdown?.Other ?? 0,
+    },
   };
 }
 
@@ -177,8 +181,8 @@ export async function createAiTeamIteration(
 export function cloneTeamIteration(iteration: TeamIteration): TeamIteration {
   return {
     ...iteration,
-    teams: iteration.teams.map(cloneTeam),
-    unassignedPlayers: iteration.unassignedPlayers.map(clonePlayer),
+    teams: (iteration.teams ?? []).map(cloneTeam),
+    unassignedPlayers: (iteration.unassignedPlayers ?? []).map(clonePlayer),
     stats: cloneStats(iteration.stats),
   };
 }
@@ -264,8 +268,8 @@ export function applyTeamIterationToState(state: AppState, iterationId: string |
   return {
     ...state,
     activeTeamIterationId: activeIteration.id,
-    teams: activeIteration.teams.map(cloneTeam),
-    unassignedPlayers: activeIteration.unassignedPlayers.map(clonePlayer),
+    teams: (activeIteration.teams ?? []).map(cloneTeam),
+    unassignedPlayers: (activeIteration.unassignedPlayers ?? []).map(clonePlayer),
     stats: cloneStats(activeIteration.stats),
   };
 }
@@ -279,8 +283,8 @@ export function syncActiveTeamIterationToState(state: AppState): AppState {
     iteration.id === state.activeTeamIterationId
       ? {
         ...iteration,
-        teams: state.teams.map(cloneTeam),
-        unassignedPlayers: state.unassignedPlayers.map(clonePlayer),
+        teams: (state.teams ?? []).map(cloneTeam),
+        unassignedPlayers: (state.unassignedPlayers ?? []).map(clonePlayer),
         stats: cloneStats(state.stats),
         errorMessage: undefined,
       }

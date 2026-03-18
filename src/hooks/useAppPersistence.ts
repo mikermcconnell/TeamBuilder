@@ -86,31 +86,51 @@ function sanitizeLoadedState(loadedState: AppState): AppState | null {
     return null;
   }
 
-  const validatedPlayers = loadedState.players
+  const config = loadedState.config || getDefaultConfig();
+  const players = loadedState.players || [];
+  const teams = loadedState.teams || [];
+  const unassignedPlayers = loadedState.unassignedPlayers || [];
+  const playerGroups = loadedState.playerGroups || [];
+  const savedConfigs = loadedState.savedConfigs || [];
+  const pendingWarnings = loadedState.pendingWarnings || [];
+  const teamIterations = loadedState.teamIterations || [];
+
+  const validatedPlayers = players
     .map(player => validatePlayer(player))
     .filter((player): player is Player => player !== null);
+
+  const normalized = ensureTeamIterations({
+    ...loadedState,
+    players: validatedPlayers,
+    teams,
+    unassignedPlayers,
+    playerGroups,
+    config,
+    teamIterations,
+  });
 
   return {
     ...loadedState,
     players: validatedPlayers,
-    config: loadedState.config || getDefaultConfig(),
+    teams: applyTeamBranding(teams, playerGroups, config),
+    unassignedPlayers,
+    playerGroups,
+    config,
+    savedConfigs,
+    pendingWarnings,
     execRatingHistory: buildExecRatingHistory(validatedPlayers, loadedState.execRatingHistory),
-    ...(() => {
-      const normalized = ensureTeamIterations({
-        ...loadedState,
-        players: validatedPlayers,
-        config: loadedState.config || getDefaultConfig(),
-      });
-
-      return applyTeamIterationToState({
-        ...loadedState,
-        players: validatedPlayers,
-        config: loadedState.config || getDefaultConfig(),
-        teams: applyTeamBranding(loadedState.teams || [], loadedState.playerGroups || [], loadedState.config || getDefaultConfig()),
-        teamIterations: normalized.teamIterations,
-        activeTeamIterationId: normalized.activeTeamIterationId,
-      }, normalized.activeTeamIterationId);
-    })(),
+    ...applyTeamIterationToState({
+      ...loadedState,
+      players: validatedPlayers,
+      teams: applyTeamBranding(teams, playerGroups, config),
+      unassignedPlayers,
+      playerGroups,
+      config,
+      savedConfigs,
+      pendingWarnings,
+      teamIterations: normalized.teamIterations,
+      activeTeamIterationId: normalized.activeTeamIterationId,
+    }, normalized.activeTeamIterationId),
   };
 }
 
