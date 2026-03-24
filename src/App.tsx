@@ -2,11 +2,13 @@ import React, { useState, useCallback, useEffect, useRef, ChangeEvent, useMemo }
 
 
 import { AppState, getEffectiveSkillRating } from '@/types';
-import { getDefaultConfig } from '@/utils/configManager';
+import { getDefaultConfig, getRosterFeasibilityWarnings, validateConfig } from '@/utils/configManager';
 import { getProjectBackupFilename, parseProjectBackup, serializeProjectBackup } from '@/utils/projectRecovery';
+import { validateGroupsForGeneration } from '@/utils/playerGrouping';
 import {
   applyTeamIterationToState,
   createAiTeamIteration,
+  createCopiedTeamIteration,
   createManualTeamIteration,
   createPendingTeamIteration,
   syncActiveTeamIterationToState,
@@ -33,6 +35,7 @@ import { FileSpreadsheet, BarChart3, Users, LayoutGrid, ArrowRight, FileText, Ar
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
+import { flushSync } from 'react-dom';
 
 
 // Import test runner for development
@@ -55,6 +58,46 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
       </div>
     </div>
   );
+}
+
+function getAiIterationBanner(iteration?: AppState['teamIterations'][number] | null) {
+  if (!iteration || iteration.type !== 'ai' || iteration.status !== 'ready') {
+    return null;
+  }
+
+  const responseIds = iteration.aiResponseIds?.length
+    ? iteration.aiResponseIds
+    : iteration.aiResponseId
+      ? [iteration.aiResponseId]
+      : [];
+  const executionDetails = [
+    iteration.aiModel ? `Model used: ${iteration.aiModel}` : null,
+    responseIds.length > 1
+      ? `Response IDs: ${responseIds.join(', ')}`
+      : responseIds[0]
+        ? `Response ID: ${responseIds[0]}`
+        : null,
+  ].filter(Boolean).join('\n');
+
+  if (iteration.generationSource === 'fallback') {
+    return {
+      tone: 'fallback' as const,
+      title: 'AI could not finish this draft',
+      message: [
+        iteration.errorMessage || 'The AI draft did not meet the rules for a valid result, so TeamBuilder finished the teams with its built-in balancing logic.',
+        executionDetails,
+      ].filter(Boolean).join('\n\n'),
+    };
+  }
+
+  return {
+    tone: 'success' as const,
+    title: 'This tab was built by AI',
+    message: [
+      iteration.errorMessage || 'The AI finished this draft and handed it back ready to use.',
+      executionDetails,
+    ].filter(Boolean).join('\n\n'),
+  };
 }
 
 function App() {
@@ -303,10 +346,13 @@ function App() {
     handlePlayerRemove,
     handlePlayerMove,
     handleClearExecRankings,
+    handleResetExecHistory,
     handleResetTeams,
     handleTeamNameChange,
     handleTeamBrandingChange,
     handleRefreshTeamBranding,
+    handleAddTeam,
+    handleRemoveTeam,
     handleAddPlayerToGroup,
     handleRemovePlayerFromGroup,
     handleCreateNewGroup,
@@ -322,8 +368,22 @@ function App() {
     setCurrentWorkspaceInfo,
   });
 
+  const handleRosterCsvLoaded = useCallback((
+    players: Parameters<typeof handlePlayersLoaded>[0],
+    playerGroups?: Parameters<typeof handlePlayersLoaded>[1],
+    warnings?: Parameters<typeof handlePlayersLoaded>[2],
+    metadata?: Parameters<typeof handlePlayersLoaded>[3]
+  ) => {
+    setHistory([]);
+    handlePlayersLoaded(players, playerGroups, warnings, metadata);
+  }, [handlePlayersLoaded]);
+
   const teamIterations = useMemo(() => appState.teamIterations ?? [], [appState.teamIterations]);
   const activeIteration = teamIterations.find(iteration => iteration.id === appState.activeTeamIterationId) ?? null;
+  const workspaceTeams = activeIteration?.teams ?? appState.teams;
+  const workspaceUnassignedPlayers = activeIteration?.unassignedPlayers ?? appState.unassignedPlayers;
+  const workspaceStats = activeIteration?.stats ?? appState.stats;
+  const execHistoryCount = Object.keys(appState.execRatingHistory || {}).length;
 
   const getNextIterationName = useCallback((type: 'manual' | 'ai') => {
     const prefix = type === 'manual' ? 'Manual' : 'AI';
@@ -340,7 +400,9 @@ function App() {
   }, [teamIterations]);
 
   const selectIteration = useCallback((iterationId: string) => {
-    setAppState(prev => applyTeamIterationToState(prev, iterationId));
+    flushSync(() => {
+      setAppState(prev => applyTeamIterationToState(prev, iterationId));
+    });
     setTeamsView('landing');
   }, []);
 
@@ -350,7 +412,19 @@ function App() {
       return false;
     }
 
-    const { validateGroupsForGeneration } = await import('@/utils/playerGrouping');
+    const configErrors = validateConfig(appState.config, appState.players.length);
+    if (configErrors.length > 0) {
+      configErrors.forEach(error => {
+        toast.error(error, { duration: 5000 });
+      });
+      return false;
+    }
+
+    const rosterFeasibilityWarnings = getRosterFeasibilityWarnings(appState.players, appState.config);
+    rosterFeasibilityWarnings.forEach(warning => {
+      toast.warning(warning, { duration: 5000 });
+    });
+
     const validation = validateGroupsForGeneration(appState.playerGroups, appState.config.maxTeamSize);
 
     if (!validation.valid) {
@@ -365,7 +439,7 @@ function App() {
     });
 
     return true;
-  }, [appState.config.maxTeamSize, appState.playerGroups, appState.players.length]);
+  }, [appState.config, appState.playerGroups, appState.players]);
 
   const buildAiIterationInBackground = useCallback(async (
     iterationId: string,
@@ -381,7 +455,7 @@ function App() {
     try {
       await new Promise(resolve => window.setTimeout(resolve, 150));
 
-      const builtIteration = createAiTeamIteration(
+      const builtIteration = await createAiTeamIteration(
         snapshot.players,
         snapshot.config,
         snapshot.playerGroups,
@@ -418,7 +492,7 @@ function App() {
 
       if (iterationWasUpdated) {
         if (builtIteration.generationSource === 'fallback') {
-          toast.warning(`${iterationName} is ready. AI could not complete it, so the standard builder was used.`);
+          toast.warning(`${iterationName} is ready. The AI draft did not pass validation, so TeamBuilder switched to its built-in balancing method.`);
         } else if (successMessage) {
           toast.success(successMessage);
         }
@@ -604,6 +678,46 @@ function App() {
     );
   }, [appState.config, appState.playerGroups, appState.players, buildAiIterationInBackground, getNextIterationName, snapshotCurrentState, validateGenerationSetup]);
 
+  const handleCopyIteration = useCallback((iterationId: string) => {
+    const sourceIteration = teamIterations.find(iteration => iteration.id === iterationId);
+    if (!sourceIteration) {
+      toast.error('That tab could not be copied');
+      return;
+    }
+
+    if (sourceIteration.status !== 'ready') {
+      toast.error('Only ready tabs can be copied right now');
+      return;
+    }
+
+    snapshotCurrentState();
+
+    let copiedIterationName = '';
+
+    setAppState(prev => {
+      const iterationToCopy = (prev.teamIterations ?? []).find(iteration => iteration.id === iterationId);
+      if (!iterationToCopy) {
+        return prev;
+      }
+
+      const copiedIteration = createCopiedTeamIteration(iterationToCopy, prev.teamIterations ?? []);
+      copiedIterationName = copiedIteration.name;
+
+      return applyTeamIterationToState({
+        ...prev,
+        teamIterations: [...(prev.teamIterations ?? []), copiedIteration],
+        activeTeamIterationId: copiedIteration.id,
+      }, copiedIteration.id);
+    });
+
+    setActiveTab('teams');
+    setTeamsView('landing');
+
+    if (copiedIterationName) {
+      toast.success(`Created ${copiedIterationName}`);
+    }
+  }, [snapshotCurrentState, teamIterations]);
+
   const handleDeleteAllIterations = useCallback(() => {
     if (!window.confirm('Delete all team tabs and start over?')) {
       return;
@@ -668,13 +782,13 @@ function App() {
   if (isFullScreenMode) {
     return (
       <FullScreenTeamBuilder
-        teams={appState.teams}
-        unassignedPlayers={appState.unassignedPlayers}
+        teams={workspaceTeams}
+        unassignedPlayers={workspaceUnassignedPlayers}
         onExitFullScreen={() => setIsFullScreenMode(false)}
         config={appState.config}
         players={appState.players}
         playerGroups={appState.playerGroups}
-        stats={appState.stats}
+        stats={workspaceStats}
         onPlayerMove={handlePlayerMove}
         onTeamNameChange={handleTeamNameChange}
         onTeamBrandingChange={handleTeamBrandingChange}
@@ -684,9 +798,12 @@ function App() {
         onUndo={handleUndo}
         canUndo={history.length > 0}
         onRefreshBranding={handleRefreshTeamBranding}
+        onAddTeam={handleAddTeam}
+        onRemoveTeam={handleRemoveTeam}
         iterations={teamIterations}
         activeIterationId={activeIteration?.id ?? null}
         onSelectIteration={selectIteration}
+        onCopyIteration={handleCopyIteration}
         onAddManualIteration={handleAddManualIteration}
         onAddAiIteration={handleAddAiIteration}
         onStartOver={handleDeleteAllIterations}
@@ -816,7 +933,7 @@ function App() {
 
                     <div id="csv-upload-trigger">
                       <CSVUploader
-                        onPlayersLoaded={handlePlayersLoaded}
+                        onPlayersLoaded={handleRosterCsvLoaded}
                         onNavigateToRoster={() => setActiveTab('roster')}
                       />
                     </div>
@@ -865,6 +982,8 @@ function App() {
                       onPlayerRemove={handlePlayerRemove}
                       onPlayerAdd={handlePlayerAdd}
                       onClearExecRankings={handleClearExecRankings}
+                      onResetExecHistory={handleResetExecHistory}
+                      execHistoryCount={execHistoryCount}
                       pendingWarnings={appState.pendingWarnings}
                       onResolveWarning={handleResolveWarning}
                       onDismissWarning={handleDismissWarning}
@@ -930,13 +1049,22 @@ function App() {
                         </p>
                       </div>
                     ) : teamsView === 'landing' ? (
-                      <div className="space-y-8 py-8">
-                        {activeIteration?.generationSource === 'fallback' && (
-                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-                            <div className="font-bold">This tab used the standard builder</div>
-                            <div className="mt-1">{activeIteration.errorMessage || 'AI was unavailable for this option, so TeamBuilder created the draft automatically.'}</div>
-                          </div>
-                        )}
+                        <div className="space-y-8 py-8">
+                          {(() => {
+                            const banner = getAiIterationBanner(activeIteration);
+                            if (!banner) return null;
+
+                            const bannerClasses = banner.tone === 'success'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                              : 'border-amber-200 bg-amber-50 text-amber-900';
+
+                            return (
+                              <div className={`rounded-2xl border px-5 py-4 text-sm ${bannerClasses}`}>
+                                <div className="font-bold">{banner.title}</div>
+                                <div className="mt-1 whitespace-pre-wrap">{banner.message}</div>
+                              </div>
+                            );
+                          })()}
                         <div className="text-center space-y-2">
                           <h2 className="text-3xl font-extrabold text-slate-800">{activeIteration?.name || 'Select Workspace'}</h2>
                           <p className="text-slate-500 max-w-lg mx-auto">
@@ -948,6 +1076,11 @@ function App() {
                           {/* Team Builder Card */}
                           <div
                             onClick={() => {
+                              if (activeIteration?.id) {
+                                flushSync(() => {
+                                  setAppState(prev => applyTeamIterationToState(prev, activeIteration.id));
+                                });
+                              }
                               setIsFullScreenMode(true);
                             }}
                             className="group bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-200 hover:-translate-y-1 transition-all cursor-pointer flex flex-col items-center text-center"

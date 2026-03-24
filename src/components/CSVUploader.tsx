@@ -16,18 +16,23 @@ import { WarningPanel } from './WarningPanel';
 import { auth } from '@/config/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RosterStorageService } from '@/services/rosterStorage';
-import * as XLSX from 'xlsx';
 import { findPlayerMatches } from '@/services/aiService';
 import { StructuredWarning, parseWarnings, parseWarningMessage } from '@/types/StructuredWarning';
+import { MAX_CSV_SIZE_BYTES } from '@/config/constants';
 
 interface CSVUploaderProps {
-  onPlayersLoaded: (players: Player[], playerGroups?: PlayerGroup[], warnings?: StructuredWarning[]) => void;
+  onPlayersLoaded: (
+    players: Player[],
+    playerGroups?: PlayerGroup[],
+    warnings?: StructuredWarning[],
+    metadata?: { sourceFileName?: string }
+  ) => void;
   onNavigateToRoster?: () => void;
 }
 
 export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploaderProps) {
-  const SUPPORTED_EXTENSIONS = ['.csv', '.xls', '.xlsx'];
-  const EXCEL_EXTENSIONS = ['.xls', '.xlsx'];
+  const SUPPORTED_EXTENSIONS = ['.csv', '.xlsx'];
+  const EXCEL_EXTENSIONS = ['.xlsx'];
   const [dragActive, setDragActive] = useState(false);
   const [validationResult, setValidationResult] = useState<CSVValidationResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -79,16 +84,21 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
   };
 
   const convertExcelToCSV = async (file: File) => {
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    if (workbook.SheetNames.length === 0) {
-      throw new Error('Excel file does not contain any sheets');
+    const { default: readXlsxFile } = await import('read-excel-file/browser');
+    const rows = await readXlsxFile(file);
+
+    if (rows.length === 0) {
+      throw new Error('Excel file does not contain any rows');
     }
-    const firstSheetName = workbook.SheetNames[0];
-    if (!firstSheetName) throw new Error('No sheets found');
-    const worksheet = workbook.Sheets[firstSheetName];
-    if (!worksheet) throw new Error('Sheet not found');
-    return XLSX.utils.sheet_to_csv(worksheet, { FS: ',', RS: '\n' });
+
+    const escapeCsvValue = (value: unknown) => {
+      const text = value === undefined || value === null ? '' : String(value);
+      return /[",\n]/.test(text)
+        ? `"${text.replace(/"/g, '""')}"`
+        : text;
+    };
+
+    return rows.map(row => row.map(cell => escapeCsvValue(cell)).join(',')).join('\n');
   };
 
   const refineMatches = async (initialResult: CSVValidationResult): Promise<CSVValidationResult> => {
@@ -142,7 +152,12 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
   const handleFile = async (file: File) => {
     const extension = getFileExtension(file.name);
     if (!SUPPORTED_EXTENSIONS.includes(extension)) {
-      toast.error('Unsupported file type. Please upload a CSV or Excel file');
+      toast.error('Unsupported file type. Please upload a CSV or .xlsx file');
+      return;
+    }
+
+    if (file.size > MAX_CSV_SIZE_BYTES) {
+      toast.error(`File is too large. Please upload a file under ${Math.floor(MAX_CSV_SIZE_BYTES / (1024 * 1024))} MB.`);
       return;
     }
 
@@ -180,7 +195,6 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
   const handleLoadFromCloud = (csvContent: string, rosterName: string) => {
     setCurrentCSVContent(csvContent);
     setUploadedFileName(`${rosterName}.csv`);
-    setUploadedFileName(`${rosterName}.csv`);
     const result = validateAndProcessCSV(csvContent);
     // Silent refinement for cloud load? Or show loader? 
     // Usually cloud load is instant, maybe skip AI for now or handle async
@@ -207,7 +221,12 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
         ? parseWarnings(validationResult.warnings).filter(w => w.status === 'pending')
         : undefined;
 
-      onPlayersLoaded(validationResult.players, validationResult.playerGroups, structuredWarnings);
+      onPlayersLoaded(
+        validationResult.players,
+        validationResult.playerGroups,
+        structuredWarnings,
+        { sourceFileName: uploadedFileName || undefined }
+      );
 
       // Prompt the user to save the uploaded CSV file
       setShowSaveDialog(true);
@@ -412,13 +431,13 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  onChange={handleFileInput}
-                  className="hidden"
-                />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    onChange={handleFileInput}
+                    className="hidden"
+                  />
 
                 <div className="space-y-4">
                   <Upload className="h-12 w-12 text-gray-400 mx-auto" />
@@ -431,7 +450,7 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
                     </p>
                   </div>
                   <p className="text-sm text-gray-500">
-                    Supports CSV (.csv) or Excel (.xls, .xlsx) up to 1MB
+                    Supports CSV (.csv) or Excel (.xlsx) up to 1MB
                   </p>
                 </div>
               </div>

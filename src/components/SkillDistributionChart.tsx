@@ -99,6 +99,10 @@ function getGenderFilterLabel(filter: GenderFilter) {
   return GENDER_FILTER_OPTIONS.find(option => option.value === filter)?.label ?? 'All players';
 }
 
+function formatPlayerCount(count: number) {
+  return `${count} player${count === 1 ? '' : 's'}`;
+}
+
 function getVarianceTone(percentileDifference: number): 'farUnder' | 'under' | 'near' | 'over' | 'farOver' {
   const magnitude = Math.abs(percentileDifference);
   if (magnitude < 2) return 'near';
@@ -206,7 +210,7 @@ export function SkillDistributionChart({ players }: SkillDistributionChartProps)
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">
-                {totalPlayers} players • {getGenderFilterLabel(genderFilter)} • Mean: {mean !== null ? mean.toFixed(1) : '—'}
+                {formatPlayerCount(totalPlayers)} • {getGenderFilterLabel(genderFilter)} • Mean: {mean !== null ? mean.toFixed(1) : '—'}
               </span>
               {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </div>

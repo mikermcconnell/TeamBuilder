@@ -45,6 +45,7 @@ import { RosterFilters, RosterFilterState, initialFilterState } from './roster/R
 import { RosterTable } from './roster/RosterTable';
 import { WarningBanner } from './roster/WarningBanner';
 import { StructuredWarning } from '@/types/StructuredWarning';
+import { getPlayerAgeBand } from '@/utils/playerAgeBands';
 
 interface PlayerRosterProps {
   players: Player[];
@@ -52,6 +53,8 @@ interface PlayerRosterProps {
   onPlayerAdd?: (player: Player) => void;
   onPlayerRemove?: (playerId: string) => void;
   onClearExecRankings?: () => void;
+  onResetExecHistory?: () => void;
+  execHistoryCount?: number;
   pendingWarnings?: StructuredWarning[];
   onResolveWarning?: (warning: StructuredWarning) => void;
   onDismissWarning?: (warningId: string) => void;
@@ -64,6 +67,8 @@ export function PlayerRoster({
   onPlayerAdd,
   onPlayerRemove,
   onClearExecRankings,
+  onResetExecHistory,
+  execHistoryCount = 0,
   pendingWarnings = [],
   onResolveWarning,
   onDismissWarning,
@@ -88,7 +93,8 @@ export function PlayerRoster({
   // Dialog states
   const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
-  const [isClearExecOpen, setIsClearExecOpen] = useState(false);
+  const [isRefreshExecOpen, setIsRefreshExecOpen] = useState(false);
+  const [isResetExecHistoryOpen, setIsResetExecHistoryOpen] = useState(false);
   const [viewPlayer, setViewPlayer] = useState<Player | null>(null);
   const [editPlayer, setEditPlayer] = useState<Player | null>(null);
 
@@ -262,6 +268,13 @@ export function PlayerRoster({
           return false;
         }
       }
+      // Age spotlight filters
+      if (filters.ageBands.length > 0) {
+        const ageBand = getPlayerAgeBand(player.age);
+        if (ageBand === 'standard' || !filters.ageBands.includes(ageBand)) {
+          return false;
+        }
+      }
       // Email
       if (filters.hasEmail !== null) {
         const hasEmail = !!player.email;
@@ -355,13 +368,22 @@ export function PlayerRoster({
     }
   };
 
-  const handleClearExecRankings = () => {
+  const handleRefreshExecRankings = () => {
     if (!onClearExecRankings || playersWithExecRankings === 0) {
       return;
     }
 
     onClearExecRankings();
-    setIsClearExecOpen(false);
+    setIsRefreshExecOpen(false);
+  };
+
+  const handleResetExecHistory = () => {
+    if (!onResetExecHistory || (playersWithExecRankings === 0 && execHistoryCount === 0)) {
+      return;
+    }
+
+    onResetExecHistory();
+    setIsResetExecHistoryOpen(false);
   };
 
   const handleBulkDelete = () => {
@@ -599,7 +621,7 @@ export function PlayerRoster({
                   <Download className="h-4 w-4 mr-2" /> Export to CSV
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <Dialog open={isClearExecOpen} onOpenChange={setIsClearExecOpen}>
+                <Dialog open={isRefreshExecOpen} onOpenChange={setIsRefreshExecOpen}>
                   <DialogTrigger asChild>
                     <div className="w-full">
                       <DropdownMenuItem
@@ -607,25 +629,57 @@ export function PlayerRoster({
                         disabled={playersWithExecRankings === 0}
                         className="cursor-pointer"
                       >
-                        <RotateCcw className="h-4 w-4 mr-2" /> Clear Exec Rankings
+                        <RotateCcw className="h-4 w-4 mr-2" /> Refresh Current Exec Rankings
                       </DropdownMenuItem>
                     </div>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                      <DialogTitle className="text-xl">Clear exec rankings?</DialogTitle>
+                      <DialogTitle className="text-xl">Refresh current exec rankings?</DialogTitle>
                       <DialogDescription className="text-base pt-2">
-                        This will remove exec rankings from <span className="font-bold text-foreground">{playersWithExecRankings} player{playersWithExecRankings === 1 ? '' : 's'}</span>.
+                        This will clear exec rankings from <span className="font-bold text-foreground">{playersWithExecRankings} player{playersWithExecRankings === 1 ? '' : 's'}</span> in the current roster only.
                         <br /><br />
-                        Team balancing will fall back to each player's regular skill rating, and the saved exec ranking history in this project will also be cleared.
+                        The saved exec ranking history will stay in place, so future seasons can still reuse it.
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="gap-2 sm:gap-0">
-                      <Button variant="outline" onClick={() => setIsClearExecOpen(false)} className="h-10 rounded-xl font-bold">
+                      <Button variant="outline" onClick={() => setIsRefreshExecOpen(false)} className="h-10 rounded-xl font-bold">
                         Cancel
                       </Button>
-                      <Button onClick={handleClearExecRankings} className="h-10 rounded-xl font-bold">
-                        Clear Exec Rankings
+                      <Button onClick={handleRefreshExecRankings} className="h-10 rounded-xl font-bold">
+                        Refresh Current Exec Rankings
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isResetExecHistoryOpen} onOpenChange={setIsResetExecHistoryOpen}>
+                  <DialogTrigger asChild>
+                    <div className="w-full">
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        disabled={playersWithExecRankings === 0 && execHistoryCount === 0}
+                        className="cursor-pointer"
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-2" /> Reset Stored Exec History
+                      </DropdownMenuItem>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">Reset stored exec history?</DialogTitle>
+                      <DialogDescription className="text-base pt-2">
+                        This will clear exec rankings from <span className="font-bold text-foreground">{playersWithExecRankings} player{playersWithExecRankings === 1 ? '' : 's'}</span> and forget <span className="font-bold text-foreground">{execHistoryCount} saved history entr{execHistoryCount === 1 ? 'y' : 'ies'}</span> used to carry rankings into future seasons.
+                        <br /><br />
+                        Use this if you want a completely fresh start.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                      <Button variant="outline" onClick={() => setIsResetExecHistoryOpen(false)} className="h-10 rounded-xl font-bold">
+                        Cancel
+                      </Button>
+                      <Button variant="destructive" onClick={handleResetExecHistory} className="h-10 rounded-xl font-bold bg-red-600 hover:bg-red-700">
+                        Reset Stored Exec History
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -758,6 +812,10 @@ export function PlayerRoster({
                 <div>
                   <Label className="text-muted-foreground">Email</Label>
                   <div className="font-medium">{viewPlayer.email || '-'}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Age</Label>
+                  <div className="font-medium">{viewPlayer.age ?? '-'}</div>
                 </div>
               </div>
 

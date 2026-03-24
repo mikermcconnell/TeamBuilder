@@ -1,11 +1,12 @@
 import { Dispatch, SetStateAction, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 
-import { AppState, LeagueConfig, Player, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import { AppState, LeagueConfig, Player, PlayerGroup, Team, getEffectiveSkillRating } from '@/types';
 import { StructuredWarning } from '@/types/StructuredWarning';
 import { saveDefaultConfig } from '@/utils/configManager';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
-import { applyTeamBranding, getColorName } from '@/utils/teamBranding';
+import { applyTeamBranding, ensureUniqueTeamNames, getColorName, getTeamBrandPalette } from '@/utils/teamBranding';
+import { validateGroupsForGeneration } from '@/utils/playerGrouping';
 import { syncActiveTeamIterationToState } from '@/utils/teamIterations';
 import { debounce } from '@/utils/performance';
 import { validateTeamName } from '@/utils/validation';
@@ -41,7 +42,60 @@ export function useTeamBuilderActions({
 }: UseTeamBuilderActionsOptions) {
   const syncActiveIteration = useCallback((state: AppState) => syncActiveTeamIterationToState(state), []);
 
-  const handlePlayersLoaded = useCallback((players: Player[], playerGroups: PlayerGroup[] = [], warnings?: StructuredWarning[]) => {
+  const syncTargetTeamCount = (config: LeagueConfig, teamCount: number): LeagueConfig => ({
+    ...config,
+    targetTeams: teamCount > 0 ? teamCount : undefined,
+  });
+
+  const clearExecRankingsFromState = useCallback((state: AppState, resetHistory: boolean): AppState => {
+    const clearExecRanking = (player: Player): Player => ({
+      ...player,
+      execSkillRating: null
+    });
+
+    const updatedPlayers = state.players.map(clearExecRanking);
+    const updatedTeams = state.teams.map(team => {
+      const updatedTeamPlayers = team.players.map(clearExecRanking);
+      const totalSkill = updatedTeamPlayers.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0);
+
+      return {
+        ...team,
+        players: updatedTeamPlayers,
+        averageSkill: updatedTeamPlayers.length > 0 ? totalSkill / updatedTeamPlayers.length : 0,
+      };
+    });
+
+    const updatedUnassignedPlayers = state.unassignedPlayers.map(clearExecRanking);
+    const updatedPlayerGroups = state.playerGroups.map(group => ({
+      ...group,
+      players: group.players.map(clearExecRanking)
+    }));
+
+    return syncActiveIteration({
+      ...state,
+      players: updatedPlayers,
+      teams: updatedTeams,
+      unassignedPlayers: updatedUnassignedPlayers,
+      playerGroups: updatedPlayerGroups,
+      execRatingHistory: resetHistory ? {} : state.execRatingHistory,
+    });
+  }, [syncActiveIteration]);
+
+  const deriveWorkspaceNameFromFile = (sourceFileName?: string) => {
+    const trimmedName = sourceFileName?.trim();
+    if (!trimmedName) {
+      return `Project ${new Date().toLocaleDateString()}`;
+    }
+
+    return trimmedName.replace(/\.[^/.]+$/, '').trim() || `Project ${new Date().toLocaleDateString()}`;
+  };
+
+  const handlePlayersLoaded = useCallback((
+    players: Player[],
+    playerGroups: PlayerGroup[] = [],
+    warnings?: StructuredWarning[],
+    metadata?: { sourceFileName?: string }
+  ) => {
     setAppState(prev => {
       const execRatingHistory = { ...prev.execRatingHistory };
 
@@ -116,7 +170,7 @@ export function useTeamBuilderActions({
       }
     }
 
-    setCurrentWorkspaceInfo(null, '', '');
+    setCurrentWorkspaceInfo(null, deriveWorkspaceNameFromFile(metadata?.sourceFileName), '');
   }, [setActiveTab, setAppState, setCurrentWorkspaceInfo, setIsFullScreenMode, setIsManualMode]);
 
   const handleConfigChange = useCallback((config: LeagueConfig) => {
@@ -132,7 +186,6 @@ export function useTeamBuilderActions({
 
     snapshotCurrentState();
 
-    const { validateGroupsForGeneration } = await import('@/utils/playerGrouping');
     const validation = validateGroupsForGeneration(appState.playerGroups, appState.config.maxTeamSize);
 
     if (!validation.valid) {
@@ -429,48 +482,30 @@ export function useTeamBuilderActions({
     const execRankingsCount = appState.players.filter(player => player.execSkillRating !== null).length;
 
     if (execRankingsCount === 0) {
-      toast.info('No exec rankings to clear');
+      toast.info('No current exec rankings to clear');
       return;
     }
 
     snapshotCurrentState();
+    setAppState(prev => clearExecRankingsFromState(prev, false));
 
-    const clearExecRanking = (player: Player): Player => ({
-      ...player,
-      execSkillRating: null
-    });
+    toast.success(`Cleared current exec rankings for ${execRankingsCount} player${execRankingsCount === 1 ? '' : 's'} and kept stored history`);
+  }, [appState.players, clearExecRankingsFromState, setAppState, snapshotCurrentState]);
 
-    setAppState(prev => {
-      const updatedPlayers = prev.players.map(clearExecRanking);
-      const updatedTeams = prev.teams.map(team => {
-        const updatedTeamPlayers = team.players.map(clearExecRanking);
-        const totalSkill = updatedTeamPlayers.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0);
+  const handleResetExecHistory = useCallback(() => {
+    const execRankingsCount = appState.players.filter(player => player.execSkillRating !== null).length;
+    const execHistoryCount = Object.keys(appState.execRatingHistory || {}).length;
 
-        return {
-          ...team,
-          players: updatedTeamPlayers,
-          averageSkill: updatedTeamPlayers.length > 0 ? totalSkill / updatedTeamPlayers.length : 0,
-        };
-      });
+    if (execRankingsCount === 0 && execHistoryCount === 0) {
+      toast.info('No exec rankings or stored history to reset');
+      return;
+    }
 
-      const updatedUnassignedPlayers = prev.unassignedPlayers.map(clearExecRanking);
-      const updatedPlayerGroups = prev.playerGroups.map(group => ({
-        ...group,
-        players: group.players.map(clearExecRanking)
-      }));
+    snapshotCurrentState();
+    setAppState(prev => clearExecRankingsFromState(prev, true));
 
-      return syncActiveIteration({
-        ...prev,
-        players: updatedPlayers,
-        teams: updatedTeams,
-        unassignedPlayers: updatedUnassignedPlayers,
-        playerGroups: updatedPlayerGroups,
-        execRatingHistory: {}
-      });
-    });
-
-    toast.success(`Cleared exec rankings for ${execRankingsCount} player${execRankingsCount === 1 ? '' : 's'}`);
-  }, [appState.players, setAppState, snapshotCurrentState, syncActiveIteration]);
+    toast.success(`Reset exec history and cleared rankings for ${execRankingsCount} player${execRankingsCount === 1 ? '' : 's'}`);
+  }, [appState.execRatingHistory, appState.players, clearExecRankingsFromState, setAppState, snapshotCurrentState]);
 
   const handleResetTeams = useCallback(() => {
     setAppState(prev => {
@@ -499,7 +534,7 @@ export function useTeamBuilderActions({
     debounce((teamId: string, newName: string) => {
       setAppState(prev => syncActiveIteration({
         ...prev,
-        teams: prev.teams.map(team =>
+        teams: ensureUniqueTeamNames(prev.teams.map(team =>
           team.id === teamId
             ? {
               ...team,
@@ -507,7 +542,7 @@ export function useTeamBuilderActions({
               isNameManuallySet: true
             }
             : team
-        )
+        ))
       }));
     }, 300)
   );
@@ -557,10 +592,10 @@ export function useTeamBuilderActions({
 
       return syncActiveIteration({
         ...prev,
-        teams: applyTeamBranding(updatedTeams, prev.playerGroups, prev.config, {
+        teams: ensureUniqueTeamNames(applyTeamBranding(updatedTeams, prev.playerGroups, prev.config, {
           forceRename: updates.resetName,
           forceColor: updates.resetColor,
-        })
+        }))
       });
     });
   }, [setAppState, syncActiveIteration]);
@@ -575,6 +610,85 @@ export function useTeamBuilderActions({
     }));
     toast.success('Refreshed team names and colors');
   }, [setAppState, syncActiveIteration]);
+
+  const handleAddTeam = useCallback(() => {
+    snapshotCurrentState();
+
+    setAppState(prev => {
+      const palette = getTeamBrandPalette(prev.teams.length);
+      const newTeam: Team = {
+        id: `team-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: `${palette.colorName} ${palette.mascot}`,
+        color: palette.color,
+        colorName: palette.colorName,
+        players: [],
+        averageSkill: 0,
+        genderBreakdown: { M: 0, F: 0, Other: 0 },
+      };
+
+      return syncActiveIteration({
+        ...prev,
+        teams: ensureUniqueTeamNames([...prev.teams, newTeam]),
+        config: syncTargetTeamCount(prev.config, prev.teams.length + 1),
+      });
+    });
+
+    toast.success('Added a new team');
+  }, [setAppState, snapshotCurrentState, syncActiveIteration]);
+
+  const handleRemoveTeam = useCallback((teamId: string) => {
+    const teamToRemove = appState.teams.find(team => team.id === teamId);
+    if (!teamToRemove) {
+      return;
+    }
+
+    const confirmRemove = window.confirm(
+      teamToRemove.players.length > 0
+        ? `Remove "${teamToRemove.name}"? Its players will move back to the Player Pool.`
+        : `Remove "${teamToRemove.name}"?`
+    );
+
+    if (!confirmRemove) {
+      return;
+    }
+
+    snapshotCurrentState();
+
+    setAppState(prev => {
+      const team = prev.teams.find(existingTeam => existingTeam.id === teamId);
+      if (!team) {
+        return prev;
+      }
+
+      const releasedPlayers = team.players.map(player => ({
+        ...player,
+        teamId: undefined,
+      }));
+      const releasedPlayerIds = new Set(releasedPlayers.map(player => player.id));
+
+      const updatedPlayers = prev.players.map(player => (
+        releasedPlayerIds.has(player.id)
+          ? { ...player, teamId: undefined }
+          : player
+      ));
+
+      const updatedUnassignedPlayers = [
+        ...prev.unassignedPlayers.filter(player => !releasedPlayerIds.has(player.id)),
+        ...releasedPlayers,
+      ];
+      const updatedTeams = prev.teams.filter(existingTeam => existingTeam.id !== teamId);
+
+      return syncActiveIteration({
+        ...prev,
+        players: updatedPlayers,
+        teams: updatedTeams,
+        unassignedPlayers: updatedUnassignedPlayers,
+        config: syncTargetTeamCount(prev.config, updatedTeams.length),
+      });
+    });
+
+    toast.success(`Removed ${teamToRemove.name}`);
+  }, [appState.teams, setAppState, snapshotCurrentState, syncActiveIteration]);
 
   const handleAddPlayerToGroup = useCallback((playerId: string, groupId: string) => {
     setAppState(prev => {
@@ -735,10 +849,13 @@ export function useTeamBuilderActions({
     handlePlayerRemove,
     handlePlayerMove,
     handleClearExecRankings,
+    handleResetExecHistory,
     handleResetTeams,
     handleTeamNameChange,
     handleTeamBrandingChange,
     handleRefreshTeamBranding,
+    handleAddTeam,
+    handleRemoveTeam,
     handleAddPlayerToGroup,
     handleRemovePlayerFromGroup,
     handleCreateNewGroup,

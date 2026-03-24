@@ -63,9 +63,12 @@ interface FullScreenTeamBuilderProps {
   onUndo?: () => void;
   canUndo?: boolean;
   onRefreshBranding?: () => void;
+  onAddTeam?: () => void;
+  onRemoveTeam?: (teamId: string) => void;
   iterations: TeamIteration[];
   activeIterationId: string | null;
   onSelectIteration: (iterationId: string) => void;
+  onCopyIteration: (iterationId: string) => void;
   onAddManualIteration: () => void;
   onAddAiIteration: () => void;
   onStartOver?: () => void;
@@ -90,9 +93,12 @@ export function FullScreenTeamBuilder({
   onUndo,
   canUndo = false,
   onRefreshBranding,
+  onAddTeam,
+  onRemoveTeam,
   iterations,
   activeIterationId,
   onSelectIteration,
+  onCopyIteration,
   onAddManualIteration,
   onAddAiIteration,
   onStartOver,
@@ -122,7 +128,7 @@ export function FullScreenTeamBuilder({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // AI Assistant State
-  const [isAssistantOpen, setIsAssistantOpen] = useState(true);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<TeamSuggestion[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -363,7 +369,7 @@ export function FullScreenTeamBuilder({
             </Button>
             {onLoadWorkspace && (
               <div className="flex items-center gap-3">
-                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'name' | 'skill-high' | 'skill-low')}>
                   <SelectTrigger className="w-[180px] h-9 bg-white border-slate-200">
                     <SelectValue placeholder="Sort teams" />
                   </SelectTrigger>
@@ -415,6 +421,7 @@ export function FullScreenTeamBuilder({
               iterations={iterations}
               activeIterationId={activeIterationId}
               onSelectIteration={onSelectIteration}
+              onCopyIteration={onCopyIteration}
               onAddManualIteration={onAddManualIteration}
               onAddAiIteration={onAddAiIteration}
             />
@@ -447,7 +454,7 @@ export function FullScreenTeamBuilder({
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex-1 flex overflow-hidden">
+          <div className="relative flex-1 flex overflow-hidden">
           {/* Sidebar - Collapsible */}
           <div className={`relative flex-shrink-0 z-20 shadow-xl transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-12' : 'w-80'}`}>
             {/* Toggle button */}
@@ -513,9 +520,10 @@ export function FullScreenTeamBuilder({
             config={config}
             onTeamNameChange={onTeamNameChange}
             onTeamBrandingChange={onTeamBrandingChange}
+            onAddTeam={onAddTeam}
+            onRemoveTeam={onRemoveTeam}
             onRefreshBranding={onRefreshBranding}
             playerGroups={playerGroups}
-          // Add handlers for adding/removing teams if needed in future
           />
         </div>
 

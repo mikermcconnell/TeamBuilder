@@ -34,10 +34,15 @@ export const DEFAULT_MIN_MALES = 0;
 export const MIN_TARGET_TEAMS = 2;
 export const MAX_TARGET_TEAMS = 50;
 
+// Age highlighting thresholds
+export const YOUNG_PLAYER_MAX_AGE = 21; // under 22
+export const WISE_PLAYER_MIN_AGE = 44; // over 43
+
 // --- AI Configuration ---
 
-export const OPENAI_MODEL = 'gpt-5.4-mini';
+export const OPENAI_MODEL = 'gpt-5.4';
 export const DEFAULT_AI_MAX_RETRIES = 3;
+export const MAX_AI_REQUEST_BYTES = 512 * 1024; // 512 KB
 
 // --- UI Constants ---
 

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { TEAM_BRAND_PALETTE, getColorName, hexToRgba } from '@/utils/teamBranding';
+import { getPlayerAgeBand } from '@/utils/playerAgeBands';
 
 interface DroppableTeamCardProps {
     team: Team;
@@ -115,6 +116,8 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
     const maleCount = genderBreakdown.M || 0;
     const handlerCount = team.players.filter(p => p.isHandler).length;
     const targetHandlers = 3; // Based on "three handlers per team" request
+    const youngPlayerCount = team.players.filter(player => getPlayerAgeBand(player.age) === 'young').length;
+    const wisePlayerCount = team.players.filter(player => getPlayerAgeBand(player.age) === 'wise').length;
 
     const getAverageSkillForGender = (gender: 'M' | 'F' | 'Other') => {
         const genderPlayers = team.players.filter(player => player.gender === gender);
@@ -209,7 +212,7 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
         >
             <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl" style={{ backgroundColor: teamColor }} />
             <CardHeader className="p-3 pb-2 space-y-2">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-start justify-between gap-2">
                     {isEditing ? (
                         <Input
                             value={tempName}
@@ -217,22 +220,34 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
                             onBlur={handleNameSave}
                             onKeyDown={(e) => e.key === 'Enter' && handleNameSave()}
                             autoFocus
-                            className="h-8 text-sm font-bold border-slate-300 focus:ring-indigo-500"
+                            className="h-8 min-w-0 flex-1 text-sm font-bold border-slate-300 focus:ring-indigo-500"
                         />
                     ) : (
                         <div
-                            className="flex-1 min-w-0 group/name"
+                            className="flex-1 min-w-0 group/name cursor-pointer"
                             onClick={() => {
                                 setTempName(team.name);
                                 setIsEditing(true);
                             }}
                         >
-                            <CardTitle className="text-[15px] font-bold truncate text-slate-800 group-hover/name:text-indigo-600 transition-colors flex items-center gap-2 cursor-pointer">
-                                {team.name}
+                            <CardTitle className="min-w-0 text-[15px] font-bold text-slate-800 group-hover/name:text-indigo-600 transition-colors">
+                                <div className="flex min-w-0 flex-col items-start gap-1">
+                                    <span
+                                        className="block min-w-0 max-w-full break-words pr-1 leading-tight"
+                                        style={{
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical',
+                                            overflow: 'hidden',
+                                        }}
+                                        title={team.name}
+                                    >
+                                        {team.name}
+                                    </span>
                                 {team.colorName && (
                                     <Badge
                                         variant="secondary"
-                                        className="hidden sm:inline-flex text-[10px] font-semibold border"
+                                        className="hidden w-fit shrink-0 sm:inline-flex text-[10px] font-semibold border"
                                         style={{
                                             backgroundColor: hexToRgba(teamColor, 0.12),
                                             color: teamColor,
@@ -242,12 +257,13 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
                                         {team.colorName}
                                     </Badge>
                                 )}
+                                </div>
                             </CardTitle>
                         </div>
                     )}
 
-                    <div className="flex items-center gap-1">
-                        <Badge variant={isOverCapacity ? "destructive" : "secondary"} className={`text-lg px-2 h-7 font-bold ${isOverCapacity ? '' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                    <div className="flex shrink-0 items-start gap-1 pl-1">
+                        <Badge variant={isOverCapacity ? "destructive" : "secondary"} className={`h-7 px-2 text-base font-bold md:text-lg ${isOverCapacity ? '' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                             {playerCount}/{config.maxTeamSize}
                         </Badge>
                         <DropdownMenu>
@@ -281,7 +297,7 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
                             </DropdownMenuContent>
                         </DropdownMenu>
 
-                        <div className="hidden group-hover:block absolute top-2 right-10 md:static md:block md:static">
+                        <div className="absolute right-10 top-2 hidden group-hover:block">
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -342,6 +358,18 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
                         <span className="text-[12px]">{formatAverageSkill(femaleAverageSkill)}</span>
                         <span className="text-[10px] opacity-80">({femaleAverageMeta.deltaLabel})</span>
                     </div>
+                    {youngPlayerCount > 0 && (
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                            <span>Young</span>
+                            <span className="text-[12px]">{youngPlayerCount}</span>
+                        </div>
+                    )}
+                    {wisePlayerCount > 0 && (
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                            <span>Wise</span>
+                            <span className="text-[12px]">{wisePlayerCount}</span>
+                        </div>
+                    )}
                 </div>
             </CardHeader>
 
@@ -449,6 +477,18 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
                                 <span className="text-xs font-medium">/{targetHandlers}</span>
                             </div>
                         </div>
+                        {youngPlayerCount > 0 && (
+                            <div className="flex flex-col">
+                                <span className="text-xs text-muted-foreground uppercase font-bold">Young</span>
+                                <span className="text-2xl font-bold text-sky-700">{youngPlayerCount}</span>
+                            </div>
+                        )}
+                        {wisePlayerCount > 0 && (
+                            <div className="flex flex-col">
+                                <span className="text-xs text-muted-foreground uppercase font-bold">Wise</span>
+                                <span className="text-2xl font-bold text-amber-700">{wisePlayerCount}</span>
+                            </div>
+                        )}
                         <div className="flex flex-col">
                             <span className="text-xs text-muted-foreground uppercase font-bold">Male Avg</span>
                             <span className={`text-2xl font-bold ${maleAverageMeta.className.includes('emerald') ? 'text-emerald-700' : maleAverageMeta.className.includes('amber') ? 'text-amber-700' : 'text-blue-700'}`}>

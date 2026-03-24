@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { GripVertical, Unlink, Users, AlertTriangle } from 'lucide-react';
 import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
+import { getPlayerAgeBand, isHighlightedPlayerAgeBand } from '@/utils/playerAgeBands';
 
 interface DraggablePlayerCardProps {
   player: Player;
@@ -38,6 +39,8 @@ export function DraggablePlayerCard({
 
   const effectiveSkill = getEffectiveSkillRating(player);
   const registrationInfo = getPlayerRegistrationInfo(player);
+  const ageBand = getPlayerAgeBand(player.age);
+  const highlightedAgeBand = isHighlightedPlayerAgeBand(ageBand) ? ageBand : null;
 
   const getSkillColor = (skill: number) => {
     const roundedSkill = Math.round(skill);
@@ -53,6 +56,12 @@ export function DraggablePlayerCard({
     if (roundedSkill === 1) return 'bg-green-50 text-green-800 border-green-100';
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
+
+  const getAgeBadgeClass = (band: 'young' | 'wise') => (
+    band === 'young'
+      ? 'bg-sky-100 text-sky-700 border-sky-200'
+      : 'bg-amber-100 text-amber-800 border-amber-200'
+  );
 
   return (
     <div
@@ -144,6 +153,16 @@ export function DraggablePlayerCard({
             </span>
           )}
         </div>
+        {highlightedAgeBand && (
+          <div className={`mt-1 flex ${compact ? 'justify-start' : 'justify-start'}`}>
+            <Badge
+              variant="outline"
+              className={`${getAgeBadgeClass(highlightedAgeBand)} ${compact ? 'h-4 px-1.5 text-[9px]' : 'h-5 px-2 text-[10px]'} font-semibold`}
+            >
+              {highlightedAgeBand === 'young' ? 'Young' : 'Wise'}
+            </Badge>
+          </div>
+        )}
         {!compact && (
           <div className="text-xs text-gray-500 flex gap-2 mt-0.5">
             <span>{player.gender}</span>

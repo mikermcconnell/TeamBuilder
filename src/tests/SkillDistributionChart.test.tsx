@@ -45,7 +45,7 @@ describe('SkillDistributionChart', () => {
     expect(screen.getByText(/2 players • Male • Mean: 7\.5/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /^Female$/ }));
-    expect(screen.getByText(/1 players • Female • Mean: 4\.0/)).toBeInTheDocument();
+    expect(screen.getByText(/1 player • Female • Mean: 4\.0/)).toBeInTheDocument();
   });
 
   it('shows a friendly empty state when the selected gender has no players', () => {

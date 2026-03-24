@@ -1,4 +1,4 @@
-import { LeagueConfig } from '@/types';
+import { LeagueConfig, Player } from '@/types';
 
 const STORAGE_KEY = 'teambuilder-configs';
 const DEFAULT_CONFIG_KEY = 'teambuilder-default-config';
@@ -154,7 +154,52 @@ export function generateConfigId(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
 }
 
-export function validateConfig(config: LeagueConfig): string[] {
+export function getConfiguredTeamCount(
+  playerCount: number,
+  config: Pick<LeagueConfig, 'maxTeamSize' | 'targetTeams'>
+): number {
+  if (playerCount <= 0) {
+    return config.targetTeams ?? 0;
+  }
+
+  return config.targetTeams ?? Math.ceil(playerCount / config.maxTeamSize);
+}
+
+export function getRosterFeasibilityWarnings(
+  players: Pick<Player, 'gender'>[],
+  config: Pick<LeagueConfig, 'maxTeamSize' | 'targetTeams' | 'minFemales' | 'minMales'>
+): string[] {
+  const configuredTeamCount = getConfiguredTeamCount(players.length, config);
+
+  if (configuredTeamCount <= 0) {
+    return [];
+  }
+
+  const genderCounts = players.reduce((totals, player) => {
+    totals[player.gender] += 1;
+    return totals;
+  }, { M: 0, F: 0, Other: 0 });
+
+  const warnings: string[] = [];
+  const requiredFemales = config.minFemales * configuredTeamCount;
+  const requiredMales = config.minMales * configuredTeamCount;
+
+  if (genderCounts.F < requiredFemales) {
+    warnings.push(
+      `Current setup needs ${requiredFemales} female players across ${configuredTeamCount} teams, but the roster only has ${genderCounts.F}. Team generation will continue, but some teams may miss the female minimum.`
+    );
+  }
+
+  if (genderCounts.M < requiredMales) {
+    warnings.push(
+      `Current setup needs ${requiredMales} male players across ${configuredTeamCount} teams, but the roster only has ${genderCounts.M}. Team generation will continue, but some teams may miss the male minimum.`
+    );
+  }
+
+  return warnings;
+}
+
+export function validateConfig(config: LeagueConfig, playerCount = 0): string[] {
   const errors: string[] = [];
 
   if (!config.name?.trim()) {
@@ -181,8 +226,23 @@ export function validateConfig(config: LeagueConfig): string[] {
     errors.push('Minimum gender requirements exceed max team size');
   }
 
+  if (!config.allowMixedGender && config.minFemales > 0 && config.minMales > 0) {
+    errors.push('Mixed gender teams are disabled, so you cannot require both male and female minimums on the same team');
+  }
+
   if (config.targetTeams && config.targetTeams < 1) {
     errors.push('Target teams must be at least 1');
+  }
+
+  if (playerCount > 0) {
+    const configuredTeamCount = getConfiguredTeamCount(playerCount, config);
+    const totalCapacity = configuredTeamCount * config.maxTeamSize;
+
+    if (totalCapacity < playerCount) {
+      errors.push(
+        `Current setup can only fit ${totalCapacity} players across ${configuredTeamCount} teams, but the roster has ${playerCount} players`
+      );
+    }
   }
 
   return errors;

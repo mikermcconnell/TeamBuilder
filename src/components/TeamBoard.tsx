@@ -38,7 +38,7 @@ export function TeamBoard({ teams, players, config, onTeamNameChange, onTeamBran
                             Refresh Names & Colors
                         </Button>
                     )}
-                    {onAddTeam && (
+                    {onAddTeam && teams.length > 0 && (
                         <Button onClick={onAddTeam} className="gap-2">
                             <Plus className="h-4 w-4" />
                             Add Team
@@ -64,7 +64,7 @@ export function TeamBoard({ teams, players, config, onTeamNameChange, onTeamBran
                     ))}
 
                     {/* Add Team Placeholder */}
-                    {onAddTeam && (
+                    {onAddTeam && teams.length === 0 && (
                         <button
                             onClick={onAddTeam}
                             className="h-[400px] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all group"
