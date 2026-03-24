@@ -98,6 +98,15 @@ export function PlayerRoster({
   const [viewPlayer, setViewPlayer] = useState<Player | null>(null);
   const [editPlayer, setEditPlayer] = useState<Player | null>(null);
 
+  const rosterPlayers = useMemo(
+    () => players.map(player => ({
+      ...player,
+      teammateRequests: player.teammateRequests ?? [],
+      avoidRequests: player.avoidRequests ?? [],
+    })),
+    [players]
+  );
+
   // New player form state
   const [newPlayer, setNewPlayer] = useState({
     name: '',
@@ -111,17 +120,17 @@ export function PlayerRoster({
   // Stats Calculation
   const getGenderStats = useMemo(() => {
     const stats = { M: 0, F: 0, Other: 0 };
-    players.forEach(player => {
+    rosterPlayers.forEach(player => {
       stats[player.gender]++;
     });
     return stats;
-  }, [players]);
+  }, [rosterPlayers]);
 
   const getSkillStats = useMemo(() => {
-    if (players.length === 0) return { min: 0, max: 0, avg: 0, execMin: 0, execMax: 0, execAvg: 0 };
+    if (rosterPlayers.length === 0) return { min: 0, max: 0, avg: 0, execMin: 0, execMax: 0, execAvg: 0 };
 
-    const skills = players.map(p => p.skillRating);
-    const execSkills = players.map(p => p.execSkillRating).filter(rating => rating !== null) as number[];
+    const skills = rosterPlayers.map(p => p.skillRating);
+    const execSkills = rosterPlayers.map(p => p.execSkillRating).filter(rating => rating !== null) as number[];
     const min = Math.min(...skills);
     const max = Math.max(...skills);
     const avg = skills.reduce((sum, skill) => sum + skill, 0) / skills.length;
@@ -136,11 +145,11 @@ export function PlayerRoster({
       min, max, avg: Math.round(avg * 10) / 10,
       execMin, execMax, execAvg: Math.round(execAvg * 10) / 10
     };
-  }, [players]);
+  }, [rosterPlayers]);
 
   const playersWithExecRankings = useMemo(
-    () => players.filter(player => player.execSkillRating !== null).length,
-    [players]
+    () => rosterPlayers.filter(player => player.execSkillRating !== null).length,
+    [rosterPlayers]
   );
 
   // Skill Group Logic
@@ -164,7 +173,7 @@ export function PlayerRoster({
     };
   }, []);
 
-  const thresholds = useMemo(() => getSkillGroupThresholds(players), [players, getSkillGroupThresholds]);
+  const thresholds = useMemo(() => getSkillGroupThresholds(rosterPlayers), [rosterPlayers, getSkillGroupThresholds]);
 
   const getSkillGroup = useCallback((player: Player) => {
     const skill = getEffectiveSkillRating(player);
@@ -241,7 +250,7 @@ export function PlayerRoster({
 
   // Filtering
   const filteredPlayers = useMemo(() => {
-    return players.filter(player => {
+    return rosterPlayers.filter(player => {
       // Search
       if (filters.search && !player.name.toLowerCase().includes(filters.search.toLowerCase())) {
         return false;
@@ -288,7 +297,7 @@ export function PlayerRoster({
 
       return true;
     });
-  }, [players, filters, getSkillGroup]);
+  }, [rosterPlayers, filters, getSkillGroup]);
 
   // Handlers
   const generatePlayerId = (name: string): string => {
@@ -301,7 +310,7 @@ export function PlayerRoster({
       return;
     }
 
-    const nameExists = players.some(p => p.name.toLowerCase() === newPlayer.name.toLowerCase());
+    const nameExists = rosterPlayers.some(p => p.name.toLowerCase() === newPlayer.name.toLowerCase());
     if (nameExists) {
       toast.error('A player with this name already exists');
       return;
@@ -337,7 +346,7 @@ export function PlayerRoster({
     const headers = ['Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Skill Group', 'Teammate Requests', 'Avoid Requests', 'Email'];
     const csvContent = [
       headers.join(','),
-      ...players.map(player => [
+      ...rosterPlayers.map(player => [
         `"${player.name}"`,
         player.gender,
         player.skillRating,
@@ -361,10 +370,10 @@ export function PlayerRoster({
   };
 
   const handleDeleteAllPlayers = () => {
-    if (onPlayerRemove && players.length > 0) {
-      players.forEach(player => onPlayerRemove(player.id));
+    if (onPlayerRemove && rosterPlayers.length > 0) {
+      rosterPlayers.forEach(player => onPlayerRemove(player.id));
       setIsDeleteAllOpen(false);
-      toast.success(`All ${players.length} players removed`);
+      toast.success(`All ${rosterPlayers.length} players removed`);
     }
   };
 
@@ -394,6 +403,11 @@ export function PlayerRoster({
     }
   };
 
+  const viewPlayerTeammateRequests = viewPlayer?.teammateRequests ?? [];
+  const viewPlayerAvoidRequests = viewPlayer?.avoidRequests ?? [];
+  const editPlayerTeammateRequests = editPlayer?.teammateRequests ?? [];
+  const editPlayerAvoidRequests = editPlayer?.avoidRequests ?? [];
+
   return (
     <div className="space-y-6">
       {/* Warning Banner - persistent at top of roster */}
@@ -401,7 +415,7 @@ export function PlayerRoster({
         <div className="px-8">
           <WarningBanner
             warnings={pendingWarnings}
-            players={players}
+            players={rosterPlayers}
             onResolveWarning={onResolveWarning}
             onDismissWarning={onDismissWarning}
             onDismissAll={onDismissAllWarnings}
@@ -417,7 +431,7 @@ export function PlayerRoster({
             <div className="bg-blue-100 p-3 rounded-full mb-2">
               <Users className="h-6 w-6 text-blue-500" />
             </div>
-            <div className="text-3xl font-extrabold text-blue-600">{players.length}</div>
+            <div className="text-3xl font-extrabold text-blue-600">{rosterPlayers.length}</div>
             <div className="text-xs font-bold text-blue-400 uppercase tracking-wider mt-1">Total Athletes</div>
           </CardContent>
         </Card>
@@ -465,7 +479,7 @@ export function PlayerRoster({
       </div>
 
       {/* Skill Distribution Chart */}
-      <SkillDistributionChart players={players} />
+      <SkillDistributionChart players={rosterPlayers} />
 
       {/* Main Content: Toolbar & Table */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
@@ -617,7 +631,7 @@ export function PlayerRoster({
               <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-2 border-slate-100">
                 <DropdownMenuLabel>Roster Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleExportRosters} disabled={players.length === 0} className="cursor-pointer">
+                <DropdownMenuItem onClick={handleExportRosters} disabled={rosterPlayers.length === 0} className="cursor-pointer">
                   <Download className="h-4 w-4 mr-2" /> Export to CSV
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -690,7 +704,7 @@ export function PlayerRoster({
                     <div className="w-full"> {/* Trigger wrapper */}
                       <DropdownMenuItem
                         onSelect={(e) => e.preventDefault()}
-                        disabled={players.length === 0}
+                        disabled={rosterPlayers.length === 0}
                         className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
                       >
                         <Trash2 className="h-4 w-4 mr-2" /> Delete All
@@ -706,7 +720,7 @@ export function PlayerRoster({
                         <DialogTitle className="text-xl">Delete All Players?</DialogTitle>
                       </div>
                       <DialogDescription className="text-base pt-2">
-                        This will permanently delete <span className="font-bold text-foreground">{players.length} players</span> from your roster.
+                        This will permanently delete <span className="font-bold text-foreground">{rosterPlayers.length} players</span> from your roster.
                         <br /><br />
                         This action cannot be undone. Are you absolutely sure?
                       </DialogDescription>
@@ -822,8 +836,8 @@ export function PlayerRoster({
               <div>
                 <Label className="text-muted-foreground">Teammate Requests</Label>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {viewPlayer.teammateRequests.length > 0 ? (
-                    viewPlayer.teammateRequests.map((req, i) => (
+                  {viewPlayerTeammateRequests.length > 0 ? (
+                    viewPlayerTeammateRequests.map((req, i) => (
                       <Badge key={i} variant="outline" className="bg-green-50 text-green-700 border-green-200">
                         <UserCheck className="h-3 w-3 mr-1" /> {req}
                       </Badge>
@@ -837,8 +851,8 @@ export function PlayerRoster({
               <div>
                 <Label className="text-muted-foreground">Avoid Requests</Label>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {viewPlayer.avoidRequests.length > 0 ? (
-                    viewPlayer.avoidRequests.map((req, i) => (
+                  {viewPlayerAvoidRequests.length > 0 ? (
+                    viewPlayerAvoidRequests.map((req, i) => (
                       <Badge key={i} variant="outline" className="bg-red-50 text-red-700 border-red-200">
                         <UserMinus className="h-3 w-3 mr-1" /> {req}
                       </Badge>
@@ -903,14 +917,14 @@ export function PlayerRoster({
               <div>
                 <Label>Teammate Requests (comma separated)</Label>
                 <Textarea
-                  value={editPlayer.teammateRequests.join(', ')}
+                  value={editPlayerTeammateRequests.join(', ')}
                   onChange={(e) => setEditPlayer({ ...editPlayer, teammateRequests: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                 />
               </div>
               <div>
                 <Label>Avoid Requests (comma separated)</Label>
                 <Textarea
-                  value={editPlayer.avoidRequests.join(', ')}
+                  value={editPlayerAvoidRequests.join(', ')}
                   onChange={(e) => setEditPlayer({ ...editPlayer, avoidRequests: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                 />
               </div>

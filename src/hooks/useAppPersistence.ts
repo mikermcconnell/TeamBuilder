@@ -377,15 +377,19 @@ export function useAppPersistence({
 
   const applyLoadedWorkspace = useCallback((workspace: SavedWorkspace) => {
     setAppState(prev => {
+      const validatedPlayers = (workspace.players || [])
+        .map(player => validatePlayer(player))
+        .filter((player): player is Player => player !== null);
+
       const normalized = ensureTeamIterations({
         ...workspace,
-        players: workspace.players || [],
+        players: validatedPlayers,
         config: workspace.config || getDefaultConfig(),
       });
 
       return applyTeamIterationToState({
         ...prev,
-        players: workspace.players || [],
+        players: validatedPlayers,
         playerGroups: workspace.playerGroups || [],
         config: workspace.config || getDefaultConfig(),
         teams: applyTeamBranding(workspace.teams || [], workspace.playerGroups || [], workspace.config || getDefaultConfig()),
@@ -393,7 +397,7 @@ export function useAppPersistence({
         stats: workspace.stats,
         teamIterations: normalized.teamIterations,
         activeTeamIterationId: normalized.activeTeamIterationId,
-        execRatingHistory: buildExecRatingHistory(workspace.players || [], prev.execRatingHistory),
+        execRatingHistory: buildExecRatingHistory(validatedPlayers, prev.execRatingHistory),
       }, normalized.activeTeamIterationId);
     });
   }, [setAppState]);
