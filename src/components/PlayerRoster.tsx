@@ -250,6 +250,8 @@ export function PlayerRoster({
 
   // Filtering
   const filteredPlayers = useMemo(() => {
+    const activeAgeBands = filters.ageBands ?? [];
+
     return rosterPlayers.filter(player => {
       // Search
       if (filters.search && !player.name.toLowerCase().includes(filters.search.toLowerCase())) {
@@ -278,9 +280,9 @@ export function PlayerRoster({
         }
       }
       // Age spotlight filters
-      if (filters.ageBands.length > 0) {
+      if (activeAgeBands.length > 0) {
         const ageBand = getPlayerAgeBand(player.age);
-        if (ageBand === 'standard' || !filters.ageBands.includes(ageBand)) {
+        if (ageBand === 'standard' || !activeAgeBands.includes(ageBand)) {
           return false;
         }
       }

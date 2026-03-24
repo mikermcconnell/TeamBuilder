@@ -1,5 +1,6 @@
 import React from 'react';
 import { Gender } from '@/types';
+import { AgeFilterBand } from '@/utils/playerAgeBands';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,7 @@ export interface RosterFilterState {
     minExecSkill: number;
     maxExecSkill: number;
     skillGroups: string[];
+    ageBands: AgeFilterBand[];
     hasEmail: boolean | null; // null = ignore, true = yes, false = no
     hasRequests: boolean | null;
 }
@@ -44,6 +46,7 @@ export const initialFilterState: RosterFilterState = {
     minExecSkill: 0,
     maxExecSkill: 10,
     skillGroups: [],
+    ageBands: [],
     hasEmail: null,
     hasRequests: null,
 };
