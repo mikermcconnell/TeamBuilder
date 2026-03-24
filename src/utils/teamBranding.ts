@@ -17,6 +17,33 @@ export const TEAM_BRAND_PALETTE: TeamBrandPalette[] = [
   { color: '#4F46E5', colorName: 'Indigo', mascot: 'Rockets' },
 ];
 
+export const TEAM_MASCOT_POOL = [
+  'Comets',
+  'Wolves',
+  'Storm',
+  'Foxes',
+  'Falcons',
+  'Waves',
+  'Blaze',
+  'Rockets',
+  'Chargers',
+  'Titans',
+  'Phoenix',
+  'Cyclones',
+  'Lynx',
+  'Hawks',
+  'Owls',
+  'Ravens',
+  'Thunder',
+  'Vipers',
+  'Dragons',
+  'Voyagers',
+  'Guardians',
+  'Stingers',
+  'Riptide',
+  'Summit',
+];
+
 const GENERIC_LEAGUE_WORDS = new Set([
   'default',
   'league',
@@ -35,6 +62,117 @@ function titleCase(value: string): string {
     .filter(Boolean)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
+}
+
+function normalizeNameKey(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+function getUniqueValues(values: string[]): string[] {
+  const seen = new Set<string>();
+  const unique: string[] = [];
+
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const key = normalizeNameKey(trimmed);
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    unique.push(trimmed);
+  }
+
+  return unique;
+}
+
+function stripTrailingCopyOrNumber(name: string): string {
+  return name
+    .trim()
+    .replace(/(?:\s+copy(?:\s+\d+)*)+$/i, '')
+    .replace(/\s+\d+$/i, '')
+    .trim();
+}
+
+function buildMascotRotation(primaryMascot: string, offset: number): string[] {
+  const fallbackPool = TEAM_MASCOT_POOL.filter(mascot => mascot !== primaryMascot);
+  const safeOffset = fallbackPool.length > 0 ? offset % fallbackPool.length : 0;
+  const rotatedFallbacks = fallbackPool.length > 0
+    ? [...fallbackPool.slice(safeOffset), ...fallbackPool.slice(0, safeOffset)]
+    : [];
+
+  return [primaryMascot, ...rotatedFallbacks];
+}
+
+function splitTeamNameBaseAndMascot(name: string): { base: string; mascot: string | null } {
+  const cleanedName = stripTrailingCopyOrNumber(name);
+  const lowerName = cleanedName.toLocaleLowerCase();
+  const matchedMascot = TEAM_MASCOT_POOL.find(mascot => lowerName.endsWith(` ${mascot.toLocaleLowerCase()}`));
+
+  if (!matchedMascot) {
+    return { base: cleanedName, mascot: null };
+  }
+
+  return {
+    base: cleanedName.slice(0, cleanedName.length - matchedMascot.length).trim(),
+    mascot: matchedMascot,
+  };
+}
+
+function buildAlternativeTeamNameCandidates(name: string, offset = 0): string[] {
+  const { base, mascot } = splitTeamNameBaseAndMascot(name);
+
+  if (!base || !mascot) {
+    return [];
+  }
+
+  return buildMascotRotation(mascot, offset)
+    .map(candidateMascot => `${base} ${candidateMascot}`);
+}
+
+export function getUniqueTeamName(baseName: string, usedNames: Set<string>, fallbackCandidates: string[] = []): string {
+  const trimmedName = baseName.trim() || 'Team';
+  const candidates = getUniqueValues([trimmedName, ...fallbackCandidates]);
+
+  for (const candidate of candidates) {
+    if (!usedNames.has(normalizeNameKey(candidate))) {
+      usedNames.add(normalizeNameKey(candidate));
+      return candidate;
+    }
+  }
+
+  const fallbackBase = stripTrailingCopyOrNumber(trimmedName) || trimmedName;
+  let copyNumber = 2;
+
+  while (true) {
+    const candidate = `${fallbackBase} ${copyNumber}`;
+    if (!usedNames.has(normalizeNameKey(candidate))) {
+      usedNames.add(normalizeNameKey(candidate));
+      return candidate;
+    }
+    copyNumber += 1;
+  }
+}
+
+export function ensureUniqueTeamNames(
+  teams: Team[],
+  existingNames: string[] = [],
+  options: { preferAlternativeBranding?: boolean } = {}
+): Team[] {
+  const usedNames = new Set(existingNames.map(normalizeNameKey));
+
+  return teams.map((team, index) => ({
+    ...team,
+    name: getUniqueTeamName(
+      team.name,
+      usedNames,
+      options.preferAlternativeBranding ? buildAlternativeTeamNameCandidates(team.name, index) : []
+    ),
+  }));
 }
 
 function deriveLeagueBaseName(configName: string): string {
@@ -65,19 +203,24 @@ function getDominantGroupLabel(team: Team, playerGroups: PlayerGroup[]): string 
 }
 
 function buildSuggestedTeamName(team: Team, index: number, playerGroups: PlayerGroup[], config: LeagueConfig): string {
+  return buildSuggestedTeamNameCandidates(team, index, playerGroups, config)[0] || `Team ${index + 1}`;
+}
+
+function buildSuggestedTeamNameCandidates(team: Team, index: number, playerGroups: PlayerGroup[], config: LeagueConfig): string[] {
   const palette = getTeamBrandPalette(index);
   const groupBase = getDominantGroupLabel(team, playerGroups);
+  const mascotOptions = buildMascotRotation(palette.mascot, index);
 
   if (groupBase) {
-    return `${groupBase} ${palette.mascot}`;
+    return mascotOptions.map(mascot => `${groupBase} ${mascot}`);
   }
 
   const leagueBase = deriveLeagueBaseName(config.name);
   if (leagueBase) {
-    return `${leagueBase} ${palette.mascot}`;
+    return mascotOptions.map(mascot => `${leagueBase} ${mascot}`);
   }
 
-  return `${palette.colorName} ${palette.mascot}`;
+  return mascotOptions.map(mascot => `${palette.colorName} ${mascot}`);
 }
 
 function shouldReplaceTeamName(name: string): boolean {
@@ -95,7 +238,8 @@ export function applyTeamBranding(
 
   return teams.map((team, index) => {
     const palette = getTeamBrandPalette(index);
-    const suggestedName = buildSuggestedTeamName(team, index, playerGroups, config);
+    const suggestedNameCandidates = buildSuggestedTeamNameCandidates(team, index, playerGroups, config);
+    const suggestedName = suggestedNameCandidates[0] || buildSuggestedTeamName(team, index, playerGroups, config);
     const keepManualName = Boolean(team.isNameManuallySet && team.name?.trim());
     const keepManualColor = Boolean(team.isColorManuallySet && team.color);
 
@@ -103,11 +247,15 @@ export function applyTeamBranding(
       ? team.name
       : (options.forceRename || shouldReplaceTeamName(team.name) ? suggestedName : team.name);
 
-    if (!keepManualName && usedNames.has(finalName)) {
+    if (!keepManualName && usedNames.has(normalizeNameKey(finalName))) {
       finalName = `${suggestedName} ${index + 1}`;
     }
 
-    usedNames.add(finalName);
+    finalName = getUniqueTeamName(
+      finalName,
+      usedNames,
+      keepManualName ? [] : suggestedNameCandidates
+    );
 
     return {
       ...team,

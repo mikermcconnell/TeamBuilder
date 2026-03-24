@@ -9,7 +9,7 @@ import {
   TeamIterationType,
 } from '@/types';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
-import { applyTeamBranding } from '@/utils/teamBranding';
+import { applyTeamBranding, ensureUniqueTeamNames } from '@/utils/teamBranding';
 import { generateFullAiTeams } from '@/services/aiService';
 
 function clonePlayer(player: Player): Player {
@@ -52,6 +52,25 @@ function clonePlayerGroups(players: Player[], playerGroups: PlayerGroup[]): Play
 
 function createIterationId(type: TeamIterationType): string {
   return `${type}-iteration-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function normalizeNameKey(name: string): string {
+  return name.trim().toLocaleLowerCase();
+}
+
+function getUniqueCopiedIterationName(sourceName: string, existingNames: string[]): string {
+  const usedNames = new Set(existingNames.map(normalizeNameKey));
+  const trimmedSourceName = sourceName.trim() || 'Untitled Tab';
+  const baseName = trimmedSourceName.replace(/(?:\s+copy(?:\s+\d+)*)+$/i, '').trim() || trimmedSourceName;
+  let candidate = `${baseName} Copy`;
+  let copyNumber = 2;
+
+  while (usedNames.has(normalizeNameKey(candidate))) {
+    candidate = `${baseName} Copy ${copyNumber}`;
+    copyNumber += 1;
+  }
+
+  return candidate;
 }
 
 function cloneResult(
@@ -170,6 +189,9 @@ export async function createAiTeamIteration(
     type: 'ai',
     status: 'ready',
     generationSource: result.source,
+    aiModel: result.aiModel,
+    aiResponseId: result.aiResponseId,
+    aiResponseIds: result.aiResponseIds,
     ...cloneResult(result.teams, result.unassignedPlayers, result.stats),
     createdAt: new Date().toISOString(),
     errorMessage: result.source === 'fallback'
@@ -187,20 +209,104 @@ export function cloneTeamIteration(iteration: TeamIteration): TeamIteration {
   };
 }
 
+export function createCopiedTeamIteration(
+  iteration: TeamIteration,
+  existingIterations: TeamIteration[]
+): TeamIteration {
+  const clonedIteration = cloneTeamIteration(iteration);
+  const existingIterationNames = existingIterations.map(existingIteration => existingIteration.name);
+  const existingTeamNames = existingIterations.flatMap(existingIteration =>
+    existingIteration.teams.map(team => team.name)
+  );
+
+  return {
+    ...clonedIteration,
+    id: createIterationId(iteration.type),
+    name: getUniqueCopiedIterationName(iteration.name, existingIterationNames),
+    teams: ensureUniqueTeamNames(clonedIteration.teams, existingTeamNames, {
+      preferAlternativeBranding: true,
+    }),
+    createdAt: new Date().toISOString(),
+    errorMessage: undefined,
+  };
+}
+
+function isIncompleteIteration(
+  iteration: TeamIteration,
+  players: Player[]
+): boolean {
+  return players.length > 0
+    && iteration.status === 'ready'
+    && (iteration.teams?.length ?? 0) === 0
+    && (iteration.unassignedPlayers?.length ?? 0) === 0;
+}
+
+function rebuildIncompleteIteration(
+  iteration: TeamIteration,
+  players: Player[],
+  config: LeagueConfig,
+  playerGroups: PlayerGroup[]
+): TeamIteration {
+  const clonedPlayers = players.map(clonePlayer);
+  const clonedGroups = clonePlayerGroups(clonedPlayers, playerGroups);
+
+  if (iteration.type === 'manual') {
+    const manualResult = generateBalancedTeams(clonedPlayers, config, clonedGroups, false, true);
+
+    return {
+      ...iteration,
+      teams: manualResult.teams.map(cloneTeam),
+      unassignedPlayers: manualResult.unassignedPlayers.map(clonePlayer),
+      stats: cloneStats(manualResult.stats),
+      generationSource: 'manual',
+      errorMessage: 'This tab was repaired from incomplete saved data.',
+    };
+  }
+
+  const generatedResult = generateBalancedTeams(
+    clonedPlayers,
+    config,
+    clonedGroups,
+    iteration.type === 'ai',
+    false
+  );
+
+  return {
+    ...iteration,
+    teams: generatedResult.teams.map(cloneTeam),
+    unassignedPlayers: generatedResult.unassignedPlayers.map(clonePlayer),
+    stats: cloneStats(generatedResult.stats),
+    generationSource: iteration.type === 'ai' ? 'fallback' : 'generated',
+    errorMessage: 'This tab was repaired from incomplete saved data.',
+  };
+}
+
 export function ensureTeamIterations(
   data: Pick<
     AppState,
     'players' | 'teams' | 'unassignedPlayers' | 'stats' | 'playerGroups' | 'config' | 'teamIterations' | 'activeTeamIterationId'
   >
 ): { teamIterations: TeamIteration[]; activeTeamIterationId: string | null } {
-  const normalizedIterations = (data.teamIterations ?? []).map(iteration => ({
-    ...cloneTeamIteration(iteration),
-    status: iteration.status ?? 'ready',
-    generationSource: iteration.generationSource ?? (iteration.type === 'manual' ? 'manual' : iteration.type === 'generated' ? 'generated' : 'ai'),
-    createdAt: iteration.createdAt || new Date().toISOString(),
-    teams: applyTeamBranding(iteration.teams || [], data.playerGroups || [], data.config),
-    unassignedPlayers: iteration.unassignedPlayers || [],
-  }));
+  const normalizedIterations = (data.teamIterations ?? []).map(iteration => {
+    const normalizedIteration: TeamIteration = {
+      ...cloneTeamIteration(iteration),
+      status: iteration.status ?? 'ready',
+      generationSource: iteration.generationSource ?? (iteration.type === 'manual' ? 'manual' : iteration.type === 'generated' ? 'generated' : 'ai'),
+      createdAt: iteration.createdAt || new Date().toISOString(),
+      teams: iteration.teams || [],
+      unassignedPlayers: iteration.unassignedPlayers || [],
+    };
+
+    const repairedIteration = isIncompleteIteration(normalizedIteration, data.players ?? [])
+      ? rebuildIncompleteIteration(normalizedIteration, data.players ?? [], data.config, data.playerGroups || [])
+      : normalizedIteration;
+
+    return {
+      ...repairedIteration,
+      teams: applyTeamBranding(repairedIteration.teams || [], data.playerGroups || [], data.config),
+      unassignedPlayers: repairedIteration.unassignedPlayers || [],
+    };
+  });
 
   if (normalizedIterations.length > 0) {
     const activeId = normalizedIterations.some(iteration => iteration.id === data.activeTeamIterationId)
