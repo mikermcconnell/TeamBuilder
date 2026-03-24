@@ -19,7 +19,7 @@ import { RosterStorageService } from '@/services/rosterStorage';
 import { findPlayerMatches } from '@/services/aiService';
 import { StructuredWarning, parseWarnings, parseWarningMessage } from '@/types/StructuredWarning';
 import { MAX_CSV_SIZE_BYTES } from '@/config/constants';
-import readXlsxFile from 'read-excel-file/browser';
+import * as XLSX from 'xlsx';
 
 interface CSVUploaderProps {
   onPlayersLoaded: (
@@ -85,20 +85,28 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
   };
 
   const convertExcelToCSV = async (file: File) => {
-    const rows = await readXlsxFile(file);
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
 
-    if (rows.length === 0) {
+    if (!firstSheetName) {
+      throw new Error('Excel file does not contain any sheets');
+    }
+
+    const worksheet = workbook.Sheets[firstSheetName];
+    if (!worksheet) {
+      throw new Error('Excel file could not be read');
+    }
+
+    const csv = XLSX.utils.sheet_to_csv(worksheet, {
+      blankrows: false,
+    });
+
+    if (!csv.trim()) {
       throw new Error('Excel file does not contain any rows');
     }
 
-    const escapeCsvValue = (value: unknown) => {
-      const text = value === undefined || value === null ? '' : String(value);
-      return /[",\n]/.test(text)
-        ? `"${text.replace(/"/g, '""')}"`
-        : text;
-    };
-
-    return rows.map(row => row.map(cell => escapeCsvValue(cell)).join(',')).join('\n');
+    return csv;
   };
 
   const refineMatches = async (initialResult: CSVValidationResult): Promise<CSVValidationResult> => {
