@@ -287,7 +287,7 @@ export function SkillDistributionChart({ players }: SkillDistributionChartProps)
               </div>
 
               {/* Chart */}
-              <div className="relative pl-10 mt-6">
+              <div className="relative pl-10 pt-8 mt-6">
                 {!hasChartData ? (
                   <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
                     No {getGenderFilterLabel(genderFilter).toLowerCase()} players available for this chart.
@@ -338,7 +338,7 @@ export function SkillDistributionChart({ players }: SkillDistributionChartProps)
                     </div>
 
                     {/* Y-axis labels */}
-                    <div className="absolute left-0 top-0 h-32 flex flex-col justify-between text-xs text-gray-400 w-10 pr-2 text-right">
+                    <div className="absolute left-0 top-8 h-32 flex flex-col justify-between text-xs text-gray-400 w-10 pr-2 text-right">
                       <span>{maxPercentage.toFixed(0)}%</span>
                       <span>{(maxPercentage / 2).toFixed(0)}%</span>
                       <span>0%</span>
