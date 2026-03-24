@@ -311,9 +311,9 @@ function App() {
       );
       setHistory([]);
       setActiveTab(
-        (backup.data.teamIterations?.length ?? 0) > 0 || backup.data.teams.length > 0
+        (backup.data.teamIterations?.length ?? 0) > 0 || (backup.data.teams?.length ?? 0) > 0
           ? 'teams'
-          : backup.data.players.length > 0
+          : (backup.data.players?.length ?? 0) > 0
             ? 'roster'
             : 'upload'
       );

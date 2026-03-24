@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { AppState, TeamIteration } from '@/types';
 import { getDefaultConfig } from '@/utils/configManager';
-import { ensureTeamIterations } from '@/utils/teamIterations';
+import { createCopiedTeamIteration, ensureTeamIterations } from '@/utils/teamIterations';
 
 describe('team iteration normalization', () => {
   it('handles legacy iterations with missing arrays', () => {
@@ -34,5 +34,180 @@ describe('team iteration normalization', () => {
     expect(result.teamIterations).toHaveLength(1);
     expect(result.teamIterations[0]?.teams).toEqual([]);
     expect(result.teamIterations[0]?.unassignedPlayers).toEqual([]);
+  });
+
+  it('does not crash when legacy top-level teams are missing players arrays', () => {
+    const state = {
+      players: [],
+      teams: [
+        {
+          id: 'legacy-team-1',
+          name: 'Blue Comets',
+          averageSkill: 0,
+          genderBreakdown: { M: 0, F: 0, Other: 0 },
+        },
+      ],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: getDefaultConfig(),
+      teamIterations: [],
+      activeTeamIterationId: null,
+    } as unknown as Pick<
+      AppState,
+      'players' | 'teams' | 'unassignedPlayers' | 'stats' | 'playerGroups' | 'config' | 'teamIterations' | 'activeTeamIterationId'
+    >;
+
+    const result = ensureTeamIterations(state);
+
+    expect(result.teamIterations).toHaveLength(1);
+    expect(result.teamIterations[0]?.teams).toHaveLength(1);
+    expect(result.teamIterations[0]?.teams[0]?.players).toEqual([]);
+  });
+
+  it('creates copied iterations with unique tab and team names', () => {
+    const originalIteration: TeamIteration = {
+      id: 'manual-1',
+      name: 'Manual 1',
+      type: 'manual',
+      status: 'ready',
+      createdAt: '2026-03-18T00:00:00.000Z',
+      teams: [
+        {
+          id: 'team-1',
+          name: 'Blue Comets',
+          players: [],
+          averageSkill: 0,
+          genderBreakdown: { M: 0, F: 0, Other: 0 },
+        },
+        {
+          id: 'team-2',
+          name: 'Green Wolves',
+          players: [],
+          averageSkill: 0,
+          genderBreakdown: { M: 0, F: 0, Other: 0 },
+        },
+      ],
+      unassignedPlayers: [],
+    };
+
+    const existingIterations: TeamIteration[] = [
+      originalIteration,
+      {
+        ...originalIteration,
+        id: 'manual-1-copy',
+        name: 'Manual 1 Copy',
+        teams: originalIteration.teams.map(team => ({
+          ...team,
+          id: `${team.id}-copy`,
+          name: `${team.name} 2`,
+        })),
+      },
+    ];
+
+    const result = createCopiedTeamIteration(originalIteration, existingIterations);
+
+    expect(result.id).not.toBe(originalIteration.id);
+    expect(result.name).toBe('Manual 1 Copy 2');
+    expect(result.teams.map(team => team.name)).toEqual(['Blue Wolves', 'Green Storm']);
+  });
+
+  it('avoids stacking copy labels when duplicating a copied tab', () => {
+    const copiedIteration: TeamIteration = {
+      id: 'manual-1-copy',
+      name: 'Manual 1 Copy',
+      type: 'manual',
+      status: 'ready',
+      createdAt: '2026-03-18T00:00:00.000Z',
+      teams: [],
+      unassignedPlayers: [],
+    };
+
+    const result = createCopiedTeamIteration(copiedIteration, [copiedIteration]);
+
+    expect(result.name).toBe('Manual 1 Copy 2');
+  });
+
+  it('copies iterations safely when older tabs are missing teams arrays', () => {
+    const sourceIteration: TeamIteration = {
+      id: 'manual-1',
+      name: 'Manual 1',
+      type: 'manual',
+      status: 'ready',
+      createdAt: '2026-03-18T00:00:00.000Z',
+      teams: [],
+      unassignedPlayers: [],
+    };
+
+    const olderBrokenIteration = {
+      id: 'legacy-tab',
+      name: 'Legacy AI',
+      type: 'ai',
+      status: 'ready',
+      createdAt: '2026-03-18T00:00:00.000Z',
+      unassignedPlayers: [],
+    } as TeamIteration;
+
+    const result = createCopiedTeamIteration(sourceIteration, [sourceIteration, olderBrokenIteration]);
+
+    expect(result.name).toBe('Manual 1 Copy');
+    expect(result.teams).toEqual([]);
+  });
+
+  it('repairs ready iterations that lost both teams and player pool data', () => {
+    const players = [
+      {
+        id: 'p1',
+        name: 'Alex',
+        gender: 'M',
+        skillRating: 7,
+        execSkillRating: null,
+        teammateRequests: [],
+        avoidRequests: [],
+      },
+      {
+        id: 'p2',
+        name: 'Blair',
+        gender: 'F',
+        skillRating: 6,
+        execSkillRating: null,
+        teammateRequests: [],
+        avoidRequests: [],
+      },
+    ];
+
+    const brokenIteration = {
+      id: 'manual-broken',
+      name: 'Manual 1',
+      type: 'manual',
+      status: 'ready',
+      createdAt: '2026-03-18T00:00:00.000Z',
+      teams: [],
+      unassignedPlayers: [],
+    } as TeamIteration;
+
+    const state = {
+      players,
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: {
+        ...getDefaultConfig(),
+        maxTeamSize: 2,
+        targetTeams: 1,
+      },
+      teamIterations: [brokenIteration],
+      activeTeamIterationId: brokenIteration.id,
+    } satisfies Pick<
+      AppState,
+      'players' | 'teams' | 'unassignedPlayers' | 'stats' | 'playerGroups' | 'config' | 'teamIterations' | 'activeTeamIterationId'
+    >;
+
+    const result = ensureTeamIterations(state);
+
+    expect(result.teamIterations[0]?.teams).toHaveLength(1);
+    expect(result.teamIterations[0]?.unassignedPlayers).toHaveLength(2);
+    expect(result.teamIterations[0]?.errorMessage).toBe('This tab was repaired from incomplete saved data.');
   });
 });

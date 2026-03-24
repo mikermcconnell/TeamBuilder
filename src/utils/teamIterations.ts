@@ -99,11 +99,13 @@ function isLikelyManualIteration(
   unassignedPlayers: Player[] | undefined,
   players: Player[] | undefined
 ): boolean {
-  if (!teams?.length) {
+  const safeTeams = teams ?? [];
+
+  if (safeTeams.length === 0) {
     return false;
   }
 
-  return teams.every(team => team.players.length === 0)
+  return safeTeams.every(team => (team.players?.length ?? 0) === 0)
     && (unassignedPlayers?.length ?? 0) >= (players?.length ?? 0);
 }
 
@@ -214,9 +216,9 @@ export function createCopiedTeamIteration(
   existingIterations: TeamIteration[]
 ): TeamIteration {
   const clonedIteration = cloneTeamIteration(iteration);
-  const existingIterationNames = existingIterations.map(existingIteration => existingIteration.name);
+  const existingIterationNames = existingIterations.map(existingIteration => existingIteration.name || 'Untitled Tab');
   const existingTeamNames = existingIterations.flatMap(existingIteration =>
-    existingIteration.teams.map(team => team.name)
+    (existingIteration.teams ?? []).map(team => team.name)
   );
 
   return {
@@ -337,7 +339,7 @@ export function ensureTeamIterations(
     type,
     status: 'ready',
     generationSource: type === 'manual' ? 'manual' : 'generated',
-    teams: applyTeamBranding(data.teams || [], data.playerGroups || [], data.config),
+    teams: applyTeamBranding((data.teams || []).map(cloneTeam), data.playerGroups || [], data.config),
     unassignedPlayers: (data.unassignedPlayers || []).map(clonePlayer),
     stats: cloneStats(data.stats),
     createdAt: new Date().toISOString(),
