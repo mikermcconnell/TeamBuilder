@@ -19,6 +19,7 @@ import { RosterStorageService } from '@/services/rosterStorage';
 import { findPlayerMatches } from '@/services/aiService';
 import { StructuredWarning, parseWarnings, parseWarningMessage } from '@/types/StructuredWarning';
 import { MAX_CSV_SIZE_BYTES } from '@/config/constants';
+import readXlsxFile from 'read-excel-file/browser';
 
 interface CSVUploaderProps {
   onPlayersLoaded: (
@@ -84,7 +85,6 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
   };
 
   const convertExcelToCSV = async (file: File) => {
-    const { default: readXlsxFile } = await import('read-excel-file/browser');
     const rows = await readXlsxFile(file);
 
     if (rows.length === 0) {
