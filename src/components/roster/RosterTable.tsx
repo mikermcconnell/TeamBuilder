@@ -324,6 +324,8 @@ export function RosterTable({
                         ) : (
                             sortedPlayers.map((player) => {
                                 const registrationInfo = getPlayerRegistrationInfo(player);
+                                const teammateRequests = player.teammateRequests ?? [];
+                                const avoidRequests = player.avoidRequests ?? [];
 
                                 return (
                                 <TableRow
@@ -367,11 +369,18 @@ export function RosterTable({
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     </TooltipProvider>
-                                                    {player.email && (
-                                                        <span className="text-[10px] text-muted-foreground hidden sm:inline-block">
-                                                            {player.email}
-                                                        </span>
-                                                    )}
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {player.email && (
+                                                            <span className="text-[10px] text-muted-foreground hidden sm:inline-block">
+                                                                {player.email}
+                                                            </span>
+                                                        )}
+                                                        {player.age !== undefined && (
+                                                            <span className="text-[10px] font-medium text-slate-500">
+                                                                Age {player.age}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -501,12 +510,12 @@ export function RosterTable({
                                     )}
                                     {columnVisibility.teammates && (
                                         <TableCell>
-                                            {player.teammateRequests.length > 0 ? (
+                                            {teammateRequests.length > 0 ? (
                                                 <div className="flex items-center gap-1">
                                                     <div className="bg-green-100 p-1 rounded-full">
                                                         <UserCheck className="h-3 w-3 text-green-600" />
                                                     </div>
-                                                    <span className="text-xs font-medium text-slate-600">{player.teammateRequests.length}</span>
+                                                    <span className="text-xs font-medium text-slate-600">{teammateRequests.length}</span>
                                                 </div>
                                             ) : (
                                                 <span className="text-slate-200 text-sm">-</span>
@@ -515,12 +524,12 @@ export function RosterTable({
                                     )}
                                     {columnVisibility.avoid && (
                                         <TableCell>
-                                            {player.avoidRequests.length > 0 ? (
+                                            {avoidRequests.length > 0 ? (
                                                 <div className="flex items-center gap-1">
                                                     <div className="bg-red-100 p-1 rounded-full">
                                                         <UserX className="h-3 w-3 text-red-600" />
                                                     </div>
-                                                    <span className="text-xs font-medium text-slate-600">{player.avoidRequests.length}</span>
+                                                    <span className="text-xs font-medium text-slate-600">{avoidRequests.length}</span>
                                                 </div>
                                             ) : (
                                                 <span className="text-slate-200 text-sm">-</span>

@@ -1,6 +1,7 @@
 import { Player, CSVValidationResult, CSVRow, Gender, PlayerGroup } from '@/types';
 import { processMutualRequests } from './playerGrouping';
 import { fuzzyMatcher, FuzzyMatchResult } from './fuzzyNameMatcher';
+import Papa from 'papaparse';
 
 // CSV format types for automatic detection
 type CSVFormat = 'legacy' | 'registration';
@@ -12,51 +13,35 @@ interface FormatDetectionResult {
 }
 
 export function parseCSV(csvText: string): CSVRow[] {
-  const lines = csvText.trim().split('\n');
-  if (lines.length < 2) return [];
-
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-  const rows: CSVRow[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    // Skip completely empty lines
-    if (!line) continue;
-
-    const values = parseCSVLine(line);
-    // Skip rows with only empty/whitespace values
-    if (values.every(val => !val.trim())) continue;
-
-    const row: CSVRow = {};
-    headers.forEach((header, index) => {
-      row[header] = values[index] || '';
-    });
-    rows.push(row);
+  const trimmedCsv = csvText.trim();
+  if (!trimmedCsv) {
+    return [];
   }
 
-  return rows;
-}
+  const parsed = Papa.parse<Record<string, string | undefined>>(trimmedCsv, {
+    header: true,
+    skipEmptyLines: 'greedy',
+    transformHeader: (header) => header.trim().toLowerCase(),
+  });
 
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
-    }
+  const fatalErrors = parsed.errors.filter(error => error.code !== 'UndetectableDelimiter');
+  if (fatalErrors.length > 0) {
+    throw new Error(fatalErrors[0]?.message || 'Unable to parse CSV file');
   }
 
-  result.push(current);
-  return result.map(val => val.trim());
+  return parsed.data
+    .map(row => Object.entries(row).reduce<CSVRow>((normalized, [header, value]) => {
+      if (header) {
+        normalized[header] = typeof value === 'string'
+          ? value.trim()
+          : value === undefined || value === null
+            ? ''
+            : String(value).trim();
+      }
+
+      return normalized;
+    }, {}))
+    .filter(row => Object.values(row).some(value => value.trim().length > 0));
 }
 
 /**
@@ -116,6 +101,30 @@ function findRegistrationInfoColumn(headers: string[]): string {
       lowerH === 'note'
     );
   }) || '';
+}
+
+function findExperienceNotesColumn(headers: string[]): string {
+  return headers.find(h => {
+    const lowerH = h.toLowerCase().trim();
+    return (
+      lowerH === 'if_applicable,_what' ||
+      lowerH === 'if applicable what' ||
+      lowerH === 'if applicable, what' ||
+      (lowerH.includes('if') && lowerH.includes('applicable') && lowerH.includes('what'))
+    );
+  }) || '';
+}
+
+function mergeRegistrationNotes(...values: Array<string | undefined>): string | undefined {
+  const notes = values
+    .map(value => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  if (notes.length === 0) {
+    return undefined;
+  }
+
+  return Array.from(new Set(notes)).join('\n\n');
 }
 
 export function validateAndProcessCSV(csvText: string): CSVValidationResult {
@@ -183,6 +192,8 @@ function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVVa
   const avoidCol = headers.find(h => h.toLowerCase().includes('avoid')) || '';
   const emailCol = headers.find(h => h.toLowerCase().includes('email')) || '';
   const registrationInfoCol = findRegistrationInfoColumn(headers);
+  const experienceNotesCol = findExperienceNotesColumn(headers);
+  const ageCol = headers.find(h => h.toLowerCase().trim() === 'age') || '';
 
   const seenNames = new Set<string>();
   const players: Player[] = [];
@@ -277,10 +288,31 @@ function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVVa
       }
     }
 
+    let age: number | undefined;
+    if (ageCol) {
+      const ageStr = row[ageCol]?.trim();
+      if (ageStr) {
+        const parsedAge = parseInt(ageStr, 10);
+        if (Number.isNaN(parsedAge)) {
+          result.warnings.push(`Row ${actualRowNumber}: Invalid age "${ageStr}", ignoring value`);
+        } else if (parsedAge < 0 || parsedAge > 120) {
+          result.warnings.push(`Row ${actualRowNumber}: Age ${parsedAge} outside typical range, ignoring value`);
+        } else {
+          age = parsedAge;
+        }
+      }
+    }
+
+    const registrationInfo = mergeRegistrationNotes(
+      row[experienceNotesCol],
+      row[registrationInfoCol],
+    );
+
     const player: Player = {
       id: generatePlayerId(name),
       name,
-      ...(row[registrationInfoCol]?.trim() ? { registrationInfo: row[registrationInfoCol].trim() } : {}),
+      ...(registrationInfo ? { registrationInfo } : {}),
+      ...(age !== undefined ? { age } : {}),
       gender,
       skillRating,
       execSkillRating,
@@ -321,6 +353,8 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
   const skillCol = headers.find(h => h.toLowerCase() === 'skill') || '';
   const execCol = headers.find(h => h.toLowerCase() === 'exec') || '';
   const registrationInfoCol = findRegistrationInfoColumn(headers);
+  const experienceNotesCol = findExperienceNotesColumn(headers);
+  const ageCol = headers.find(h => h.toLowerCase().trim() === 'age') || '';
 
   // Find player request columns (Player_Request_#1, Player_Request_#2, Player_Request_#3)
   const playerRequestCols = headers.filter(h =>
@@ -396,6 +430,21 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
       else if (genderStr === 'female' || genderStr === 'f') gender = 'F';
       else if (genderStr && genderStr !== 'other') {
         result.warnings.push(`Row ${actualRowNumber}: Unknown gender "${genderStr}", defaulting to "Other"`);
+      }
+    }
+
+    let age: number | undefined;
+    if (ageCol) {
+      const ageStr = row[ageCol]?.trim();
+      if (ageStr) {
+        const parsedAge = parseInt(ageStr, 10);
+        if (Number.isNaN(parsedAge)) {
+          result.warnings.push(`Row ${actualRowNumber}: Invalid age "${ageStr}", ignoring value`);
+        } else if (parsedAge < 0 || parsedAge > 120) {
+          result.warnings.push(`Row ${actualRowNumber}: Age ${parsedAge} outside typical range, ignoring value`);
+        } else {
+          age = parsedAge;
+        }
       }
     }
 
@@ -477,10 +526,16 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
       }
     }
 
+    const registrationInfo = mergeRegistrationNotes(
+      row[experienceNotesCol],
+      row[registrationInfoCol],
+    );
+
     const player: Player = {
       id: generatePlayerId(name),
       name,
-      ...(row[registrationInfoCol]?.trim() ? { registrationInfo: row[registrationInfoCol].trim() } : {}),
+      ...(registrationInfo ? { registrationInfo } : {}),
+      ...(age !== undefined ? { age } : {}),
       gender,
       skillRating,
       execSkillRating, // Will be set to exec value if exec > 0, otherwise null

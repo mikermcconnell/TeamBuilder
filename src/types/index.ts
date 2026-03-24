@@ -2,6 +2,8 @@ export interface Player {
   id: string;
   name: string;
   registrationInfo?: string;
+  experienceNotes?: string;
+  age?: number;
   gender: 'M' | 'F' | 'Other';
   skillRating: number;
   execSkillRating: number | null;  // null indicates "N/A" - no previous rating

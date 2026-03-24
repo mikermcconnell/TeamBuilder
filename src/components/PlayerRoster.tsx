@@ -46,6 +46,7 @@ import { RosterTable } from './roster/RosterTable';
 import { WarningBanner } from './roster/WarningBanner';
 import { StructuredWarning } from '@/types/StructuredWarning';
 import { getPlayerAgeBand } from '@/utils/playerAgeBands';
+import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
 
 interface PlayerRosterProps {
   players: Player[];
@@ -407,6 +408,7 @@ export function PlayerRoster({
 
   const viewPlayerTeammateRequests = viewPlayer?.teammateRequests ?? [];
   const viewPlayerAvoidRequests = viewPlayer?.avoidRequests ?? [];
+  const viewPlayerNotes = viewPlayer ? getPlayerRegistrationInfo(viewPlayer) : null;
   const editPlayerTeammateRequests = editPlayer?.teammateRequests ?? [];
   const editPlayerAvoidRequests = editPlayer?.avoidRequests ?? [];
 
@@ -862,6 +864,13 @@ export function PlayerRoster({
                   ) : (
                     <span className="text-sm text-muted-foreground">None</span>
                   )}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">Registration Notes</Label>
+                <div className="mt-1 whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-sm">
+                  {viewPlayerNotes}
                 </div>
               </div>
             </div>
