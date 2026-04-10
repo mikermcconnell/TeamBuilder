@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Player, CSVValidationResult, PlayerGroup } from '@/types';
-import { validateAndProcessCSV, generateSampleCSV } from '@/utils/csvProcessor';
+import { validateAndProcessCSV, generateSampleCSV, serializePlayersToCSV, NORMALIZED_ROSTER_HEADERS } from '@/utils/csvProcessor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,6 +20,8 @@ import { findPlayerMatches } from '@/services/aiService';
 import { StructuredWarning, parseWarnings, parseWarningMessage } from '@/types/StructuredWarning';
 import { MAX_CSV_SIZE_BYTES } from '@/config/constants';
 import * as XLSX from 'xlsx';
+import { processMutualRequests } from '@/utils/playerGrouping';
+import { applyWarningResolutionToRequests, isAvoidWarning } from '@/utils/warningResolution';
 
 interface CSVUploaderProps {
   onPlayersLoaded: (
@@ -29,9 +31,16 @@ interface CSVUploaderProps {
     metadata?: { sourceFileName?: string }
   ) => void;
   onNavigateToRoster?: () => void;
+  currentRosterCsvContent?: string;
+  currentRosterPlayerCount?: number;
 }
 
-export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploaderProps) {
+export function CSVUploader({
+  onPlayersLoaded,
+  onNavigateToRoster,
+  currentRosterCsvContent,
+  currentRosterPlayerCount,
+}: CSVUploaderProps) {
   const SUPPORTED_EXTENSIONS = ['.csv', '.xlsx'];
   const EXCEL_EXTENSIONS = ['.xlsx'];
   const [dragActive, setDragActive] = useState(false);
@@ -44,7 +53,11 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
   const [rosterName, setRosterName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState('');
+  const [structuredWarnings, setStructuredWarnings] = useState<StructuredWarning[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const saveableRosterCsvContent = currentRosterCsvContent || currentCSVContent;
+  const saveableRosterPlayerCount = currentRosterPlayerCount ?? validationResult?.players.length;
+  const wizardStep = validationResult ? 3 : uploadedFileName ? 2 : 1;
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -185,6 +198,8 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
       // Attempt AI refinement if valid (or warning)
       const refinedResult = await refineMatches(result);
       setValidationResult(refinedResult);
+      setStructuredWarnings(parseWarnings(refinedResult.warnings));
+      setCurrentCSVContent(serializePlayersToCSV(refinedResult.players));
 
       if (refinedResult.isValid) {
         toast.success('CSV file processed successfully');
@@ -201,7 +216,6 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
   };
 
   const handleLoadFromCloud = (csvContent: string, rosterName: string) => {
-    setCurrentCSVContent(csvContent);
     setUploadedFileName(`${rosterName}.csv`);
     const result = validateAndProcessCSV(csvContent);
     // Silent refinement for cloud load? Or show loader? 
@@ -212,6 +226,8 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
       setRefiningStatus('Checking matches...');
       const refined = await refineMatches(result);
       setValidationResult(refined);
+      setStructuredWarnings(parseWarnings(refined.warnings));
+      setCurrentCSVContent(serializePlayersToCSV(refined.players));
       setRefiningStatus('');
 
       if (refined.isValid) {
@@ -224,15 +240,12 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
 
   const handleConfirmLoad = () => {
     if (validationResult && validationResult.players.length > 0) {
-      // Parse warnings into structured format for persistence
-      const structuredWarnings = validationResult.warnings.length > 0
-        ? parseWarnings(validationResult.warnings).filter(w => w.status === 'pending')
-        : undefined;
+      const pendingWarnings = structuredWarnings.filter(w => w.status === 'pending');
 
       onPlayersLoaded(
         validationResult.players,
         validationResult.playerGroups,
-        structuredWarnings,
+        pendingWarnings.length > 0 ? pendingWarnings : undefined,
         { sourceFileName: uploadedFileName || undefined }
       );
 
@@ -247,7 +260,7 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
       if (validationResult.isValid) {
         toast.success(`Loaded ${validationResult.players.length} players successfully`);
       } else {
-        const warningCount = structuredWarnings?.length || 0;
+        const warningCount = pendingWarnings.length;
         if (warningCount > 0) {
           toast.info(`${warningCount} warning${warningCount === 1 ? '' : 's'} to resolve on Roster page`);
         }
@@ -262,34 +275,41 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
     const player = validationResult.players.find(p => p.name === warning.playerName);
     if (!player) return;
 
-    // Update requests
-    // We look for the *requestedName* in their list and replace it with *matchedName*
-    const updateRequests = (requests: string[]) => {
-      return requests.map(req =>
-        req === warning.requestedName ? warning.matchedName! : req
-      );
-    };
+    const targetsAvoidRequests = isAvoidWarning(warning);
 
     const updatedPlayer = {
       ...player,
-      teammateRequests: updateRequests(player.teammateRequests),
-      avoidRequests: updateRequests(player.avoidRequests)
+      teammateRequests: applyWarningResolutionToRequests(
+        player.teammateRequests,
+        warning,
+        !targetsAvoidRequests
+      ),
+      avoidRequests: applyWarningResolutionToRequests(
+        player.avoidRequests,
+        warning,
+        targetsAvoidRequests
+      )
     };
 
-    // Update state
-    setValidationResult(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        players: prev.players.map(p => p.id === player.id ? updatedPlayer : p)
-      };
-    });
+    const updatedPlayers = validationResult.players.map(p => p.id === player.id ? updatedPlayer : p);
+    const { cleanedPlayers, playerGroups } = processMutualRequests(updatedPlayers);
 
-    // Toast check? Maybe too noisy. WarningPanel gives feedback.
+    setValidationResult(prev => prev ? {
+      ...prev,
+      players: cleanedPlayers,
+      playerGroups
+    } : null);
+
+    setStructuredWarnings(prev => prev.map(existingWarning =>
+      existingWarning.id === warning.id
+        ? { ...existingWarning, status: 'accepted', matchedName: warning.matchedName }
+        : existingWarning
+    ));
+    setCurrentCSVContent(serializePlayersToCSV(cleanedPlayers));
   };
 
   const handleSaveRoster = async () => {
-    if (!validationResult || !rosterName.trim() || !currentCSVContent.trim()) {
+    if (!validationResult || !rosterName.trim()) {
       return;
     }
 
@@ -300,19 +320,20 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
 
     setIsSaving(true);
     try {
-      const lines = currentCSVContent.split('\n');
-      const headers = lines[0]?.split(',').map((header) => header.trim()) || [];
+      const normalizedCsvContent = serializePlayersToCSV(validationResult.players);
 
       await RosterStorageService.saveRoster(
-        currentCSVContent,
+        normalizedCsvContent,
         rosterName.trim(),
         `Uploaded on ${new Date().toLocaleDateString()}`,
-        headers
+        [...NORMALIZED_ROSTER_HEADERS]
       );
 
       toast.success(`Roster "${rosterName}" saved to the cloud!`);
       setShowSaveDialog(false);
       setValidationResult(null);
+      setStructuredWarnings([]);
+      setCurrentCSVContent('');
       setRosterName('');
     } catch (error) {
       console.error('Error saving roster:', error);
@@ -325,6 +346,8 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
   const handleSkipSave = () => {
     setShowSaveDialog(false);
     setValidationResult(null);
+    setStructuredWarnings([]);
+    setCurrentCSVContent('');
     setRosterName('');
     toast.info('Roster loaded without saving');
   };
@@ -356,6 +379,55 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
         </TabsList>
 
         <TabsContent value="upload" className="space-y-6">
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle>Import Wizard</CardTitle>
+              <CardDescription>
+                Follow the three-step flow to clean up the roster before it reaches the team builder.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-3">
+                {[
+                  {
+                    step: 1,
+                    title: 'Prepare file',
+                    description: 'Check your columns and download a sample if needed.',
+                  },
+                  {
+                    step: 2,
+                    title: 'Upload roster',
+                    description: 'Drop in a CSV or Excel file and let TeamBuilder parse it.',
+                  },
+                  {
+                    step: 3,
+                    title: 'Review and confirm',
+                    description: 'Scan warnings, preview players, then load the roster.',
+                  },
+                ].map(item => {
+                  const isComplete = wizardStep > item.step;
+                  const isActive = wizardStep === item.step;
+                  return (
+                    <div
+                      key={item.step}
+                      className={`rounded-2xl border p-4 ${isComplete ? 'border-emerald-200 bg-emerald-50' : isActive ? 'border-primary/30 bg-primary/5' : 'border-slate-200 bg-white'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${isComplete ? 'bg-emerald-600 text-white' : isActive ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600'}`}>
+                          {item.step}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-800">{item.title}</div>
+                          <div className="text-sm text-slate-500">{item.description}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Upload Instructions */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
@@ -423,7 +495,7 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
             <CardHeader>
               <CardTitle>Upload Player Roster</CardTitle>
               <CardDescription>
-                Drop your CSV or Excel file here or click to browse
+                Step 2 of 3 — drop your CSV or Excel file here or click to browse
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -477,6 +549,9 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
                   )}
                   Validation Results
                 </CardTitle>
+                <CardDescription>
+                  Step 3 of 3 — review the roster, resolve obvious warnings, then load it into the project.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isProcessing && (
@@ -526,6 +601,25 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
                         Upload Anyway ({validationResult.players.length} players)
                       </Button>
                     )}
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-4">
+                  <div className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">File</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800 truncate">{uploadedFileName || 'Uploaded roster'}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Warnings</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800">{validationResult.warnings.length}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Errors</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800">{validationResult.errors.length}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Groups</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800">{validationResult.playerGroups?.length ?? 0}</div>
                   </div>
                 </div>
 
@@ -626,7 +720,11 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
                 <div className="flex gap-3 pt-4">
                   <Button
                     variant="outline"
-                    onClick={() => setValidationResult(null)}
+                    onClick={() => {
+                      setValidationResult(null);
+                      setStructuredWarnings([]);
+                      setCurrentCSVContent('');
+                    }}
                     className="flex-1"
                   >
                     Clear Results
@@ -640,8 +738,8 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
         <TabsContent value="saved">
           <SavedRostersList
             onLoadRoster={handleLoadFromCloud}
-            currentCSVContent={currentCSVContent}
-            currentPlayerCount={validationResult?.players.length}
+            currentCSVContent={saveableRosterCsvContent}
+            currentPlayerCount={saveableRosterPlayerCount}
           />
         </TabsContent>
       </Tabs>
@@ -654,6 +752,8 @@ export function CSVUploader({ onPlayersLoaded, onNavigateToRoster }: CSVUploader
           if (!open && !isSaving) {
             setRosterName('');
             setValidationResult(null);
+            setStructuredWarnings([]);
+            setCurrentCSVContent('');
           }
         }}
       >

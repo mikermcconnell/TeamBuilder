@@ -20,6 +20,8 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
+import { getPlayerAgeBand, isHighlightedPlayerAgeBand } from '@/utils/playerAgeBands';
+import { getPlayerDisplayAge } from '@/utils/playerProfile';
 import {
     ArrowUpDown,
     ArrowUp,
@@ -68,6 +70,19 @@ export function RosterTable({
     getSkillGradientStyle,
     columnVisibility
 }: RosterTableProps) {
+    const ageBandDisplay: Record<'young' | 'wise', { badgeClassName: string; rowClassName: string; label: string }> = {
+        young: {
+            label: 'Young',
+            badgeClassName: 'bg-sky-100 text-sky-700 border-sky-200',
+            rowClassName: 'bg-sky-50/50 hover:bg-sky-50/80',
+        },
+        wise: {
+            label: 'Wise',
+            badgeClassName: 'bg-amber-100 text-amber-800 border-amber-200',
+            rowClassName: 'bg-amber-50/50 hover:bg-amber-50/80',
+        },
+    };
+
     // Sorting state
     const [sortConfig, setSortConfig] = useState<SortConfig[]>([
         { field: 'name', direction: 'asc' }
@@ -124,8 +139,8 @@ export function RosterTable({
     const sortedPlayers = useMemo(() => {
         return [...players].sort((a, b) => {
             for (const sort of sortConfig) {
-                let aValue: any = '';
-                let bValue: any = '';
+                let aValue: string | number = '';
+                let bValue: string | number = '';
 
                 switch (sort.field) {
                     case 'name':
@@ -324,6 +339,11 @@ export function RosterTable({
                         ) : (
                             sortedPlayers.map((player) => {
                                 const registrationInfo = getPlayerRegistrationInfo(player);
+                                const playerAge = getPlayerDisplayAge(player);
+                                const ageBand = getPlayerAgeBand(playerAge);
+                                const ageHighlight = isHighlightedPlayerAgeBand(ageBand)
+                                    ? ageBandDisplay[ageBand]
+                                    : null;
                                 const teammateRequests = player.teammateRequests ?? [];
                                 const avoidRequests = player.avoidRequests ?? [];
 
@@ -331,8 +351,11 @@ export function RosterTable({
                                 <TableRow
                                     key={player.id}
                                     className={`
-                                        group transition-colors hover:bg-slate-50/80 border-b border-slate-50 last:border-0
-                                        ${selectedPlayerIds.has(player.id) ? 'bg-blue-50/30' : ''}
+                                        group transition-colors border-b border-slate-50 last:border-0
+                                        ${selectedPlayerIds.has(player.id)
+                                            ? 'bg-blue-50/40 hover:bg-blue-50/60'
+                                            : ageHighlight?.rowClassName ?? 'hover:bg-slate-50/80'
+                                        }
                                     `}
                                 >
                                     {columnVisibility.select && (
@@ -375,10 +398,15 @@ export function RosterTable({
                                                                 {player.email}
                                                             </span>
                                                         )}
-                                                        {player.age !== undefined && (
+                                                        {playerAge !== undefined && (
                                                             <span className="text-[10px] font-medium text-slate-500">
-                                                                Age {player.age}
+                                                                Age {playerAge}
                                                             </span>
+                                                        )}
+                                                        {ageHighlight && (
+                                                            <Badge variant="outline" className={`text-[10px] font-bold ${ageHighlight.badgeClassName}`}>
+                                                                {ageHighlight.label}
+                                                            </Badge>
                                                         )}
                                                     </div>
                                                 </div>

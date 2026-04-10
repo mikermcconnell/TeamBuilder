@@ -14,7 +14,7 @@ import {
   DropAnimation
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Player, Team, LeagueConfig, PlayerGroup, TeamGenerationStats, TeamIteration, TeamIterationStatus } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, TeamGenerationStats, TeamIteration, TeamIterationStatus, LeagueMemoryEntry } from '@/types';
 import { getPlayerGroup } from '@/utils/playerGrouping';
 import { PlayerSidebar } from './PlayerSidebar';
 import { TeamBoard } from './TeamBoard';
@@ -38,6 +38,8 @@ import { generateTeamSuggestions } from '@/services/aiService';
 import { TeamSuggestion } from '@/types/ai';
 
 import { SuggestionReviewModal } from './ai/SuggestionReviewModal';
+import { buildIterationInsights, buildManualMoveRecommendations } from '@/utils/teamInsights';
+import { ManualEditAssist } from './teams/ManualEditAssist';
 
 interface FullScreenTeamBuilderProps {
   teams: Team[];
@@ -73,6 +75,7 @@ interface FullScreenTeamBuilderProps {
   onAddAiIteration: () => void;
   onStartOver?: () => void;
   activeIterationStatus?: TeamIterationStatus;
+  leagueMemory?: LeagueMemoryEntry[];
 }
 
 export function FullScreenTeamBuilder({
@@ -103,6 +106,7 @@ export function FullScreenTeamBuilder({
   onAddAiIteration,
   onStartOver,
   activeIterationStatus = 'ready',
+  leagueMemory = [],
 }: FullScreenTeamBuilderProps) {
 
   // Handle Undo Shortcut
@@ -132,11 +136,38 @@ export function FullScreenTeamBuilder({
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<TeamSuggestion[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const currentInsights = buildIterationInsights({
+    id: activeIterationId ?? 'current',
+    name: iterations.find(iteration => iteration.id === activeIterationId)?.name || 'Current draft',
+    teams,
+    unassignedPlayers,
+    stats,
+  }, config, leagueMemory);
+  const moveRecommendations = activePlayer
+    ? buildManualMoveRecommendations(activePlayer.id, teams, config, leagueMemory)
+    : [];
+  const coachPrompts = [
+    currentInsights.handlerSpread > 1 ? 'Spread handlers more evenly across the teams.' : null,
+    currentInsights.eliteStackedTeams > 0 ? 'Break up any team that is stacking elite 9 or 10 rated players.' : null,
+    currentInsights.lowBandStackedTeams > 0 ? 'Reduce weak-player concentration by spreading out the 1 to 3 rated players.' : null,
+    currentInsights.avoidViolations > 0 ? 'Reduce the avoid conflicts while keeping the teams fair.' : null,
+    currentInsights.repeatedPairings > 0 ? 'Use league memory to break up repeated teammate pairings where possible.' : null,
+    'Make the teams fairer without creating new avoid conflicts.',
+  ].filter((prompt): prompt is string => Boolean(prompt));
 
   const handleAiPrompt = async (prompt: string) => {
     setIsAiLoading(true);
     try {
-      const suggestions = await generateTeamSuggestions(prompt, players, teams, config, playerGroups);
+      const contextualPrompt = [
+        prompt,
+        leagueMemory.length > 0
+          ? `League memory note: avoid repeated teammate pairings when practical. Current repeat pairings: ${currentInsights.repeatedPairings}.`
+          : null,
+        currentInsights.risks.length > 0
+          ? `Current draft risks: ${currentInsights.risks.join(' ')}`
+          : null,
+      ].filter(Boolean).join('\n\n');
+      const suggestions = await generateTeamSuggestions(contextualPrompt, players, teams, config, playerGroups);
       setAiSuggestions(suggestions);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to generate suggestions.');
@@ -497,8 +528,15 @@ export function FullScreenTeamBuilder({
               players={players}
               teams={teams}
               onReview={() => setIsReviewModalOpen(true)}
+              coachPrompts={coachPrompts}
             />
           )}
+
+          <ManualEditAssist
+            activePlayer={activePlayer}
+            recommendations={moveRecommendations}
+            insights={currentInsights}
+          />
 
           {/* Review Modal */}
           <SuggestionReviewModal

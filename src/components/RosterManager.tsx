@@ -42,6 +42,7 @@ import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { Player, PlayerGroup } from '@/types';
+import type { LeagueConfig, Team } from '@/types';
 import { 
   saveRoster, 
   getUserRosters, 
@@ -65,9 +66,9 @@ interface RosterManagerProps {
     players: Player[], 
     playerGroups: PlayerGroup[], 
     rosterId?: string,
-    teams?: any[], 
+    teams?: Team[], 
     unassignedPlayers?: Player[], 
-    teamsConfig?: any
+    teamsConfig?: LeagueConfig
   ) => void;
 }
 
@@ -104,11 +105,11 @@ export function RosterManager({ players, playerGroups, user, onLoadRoster }: Ros
       if (userRosters.length > 0 || !sessionStorage.getItem('indexBuildingNotified')) {
         sessionStorage.removeItem('indexBuildingNotified');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading rosters:', error);
       
       // Show user-friendly message for index building
-      if (error?.message?.includes('index') && !sessionStorage.getItem('indexBuildingNotified')) {
+      if (error instanceof Error && error.message.includes('index') && !sessionStorage.getItem('indexBuildingNotified')) {
         toast.info('Database is being optimized. Your rosters will be available in a few minutes.', {
           duration: 10000
         });

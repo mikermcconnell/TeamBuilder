@@ -5,6 +5,7 @@ import { AppState, getEffectiveSkillRating } from '@/types';
 import { getDefaultConfig, getRosterFeasibilityWarnings, validateConfig } from '@/utils/configManager';
 import { getProjectBackupFilename, parseProjectBackup, serializeProjectBackup } from '@/utils/projectRecovery';
 import { validateGroupsForGeneration } from '@/utils/playerGrouping';
+import { serializePlayersToCSV } from '@/utils/csvProcessor';
 import {
   applyTeamIterationToState,
   createAiTeamIteration,
@@ -36,6 +37,10 @@ import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
 import { flushSync } from 'react-dom';
+import { IterationScoreCard } from '@/components/teams/IterationScoreCard';
+import { IterationComparisonPanel } from '@/components/teams/IterationComparisonPanel';
+import { LeagueMemoryPanel } from '@/components/teams/LeagueMemoryPanel';
+import { buildIterationInsights, createLeagueMemoryEntry } from '@/utils/teamInsights';
 
 
 // Import test runner for development
@@ -133,6 +138,7 @@ function App() {
       savedConfigs: [],
       teamIterations: [],
       activeTeamIterationId: null,
+      leagueMemory: [],
     };
   });
 
@@ -379,11 +385,23 @@ function App() {
   }, [handlePlayersLoaded]);
 
   const teamIterations = useMemo(() => appState.teamIterations ?? [], [appState.teamIterations]);
+  const leagueMemory = useMemo(() => appState.leagueMemory ?? [], [appState.leagueMemory]);
   const activeIteration = teamIterations.find(iteration => iteration.id === appState.activeTeamIterationId) ?? null;
   const workspaceTeams = activeIteration?.teams ?? appState.teams;
   const workspaceUnassignedPlayers = activeIteration?.unassignedPlayers ?? appState.unassignedPlayers;
   const workspaceStats = activeIteration?.stats ?? appState.stats;
+  const activeIterationInsights = useMemo(() => {
+    if (!activeIteration || activeIteration.status !== 'ready') {
+      return null;
+    }
+
+    return buildIterationInsights(activeIteration, appState.config, leagueMemory);
+  }, [activeIteration, appState.config, leagueMemory]);
   const execHistoryCount = Object.keys(appState.execRatingHistory || {}).length;
+  const currentRosterCsvContent = useMemo(
+    () => appState.players.length > 0 ? serializePlayersToCSV(appState.players) : '',
+    [appState.players]
+  );
 
   const getNextIterationName = useCallback((type: 'manual' | 'ai') => {
     const prefix = type === 'manual' ? 'Manual' : 'AI';
@@ -560,7 +578,7 @@ function App() {
 
     setActiveTab('teams');
     setTeamsView('landing');
-    setIsFullScreenMode(false);
+    setIsFullScreenMode(true);
     setIsGenerateTeamsDialogOpen(false);
     toast.success('Created two manual team tabs');
   }, [appState.config, appState.playerGroups, appState.players, snapshotCurrentState, validateGenerationSetup]);
@@ -588,7 +606,7 @@ function App() {
 
     setActiveTab('teams');
     setTeamsView('landing');
-    setIsFullScreenMode(false);
+    setIsFullScreenMode(true);
     setIsGenerateTeamsDialogOpen(false);
 
     void buildAiIterationInBackground(aiOne.id, aiOne.name, 'primary', snapshot);
@@ -618,7 +636,7 @@ function App() {
 
     setActiveTab('teams');
     setTeamsView('landing');
-    setIsFullScreenMode(false);
+    setIsFullScreenMode(true);
     setIsGenerateTeamsDialogOpen(false);
 
     void buildAiIterationInBackground(aiIteration.id, aiIteration.name, 'primary', snapshot, 'Your AI tab is ready');
@@ -718,6 +736,36 @@ function App() {
     }
   }, [snapshotCurrentState, teamIterations]);
 
+  const handleSaveActiveIterationToLeagueMemory = useCallback(() => {
+    if (!activeIteration || activeIteration.status !== 'ready') {
+      toast.error('Open a finished team tab before saving league memory');
+      return;
+    }
+
+    const suggestedTitle = `${workspaceName || activeIteration.name} ${new Date().toLocaleDateString()}`;
+    const enteredTitle = window.prompt('Save this team setup to league memory as:', suggestedTitle);
+    if (enteredTitle === null) {
+      return;
+    }
+
+    snapshotCurrentState();
+    const memoryEntry = createLeagueMemoryEntry(activeIteration, enteredTitle);
+    setAppState(prev => ({
+      ...prev,
+      leagueMemory: [memoryEntry, ...(prev.leagueMemory ?? [])].slice(0, 12),
+    }));
+    toast.success(`Saved "${memoryEntry.title}" to league memory`);
+  }, [activeIteration, snapshotCurrentState, workspaceName]);
+
+  const handleRemoveLeagueMemoryEntry = useCallback((entryId: string) => {
+    snapshotCurrentState();
+    setAppState(prev => ({
+      ...prev,
+      leagueMemory: (prev.leagueMemory ?? []).filter(entry => entry.id !== entryId),
+    }));
+    toast.success('Removed league memory snapshot');
+  }, [snapshotCurrentState]);
+
   const handleDeleteAllIterations = useCallback(() => {
     if (!window.confirm('Delete all team tabs and start over?')) {
       return;
@@ -808,6 +856,7 @@ function App() {
         onAddAiIteration={handleAddAiIteration}
         onStartOver={handleDeleteAllIterations}
         activeIterationStatus={activeIteration?.status}
+        leagueMemory={leagueMemory}
       />
     );
   }
@@ -935,6 +984,8 @@ function App() {
                       <CSVUploader
                         onPlayersLoaded={handleRosterCsvLoaded}
                         onNavigateToRoster={() => setActiveTab('roster')}
+                        currentRosterCsvContent={currentRosterCsvContent}
+                        currentRosterPlayerCount={appState.players.length}
                       />
                     </div>
 
@@ -1010,21 +1061,47 @@ function App() {
 
               <TabsContent value="teams" className="space-y-6 focus-visible:outline-none">
                 {teamIterations.length === 0 ? (
-                  <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-slate-200">
-                    <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-6">
-                      <Users className="h-10 w-10" />
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-slate-200">
+                      <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-6">
+                        <Users className="h-10 w-10" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-700 mb-2">No Team Tabs Yet</h3>
+                      <p className="text-slate-500 mb-8 max-w-md mx-auto">
+                        Choose whether you want a manual workspace, AI-built options, or both.
+                      </p>
+                      <Button
+                        onClick={handleOpenGenerateTeamsDialog}
+                        size="lg"
+                        className="bg-primary hover:bg-primary/90 text-white border-b-4 border-primary-shadow active:border-b-0 rounded-xl font-bold px-8 h-14 text-lg transition-all active:translate-y-1"
+                      >
+                        Generate Team Tabs
+                      </Button>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-700 mb-2">No Team Tabs Yet</h3>
-                    <p className="text-slate-500 mb-8 max-w-md mx-auto">
-                      Choose whether you want a manual workspace, AI-built options, or both.
-                    </p>
-                    <Button
-                      onClick={handleOpenGenerateTeamsDialog}
-                      size="lg"
-                      className="bg-primary hover:bg-primary/90 text-white border-b-4 border-primary-shadow active:border-b-0 rounded-xl font-bold px-8 h-14 text-lg transition-all active:translate-y-1"
-                    >
-                      Generate Team Tabs
-                    </Button>
+
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                        <div className="text-sm font-bold text-slate-800">1. Review the roster</div>
+                        <p className="mt-2 text-sm text-slate-500">Check warnings, handler tags, ages, and group requests before generating.</p>
+                        <Button variant="outline" className="mt-4" onClick={() => setActiveTab('roster')}>
+                          Open roster
+                        </Button>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                        <div className="text-sm font-bold text-slate-800">2. Confirm league rules</div>
+                        <p className="mt-2 text-sm text-slate-500">Set team count, gender minimums, and max team size so the generator knows the target.</p>
+                        <Button variant="outline" className="mt-4" onClick={() => setActiveTab('config')}>
+                          Open config
+                        </Button>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                        <div className="text-sm font-bold text-slate-800">3. Generate and compare</div>
+                        <p className="mt-2 text-sm text-slate-500">Create manual tabs, AI tabs, or both, then compare scorecards before publishing.</p>
+                        <Button className="mt-4" onClick={handleOpenGenerateTeamsDialog}>
+                          Generate tabs
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -1068,9 +1145,68 @@ function App() {
                         <div className="text-center space-y-2">
                           <h2 className="text-3xl font-extrabold text-slate-800">{activeIteration?.name || 'Select Workspace'}</h2>
                           <p className="text-slate-500 max-w-lg mx-auto">
-                            Choose between the interactive Team Builder for drag-and-drop adjustments, or view Exports & Reports.
+                            Review the current draft score, compare tabs side by side, then decide whether to keep editing or export.
                           </p>
                         </div>
+
+                        {activeIterationInsights && (
+                          <IterationScoreCard insights={activeIterationInsights} />
+                        )}
+
+                        <div className="grid gap-4 lg:grid-cols-3">
+                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                            <div className="text-sm font-bold text-slate-800">Guided next step</div>
+                            <p className="mt-2 text-sm text-slate-500">Open the workspace to make manual fixes with live move guidance.</p>
+                            <Button
+                              variant="outline"
+                              className="mt-4"
+                              onClick={() => {
+                                if (activeIteration?.id) {
+                                  flushSync(() => {
+                                    setAppState(prev => applyTeamIterationToState(prev, activeIteration.id));
+                                  });
+                                }
+                                setIsFullScreenMode(true);
+                              }}
+                            >
+                              Open Team Builder
+                            </Button>
+                          </div>
+                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                            <div className="text-sm font-bold text-slate-800">Compare tabs</div>
+                            <p className="mt-2 text-sm text-slate-500">Use the comparison view below to pick the strongest version before publishing.</p>
+                            <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                              {teamIterations.filter(iteration => iteration.status === 'ready').length} ready tab{teamIterations.filter(iteration => iteration.status === 'ready').length === 1 ? '' : 's'}
+                            </div>
+                          </div>
+                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                            <div className="text-sm font-bold text-slate-800">Publish or save history</div>
+                            <p className="mt-2 text-sm text-slate-500">Export the organizer summary or save this version to league memory for next season.</p>
+                            <div className="mt-4 flex gap-2">
+                              <Button variant="outline" onClick={() => setTeamsView('exports')}>
+                                Export
+                              </Button>
+                              <Button onClick={handleSaveActiveIterationToLeagueMemory}>
+                                Save history
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <IterationComparisonPanel
+                          iterations={teamIterations}
+                          activeIterationId={activeIteration?.id ?? null}
+                          config={appState.config}
+                          leagueMemory={leagueMemory}
+                        />
+
+                        <LeagueMemoryPanel
+                          activeIteration={activeIteration}
+                          leagueMemory={leagueMemory}
+                          activeInsights={activeIterationInsights}
+                          onSaveCurrent={handleSaveActiveIterationToLeagueMemory}
+                          onRemoveEntry={handleRemoveLeagueMemoryEntry}
+                        />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
                           {/* Team Builder Card */}
@@ -1129,11 +1265,13 @@ function App() {
                         </div>
 
                         <ExportPanel
-                          teams={appState.teams}
-                          unassignedPlayers={appState.unassignedPlayers}
-                          stats={appState.stats}
+                          teams={workspaceTeams}
+                          unassignedPlayers={workspaceUnassignedPlayers}
+                          stats={workspaceStats}
                           config={appState.config}
                           playerGroups={appState.playerGroups}
+                          leagueMemory={leagueMemory}
+                          activeIterationName={activeIteration?.name}
                         />
                       </div>
                     )}

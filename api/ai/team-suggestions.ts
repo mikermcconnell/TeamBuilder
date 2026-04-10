@@ -1,6 +1,16 @@
 import { ZodError } from 'zod';
 
-import { parseRequestBody, allowOnlyPost, sendError, sendSuccess, type ServerlessRequest, type ServerlessResponse } from '../../src/server/ai/http';
+import {
+  parseRequestBody,
+  allowOnlyPost,
+  ensureAiRequestSecurity,
+  sendError,
+  sendGuardError,
+  sendSuccess,
+  RequestGuardError,
+  type ServerlessRequest,
+  type ServerlessResponse,
+} from '../../src/server/ai/http';
 import { parseTeamSuggestionsRequest, validateTeamSuggestions } from '../../src/server/ai/guards';
 import { requestTeamSuggestions } from '../../src/server/ai/openaiService';
 
@@ -10,6 +20,7 @@ export default async function handler(req: ServerlessRequest, res: ServerlessRes
   }
 
   try {
+    await ensureAiRequestSecurity(req);
     const input = parseTeamSuggestionsRequest(parseRequestBody(req.body));
     const response = await requestTeamSuggestions(input);
     const suggestions = validateTeamSuggestions(input, response.suggestions);
@@ -21,6 +32,11 @@ export default async function handler(req: ServerlessRequest, res: ServerlessRes
 
     sendSuccess(res, suggestions);
   } catch (error) {
+    if (error instanceof RequestGuardError) {
+      sendGuardError(res, error);
+      return;
+    }
+
     if (error instanceof ZodError) {
       sendError(res, 'BAD_REQUEST', 'Invalid request payload for team suggestions.', 400, error.issues.map(issue => issue.message));
       return;

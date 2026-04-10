@@ -1,4 +1,4 @@
-import { Loader2, Plus, Sparkles, SquarePen } from 'lucide-react';
+import { Copy, Loader2, Plus, Sparkles, SquarePen } from 'lucide-react';
 
 import { TeamIteration } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ interface TeamIterationTabsProps {
   iterations: TeamIteration[];
   activeIterationId: string | null;
   onSelectIteration: (iterationId: string) => void;
+  onCopyIteration: (iterationId: string) => void;
   onAddManualIteration: () => void;
   onAddAiIteration: () => void;
   className?: string;
@@ -35,6 +36,7 @@ export function TeamIterationTabs({
   iterations,
   activeIterationId,
   onSelectIteration,
+  onCopyIteration,
   onAddManualIteration,
   onAddAiIteration,
   className,
@@ -49,25 +51,42 @@ export function TeamIterationTabs({
         const isActive = iteration.id === activeIterationId;
 
         return (
-          <button
-            key={iteration.id}
-            type="button"
-            onClick={() => onSelectIteration(iteration.id)}
-            className={cn(
-              'inline-flex min-w-fit items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2 text-sm font-semibold transition-colors',
-              isActive
-                ? 'bg-white text-slate-900 border-slate-200 shadow-sm'
-                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-50'
-            )}
-          >
-            {getIterationIcon(iteration)}
-            <span>{iteration.name}</span>
-            {iteration.status === 'failed' && (
-              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-600">
-                Failed
-              </span>
-            )}
-          </button>
+          <div key={iteration.id} className="inline-flex items-stretch">
+            <button
+              type="button"
+              onClick={() => onSelectIteration(iteration.id)}
+              className={cn(
+                'inline-flex min-w-fit items-center gap-2 rounded-l-xl border border-b-0 px-4 py-2 text-sm font-semibold transition-colors',
+                isActive
+                  ? 'bg-white text-slate-900 border-slate-200 shadow-sm'
+                  : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-50'
+              )}
+            >
+              {getIterationIcon(iteration)}
+              <span>{iteration.name}</span>
+              {iteration.status === 'failed' && (
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-600">
+                  Failed
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => onCopyIteration(iteration.id)}
+              disabled={iteration.status !== 'ready'}
+              title={iteration.status === 'ready' ? `Copy ${iteration.name}` : 'Only ready tabs can be copied'}
+              className={cn(
+                'inline-flex items-center justify-center rounded-r-xl border border-b-0 border-l-0 px-3 transition-colors',
+                isActive
+                  ? 'bg-white text-slate-500 border-slate-200 hover:text-slate-900'
+                  : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-900',
+                iteration.status !== 'ready' && 'cursor-not-allowed opacity-50 hover:bg-inherit hover:text-slate-500'
+              )}
+              aria-label={`Copy ${iteration.name}`}
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          </div>
         );
       })}
 

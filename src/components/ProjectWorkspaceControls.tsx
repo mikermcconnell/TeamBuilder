@@ -79,7 +79,7 @@ export function ProjectWorkspaceControls({
 
   return (
     <>
-      <header className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <header className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4 shrink-0 group">
           <img
             src="/logo-new.jpg"
@@ -96,7 +96,7 @@ export function ProjectWorkspaceControls({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 lg:items-end">
+        <div className="flex justify-end lg:flex-1">
           <input
             ref={importFileInputRef}
             type="file"
@@ -105,20 +105,20 @@ export function ProjectWorkspaceControls({
             onChange={onImportProjectBackup}
           />
 
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3 justify-end">
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-2 shadow-sm lg:w-auto lg:flex-nowrap">
+            <div className="flex min-w-0 items-center gap-2">
               <PersistenceStatusBadge status={persistenceStatus} />
 
               {!user ? (
                 <Button
                   onClick={() => onAuthDialogOpenChange(true)}
-                  className="h-11 rounded-xl border-b-4 border-slate-200 bg-white px-6 font-bold text-slate-700 transition-all active:border-b-0 active:translate-y-1 hover:bg-slate-50"
+                  className="h-10 rounded-xl border-b-4 border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-all active:border-b-0 active:translate-y-1 hover:bg-slate-50"
                 >
                   Sign In
                 </Button>
               ) : (
                 <>
-                  <div className="hidden md:flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                  <div className="hidden lg:flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
                       <UserCheck className="h-4 w-4 text-primary" />
                     </div>
@@ -126,7 +126,7 @@ export function ProjectWorkspaceControls({
                       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                         Logged in as
                       </div>
-                      <div className="max-w-[220px] truncate text-sm font-bold text-slate-800">
+                      <div className="max-w-[190px] truncate text-sm font-bold text-slate-800">
                         {user.displayName || user.email}
                       </div>
                     </div>
@@ -135,7 +135,7 @@ export function ProjectWorkspaceControls({
                   <Button
                     onClick={onSignOut}
                     variant="ghost"
-                    className="h-11 w-11 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    className="h-10 w-10 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                     aria-label="Sign out"
                   >
                     <Users className="h-5 w-5" />
@@ -144,46 +144,40 @@ export function ProjectWorkspaceControls({
               )}
             </div>
 
-            <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  onClick={onExportProjectBackup}
-                  variant="ghost"
-                  className="h-10 rounded-xl px-3 font-bold text-slate-600 hover:bg-white hover:text-slate-800"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Backup</span>
-                </Button>
-                <Button
-                  onClick={onOpenProjectImport}
-                  variant="ghost"
-                  className="h-10 rounded-xl px-3 font-bold text-slate-600 hover:bg-white hover:text-slate-800"
-                >
-                  <Upload className="h-4 w-4" />
-                  <span>Restore</span>
-                </Button>
-              </div>
+            <div className="hidden h-6 w-px bg-slate-200 lg:block" aria-hidden="true" />
 
-              <div className="hidden h-6 w-px bg-slate-200 sm:block" aria-hidden="true" />
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  onClick={onOpenLoadWorkspaceDialog}
-                  variant="outline"
-                  className="h-10 rounded-xl border-slate-200 bg-white px-3 font-bold text-slate-700 shadow-sm hover:bg-slate-50"
-                >
-                  <FolderOpen className="h-4 w-4" />
-                  <span>Load Project</span>
-                </Button>
-                <Button
-                  onClick={onOpenSaveWorkspaceDialog}
-                  className="h-10 rounded-xl border-b-4 border-primary-shadow bg-primary px-3 font-bold text-white transition-all active:border-b-0 active:translate-y-1 hover:bg-primary/90"
-                >
-                  <Save className="h-4 w-4" />
-                  <span className="hidden sm:inline">Save Project</span>
-                  <span className="sm:hidden">Save</span>
-                </Button>
-              </div>
+            <div className="flex flex-wrap items-center justify-end gap-2 lg:flex-nowrap">
+              <Button
+                onClick={onExportProjectBackup}
+                variant="ghost"
+                className="h-10 rounded-xl px-3 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-800"
+              >
+                <Download className="h-4 w-4" />
+                <span>Backup</span>
+              </Button>
+              <Button
+                onClick={onOpenProjectImport}
+                variant="ghost"
+                className="h-10 rounded-xl px-3 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-800"
+              >
+                <Upload className="h-4 w-4" />
+                <span>Restore</span>
+              </Button>
+              <Button
+                onClick={onOpenLoadWorkspaceDialog}
+                variant="outline"
+                className="h-10 rounded-xl border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                <FolderOpen className="h-4 w-4" />
+                <span>Load Project</span>
+              </Button>
+              <Button
+                onClick={onOpenSaveWorkspaceDialog}
+                className="h-10 rounded-xl border-b-4 border-primary-shadow bg-primary px-3 text-sm font-bold text-white transition-all active:border-b-0 active:translate-y-1 hover:bg-primary/90"
+              >
+                <Save className="h-4 w-4" />
+                <span>Save Project</span>
+              </Button>
             </div>
           </div>
         </div>

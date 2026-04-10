@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { LeagueConfig, Player } from '@/types';
-import { loadSavedConfigs, saveConfig, deleteConfig, validateConfig, loadLeaguePresets, updateConfig as updateSavedConfig, duplicateConfig } from '@/utils/configManager';
+import { loadSavedConfigs, saveConfig, deleteConfig, validateConfig, loadLeaguePresets, updateConfig as updateSavedConfig, duplicateConfig, getConfiguredTeamCount } from '@/utils/configManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,10 +39,13 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
   const [newConfigName, setNewConfigName] = useState('');
   const [saveMode, setSaveMode] = useState<'create' | 'rename' | 'duplicate'>('create');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const activeSavedPreset = useMemo(
     () => savedConfigs.find(savedConfig => savedConfig.id === config.id) || null,
     [config.id, savedConfigs]
+  );
+  const validationErrors = useMemo(
+    () => validateConfig(config, playerCount),
+    [config, playerCount]
   );
 
   // Calculate gender breakdown
@@ -56,8 +59,6 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
 
   const updateConfig = (updates: Partial<LeagueConfig>) => {
     const updatedConfig = { ...config, ...updates };
-    const errors = validateConfig(updatedConfig);
-    setValidationErrors(errors);
     onConfigChange(updatedConfig);
   };
 
@@ -109,7 +110,7 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
       return;
     }
 
-    const errors = validateConfig(config);
+    const errors = validateConfig(config, playerCount);
     if (errors.length > 0) {
       toast.error('Please fix configuration errors before saving');
       return;
@@ -194,7 +195,7 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
 
   const calculateEstimatedTeams = () => {
     if (playerCount === 0) return 0;
-    return Math.ceil(playerCount / config.maxTeamSize);
+    return getConfiguredTeamCount(playerCount, config);
   };
 
   const calculatePlayersPerTeam = () => {

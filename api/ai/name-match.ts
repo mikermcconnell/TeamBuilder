@@ -1,6 +1,16 @@
 import { ZodError } from 'zod';
 
-import { parseRequestBody, allowOnlyPost, sendError, sendSuccess, type ServerlessRequest, type ServerlessResponse } from '../../src/server/ai/http';
+import {
+  parseRequestBody,
+  allowOnlyPost,
+  ensureAiRequestSecurity,
+  sendError,
+  sendGuardError,
+  sendSuccess,
+  RequestGuardError,
+  type ServerlessRequest,
+  type ServerlessResponse,
+} from '../../src/server/ai/http';
 import { parseNameMatchRequest, validateNameMatches } from '../../src/server/ai/guards';
 import { requestNameMatches } from '../../src/server/ai/openaiService';
 
@@ -10,11 +20,17 @@ export default async function handler(req: ServerlessRequest, res: ServerlessRes
   }
 
   try {
+    await ensureAiRequestSecurity(req);
     const input = parseNameMatchRequest(parseRequestBody(req.body));
     const response = await requestNameMatches(input);
     const matches = validateNameMatches(input, response.matches);
     sendSuccess(res, matches);
   } catch (error) {
+    if (error instanceof RequestGuardError) {
+      sendGuardError(res, error);
+      return;
+    }
+
     if (error instanceof ZodError) {
       sendError(res, 'BAD_REQUEST', 'Invalid request payload for name matching.', 400, error.issues.map(issue => issue.message));
       return;

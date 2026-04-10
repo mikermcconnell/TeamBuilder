@@ -1,4 +1,4 @@
-import { Player, CSVValidationResult, CSVRow, Gender, PlayerGroup } from '@/types';
+import { Player, CSVValidationResult, CSVRow, Gender, PlayerGroup, getPlayerAge, getPlayerRegistrationNotes } from '@/types';
 import { processMutualRequests } from './playerGrouping';
 import { fuzzyMatcher, FuzzyMatchResult } from './fuzzyNameMatcher';
 import Papa from 'papaparse';
@@ -42,6 +42,37 @@ export function parseCSV(csvText: string): CSVRow[] {
       return normalized;
     }, {}))
     .filter(row => Object.values(row).some(value => value.trim().length > 0));
+}
+
+export const NORMALIZED_ROSTER_HEADERS = [
+  'Name',
+  'Gender',
+  'Skill Rating',
+  'Exec Skill Rating',
+  'Teammate Requests',
+  'Avoid Requests',
+  'Email',
+  'Age',
+  'Registration Notes'
+] as const;
+
+export function serializePlayersToCSV(players: Player[]): string {
+  const rows = players.map(player => ({
+    [NORMALIZED_ROSTER_HEADERS[0]]: player.name,
+    [NORMALIZED_ROSTER_HEADERS[1]]: player.gender,
+    [NORMALIZED_ROSTER_HEADERS[2]]: player.skillRating,
+    [NORMALIZED_ROSTER_HEADERS[3]]: player.execSkillRating ?? '',
+    [NORMALIZED_ROSTER_HEADERS[4]]: player.teammateRequests.join('; '),
+    [NORMALIZED_ROSTER_HEADERS[5]]: player.avoidRequests.join('; '),
+    [NORMALIZED_ROSTER_HEADERS[6]]: player.email ?? '',
+    [NORMALIZED_ROSTER_HEADERS[7]]: getPlayerAge(player) ?? '',
+    [NORMALIZED_ROSTER_HEADERS[8]]: getPlayerRegistrationNotes(player) ?? '',
+  }));
+
+  return Papa.unparse(rows, {
+    columns: [...NORMALIZED_ROSTER_HEADERS],
+    newline: '\n',
+  });
 }
 
 /**
@@ -311,8 +342,12 @@ function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVVa
     const player: Player = {
       id: generatePlayerId(name),
       name,
-      ...(registrationInfo ? { registrationInfo } : {}),
-      ...(age !== undefined ? { age } : {}),
+      ...((registrationInfo || age !== undefined) ? {
+        profile: {
+          ...(registrationInfo ? { registrationInfo } : {}),
+          ...(age !== undefined ? { age } : {}),
+        },
+      } : {}),
       gender,
       skillRating,
       execSkillRating,
@@ -534,8 +569,12 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
     const player: Player = {
       id: generatePlayerId(name),
       name,
-      ...(registrationInfo ? { registrationInfo } : {}),
-      ...(age !== undefined ? { age } : {}),
+      ...((registrationInfo || age !== undefined) ? {
+        profile: {
+          ...(registrationInfo ? { registrationInfo } : {}),
+          ...(age !== undefined ? { age } : {}),
+        },
+      } : {}),
       gender,
       skillRating,
       execSkillRating, // Will be set to exec value if exec > 0, otherwise null

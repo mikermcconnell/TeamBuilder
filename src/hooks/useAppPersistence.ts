@@ -94,6 +94,7 @@ function sanitizeLoadedState(loadedState: AppState): AppState | null {
   const savedConfigs = loadedState.savedConfigs || [];
   const pendingWarnings = loadedState.pendingWarnings || [];
   const teamIterations = loadedState.teamIterations || [];
+  const leagueMemory = loadedState.leagueMemory || [];
 
   const validatedPlayers = players
     .map(player => validatePlayer(player))
@@ -118,6 +119,7 @@ function sanitizeLoadedState(loadedState: AppState): AppState | null {
     config,
     savedConfigs,
     pendingWarnings,
+    leagueMemory,
     execRatingHistory: buildExecRatingHistory(validatedPlayers, loadedState.execRatingHistory),
     ...applyTeamIterationToState({
       ...loadedState,
@@ -128,6 +130,7 @@ function sanitizeLoadedState(loadedState: AppState): AppState | null {
       config,
       savedConfigs,
       pendingWarnings,
+      leagueMemory,
       teamIterations: normalized.teamIterations,
       activeTeamIterationId: normalized.activeTeamIterationId,
     }, normalized.activeTeamIterationId),
@@ -338,6 +341,7 @@ export function useAppPersistence({
           stats: appState.stats,
           teamIterations: appState.teamIterations,
           activeTeamIterationId: appState.activeTeamIterationId,
+          leagueMemory: appState.leagueMemory,
         }, {
           id: currentWorkspaceId,
           name: workspaceName,
@@ -397,6 +401,7 @@ export function useAppPersistence({
         stats: workspace.stats,
         teamIterations: normalized.teamIterations,
         activeTeamIterationId: normalized.activeTeamIterationId,
+        leagueMemory: workspace.leagueMemory || [],
         execRatingHistory: buildExecRatingHistory(validatedPlayers, prev.execRatingHistory),
       }, normalized.activeTeamIterationId);
     });

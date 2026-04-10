@@ -1,8 +1,19 @@
+export interface PlayerProfile {
+  registrationInfo?: string;
+  /** @deprecated Legacy field. Fold into registrationInfo. */
+  experienceNotes?: string;
+  age?: number;
+}
+
 export interface Player {
   id: string;
   name: string;
+  profile?: PlayerProfile;
+  /** @deprecated Prefer player.profile.registrationInfo */
   registrationInfo?: string;
+  /** @deprecated Legacy field. Fold into registrationInfo. */
   experienceNotes?: string;
+  /** @deprecated Prefer player.profile.age */
   age?: number;
   gender: 'M' | 'F' | 'Other';
   skillRating: number;
@@ -123,6 +134,9 @@ export interface TeamIteration {
   type: TeamIterationType;
   status: TeamIterationStatus;
   generationSource?: 'ai' | 'fallback' | 'manual' | 'generated';
+  aiModel?: string;
+  aiResponseId?: string;
+  aiResponseIds?: string[];
   teams: Team[];
   unassignedPlayers: Player[];
   stats?: TeamGenerationStats;
@@ -155,6 +169,23 @@ export interface TeamGenerationStats {
   generationTime: number;
 }
 
+export interface LeagueMemoryTeamSnapshot {
+  teamId: string;
+  teamName: string;
+  playerIds: string[];
+  playerNames: string[];
+}
+
+export interface LeagueMemoryEntry {
+  id: string;
+  title: string;
+  createdAt: string;
+  iterationId?: string;
+  iterationName?: string;
+  notes?: string;
+  teams: LeagueMemoryTeamSnapshot[];
+}
+
 export interface AppState {
   players: Player[];
   teams: Team[];
@@ -166,6 +197,7 @@ export interface AppState {
   savedConfigs: LeagueConfig[];
   teamIterations?: TeamIteration[];
   activeTeamIterationId?: string | null;
+  leagueMemory?: LeagueMemoryEntry[];
   pendingWarnings?: import('./StructuredWarning').StructuredWarning[]; // Warnings awaiting resolution on Roster page
 }
 
@@ -184,6 +216,7 @@ export interface SavedWorkspace {
   stats?: TeamGenerationStats;
   teamIterations?: TeamIteration[];
   activeTeamIterationId?: string | null;
+  leagueMemory?: LeagueMemoryEntry[];
 
   // Metadata
   createdAt: string; // ISO string
@@ -208,4 +241,25 @@ export interface DragItem {
 // When exec skill is available (not null), it overrides the regular skill
 export function getEffectiveSkillRating(player: Player): number {
   return player.execSkillRating !== null ? player.execSkillRating : player.skillRating;
+}
+
+export function getPlayerAge(player: Player): number | undefined {
+  return player.profile?.age ?? player.age;
+}
+
+export function getPlayerRegistrationNotes(player: Player): string | undefined {
+  const notes = [
+    player.profile?.registrationInfo,
+    player.registrationInfo,
+    player.profile?.experienceNotes,
+    player.experienceNotes,
+  ]
+    .map(note => note?.trim())
+    .filter((note): note is string => Boolean(note));
+
+  if (notes.length === 0) {
+    return undefined;
+  }
+
+  return Array.from(new Set(notes)).join('\n\n');
 }

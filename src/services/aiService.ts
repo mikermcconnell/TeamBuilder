@@ -12,7 +12,7 @@ import {
   toAIPlayerGroupInput,
   toAIPlayerInput,
   toAITeamInput,
-} from '@/server/ai/guards';
+} from '@/shared/ai-mappers';
 
 export type { AITeamDraftPayload };
 
@@ -22,9 +22,24 @@ export interface AIFullTeamResult {
   stats: TeamGenerationStats;
   source: 'ai' | 'fallback';
   summary?: string;
+  aiModel?: string;
+  aiResponseId?: string;
+  aiResponseIds?: string[];
 }
 
 export type AIMatchResult = NameMatchDto;
+
+function joinReasons(reasons: string[]): string {
+  return reasons
+    .map(reason => reason.trim())
+    .filter(Boolean)
+    .join(' ');
+}
+
+function formatAiFailureSummary(prefix: string, details?: string[]): string {
+  const suffix = details && details.length > 0 ? ` ${joinReasons(details)}` : '';
+  return `${prefix}${suffix}`.trim();
+}
 
 export async function generateFullAiTeams(
   players: Player[],
@@ -48,7 +63,13 @@ export async function generateFullAiTeams(
       return {
         ...fallbackResult,
         source: 'fallback',
-        summary: 'AI produced an invalid draft, so the standard team builder was used.',
+        aiModel: payload.model,
+        aiResponseId: payload.responseId,
+        aiResponseIds: payload.responseIds,
+        summary: formatAiFailureSummary(
+          'The AI draft broke TeamBuilder’s rules, so the built-in balancer was used instead.',
+          validation.errors,
+        ),
       };
     }
 
@@ -61,17 +82,27 @@ export async function generateFullAiTeams(
       playerGroups
     );
 
+    if (validation.warnings?.length) {
+      console.warn('AI full-team draft warnings:', validation.warnings);
+    }
+
     return {
       ...finalResult,
-      source: 'ai',
-      summary: payload.summary,
+      source: payload.source === 'fallback' ? 'fallback' : 'ai',
+      aiModel: payload.model,
+      aiResponseId: payload.responseId,
+      aiResponseIds: payload.responseIds,
+      summary: validation.warnings?.length
+        ? [payload.summary, ...validation.warnings].filter(Boolean).join(' ')
+        : payload.summary,
     };
   } catch (error) {
     console.error('Full AI team generation failed, using fallback:', error);
+    const message = error instanceof Error ? error.message.trim() : 'Unknown AI request error.';
     return {
       ...fallbackResult,
       source: 'fallback',
-      summary: 'AI request failed, so the standard team builder was used.',
+      summary: `The AI request failed before a valid draft was returned, so TeamBuilder used its built-in balancer instead. ${message}`.trim(),
     };
   }
 }

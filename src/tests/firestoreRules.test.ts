@@ -30,9 +30,12 @@ describe('firestore security rules', () => {
 
   it.each([
     'rosters',
+    'rosterVersions',
+    'savedRosters',
     'teams',
     'sessions',
     'workspaces',
+    'configPresets',
   ])('allows an owner to create their own %s document', async (collectionName) => {
     const db = testEnv.authenticatedContext('owner-1').firestore();
 
@@ -46,9 +49,12 @@ describe('firestore security rules', () => {
 
   it.each([
     'rosters',
+    'rosterVersions',
+    'savedRosters',
     'teams',
     'sessions',
     'workspaces',
+    'configPresets',
   ])('blocks creating a %s document when the claimed owner does not match the signed-in user', async (collectionName) => {
     const db = testEnv.authenticatedContext('owner-1').firestore();
 
@@ -90,5 +96,31 @@ describe('firestore security rules', () => {
     const db = testEnv.authenticatedContext('intruder').firestore();
 
     await assertFails(getDoc(doc(db, 'workspaces', 'workspace-1')));
+  });
+
+  it.each([
+    'rosters',
+    'rosterVersions',
+    'savedRosters',
+    'teams',
+    'sessions',
+    'workspaces',
+    'configPresets',
+  ])('blocks transferring ownership of a %s document during update', async (collectionName) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), collectionName, 'doc-1'), {
+        userId: 'owner-1',
+        name: 'Original owner document',
+      });
+    });
+
+    const db = testEnv.authenticatedContext('owner-1').firestore();
+
+    await assertFails(
+      setDoc(doc(db, collectionName, 'doc-1'), {
+        userId: 'someone-else',
+        name: 'Transferred owner document',
+      }, { merge: true })
+    );
   });
 });

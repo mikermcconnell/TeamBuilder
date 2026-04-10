@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { GripVertical, Unlink, Users, AlertTriangle } from 'lucide-react';
 import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
 import { getPlayerAgeBand, isHighlightedPlayerAgeBand } from '@/utils/playerAgeBands';
+import { getPlayerDisplayAge } from '@/utils/playerProfile';
 
 interface DraggablePlayerCardProps {
   player: Player;
@@ -39,7 +40,7 @@ export function DraggablePlayerCard({
 
   const effectiveSkill = getEffectiveSkillRating(player);
   const registrationInfo = getPlayerRegistrationInfo(player);
-  const ageBand = getPlayerAgeBand(player.age);
+    const ageBand = getPlayerAgeBand(getPlayerDisplayAge(player));
   const highlightedAgeBand = isHighlightedPlayerAgeBand(ageBand) ? ageBand : null;
 
   const getSkillColor = (skill: number) => {

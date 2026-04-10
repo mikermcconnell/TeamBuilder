@@ -3,7 +3,7 @@ import { fetchGroupSuggestions } from './aiClient';
 import {
   toAIPlayerGroupInput,
   toAIPlayerInput,
-} from '@/server/ai/guards';
+} from '@/shared/ai-mappers';
 
 export interface SuggestedGroup {
   id: string;

@@ -111,9 +111,10 @@ export function WorkspaceManager({
             );
             setCurrentWorkspaceInfo(currentId || null, saveName.trim(), saveDescription.trim());
             setIsSaveDialogOpen(false);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to save project:', error);
-            toast.error(`Save failed: ${error?.message || 'Unknown error'}`);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            toast.error(`Save failed: ${message}`);
         }
     };
 

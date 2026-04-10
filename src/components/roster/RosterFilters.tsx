@@ -99,6 +99,7 @@ export function RosterFilters({ filters, onFilterChange, skillGroups }: RosterFi
         if (filters.minSkill > 0 || filters.maxSkill < 10) count++;
         if (filters.minExecSkill > 0 || filters.maxExecSkill < 10) count++;
         if (filters.skillGroups.length > 0) count++;
+        if (filters.ageBands.length > 0) count++;
         if (filters.hasEmail !== null) count++;
         if (filters.hasRequests !== null) count++;
         return count;
@@ -235,6 +236,49 @@ export function RosterFilters({ filters, onFilterChange, skillGroups }: RosterFi
                                     </div>
                                 </div>
 
+                                {/* Age Spotlight */}
+                                <div className="space-y-3">
+                                    <Label className="text-base font-extrabold text-slate-700">Age Spotlight</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[
+                                            { key: 'young', label: 'Young', activeClass: 'bg-sky-500 text-white border-sky-700 shadow-sm' },
+                                            { key: 'wise', label: 'Wise', activeClass: 'bg-amber-500 text-white border-amber-700 shadow-sm' },
+                                            { key: 'missing', label: 'Missing Age', activeClass: 'bg-slate-500 text-white border-slate-700 shadow-sm' },
+                                        ].map((option) => {
+                                            const ageBand = option.key as AgeFilterBand;
+                                            const isSelected = localFilters.ageBands.includes(ageBand);
+
+                                            return (
+                                                <div
+                                                    key={option.key}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setLocalFilters({
+                                                                ...localFilters,
+                                                                ageBands: localFilters.ageBands.filter((band) => band !== ageBand),
+                                                            });
+                                                        } else {
+                                                            setLocalFilters({
+                                                                ...localFilters,
+                                                                ageBands: [...localFilters.ageBands, ageBand],
+                                                            });
+                                                        }
+                                                    }}
+                                                    className={`
+                                                        cursor-pointer px-4 py-2 rounded-xl text-sm font-bold border-b-4 active:border-b-0 active:translate-y-1 transition-all
+                                                        ${isSelected
+                                                            ? option.activeClass
+                                                            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                                        }
+                                                    `}
+                                                >
+                                                    {option.label}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
                                 {/* Attributes */}
                                 <div className="space-y-4">
                                     <Label className="text-base font-extrabold text-slate-700">Attributes</Label>
@@ -349,6 +393,23 @@ export function RosterFilters({ filters, onFilterChange, skillGroups }: RosterFi
                             </div>
                         </Badge>
                     ))}
+                    {filters.ageBands.map((ageBand) => {
+                        const label = ageBand === 'young' ? 'Young' : ageBand === 'wise' ? 'Wise' : 'Missing Age';
+                        const colorClass = ageBand === 'young'
+                            ? 'bg-sky-100 text-sky-700 hover:bg-sky-200'
+                            : ageBand === 'wise'
+                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200';
+
+                        return (
+                            <Badge key={ageBand} variant="secondary" className={`pl-3 pr-1 py-1 rounded-full ${colorClass}`}>
+                                Age: {label}
+                                <div className="ml-2 h-5 w-5 rounded-full bg-white/50 flex items-center justify-center cursor-pointer hover:bg-white" onClick={() => onFilterChange({ ...filters, ageBands: filters.ageBands.filter(band => band !== ageBand) })}>
+                                    <X className="h-3 w-3" />
+                                </div>
+                            </Badge>
+                        );
+                    })}
                     {filters.hasEmail !== null && (
                         <Badge variant="secondary" className="pl-3 pr-1 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200">
                             Email: {filters.hasEmail ? 'Yes' : 'No'}

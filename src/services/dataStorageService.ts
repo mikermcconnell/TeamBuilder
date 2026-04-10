@@ -2,6 +2,8 @@ import { User } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { AppState } from '@/types';
+import { cleanUndefinedDeep } from './persistence/cleanup';
+import { buildLocalStorageKey, readFirstLocalStorageValue } from './persistence/localKeys';
 
 interface LocalAppStateSnapshot {
   data: AppState;
@@ -10,18 +12,27 @@ interface LocalAppStateSnapshot {
 
 export class DataStorageService {
   private user: User | null = null;
-  private readonly LOCAL_STORAGE_KEY = 'teamBuilderState';
+  private readonly LEGACY_LOCAL_STORAGE_KEY = 'teamBuilderState';
+  private readonly ANONYMOUS_LOCAL_STORAGE_KEY = 'teamBuilderState:anonymous';
 
   setUser(user: User | null) {
     this.user = user;
   }
 
-  async save(data: AppState): Promise<{ type: 'cloud' | 'local'; error?: any }> {
+  private getLocalStorageKey(): string {
+    if (!this.user) {
+      return this.ANONYMOUS_LOCAL_STORAGE_KEY;
+    }
+
+    return buildLocalStorageKey(this.LEGACY_LOCAL_STORAGE_KEY, 'user', this.user.uid);
+  }
+
+  async save(data: AppState): Promise<{ type: 'cloud' | 'local'; error?: unknown }> {
     const lastUpdated = new Date().toISOString();
 
     try {
       if (this.user) {
-        const cleanData = this.removeUndefinedValues(data);
+        const cleanData = cleanUndefinedDeep(data) as Record<string, unknown>;
         const userDoc = doc(db, 'users', this.user.uid, 'data', 'appState');
 
         await setDoc(userDoc, {
@@ -40,28 +51,6 @@ export class DataStorageService {
       this.saveToLocalStorage(data, lastUpdated);
       return { type: 'local', error };
     }
-  }
-
-  private removeUndefinedValues(obj: any): any {
-    if (obj === null || obj === undefined) {
-      return null;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.removeUndefinedValues(item));
-    }
-
-    if (typeof obj === 'object') {
-      const cleaned: Record<string, any> = {};
-      for (const key in obj) {
-        if (obj[key] !== undefined) {
-          cleaned[key] = this.removeUndefinedValues(obj[key]);
-        }
-      }
-      return cleaned;
-    }
-
-    return obj;
   }
 
   async load(): Promise<AppState | null> {
@@ -115,11 +104,16 @@ export class DataStorageService {
       lastUpdated,
     };
 
-    localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
+    localStorage.setItem(this.getLocalStorageKey(), JSON.stringify(snapshot));
   }
 
   private loadFromLocalStorage(): LocalAppStateSnapshot | null {
-    const savedState = localStorage.getItem(this.LOCAL_STORAGE_KEY);
+    const localStorageKey = this.getLocalStorageKey();
+    const savedState = readFirstLocalStorageValue([
+      localStorageKey,
+      ...(!this.user ? [this.LEGACY_LOCAL_STORAGE_KEY] : []),
+    ]);
+
     if (!savedState) {
       return null;
     }
@@ -161,7 +155,11 @@ export class DataStorageService {
   }
 
   async clearAll(): Promise<void> {
-    localStorage.removeItem(this.LOCAL_STORAGE_KEY);
+    localStorage.removeItem(this.getLocalStorageKey());
+
+    if (!this.user) {
+      localStorage.removeItem(this.LEGACY_LOCAL_STORAGE_KEY);
+    }
 
     if (this.user) {
       try {

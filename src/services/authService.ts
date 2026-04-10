@@ -89,12 +89,32 @@ export const resetPassword = async (email: string): Promise<void> => {
 };
 
 // Get the current user
-export const getCurrentUser = (): Promise<User | null> => {
+export const getCurrentUser = (timeoutMs = 15000): Promise<User | null> => {
+  if (auth.currentUser) {
+    return Promise.resolve(auth.currentUser);
+  }
+
   return new Promise((resolve) => {
+    let settled = false;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
       unsubscribe();
       resolve(user);
     });
+
+    setTimeout(() => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      unsubscribe();
+      resolve(null);
+    }, timeoutMs);
   });
 };
 

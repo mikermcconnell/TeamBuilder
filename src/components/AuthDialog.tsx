@@ -50,6 +50,10 @@ export function AuthDialog({
     onAuthSuccess?.();
   };
 
+  const getErrorMessage = (error: unknown, fallback: string) => (
+    error instanceof Error && error.message ? error.message : fallback
+  );
+
   const handleEmailSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -86,9 +90,9 @@ export function AuthDialog({
         toast.success('Account created! You are now signed in.');
       }
       closeDialog();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Email auth error:', error);
-      toast.error(error.message || 'Authentication failed');
+      toast.error(getErrorMessage(error, 'Authentication failed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -100,10 +104,10 @@ export function AuthDialog({
       await signInWithGoogle();
       toast.success('Signed in with Google');
       closeDialog();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Google auth error:', error);
       // Display the actual error message (e.g., "This domain is not authorized")
-      toast.error(error.message || 'Failed to sign in with Google');
+      toast.error(getErrorMessage(error, 'Failed to sign in with Google'));
     } finally {
       setIsSubmitting(false);
     }
@@ -127,9 +131,9 @@ export function AuthDialog({
     try {
       await resetPassword(normalizedEmail);
       toast.success('Password reset email sent');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Reset password error:', error);
-      toast.error(error.message || 'Failed to send reset email');
+      toast.error(getErrorMessage(error, 'Failed to send reset email'));
     } finally {
       setIsResetting(false);
     }

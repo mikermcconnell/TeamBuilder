@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseCSV, validateAndProcessCSV } from '@/utils/csvProcessor';
+import { getPlayerAge, getPlayerRegistrationNotes, type Player } from '@/types';
+import { parseCSV, serializePlayersToCSV, validateAndProcessCSV } from '@/utils/csvProcessor';
 
 describe('parseCSV', () => {
   it('preserves escaped quotes inside quoted cells', () => {
@@ -51,12 +52,14 @@ describe('validateAndProcessCSV registration imports', () => {
     expect(result.players).toHaveLength(2);
     expect(result.players[0]).toMatchObject({
       name: 'Kristy Robinson',
-      age: 53,
+      profile: {
+        age: 53,
+        registrationInfo: 'played with dinosaurs\n\nNew player note',
+      },
       gender: 'F',
       skillRating: 6,
       teammateRequests: ['Andy Beecroft'],
       avoidRequests: [],
-      registrationInfo: 'played with dinosaurs\n\nNew player note',
     });
     expect((result.players[0] as any).public_disclosure_pictures).toBeUndefined();
   });
@@ -79,5 +82,49 @@ describe('validateAndProcessCSV registration imports', () => {
       teammateRequests: [],
       avoidRequests: [],
     });
+  });
+});
+
+describe('serializePlayersToCSV', () => {
+  it('round-trips normalized roster data including multiline notes', () => {
+    const players: Player[] = [
+      {
+        id: 'player-1',
+        name: 'Alice Example',
+      gender: 'F',
+      skillRating: 7.5,
+      execSkillRating: 8,
+      teammateRequests: ['Bob Example'],
+      avoidRequests: [],
+      email: 'alice@example.com',
+      profile: {
+        age: 29,
+          registrationInfo: 'Line 1\nLine 2',
+        },
+      },
+      {
+        id: 'player-2',
+        name: 'Bob Example',
+        gender: 'M',
+        skillRating: 6,
+        execSkillRating: null,
+        teammateRequests: ['Alice Example'],
+        avoidRequests: [],
+      },
+    ];
+
+    const csv = serializePlayersToCSV(players);
+    const result = validateAndProcessCSV(csv);
+
+    expect(result.errors).toEqual([]);
+    expect(result.players).toHaveLength(2);
+    expect(result.players[0]).toMatchObject({
+      name: 'Alice Example',
+      teammateRequests: ['Bob Example'],
+      avoidRequests: [],
+      email: 'alice@example.com',
+    });
+    expect(getPlayerAge(result.players[0]!)).toBe(29);
+    expect(getPlayerRegistrationNotes(result.players[0]!)).toBe('Line 1\nLine 2');
   });
 });

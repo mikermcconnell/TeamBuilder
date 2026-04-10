@@ -442,36 +442,38 @@ function CompactWarningGroup({ group, warnings, onAcceptAll }: CompactWarningGro
     return (
         <div className={`border rounded-lg ${group.borderClass} ${group.bgClass} overflow-hidden`}>
             <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-                <CollapsibleTrigger asChild>
-                    <button className="w-full flex items-center justify-between p-2.5 hover:bg-black/5 transition-colors">
-                        <div className="flex items-center gap-2">
-                            {group.icon}
-                            <span className={`font-medium text-sm ${group.colorClass}`}>{group.label}</span>
-                            <span className="text-xs text-slate-500">
-                                ({warnings.length})
-                                {resolvedCount > 0 && (
-                                    <span className="text-green-600 ml-1">✓{resolvedCount}</span>
-                                )}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {pendingCount > 0 && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onAcceptAll();
-                                    }}
-                                    className="h-6 px-2 text-xs"
-                                >
-                                    Accept All
-                                </Button>
-                            )}
-                            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </div>
-                    </button>
-                </CollapsibleTrigger>
+                <div className="flex items-center gap-2 p-2.5">
+                    <CollapsibleTrigger asChild>
+                        <button
+                            type="button"
+                            className="flex min-w-0 flex-1 items-center justify-between rounded-md px-1 py-0.5 text-left hover:bg-black/5 transition-colors"
+                        >
+                            <div className="flex min-w-0 items-center gap-2">
+                                {group.icon}
+                                <span className={`font-medium text-sm ${group.colorClass}`}>{group.label}</span>
+                                <span className="text-xs text-slate-500">
+                                    ({warnings.length})
+                                    {resolvedCount > 0 && (
+                                        <span className="text-green-600 ml-1">✓{resolvedCount}</span>
+                                    )}
+                                </span>
+                            </div>
+                            {isOpen ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
+                        </button>
+                    </CollapsibleTrigger>
+
+                    {pendingCount > 0 && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={onAcceptAll}
+                            className="h-6 shrink-0 px-2 text-xs"
+                        >
+                            Accept All
+                        </Button>
+                    )}
+                </div>
                 <CollapsibleContent>
                     <ul className="px-3 pb-2 space-y-1 text-sm">
                         {warnings.map(warning => (

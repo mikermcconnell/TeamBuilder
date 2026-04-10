@@ -1,6 +1,7 @@
-import { Team, Player, PlayerGroup, LeagueConfig, TeamGenerationStats } from '@/types';
+import { Team, Player, PlayerGroup, LeagueConfig, TeamGenerationStats, LeagueMemoryEntry } from '@/types';
 import { getPlayerGroupLabel } from './playerGrouping';
 import { generateShareableSummary } from './teamBranding';
+import { buildIterationInsights } from './teamInsights';
 
 export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], playerGroups: PlayerGroup[] = []): string {
   const headers = ['Team', 'Team Color', 'Player Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Player Group', 'Average Team Skill', 'Team Size', 'Males', 'Females', 'Other'];
@@ -141,7 +142,7 @@ export function downloadCSV(csvContent: string, filename: string): void {
   }
 }
 
-export function exportConfigToJSON(configs: any[], filename: string): void {
+export function exportConfigToJSON(configs: LeagueConfig[], filename: string): void {
   const jsonContent = JSON.stringify(configs, null, 2);
   const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
   const link = document.createElement('a');
@@ -254,4 +255,78 @@ export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], p
 
 export function generateShareSummaryText(teams: Team[], config: LeagueConfig, stats?: TeamGenerationStats, unassignedPlayers: Player[] = []): string {
   return generateShareableSummary(teams, config, stats, unassignedPlayers.length);
+}
+
+export function generateLeagueOrganizerSummary(
+  teams: Team[],
+  unassignedPlayers: Player[],
+  config: LeagueConfig,
+  stats?: TeamGenerationStats,
+  leagueMemory: LeagueMemoryEntry[] = [],
+  title = 'League Organizer Summary'
+): string {
+  const insights = buildIterationInsights({
+    id: 'organizer-summary',
+    name: title,
+    teams,
+    unassignedPlayers,
+    stats,
+  }, config, leagueMemory);
+
+  const lines = [
+    title,
+    '='.repeat(title.length),
+    '',
+    `Generated: ${new Date().toLocaleString()}`,
+    `Draft score: ${insights.score.total}/100`,
+    `Balance: ${insights.score.balance}/25`,
+    `Chemistry: ${insights.score.chemistry}/25`,
+    `Compliance: ${insights.score.compliance}/25`,
+    `League memory: ${insights.score.continuity}/25`,
+    '',
+    'Headline',
+    '--------',
+    insights.summary,
+    '',
+    'What is working',
+    '---------------',
+    ...(insights.strengths.length > 0 ? insights.strengths.map(item => `- ${item}`) : ['- No standout strengths were detected yet.']),
+    '',
+    'What still needs attention',
+    '--------------------------',
+    ...(insights.risks.length > 0 ? insights.risks.map(item => `- ${item}`) : ['- No material risks were detected.']),
+    '',
+    'Key metrics',
+    '-----------',
+    `- Skill spread between teams: ${insights.skillSpread.toFixed(2)}`,
+    `- Size spread between teams: ${insights.sizeSpread}`,
+    `- Handler spread between teams: ${insights.handlerSpread}`,
+    `- Elite stack flags: ${insights.eliteStackedTeams}`,
+    `- Low-band stack flags: ${insights.lowBandStackedTeams}`,
+    `- Avoid conflicts: ${insights.avoidViolations}`,
+    `- Unassigned players: ${insights.unassignedPlayers}`,
+    `- Repeat teammate pairings from league memory: ${insights.repeatedPairings}`,
+    `- Request honour rate: ${insights.requestHonourRate === null ? 'No requests logged' : `${insights.requestHonourRate.toFixed(0)}%`}`,
+    '',
+    'Teams',
+    '-----',
+    ...teams.flatMap(team => {
+      const teamLines = [
+        `${team.name} — ${team.players.length} players, avg skill ${team.averageSkill.toFixed(1)}, ${team.genderBreakdown.F}F/${team.genderBreakdown.M}M/${team.genderBreakdown.Other}O`,
+        `  Players: ${team.players.map(player => player.name).join(', ')}`,
+      ];
+
+      if ((team.handlerCount ?? 0) > 0) {
+        teamLines.push(`  Handlers: ${team.handlerCount}`);
+      }
+
+      return teamLines;
+    }),
+  ];
+
+  if (unassignedPlayers.length > 0) {
+    lines.push('', 'Unassigned', '----------', `- ${unassignedPlayers.map(player => player.name).join(', ')}`);
+  }
+
+  return lines.join('\n');
 }

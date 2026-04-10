@@ -15,6 +15,7 @@ vi.mock('sonner', () => ({
 
 import { useTeamBuilderActions } from '@/hooks/useTeamBuilderActions';
 import type { AppState, LeagueConfig, Player, Team } from '@/types';
+import type { StructuredWarning } from '@/types/StructuredWarning';
 
 const baseConfig: LeagueConfig = {
   id: 'league-1',
@@ -131,6 +132,14 @@ describe('useTeamBuilderActions', () => {
         },
       ],
       activeTeamIterationId: 'iteration-1',
+      leagueMemory: [
+        {
+          id: 'memory-1',
+          title: 'Last season',
+          createdAt: '2026-04-01T10:00:00.000Z',
+          teams: [],
+        },
+      ],
     }));
 
     act(() => {
@@ -146,6 +155,7 @@ describe('useTeamBuilderActions', () => {
     expect(result.current.appState.unassignedPlayers).toEqual([]);
     expect(result.current.appState.teamIterations).toEqual([]);
     expect(result.current.appState.activeTeamIterationId).toBeNull();
+    expect(result.current.appState.leagueMemory).toEqual([]);
     expect(setCurrentWorkspaceInfo).toHaveBeenLastCalledWith(null, 'Spring Outdoor 2026', '');
   });
 
@@ -262,5 +272,113 @@ describe('useTeamBuilderActions', () => {
       expect.objectContaining({ id: 'player-on-team', teamId: undefined }),
     ]);
     expect(result.current.appState.players[0]?.teamId).toBeUndefined();
+  });
+
+  it('keeps group player snapshots in sync when a grouped player is edited', () => {
+    const groupedPlayer = createPlayer({
+      id: 'grouped-player',
+      name: 'Grouped Player',
+      skillRating: 6,
+    });
+
+    const { result } = renderActions(createAppState({
+      players: [groupedPlayer],
+      playerGroups: [
+        {
+          id: 'group-1',
+          label: 'A',
+          color: '#000',
+          playerIds: [groupedPlayer.id],
+          players: [groupedPlayer],
+        },
+      ],
+    }));
+
+    act(() => {
+      result.current.handlePlayerUpdate({
+        ...groupedPlayer,
+        skillRating: 9,
+      });
+    });
+
+    expect(result.current.appState.playerGroups[0]?.players[0]?.skillRating).toBe(9);
+    expect(result.current.appState.playerGroups[0]?.playerIds).toEqual(['grouped-player']);
+  });
+
+  it('creates a mutual-request group when a warning resolution fixes a missing teammate match', () => {
+    const alex = createPlayer({
+      id: 'alex',
+      name: 'Alex Example',
+      gender: 'M',
+      teammateRequests: [],
+    });
+    const bob = createPlayer({
+      id: 'bob',
+      name: 'Bob Example',
+      gender: 'M',
+      teammateRequests: ['Alex Example'],
+    });
+    const warning: StructuredWarning = {
+      id: 'warning-1',
+      category: 'not-found',
+      message: 'Player "Alex Example": Teammate request "Bobb Example" not found. Did you mean "Bob Example"?',
+      playerName: 'Alex Example',
+      requestedName: 'Bobb Example',
+      matchedName: 'Bob Example',
+      confidence: 'low',
+      status: 'pending',
+    };
+
+    const { result } = renderActions(createAppState({
+      players: [alex, bob],
+      pendingWarnings: [warning],
+    }));
+
+    act(() => {
+      result.current.handleResolveWarning({
+        ...warning,
+        status: 'accepted',
+      });
+    });
+
+    expect(result.current.appState.players.find(player => player.id === 'alex')?.teammateRequests).toEqual(['Bob Example']);
+    expect(result.current.appState.playerGroups).toHaveLength(1);
+    expect(result.current.appState.playerGroups[0]?.playerIds.sort()).toEqual(['alex', 'bob']);
+    expect(result.current.appState.pendingWarnings?.[0]?.status).toBe('accepted');
+  });
+
+  it('removes stale player ids from groups when a player is deleted', () => {
+    const firstPlayer = createPlayer({
+      id: 'player-1',
+      name: 'Player One',
+      gender: 'M',
+      groupId: 'group-1',
+    });
+    const secondPlayer = createPlayer({
+      id: 'player-2',
+      name: 'Player Two',
+      gender: 'F',
+      groupId: 'group-1',
+    });
+
+    const { result } = renderActions(createAppState({
+      players: [firstPlayer, secondPlayer],
+      playerGroups: [
+        {
+          id: 'group-1',
+          label: 'A',
+          color: '#000',
+          playerIds: [firstPlayer.id, secondPlayer.id],
+          players: [firstPlayer, secondPlayer],
+        },
+      ],
+    }));
+
+    act(() => {
+      result.current.handlePlayerRemove('player-1');
+    });
+
+    expect(result.current.appState.playerGroups[0]?.playerIds).toEqual(['player-2']);
+    expect(result.current.appState.playerGroups[0]?.players.map(player => player.id)).toEqual(['player-2']);
   });
 });

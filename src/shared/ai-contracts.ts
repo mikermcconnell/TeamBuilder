@@ -128,7 +128,12 @@ export interface TeamDraftRequest {
 }
 
 export interface AITeamDraftPayload {
+  source?: 'ai' | 'fallback';
   summary?: string;
+  requestedModel?: string;
+  model?: string;
+  responseId?: string;
+  responseIds?: string[];
   teams: Array<{
     slot: number;
     playerIds: string[];

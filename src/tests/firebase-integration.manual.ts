@@ -556,7 +556,7 @@ if (typeof window !== 'undefined') {
     await suite.runAllTests();
   };
 
-  console.log('🧪 Firebase Test Suite loaded!');
+  console.log('🧪 Firebase manual helper loaded!');
   console.log('   Run tests with: window.runFirebaseTests()');
 }
 

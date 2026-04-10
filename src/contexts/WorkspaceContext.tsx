@@ -115,6 +115,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
                 stats: appState.stats,
                 teamIterations: appState.teamIterations || [],
                 activeTeamIterationId: appState.activeTeamIterationId ?? null,
+                leagueMemory: appState.leagueMemory || [],
                 version: 1,
             };
 
@@ -167,7 +168,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         if (!user) return null;
         setIsLoading(true);
         try {
-            const workspace = await WorkspaceService.getWorkspace(id);
+            const workspace = await WorkspaceService.getWorkspace(id, user.uid);
             if (workspace) {
                 setCurrentWorkspaceId(workspace.id);
                 setWorkspaceName(workspace.name);
@@ -187,7 +188,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const deleteWorkspace = useCallback(async (id: string) => {
         if (!user) return;
         try {
-            await WorkspaceService.deleteWorkspace(id);
+            await WorkspaceService.deleteWorkspace(id, user.uid);
             toast.success('Project deleted');
 
             if (currentWorkspaceId === id) {

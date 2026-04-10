@@ -15,38 +15,7 @@ import {
 import { db } from '@/config/firebase';
 import { Player, Team, LeagueConfig, PlayerGroup } from '@/types';
 import { auth } from '@/config/firebase';
-
-const ensureAuthenticated = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (auth.currentUser) {
-      resolve(true);
-      return;
-    }
-
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      unsubscribe();
-      resolve(!!user);
-    });
-
-    setTimeout(() => {
-      unsubscribe();
-      resolve(false);
-    }, 5000);
-  });
-};
-
-const ensureCurrentUserMatches = async (userId: string): Promise<boolean> => {
-  if (!userId) {
-    return false;
-  }
-
-  const isAuthenticated = await ensureAuthenticated();
-  if (!isAuthenticated || !auth.currentUser) {
-    return false;
-  }
-
-  return auth.currentUser.uid === userId;
-};
+import { ensureCurrentUserMatches, waitForAuthenticatedUser } from './persistence/authGuards';
 
 export interface SessionData {
   id?: string;
@@ -65,7 +34,7 @@ export interface SessionData {
 // Save a new session
 export const saveSession = async (sessionData: Omit<SessionData, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   try {
-    const isAuthorized = await ensureCurrentUserMatches(sessionData.userId);
+    const isAuthorized = await ensureCurrentUserMatches(auth, sessionData.userId);
     if (!isAuthorized) {
       throw new Error('Authentication mismatch');
     }
@@ -85,12 +54,12 @@ export const saveSession = async (sessionData: Omit<SessionData, 'id' | 'created
 // Update an existing session
 export const updateSession = async (sessionId: string, sessionData: Partial<SessionData>): Promise<void> => {
   try {
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
+    const currentUser = await waitForAuthenticatedUser(auth);
+    if (!currentUser) {
       throw new Error('User must be authenticated to update session');
     }
 
-    if (sessionData.userId && auth.currentUser && sessionData.userId !== auth.currentUser.uid) {
+    if (sessionData.userId && sessionData.userId !== currentUser.uid) {
       throw new Error('Authentication mismatch');
     }
 
@@ -108,7 +77,7 @@ export const updateSession = async (sessionId: string, sessionData: Partial<Sess
 // Get all sessions for a user
 export const getUserSessions = async (userId: string): Promise<SessionData[]> => {
   try {
-    const isAuthorized = await ensureCurrentUserMatches(userId);
+    const isAuthorized = await ensureCurrentUserMatches(auth, userId);
     if (!isAuthorized) {
       return [];
     }
@@ -139,8 +108,8 @@ export const getUserSessions = async (userId: string): Promise<SessionData[]> =>
 // Get a single session by ID
 export const getSession = async (sessionId: string): Promise<SessionData | null> => {
   try {
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
+    const currentUser = await waitForAuthenticatedUser(auth);
+    if (!currentUser) {
       return null;
     }
 
@@ -167,8 +136,8 @@ export const getSession = async (sessionId: string): Promise<SessionData | null>
 // Delete a session
 export const deleteSession = async (sessionId: string): Promise<void> => {
   try {
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
+    const currentUser = await waitForAuthenticatedUser(auth);
+    if (!currentUser) {
       throw new Error('User must be authenticated to delete session');
     }
 
@@ -182,7 +151,7 @@ export const deleteSession = async (sessionId: string): Promise<void> => {
 // Save quick configuration preset
 export const saveConfigPreset = async (userId: string, config: LeagueConfig): Promise<string> => {
   try {
-    const isAuthorized = await ensureCurrentUserMatches(userId);
+    const isAuthorized = await ensureCurrentUserMatches(auth, userId);
     if (!isAuthorized) {
       throw new Error('Authentication mismatch');
     }
@@ -202,7 +171,7 @@ export const saveConfigPreset = async (userId: string, config: LeagueConfig): Pr
 // Get user's configuration presets
 export const getUserConfigPresets = async (userId: string): Promise<LeagueConfig[]> => {
   try {
-    const isAuthorized = await ensureCurrentUserMatches(userId);
+    const isAuthorized = await ensureCurrentUserMatches(auth, userId);
     if (!isAuthorized) {
       return [];
     }

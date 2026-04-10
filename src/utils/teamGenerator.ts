@@ -133,10 +133,7 @@ function generateRandomTeams(
   for (const group of shuffledGroups) {
     const availableTeams = teams.filter(team => {
       // Check if team can accommodate the entire group
-      if (team.players.length + group.length > config.maxTeamSize) return false;
-
-      // Check gender requirements for all players in the group
-      if (!group.every(player => wouldMeetGenderRequirements(team, player, config))) return false;
+      if (!canAssignGroupToTeam(group, team, config)) return false;
 
       // Check avoid constraints for all players in the group
       if (group.some(player => hasAvoidConflict(player, team, playerMap))) return false;
@@ -289,6 +286,15 @@ function findBestTeamForGroup(
 
   // Sort by current team size (prefer smaller teams) and skill balance
   return availableTeams.sort((a, b) => {
+    if (!config.allowMixedGender) {
+      const aCompatibility = getSingleGenderTeamPreference(a, group);
+      const bCompatibility = getSingleGenderTeamPreference(b, group);
+
+      if (aCompatibility !== bCompatibility) {
+        return aCompatibility - bCompatibility;
+      }
+    }
+
     if (a.players.length !== b.players.length) {
       return a.players.length - b.players.length;
     }
@@ -324,14 +330,37 @@ function canAssignGroupToTeam(
     return false;
   }
 
-  // Check gender requirements
+  // Check gender requirements with the whole group applied in order
+  const simulatedTeam: Team = {
+    ...team,
+    players: [...team.players],
+    genderBreakdown: { ...team.genderBreakdown },
+  };
+
   for (const player of group) {
-    if (!wouldMeetGenderRequirements(team, player, config)) {
+    if (!wouldMeetGenderRequirements(simulatedTeam, player, config)) {
       return false;
     }
+
+    simulatedTeam.players.push(player);
+    simulatedTeam.genderBreakdown[player.gender]++;
   }
 
   return true;
+}
+
+function getSingleGenderTeamPreference(team: Team, group: Player[]): number {
+  const groupGender = group[0]?.gender;
+
+  if (!groupGender) {
+    return 2;
+  }
+
+  if (team.players.length === 0) {
+    return 1;
+  }
+
+  return team.players.every(player => player.gender === groupGender) ? 0 : 2;
 }
 
 function wouldMeetGenderRequirements(
@@ -339,6 +368,15 @@ function wouldMeetGenderRequirements(
   newPlayer: Player,
   config: LeagueConfig
 ): boolean {
+  if (!config.allowMixedGender) {
+    const resultingGenders = new Set(team.players.map(player => player.gender));
+    resultingGenders.add(newPlayer.gender);
+
+    if (resultingGenders.size > 1) {
+      return false;
+    }
+  }
+
   const currentGender = { ...team.genderBreakdown };
   currentGender[newPlayer.gender]++;
 

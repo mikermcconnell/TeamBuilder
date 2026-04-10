@@ -23,6 +23,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { TEAM_BRAND_PALETTE, getColorName, hexToRgba } from '@/utils/teamBranding';
 import { getPlayerAgeBand } from '@/utils/playerAgeBands';
+import { getPlayerDisplayAge } from '@/utils/playerProfile';
 
 interface DroppableTeamCardProps {
     team: Team;
@@ -116,8 +117,8 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
     const maleCount = genderBreakdown.M || 0;
     const handlerCount = team.players.filter(p => p.isHandler).length;
     const targetHandlers = 3; // Based on "three handlers per team" request
-    const youngPlayerCount = team.players.filter(player => getPlayerAgeBand(player.age) === 'young').length;
-    const wisePlayerCount = team.players.filter(player => getPlayerAgeBand(player.age) === 'wise').length;
+  const youngPlayerCount = team.players.filter(player => getPlayerAgeBand(getPlayerDisplayAge(player)) === 'young').length;
+  const wisePlayerCount = team.players.filter(player => getPlayerAgeBand(getPlayerDisplayAge(player)) === 'wise').length;
 
     const getAverageSkillForGender = (gender: 'M' | 'F' | 'Other') => {
         const genderPlayers = team.players.filter(player => player.gender === gender);

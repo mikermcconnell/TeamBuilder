@@ -22,7 +22,7 @@ export const uploadCSV = async (file: File, userId: string): Promise<{ url: stri
 };
 
 // Save team configuration to Firebase Storage
-export const saveTeamConfiguration = async (config: any, userId: string): Promise<string> => {
+export const saveTeamConfiguration = async (config: unknown, userId: string): Promise<string> => {
   try {
     const timestamp = Date.now();
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });

@@ -13,86 +13,21 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '@/config/firebase';
 import { TeamsData } from '@/types';
-
-// Helper function to ensure user is authenticated
-const ensureAuthenticated = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (auth.currentUser) {
-      resolve(true);
-      return;
-    }
-
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      unsubscribe();
-      resolve(!!user);
-    });
-
-    setTimeout(() => {
-      unsubscribe();
-      resolve(false);
-    }, 5000);
-  });
-};
-
-const ensureCurrentUserMatches = async (userId: string): Promise<boolean> => {
-  if (!userId) {
-    return false;
-  }
-
-  const isAuthenticated = await ensureAuthenticated();
-  if (!isAuthenticated || !auth.currentUser) {
-    return false;
-  }
-
-  if (auth.currentUser.uid !== userId) {
-    console.warn('Blocked teams query for mismatched userId');
-    return false;
-  }
-
-  return true;
-};
-
-
-const removeUndefinedValues = (value: any): any => {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(item => removeUndefinedValues(item));
-  }
-
-  if (value instanceof Timestamp) {
-    return value;
-  }
-
-  if (typeof value === 'object') {
-    const cleaned: Record<string, any> = {};
-    for (const key in value) {
-      if (Object.prototype.hasOwnProperty.call(value, key)) {
-        const nested = value[key];
-        if (nested !== undefined) {
-          cleaned[key] = removeUndefinedValues(nested);
-        }
-      }
-    }
-    return cleaned;
-  }
-
-  return value;
-};
+import { waitForAuthenticatedUser, ensureCurrentUserMatches } from './persistence/authGuards';
+import { cleanUndefinedDeep } from './persistence/cleanup';
+import { getFirebaseErrorCode, isFirestoreIndexError } from './persistence/firebaseErrors';
 
 // Save teams configuration
 export const saveTeams = async (
   teamsData: Omit<TeamsData, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> => {
   try {
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
+    const currentUser = await waitForAuthenticatedUser(auth);
+    if (!currentUser) {
       throw new Error('User must be authenticated to save teams');
     }
 
-    if (!auth.currentUser || auth.currentUser.uid !== teamsData.userId) {
+    if (currentUser.uid !== teamsData.userId) {
       throw new Error('Authentication mismatch');
     }
 
@@ -101,20 +36,24 @@ export const saveTeams = async (
     // The schema expects Date or string, but Firestore wants Timestamps or Dates.
     // For now, let's trust the schema validation but keep standard cleaning.
 
-    const sanitizedTeamsData = removeUndefinedValues(teamsData) as Omit<TeamsData, 'id' | 'createdAt' | 'updatedAt'>;
-    const payload = removeUndefinedValues({
+    const sanitizedTeamsData = cleanUndefinedDeep(teamsData, {
+      preserve: (value) => value instanceof Timestamp,
+    }) as Omit<TeamsData, 'id' | 'createdAt' | 'updatedAt'>;
+    const payload = cleanUndefinedDeep({
       ...sanitizedTeamsData,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
+    }, {
+      preserve: (value) => value instanceof Timestamp,
     });
 
     const docRef = await addDoc(collection(db, 'teams'), payload);
 
     return docRef.id;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving teams:', error);
 
-    if (error?.code === 'permission-denied') {
+    if (getFirebaseErrorCode(error) === 'permission-denied') {
       throw new Error('Permission denied. Please make sure you are signed in.');
     }
 
@@ -128,23 +67,25 @@ export const updateTeams = async (
   teamsData: Partial<TeamsData>
 ): Promise<void> => {
   try {
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
+    const currentUser = await waitForAuthenticatedUser(auth);
+    if (!currentUser) {
       throw new Error('User must be authenticated to update teams');
     }
 
-    if (teamsData.userId && auth.currentUser && teamsData.userId !== auth.currentUser.uid) {
+    if (teamsData.userId && teamsData.userId !== currentUser.uid) {
       throw new Error('Authentication mismatch');
     }
 
     const docRef = doc(db, 'teams', teamsId);
-    const payload = removeUndefinedValues({
+    const payload = cleanUndefinedDeep({
       ...teamsData,
       updatedAt: Timestamp.now()
+    }, {
+      preserve: (value) => value instanceof Timestamp,
     });
 
     await updateDoc(docRef, payload);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating teams:', error);
     throw error;
   }
@@ -156,7 +97,9 @@ export const getUserTeams = async (
   rosterId?: string
 ): Promise<TeamsData[]> => {
   try {
-    const isAuthorized = await ensureCurrentUserMatches(userId);
+    const isAuthorized = await ensureCurrentUserMatches(auth, userId, {
+      onMismatchMessage: 'Blocked teams query for mismatched userId',
+    });
     if (!isAuthorized) {
       return [];
     }
@@ -187,10 +130,10 @@ export const getUserTeams = async (
         updatedAt: data.updatedAt?.toDate()
       } as TeamsData;
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching teams:', error);
 
-    if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
+    if (isFirestoreIndexError(error)) {
       console.warn('Database indexes are being built. Teams will be available shortly.');
     }
 
@@ -201,8 +144,8 @@ export const getUserTeams = async (
 // Delete saved teams
 export const deleteTeams = async (teamsId: string): Promise<void> => {
   try {
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
+    const currentUser = await waitForAuthenticatedUser(auth);
+    if (!currentUser) {
       throw new Error('User must be authenticated to delete teams');
     }
 

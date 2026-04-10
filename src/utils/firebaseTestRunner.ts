@@ -14,7 +14,15 @@ export interface TestResult {
   name: string;
   passed: boolean;
   message: string;
-  details?: any;
+  details?: unknown;
+}
+
+declare global {
+  interface Window {
+    FirebaseTestRunner?: typeof FirebaseTestRunner;
+    testFirebase?: () => Promise<{ success: boolean; message: string }>;
+    testFirebaseAll?: () => Promise<TestResult[]>;
+  }
 }
 
 export class FirebaseTestRunner {
@@ -468,14 +476,14 @@ export class FirebaseTestRunner {
 
 // Make available globally for console access
 if (typeof window !== 'undefined') {
-  (window as any).FirebaseTestRunner = FirebaseTestRunner;
-  (window as any).testFirebase = async () => {
+  window.FirebaseTestRunner = FirebaseTestRunner;
+  window.testFirebase = async () => {
     const runner = new FirebaseTestRunner();
     const result = await runner.runQuickTest();
     console.log(result.message);
     return result;
   };
-  (window as any).testFirebaseAll = async () => {
+  window.testFirebaseAll = async () => {
     const runner = new FirebaseTestRunner();
     const results = await runner.runAllTests();
     console.log(runner.formatResults(results));

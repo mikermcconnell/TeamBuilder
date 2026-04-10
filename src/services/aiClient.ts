@@ -9,17 +9,42 @@ import type {
   TeamSuggestionDto,
   TeamSuggestionsRequest,
 } from '@/shared/ai-contracts';
+import { auth } from '@/config/firebase';
+import { getCurrentUser } from './authService';
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const currentUser = auth.currentUser ?? await getCurrentUser();
+  if (!currentUser) {
+    return {};
+  }
+
+  const token = await currentUser.getIdToken();
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
 
 async function postJson<TRequest, TResponse>(url: string, payload: TRequest): Promise<TResponse> {
+  const authHeaders = await getAuthHeaders();
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders,
     },
     body: JSON.stringify(payload),
   });
 
-  const json = await response.json();
+  const rawBody = await response.text();
+  let json: unknown = null;
+
+  if (rawBody) {
+    try {
+      json = JSON.parse(rawBody) as unknown;
+    } catch {
+      json = null;
+    }
+  }
 
   if (!response.ok) {
     const message = (
@@ -33,12 +58,22 @@ async function postJson<TRequest, TResponse>(url: string, payload: TRequest): Pr
     )
       ? json.error.message
       : undefined;
+    const details = (
+      typeof json === 'object'
+      && json !== null
+      && 'error' in json
+      && typeof json.error === 'object'
+      && json.error !== null
+      && 'details' in json.error
+      && Array.isArray(json.error.details)
+    )
+      ? json.error.details.filter((detail): detail is string => typeof detail === 'string')
+      : [];
 
-    if (response.status === 404) {
-      throw new Error('AI routes are not available in Vite-only dev mode. Run "pnpm dev:vercel" to use the server-side AI features locally.');
-    }
-
-    throw new Error(message || `Request failed with status ${response.status}`);
+    throw new Error([
+      message || `Request failed with status ${response.status}`,
+      ...details,
+    ].join(details.length > 0 ? '\n' : ''));
   }
 
   return json as TResponse;

@@ -14,65 +14,9 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '@/config/firebase';
 import { Player, PlayerGroup, Team, LeagueConfig } from '@/types';
-import { uploadFile, downloadFile, deleteFile } from './storageService';
-
-// Helper function to remove undefined values from an object
-const removeUndefinedValues = (obj: any): any => {
-  if (obj === null || obj === undefined) return null;
-  if (Array.isArray(obj)) {
-    return obj.map(item => removeUndefinedValues(item));
-  }
-  if (typeof obj === 'object') {
-    const cleaned: any = {};
-    for (const key in obj) {
-      if (obj[key] !== undefined) {
-        cleaned[key] = removeUndefinedValues(obj[key]);
-      }
-    }
-    return cleaned;
-  }
-  return obj;
-};
-
-// Helper function to ensure user is authenticated
-const ensureAuthenticated = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (auth.currentUser) {
-      resolve(true);
-      return;
-    }
-
-    // Wait for auth state to be determined
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      unsubscribe();
-      resolve(!!user);
-    });
-
-    // Timeout after 5 seconds to avoid hanging
-    setTimeout(() => {
-      unsubscribe();
-      resolve(false);
-    }, 5000);
-  });
-};
-
-const ensureCurrentUserMatches = async (userId: string): Promise<boolean> => {
-  if (!userId) {
-    return false;
-  }
-
-  const isAuthenticated = await ensureAuthenticated();
-  if (!isAuthenticated || !auth.currentUser) {
-    return false;
-  }
-
-  if (auth.currentUser.uid !== userId) {
-    console.warn('Blocked roster query for mismatched userId');
-    return false;
-  }
-
-  return true;
-};
+import { waitForAuthenticatedUser, ensureCurrentUserMatches } from './persistence/authGuards';
+import { cleanUndefinedDeep } from './persistence/cleanup';
+import { getFirebaseErrorCode, isFirestoreIndexError } from './persistence/firebaseErrors';
 
 export interface RosterData {
   id?: string;
@@ -128,20 +72,20 @@ export const saveRoster = async (
 ): Promise<string> => {
   try {
     // Ensure user is authenticated before making Firestore calls
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
+    const currentUser = await waitForAuthenticatedUser(auth);
+    if (!currentUser) {
       console.warn('User not authenticated for saveRoster');
       throw new Error('User must be authenticated to save roster');
     }
 
     // Verify the current user matches the userId in the data
-    if (!auth.currentUser || auth.currentUser.uid !== rosterData.userId) {
+    if (currentUser.uid !== rosterData.userId) {
       console.error('User ID mismatch or no authenticated user');
       throw new Error('Authentication mismatch - cannot save roster');
     }
 
     // Clean data to avoid undefined values and calculate metadata
-    const cleanedRosterData = removeUndefinedValues(rosterData) as Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'>;
+    const cleanedRosterData = cleanUndefinedDeep(rosterData) as Omit<RosterData, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'metadata'>;
     const metadata = calculateRosterMetadata(
       cleanedRosterData.players,
       cleanedRosterData.playerGroups
@@ -158,13 +102,13 @@ export const saveRoster = async (
     });
 
     return docRef.id;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving roster:', error);
 
     // Handle specific Firebase errors
-    if (error?.code === 'permission-denied') {
+    if (getFirebaseErrorCode(error) === 'permission-denied') {
       throw new Error('Permission denied. Please make sure you are signed in.');
-    } else if (error?.code === 'unavailable') {
+    } else if (getFirebaseErrorCode(error) === 'unavailable') {
       throw new Error('Service temporarily unavailable. Please try again.');
     }
 
@@ -180,20 +124,20 @@ export const saveTeamsToRoster = async (
   config: LeagueConfig
 ): Promise<void> => {
   try {
-    const isAuthenticated = await ensureAuthenticated();
-    if (!isAuthenticated) {
+    const currentUser = await waitForAuthenticatedUser(auth);
+    if (!currentUser) {
       throw new Error('User must be authenticated to save teams');
     }
 
     const docRef = doc(db, 'rosters', rosterId);
 
     // Clean all data to remove undefined values
-    const cleanedTeams = removeUndefinedValues(teams || []);
-    const cleanedUnassignedPlayers = removeUndefinedValues(unassignedPlayers || []);
-    const cleanedConfig = removeUndefinedValues(config || {});
+    const cleanedTeams = cleanUndefinedDeep(teams || []);
+    const cleanedUnassignedPlayers = cleanUndefinedDeep(unassignedPlayers || []);
+    const cleanedConfig = cleanUndefinedDeep(config || {});
 
     // Build update data with cleaned values
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       teams: cleanedTeams,
       unassignedPlayers: cleanedUnassignedPlayers,
       teamsConfig: cleanedConfig,
@@ -204,7 +148,7 @@ export const saveTeamsToRoster = async (
     };
 
     await updateDoc(docRef, updateData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving teams to roster:', error);
     throw new Error('Failed to save teams');
   }
@@ -232,7 +176,7 @@ export const updateRoster = async (
       await saveRosterVersion(rosterId, currentData);
     }
 
-    const cleanedRosterData = removeUndefinedValues(rosterData) as Partial<RosterData>;
+    const cleanedRosterData = cleanUndefinedDeep(rosterData) as Partial<RosterData>;
 
     // Recalculate metadata if players changed
     let metadata = currentData.metadata;
@@ -256,7 +200,7 @@ export const updateRoster = async (
 };
 
 // Save a roster version (for version history)
-const saveRosterVersion = async (rosterId: string, rosterData: any): Promise<void> => {
+const saveRosterVersion = async (rosterId: string, rosterData: Record<string, unknown>): Promise<void> => {
   try {
     // Ensure userId is always included for security rule compliance
     const userId = rosterData.userId || auth.currentUser?.uid;
@@ -282,7 +226,9 @@ export const getUserRosters = async (
   includeArchived: boolean = false
 ): Promise<RosterData[]> => {
   try {
-    const isAuthorized = await ensureCurrentUserMatches(userId);
+    const isAuthorized = await ensureCurrentUserMatches(auth, userId, {
+      onMismatchMessage: 'Blocked roster query for mismatched userId',
+    });
     if (!isAuthorized) {
       console.warn('Unauthorized attempt blocked for getUserRosters');
       return [];
@@ -310,15 +256,15 @@ export const getUserRosters = async (
         lastAccessedAt: data.lastAccessedAt?.toDate()
       } as RosterData;
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching user rosters:', error);
 
     // Handle specific Firebase errors
-    if (error?.code === 'permission-denied') {
+    if (getFirebaseErrorCode(error) === 'permission-denied') {
       console.warn('Permission denied accessing rosters. User may not be authenticated properly.');
-    } else if (error?.code === 'unavailable') {
+    } else if (getFirebaseErrorCode(error) === 'unavailable') {
       console.warn('Firestore temporarily unavailable.');
-    } else if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
+    } else if (isFirestoreIndexError(error)) {
       console.warn('Database indexes are being built. This may take a few minutes. Please try again shortly.');
     }
 
@@ -420,7 +366,9 @@ export const searchRosters = async (
   }
 ): Promise<RosterData[]> => {
   try {
-    const isAuthorized = await ensureCurrentUserMatches(userId);
+    const isAuthorized = await ensureCurrentUserMatches(auth, userId, {
+      onMismatchMessage: 'Blocked roster query for mismatched userId',
+    });
     if (!isAuthorized) {
       console.warn('Unauthorized attempt blocked for searchRosters');
       return [];
@@ -626,7 +574,9 @@ const calculateRosterMetadata = (
 // Get recent rosters (for quick access)
 export const getRecentRosters = async (userId: string, limitCount: number = 5): Promise<RosterData[]> => {
   try {
-    const isAuthorized = await ensureCurrentUserMatches(userId);
+    const isAuthorized = await ensureCurrentUserMatches(auth, userId, {
+      onMismatchMessage: 'Blocked roster query for mismatched userId',
+    });
     if (!isAuthorized) {
       console.warn('Unauthorized attempt blocked for getRecentRosters');
       return [];
@@ -651,15 +601,15 @@ export const getRecentRosters = async (userId: string, limitCount: number = 5): 
         lastAccessedAt: data.lastAccessedAt?.toDate()
       } as RosterData;
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching recent rosters:', error);
 
     // Handle specific Firebase errors
-    if (error?.code === 'permission-denied') {
+    if (getFirebaseErrorCode(error) === 'permission-denied') {
       console.warn('Permission denied accessing recent rosters. User may not be authenticated properly.');
-    } else if (error?.code === 'unavailable') {
+    } else if (getFirebaseErrorCode(error) === 'unavailable') {
       console.warn('Firestore temporarily unavailable.');
-    } else if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
+    } else if (isFirestoreIndexError(error)) {
       console.warn('Database indexes are being built. This may take a few minutes. Please try again shortly.');
     }
 

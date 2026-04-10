@@ -10,46 +10,34 @@ import {
     deleteDoc
 } from 'firebase/firestore';
 import { SavedWorkspace } from '@/types';
+import { cleanUndefinedDeep } from './persistence/cleanup';
+import { buildLocalStorageKey, readFirstLocalStorageValue } from './persistence/localKeys';
 
 export class WorkspaceService {
     private static readonly COLLECTION = 'workspaces';
-    private static readonly LOCAL_KEY = 'local_saved_workspaces';
+    private static readonly LEGACY_LOCAL_KEY = 'local_saved_workspaces';
+    private static readonly LOCAL_KEY_PREFIX = 'local_saved_workspaces';
 
-    /**
-     * Recursively removes undefined values from objects and arrays.
-     * Firestore doesn't accept undefined values.
-     */
-    private static removeUndefinedDeep(obj: any): any {
-        if (obj === null || obj === undefined) {
-            return null;
-        }
-        if (Array.isArray(obj)) {
-            return obj.map(item => this.removeUndefinedDeep(item));
-        }
-        if (typeof obj === 'object') {
-            const cleaned: Record<string, any> = {};
-            for (const key in obj) {
-                if (Object.prototype.hasOwnProperty.call(obj, key) && obj[key] !== undefined) {
-                    cleaned[key] = this.removeUndefinedDeep(obj[key]);
-                }
-            }
-            return cleaned;
-        }
-        return obj;
+    private static getLocalKey(userId: string): string {
+        return buildLocalStorageKey(this.LOCAL_KEY_PREFIX, userId);
     }
 
-    private static readLocalWorkspaces(): SavedWorkspace[] {
+    private static readLocalWorkspaces(userId: string): SavedWorkspace[] {
         try {
-            const existingStr = localStorage.getItem(this.LOCAL_KEY);
-            return existingStr ? JSON.parse(existingStr) : [];
+            const existingStr = readFirstLocalStorageValue([
+                this.getLocalKey(userId),
+                this.LEGACY_LOCAL_KEY,
+            ]);
+            const parsed = existingStr ? JSON.parse(existingStr) as SavedWorkspace[] : [];
+            return parsed.filter(workspace => workspace.userId === userId);
         } catch (error) {
             console.warn('Failed to read local workspaces:', error);
             return [];
         }
     }
 
-    private static writeLocalWorkspaces(workspaces: SavedWorkspace[]): void {
-        localStorage.setItem(this.LOCAL_KEY, JSON.stringify(workspaces));
+    private static writeLocalWorkspaces(userId: string, workspaces: SavedWorkspace[]): void {
+        localStorage.setItem(this.getLocalKey(userId), JSON.stringify(workspaces));
     }
 
     private static getWorkspaceTimestamp(workspace?: SavedWorkspace | null): number {
@@ -68,7 +56,7 @@ export class WorkspaceService {
     }
 
     private static upsertLocalWorkspace(workspace: SavedWorkspace): void {
-        const existing = this.readLocalWorkspaces();
+        const existing = this.readLocalWorkspaces(workspace.userId);
         const existingIndex = existing.findIndex(w => w.id === workspace.id);
 
         if (existingIndex >= 0) {
@@ -77,16 +65,16 @@ export class WorkspaceService {
             existing.push(workspace);
         }
 
-        this.writeLocalWorkspaces(existing);
+        this.writeLocalWorkspaces(workspace.userId, existing);
     }
 
     /**
      * Save a workspace to Firestore. Creates new or updates existing.
      */
-    static async saveWorkspace(workspace: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<{ id: string; type: 'cloud' | 'local'; error?: any }> {
+    static async saveWorkspace(workspace: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<{ id: string; type: 'cloud' | 'local'; error?: unknown }> {
         const workspaceId = id || doc(collection(db, this.COLLECTION)).id;
         const now = new Date().toISOString();
-        const existingLocalWorkspace = this.readLocalWorkspaces().find(w => w.id === workspaceId);
+        const existingLocalWorkspace = this.readLocalWorkspaces(workspace.userId).find(w => w.id === workspaceId);
         const rawPayload = {
             ...workspace,
             id: workspaceId,
@@ -95,19 +83,19 @@ export class WorkspaceService {
         };
 
         // Recursively remove all undefined values (Firestore doesn't allow them)
-        const payload = this.removeUndefinedDeep(rawPayload) as SavedWorkspace;
+        const payload = cleanUndefinedDeep(rawPayload) as SavedWorkspace;
 
         try {
             const workspaceRef = doc(db, this.COLLECTION, workspaceId);
             await setDoc(workspaceRef, payload, { merge: true });
             this.upsertLocalWorkspace(payload);
             return { id: workspaceId, type: 'cloud' };
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Log detailed error info for debugging
             console.error('Error saving workspace to cloud, falling back to local:', {
                 error,
-                code: error?.code,
-                message: error?.message,
+                code: error instanceof Error && 'code' in error ? (error as { code?: string }).code : undefined,
+                message: error instanceof Error ? error.message : undefined,
                 userId: workspace.userId,
                 workspaceId
             });
@@ -159,7 +147,7 @@ export class WorkspaceService {
                 mergedById.set(workspace.id, workspace);
             });
 
-            this.readLocalWorkspaces()
+            this.readLocalWorkspaces(userId)
                 .filter(workspace => workspace.userId === userId)
                 .forEach(localWorkspace => {
                     const existingWorkspace = mergedById.get(localWorkspace.id);
@@ -179,8 +167,8 @@ export class WorkspaceService {
     /**
      * Get a single workspace by ID.
      */
-    static async getWorkspace(id: string): Promise<SavedWorkspace | null> {
-        const localWorkspace = this.readLocalWorkspaces().find(workspace => workspace.id === id) || null;
+    static async getWorkspace(id: string, userId: string): Promise<SavedWorkspace | null> {
+        const localWorkspace = this.readLocalWorkspaces(userId).find(workspace => workspace.id === id) || null;
 
         try {
             const docRef = doc(db, this.COLLECTION, id);
@@ -200,7 +188,7 @@ export class WorkspaceService {
     /**
      * Delete a workspace.
      */
-    static async deleteWorkspace(id: string): Promise<void> {
+    static async deleteWorkspace(id: string, userId: string): Promise<void> {
         let cloudDeleted = false;
         let localDeleted = false;
 
@@ -215,10 +203,10 @@ export class WorkspaceService {
 
         // Also delete from localStorage (in case it was saved locally)
         try {
-            const existing = this.readLocalWorkspaces();
+            const existing = this.readLocalWorkspaces(userId);
             const filtered = existing.filter(w => w.id !== id);
             if (filtered.length < existing.length) {
-                this.writeLocalWorkspaces(filtered);
+                this.writeLocalWorkspaces(userId, filtered);
                 localDeleted = true;
             }
         } catch (localError) {

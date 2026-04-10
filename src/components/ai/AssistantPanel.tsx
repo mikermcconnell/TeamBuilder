@@ -19,6 +19,7 @@ interface AssistantPanelProps {
     onReview: () => void;
     players: Player[];
     teams: Team[];
+    coachPrompts?: string[];
 }
 
 export function AssistantPanel({
@@ -30,10 +31,11 @@ export function AssistantPanel({
     onClose,
     onReview,
     players,
-    teams
+    teams,
+    coachPrompts = [],
 }: AssistantPanelProps) {
     const [prompt, setPrompt] = useState('');
-    const [isOpen, setIsOpen] = useState(false); // Local toggle for the bubble
+    const [isOpen, setIsOpen] = useState(true);
 
     // Auto-open if there are suggestions
     React.useEffect(() => {
@@ -75,7 +77,10 @@ export function AssistantPanel({
                 <Card className="w-[350px] shadow-2xl border-amber-200 bg-[#ffffe1] text-slate-900 overflow-hidden flex flex-col max-h-[600px]">
                     <CardHeader className="py-2 px-4 border-b border-amber-200 bg-amber-100/50 flex flex-row items-center justify-between">
                         <h3 className="font-bold text-sm text-amber-900">Clippy Tips</h3>
-                        <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-amber-200/50 rounded-full" onClick={() => setIsOpen(false)}>
+                        <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-amber-200/50 rounded-full" onClick={() => {
+                            setIsOpen(false);
+                            onClose();
+                        }}>
                             <X className="h-3 w-3 text-amber-900" />
                         </Button>
                     </CardHeader>
@@ -87,8 +92,29 @@ export function AssistantPanel({
                         <ScrollArea className="flex-1 p-4 bg-[#ffffe1]">
                             {/* Greeting if empty */}
                             {suggestions.length === 0 && !isLoading && (
-                                <div className="text-sm text-slate-700 italic mb-4">
-                                    "It looks like you're trying to build a team. Would you like some help with that?"
+                                <div className="space-y-3 mb-4">
+                                    <div className="text-sm text-slate-700 italic">
+                                        "It looks like you're trying to build a team. Would you like some help with that?"
+                                    </div>
+                                    {coachPrompts.length > 0 && (
+                                        <div className="space-y-2">
+                                            <div className="text-xs font-bold uppercase tracking-wide text-amber-900/70">AI drafting coach</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {coachPrompts.map(coachPrompt => (
+                                                    <Button
+                                                        key={coachPrompt}
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-auto whitespace-normal rounded-full border-amber-200 bg-white px-3 py-1.5 text-left text-xs text-amber-900 hover:bg-amber-100"
+                                                        onClick={() => onSendPrompt(coachPrompt)}
+                                                    >
+                                                        {coachPrompt}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

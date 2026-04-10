@@ -136,7 +136,7 @@ export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
 
                 {/* Filters & Sort */}
                 <div className="flex items-center gap-2">
-                    <Tabs value={genderFilter} onValueChange={(v) => setGenderFilter(v as any)} className="flex-1">
+                    <Tabs value={genderFilter} onValueChange={(v) => setGenderFilter(v as 'ALL' | 'M' | 'F' | 'H')} className="flex-1">
                         <TabsList className="w-full grid grid-cols-4 h-10">
                             <TabsTrigger value="ALL" className="text-base font-semibold">All</TabsTrigger>
                             <TabsTrigger value="M" className="text-base font-semibold">M</TabsTrigger>

@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:vercel": "vercel dev",
     "build": "tsc && vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --ignore-pattern .tmp-prodlike/** --ignore-pattern .tmp-verify/**",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",

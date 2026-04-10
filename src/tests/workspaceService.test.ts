@@ -90,8 +90,8 @@ function createWorkspace(overrides: Partial<SavedWorkspace> = {}): SavedWorkspac
   };
 }
 
-function readLocalWorkspaces(): SavedWorkspace[] {
-  const saved = localStorage.getItem('local_saved_workspaces');
+function readLocalWorkspaces(userId = 'user-123'): SavedWorkspace[] {
+  const saved = localStorage.getItem(`local_saved_workspaces:${userId}`);
   return saved ? (JSON.parse(saved) as SavedWorkspace[]) : [];
 }
 
@@ -147,7 +147,7 @@ describe('WorkspaceService', () => {
 
   it('updates an existing project while preserving its original created date', async () => {
     const existingWorkspace = createWorkspace();
-    localStorage.setItem('local_saved_workspaces', JSON.stringify([existingWorkspace]));
+    localStorage.setItem('local_saved_workspaces:user-123', JSON.stringify([existingWorkspace]));
 
     const result = await WorkspaceService.saveWorkspace(
       {
@@ -223,10 +223,10 @@ describe('WorkspaceService', () => {
       updatedAt: '2026-03-18T12:00:00.000Z',
     });
 
-    localStorage.setItem('local_saved_workspaces', JSON.stringify([offlineWorkspace]));
+    localStorage.setItem('local_saved_workspaces:user-123', JSON.stringify([offlineWorkspace]));
     mockGetDoc.mockRejectedValueOnce(new Error('cloud still unavailable'));
 
-    const loadedWorkspace = await WorkspaceService.getWorkspace('offline-workspace');
+    const loadedWorkspace = await WorkspaceService.getWorkspace('offline-workspace', 'user-123');
 
     expect(loadedWorkspace).toEqual(offlineWorkspace);
   });
@@ -257,13 +257,13 @@ describe('WorkspaceService', () => {
       updatedAt: cloudUpdatedAt,
     });
 
-    localStorage.setItem('local_saved_workspaces', JSON.stringify([localWorkspace]));
+    localStorage.setItem('local_saved_workspaces:user-123', JSON.stringify([localWorkspace]));
     mockGetDoc.mockResolvedValueOnce({
       exists: () => true,
       data: () => cloudWorkspace,
     });
 
-    const loadedWorkspace = await WorkspaceService.getWorkspace('versioned-workspace');
+    const loadedWorkspace = await WorkspaceService.getWorkspace('versioned-workspace', 'user-123');
 
     expect(loadedWorkspace?.name).toBe(expectedName);
   });
@@ -303,7 +303,7 @@ describe('WorkspaceService', () => {
       unassignedPlayers: [originalPlayer, addedPlayer],
     });
 
-    localStorage.setItem('local_saved_workspaces', JSON.stringify([newerLocalWorkspace]));
+    localStorage.setItem('local_saved_workspaces:user-123', JSON.stringify([newerLocalWorkspace]));
 
     mockGetDoc.mockResolvedValueOnce({
       exists: () => true,
@@ -318,7 +318,7 @@ describe('WorkspaceService', () => {
       ],
     });
 
-    const loadedWorkspace = await WorkspaceService.getWorkspace('roster-persistence-workspace');
+    const loadedWorkspace = await WorkspaceService.getWorkspace('roster-persistence-workspace', 'user-123');
     const listedWorkspaces = await WorkspaceService.getUserWorkspaces('user-123');
 
     expect(loadedWorkspace?.players.map(currentPlayer => currentPlayer.name)).toEqual([
@@ -332,5 +332,29 @@ describe('WorkspaceService', () => {
       'Alex Example',
       'Bailey Builder',
     ]);
+  });
+
+  it('keeps local fallback workspaces isolated by user', async () => {
+    const userOneWorkspace = createWorkspace({
+      id: 'shared-id',
+      userId: 'user-123',
+      name: 'User One Project',
+    });
+
+    const userTwoWorkspace = createWorkspace({
+      id: 'shared-id',
+      userId: 'user-456',
+      name: 'User Two Project',
+    });
+
+    localStorage.setItem('local_saved_workspaces:user-123', JSON.stringify([userOneWorkspace]));
+    localStorage.setItem('local_saved_workspaces:user-456', JSON.stringify([userTwoWorkspace]));
+    mockGetDoc.mockRejectedValue(new Error('cloud unavailable'));
+
+    const userOneLoaded = await WorkspaceService.getWorkspace('shared-id', 'user-123');
+    const userTwoLoaded = await WorkspaceService.getWorkspace('shared-id', 'user-456');
+
+    expect(userOneLoaded?.name).toBe('User One Project');
+    expect(userTwoLoaded?.name).toBe('User Two Project');
   });
 });

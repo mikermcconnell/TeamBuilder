@@ -6,12 +6,116 @@ import { StructuredWarning } from '@/types/StructuredWarning';
 import { saveDefaultConfig } from '@/utils/configManager';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { applyTeamBranding, ensureUniqueTeamNames, getColorName, getTeamBrandPalette } from '@/utils/teamBranding';
-import { validateGroupsForGeneration } from '@/utils/playerGrouping';
+import { processMutualRequests, validateGroupsForGeneration } from '@/utils/playerGrouping';
 import { syncActiveTeamIterationToState } from '@/utils/teamIterations';
 import { debounce } from '@/utils/performance';
 import { validateTeamName } from '@/utils/validation';
+import { applyWarningResolutionToRequests, isAvoidWarning } from '@/utils/warningResolution';
 
 const normalizeName = (name: string): string => name.trim().toLowerCase();
+const GROUP_COLORS = [
+  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#F97316',
+  '#06B6D4', '#84CC16', '#EC4899', '#6B7280', '#14B8A6', '#F43F5E'
+];
+
+function syncPlayersAndGroups(players: Player[], playerGroups: PlayerGroup[]) {
+  const playersById = new Map(players.map(player => [player.id, player]));
+
+  const syncedPlayerGroups = playerGroups
+    .map(group => {
+      const playerIds = Array.from(new Set([
+        ...group.playerIds,
+        ...group.players.map(player => player.id),
+      ])).filter(playerId => playersById.has(playerId));
+
+      const syncedPlayers = playerIds
+        .map(playerId => playersById.get(playerId))
+        .filter((player): player is Player => Boolean(player));
+
+      if (syncedPlayers.length === 0) {
+        return null;
+      }
+
+      return {
+        ...group,
+        playerIds,
+        players: syncedPlayers,
+      };
+    })
+    .filter((group): group is PlayerGroup => Boolean(group));
+
+  const playerGroupMap = new Map<string, string>();
+  syncedPlayerGroups.forEach(group => {
+    group.playerIds.forEach(playerId => {
+      playerGroupMap.set(playerId, group.id);
+    });
+  });
+
+  const syncedPlayers = players.map(player => {
+    const groupId = playerGroupMap.get(player.id);
+
+    if (groupId) {
+      return player.groupId === groupId ? player : { ...player, groupId };
+    }
+
+    return player.groupId === undefined ? player : { ...player, groupId: undefined };
+  });
+
+  return {
+    players: syncedPlayers,
+    playerGroups: syncedPlayerGroups,
+  };
+}
+
+function getNextGroupLabel(usedLabels: Set<string>): string {
+  for (let i = 0; i < 26; i++) {
+    const label = String.fromCharCode(65 + i);
+    if (!usedLabels.has(label)) {
+      usedLabels.add(label);
+      return label;
+    }
+  }
+
+  const fallbackLabel = `G${usedLabels.size + 1}`;
+  usedLabels.add(fallbackLabel);
+  return fallbackLabel;
+}
+
+function appendDerivedGroups(players: Player[], existingGroups: PlayerGroup[]) {
+  const syncedState = syncPlayersAndGroups(players, existingGroups);
+  const ungroupedPlayers = syncedState.players.filter(player => !player.groupId);
+
+  if (ungroupedPlayers.length < 2) {
+    return syncedState;
+  }
+
+  const { playerGroups: derivedGroups } = processMutualRequests(ungroupedPlayers);
+  if (derivedGroups.length === 0) {
+    return syncedState;
+  }
+
+  const usedLabels = new Set(syncedState.playerGroups.map(group => group.label));
+  const remappedGroups = derivedGroups.map((group, index) => ({
+    ...group,
+    id: `group-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+    label: getNextGroupLabel(usedLabels),
+    color: GROUP_COLORS[(syncedState.playerGroups.length + index) % GROUP_COLORS.length] || GROUP_COLORS[0] || '#3B82F6',
+  }));
+
+  const derivedGroupByPlayerId = new Map<string, string>();
+  remappedGroups.forEach(group => {
+    group.playerIds.forEach(playerId => {
+      derivedGroupByPlayerId.set(playerId, group.id);
+    });
+  });
+
+  const updatedPlayers = syncedState.players.map(player => {
+    const derivedGroupId = derivedGroupByPlayerId.get(player.id);
+    return derivedGroupId ? { ...player, groupId: derivedGroupId } : player;
+  });
+
+  return syncPlayersAndGroups(updatedPlayers, [...syncedState.playerGroups, ...remappedGroups]);
+}
 
 interface TeamBrandingChange {
   name?: string;
@@ -152,6 +256,7 @@ export function useTeamBuilderActions({
         stats: undefined,
         teamIterations: [],
         activeTeamIterationId: null,
+        leagueMemory: [],
         execRatingHistory,
         pendingWarnings: warnings
       };
@@ -285,11 +390,14 @@ export function useTeamBuilderActions({
         p.id === updatedPlayer.id ? updatedPlayer : p
       );
 
+      const syncedGroupState = syncPlayersAndGroups(updatedPlayers, prev.playerGroups);
+
       return syncActiveIteration({
         ...prev,
-        players: updatedPlayers,
+        players: syncedGroupState.players,
         teams: updatedTeams,
         unassignedPlayers: updatedUnassigned,
+        playerGroups: syncedGroupState.playerGroups,
         execRatingHistory: updatedHistory
       });
     });
@@ -325,11 +433,15 @@ export function useTeamBuilderActions({
 
       const updatedPlayer = {
         ...player,
-        teammateRequests: player.teammateRequests.map(req =>
-          req === warning.requestedName ? warning.matchedName : req
+        teammateRequests: applyWarningResolutionToRequests(
+          player.teammateRequests,
+          warning,
+          !isAvoidWarning(warning)
         ),
-        avoidRequests: player.avoidRequests.map(req =>
-          req === warning.requestedName ? warning.matchedName : req
+        avoidRequests: applyWarningResolutionToRequests(
+          player.avoidRequests,
+          warning,
+          isAvoidWarning(warning)
         )
       };
 
@@ -337,9 +449,13 @@ export function useTeamBuilderActions({
         w.id === warning.id ? { ...w, status: 'accepted' as const, matchedName: warning.matchedName } : w
       );
 
+      const updatedPlayers = prev.players.map(p => p.id === player.id ? updatedPlayer : p);
+      const syncedGroupState = appendDerivedGroups(updatedPlayers, prev.playerGroups);
+
       return {
         ...prev,
-        players: prev.players.map(p => p.id === player.id ? updatedPlayer : p),
+        players: syncedGroupState.players,
+        playerGroups: syncedGroupState.playerGroups,
         pendingWarnings: updatedWarnings
       };
     });
@@ -402,6 +518,7 @@ export function useTeamBuilderActions({
 
       const updatedPlayerGroups = prev.playerGroups.map(group => ({
         ...group,
+        playerIds: group.playerIds.filter(id => id !== playerId),
         players: group.players.filter(p => p.id !== playerId)
       })).filter(group => group.players.length > 0);
 

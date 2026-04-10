@@ -15,6 +15,7 @@ import { generateFullAiTeams } from '@/services/aiService';
 function clonePlayer(player: Player): Player {
   return {
     ...player,
+    profile: player.profile ? { ...player.profile } : undefined,
     teammateRequests: [...(player.teammateRequests ?? [])],
     avoidRequests: [...(player.avoidRequests ?? [])],
     teammateRequestsParsed: player.teammateRequestsParsed?.map(request => ({ ...request })),

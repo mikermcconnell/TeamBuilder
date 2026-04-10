@@ -34,7 +34,8 @@ service cloud.firestore {
     match /rosters/{document} {
       allow read: if isResourceOwner();
       // Update/Delete: Owner of existing resource
-      allow update, delete: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
       // Create: Check incoming data ownership
       allow create: if isClaimingOwnership();
     }
@@ -42,14 +43,16 @@ service cloud.firestore {
     // Roster versions
     match /rosterVersions/{document} {
       allow read: if isResourceOwner();
-      allow update, delete: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
     
     // Saved Rosters (CSV storage via rosterStorage.ts)
     match /savedRosters/{document} {
       allow read: if isResourceOwner();
-      allow update, delete: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
     
@@ -65,7 +68,8 @@ service cloud.firestore {
     // Teams
     match /teams/{document} {
       allow read: if isResourceOwner();
-      allow update, delete: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
 
@@ -81,14 +85,16 @@ service cloud.firestore {
     // Sessions
     match /sessions/{document} {
       allow read: if isResourceOwner();
-      allow update, delete: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
 
     // Config Presets
     match /configPresets/{document} {
       allow read: if isResourceOwner();
-      allow update, delete: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
   }

@@ -1,10 +1,18 @@
 import { ZodError } from 'zod';
 
-import { validateAiTeamDraft } from '../../src/shared/ai-draft';
-import { parseRequestBody, allowOnlyPost, sendError, sendSuccess, type ServerlessRequest, type ServerlessResponse } from '../../src/server/ai/http';
+import {
+  parseRequestBody,
+  allowOnlyPost,
+  ensureAiRequestSecurity,
+  sendError,
+  sendGuardError,
+  sendSuccess,
+  RequestGuardError,
+  type ServerlessRequest,
+  type ServerlessResponse,
+} from '../../src/server/ai/http';
 import { parseTeamDraftRequest } from '../../src/server/ai/guards';
-import { requestTeamDraft } from '../../src/server/ai/openaiService';
-import type { LeagueConfig, Player, PlayerGroup } from '../../src/types';
+import { generateTeamDraftWithFallback } from '../../src/server/ai/teamDraftOrchestrator';
 
 export default async function handler(req: ServerlessRequest, res: ServerlessResponse) {
   if (!allowOnlyPost(req, res)) {
@@ -12,26 +20,16 @@ export default async function handler(req: ServerlessRequest, res: ServerlessRes
   }
 
   try {
+    await ensureAiRequestSecurity(req);
     const input = parseTeamDraftRequest(parseRequestBody(req.body));
-    const response = await requestTeamDraft(input);
-    const players = input.players as Player[];
-    const config = input.config as LeagueConfig;
-    const playerGroups = input.playerGroups.map(group => ({
-      ...group,
-      color: '#000000',
-      players: group.playerIds
-        .map(playerId => players.find(player => player.id === playerId))
-        .filter((player): player is Player => Boolean(player)),
-    })) as PlayerGroup[];
-    const validation = validateAiTeamDraft(response, players, config, playerGroups);
-
-    if (!validation.valid) {
-      sendError(res, 'VALIDATION_FAILED', 'The AI returned an invalid team draft.', 422, validation.errors);
+    const response = await generateTeamDraftWithFallback(input);
+    sendSuccess(res, response);
+  } catch (error) {
+    if (error instanceof RequestGuardError) {
+      sendGuardError(res, error);
       return;
     }
 
-    sendSuccess(res, response);
-  } catch (error) {
     if (error instanceof ZodError) {
       sendError(res, 'BAD_REQUEST', 'Invalid request payload for team drafting.', 400, error.issues.map(issue => issue.message));
       return;

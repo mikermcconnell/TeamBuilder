@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Team, Player, LeagueConfig, TeamGenerationStats, PlayerGroup } from '@/types';
+import { Team, Player, LeagueConfig, TeamGenerationStats, PlayerGroup, LeagueMemoryEntry } from '@/types';
 import {
   exportTeamsToCSV,
   exportTeamSummaryToCSV,
   downloadCSV,
   generateTeamReport,
-  generateShareSummaryText
+  generateShareSummaryText,
+  generateLeagueOrganizerSummary,
 } from '@/utils/exportUtils';
 import { hexToRgba } from '@/utils/teamBranding';
 import { Button } from '@/components/ui/button';
@@ -32,15 +33,36 @@ interface ExportPanelProps {
   config: LeagueConfig;
   stats?: TeamGenerationStats;
   playerGroups: PlayerGroup[];
+  leagueMemory?: LeagueMemoryEntry[];
+  activeIterationName?: string;
 }
 
-export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGroups }: ExportPanelProps) {
-  const [previewType, setPreviewType] = useState<'detailed' | 'summary' | 'report' | 'share'>('detailed');
+export function ExportPanel({
+  teams,
+  unassignedPlayers,
+  config,
+  stats,
+  playerGroups,
+  leagueMemory = [],
+  activeIterationName,
+}: ExportPanelProps) {
+  const [previewType, setPreviewType] = useState<'detailed' | 'summary' | 'report' | 'share' | 'organizer'>('detailed');
   const [reportText, setReportText] = useState<string>('');
 
   const shareSummary = useMemo(
     () => generateShareSummaryText(teams, config, stats, unassignedPlayers),
     [teams, config, stats, unassignedPlayers]
+  );
+  const organizerSummary = useMemo(
+    () => generateLeagueOrganizerSummary(
+      teams,
+      unassignedPlayers,
+      config,
+      stats,
+      leagueMemory,
+      activeIterationName ? `${activeIterationName} Organizer Summary` : 'League Organizer Summary'
+    ),
+    [activeIterationName, config, leagueMemory, stats, teams, unassignedPlayers]
   );
 
   const handleExportDetailed = () => {
@@ -73,6 +95,24 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
   const handleCopyShareSummary = () => {
     navigator.clipboard.writeText(shareSummary);
     toast.success('Shareable summary copied to clipboard');
+  };
+
+  const handleCopyOrganizerSummary = () => {
+    navigator.clipboard.writeText(organizerSummary);
+    toast.success('Organizer summary copied to clipboard');
+  };
+
+  const handleDownloadOrganizerSummary = () => {
+    const blob = new Blob([organizerSummary], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `league-organizer-summary_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Organizer summary downloaded');
   };
 
   const handlePrintReport = () => {
@@ -156,7 +196,7 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
   return (
     <div className="space-y-6">
       {/* Export Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -240,6 +280,31 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Organizer Summary
+            </CardTitle>
+            <CardDescription>
+              Share a polished summary with score, risks, and team lists
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button onClick={handleCopyOrganizerSummary} className="w-full" variant="outline">
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Summary
+            </Button>
+            <Button onClick={handleDownloadOrganizerSummary} className="w-full" variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Download TXT
+            </Button>
+            <p className="text-sm text-gray-600">
+              Includes explainable scoring and league-memory repeat checks
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Export Summary */}
@@ -279,18 +344,19 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             Export Preview
-            <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as 'detailed' | 'summary' | 'report' | 'share')}>
+            <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as 'detailed' | 'summary' | 'report' | 'share' | 'organizer')}>
               <TabsList>
                 <TabsTrigger value="detailed">Detailed</TabsTrigger>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
                 <TabsTrigger value="share">Shareable</TabsTrigger>
+                <TabsTrigger value="organizer">Organizer</TabsTrigger>
                 {reportText && <TabsTrigger value="report">Report</TabsTrigger>}
               </TabsList>
             </Tabs>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as 'detailed' | 'summary' | 'report' | 'share')}>
+          <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as 'detailed' | 'summary' | 'report' | 'share' | 'organizer')}>
             <TabsContent value="detailed" className="space-y-4">
               <div className="border rounded-lg overflow-hidden">
                 <Table>
@@ -402,6 +468,25 @@ export function ExportPanel({ teams, unassignedPlayers, config, stats, playerGro
                 value={shareSummary}
                 readOnly
                 className="min-h-64 font-mono text-sm"
+              />
+            </TabsContent>
+
+            <TabsContent value="organizer" className="space-y-4">
+              <div className="flex gap-2 mb-4">
+                <Button onClick={handleCopyOrganizerSummary} variant="outline" size="sm">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Summary
+                </Button>
+                <Button onClick={handleDownloadOrganizerSummary} variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download TXT
+                </Button>
+              </div>
+
+              <Textarea
+                value={organizerSummary}
+                readOnly
+                className="min-h-96 font-mono text-sm"
               />
             </TabsContent>
 

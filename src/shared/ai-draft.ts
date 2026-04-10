@@ -6,6 +6,7 @@ import type { AITeamDraftPayload } from './ai-contracts';
 export interface AITeamDraftValidationResult {
   valid: boolean;
   errors: string[];
+  warnings?: string[];
 }
 
 export function calculateAverageSkillByGender(players: Player[]) {
@@ -116,6 +117,7 @@ export function validateAiTeamDraft(
   playerGroups: PlayerGroup[]
 ): AITeamDraftValidationResult {
   const errors: string[] = [];
+  const warnings: string[] = [];
   const expectedTeamCount = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
   const playerIds = new Set(players.map(player => player.id));
   const assignedIds = new Set<string>();
@@ -194,6 +196,13 @@ export function validateAiTeamDraft(
       .map(playerId => players.find(player => player.id === playerId))
       .filter((player): player is Player => Boolean(player));
 
+    if (!config.allowMixedGender) {
+      const genderSet = new Set(teamPlayers.map(player => player.gender));
+      if (genderSet.size > 1) {
+        errors.push(`Team slot ${team.slot} mixes genders even though mixed gender teams are disabled.`);
+      }
+    }
+
     const femaleCount = teamPlayers.filter(player => player.gender === 'F').length;
     const maleCount = teamPlayers.filter(player => player.gender === 'M').length;
 
@@ -215,7 +224,7 @@ export function validateAiTeamDraft(
       ));
 
       if (hasAvoidConflict) {
-        errors.push(`Team slot ${team.slot} contains at least one avoid conflict.`);
+        warnings.push(`Team slot ${team.slot} contains at least one avoid conflict.`);
         break;
       }
     }
@@ -224,5 +233,6 @@ export function validateAiTeamDraft(
   return {
     valid: errors.length === 0,
     errors,
+    warnings,
   };
 }

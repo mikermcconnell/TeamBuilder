@@ -54,7 +54,14 @@ export function sanitizeString(input: string, maxLength = 100): string {
 export const PlayerSchema = z.object({
   id: z.string().default(() => `player-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`),
   name: z.string().min(1, "Player name cannot be empty").transform(val => sanitizeString(val, MAX_PLAYER_NAME_LENGTH)),
+  profile: z.object({
+    registrationInfo: z.string().transform(val => sanitizeString(val)).optional(),
+    // Legacy field; folded into registrationInfo during transform.
+    experienceNotes: z.string().transform(val => sanitizeString(val)).optional(),
+    age: z.number().int().min(0).max(120).optional(),
+  }).optional(),
   registrationInfo: z.string().transform(val => sanitizeString(val)).optional(),
+  // Legacy field; folded into registrationInfo during transform.
   experienceNotes: z.string().transform(val => sanitizeString(val)).optional(),
   age: z.number().int().min(0).max(120).optional(),
   gender: z.enum(['M', 'F', 'Other']).default('Other'),
@@ -75,6 +82,33 @@ export const PlayerSchema = z.object({
     name: z.string(),
     reason: z.enum(['non-reciprocal', 'group-full'])
   })).optional()
+}).transform((player) => {
+  const notes = [
+    player.profile?.registrationInfo,
+    player.registrationInfo,
+    player.profile?.experienceNotes,
+    player.experienceNotes,
+  ]
+    .map(note => note?.trim())
+    .filter((note): note is string => Boolean(note));
+  const registrationInfo = notes.length > 0
+    ? Array.from(new Set(notes)).join('\n\n')
+    : undefined;
+  const age = player.profile?.age ?? player.age;
+  const profile = registrationInfo !== undefined || age !== undefined
+    ? {
+        ...(registrationInfo !== undefined ? { registrationInfo } : {}),
+        ...(age !== undefined ? { age } : {}),
+      }
+    : undefined;
+
+  return {
+    ...player,
+    profile,
+    registrationInfo: undefined,
+    experienceNotes: undefined,
+    age: undefined,
+  };
 });
 
 export const TeamSchema = z.object({
@@ -161,7 +195,7 @@ export function validateRequests(requests: string[]): string[] {
 /**
  * Validates a complete Player object
  */
-export function validatePlayer(player: any): Player | null {
+export function validatePlayer(player: unknown): Player | null {
   const result = PlayerSchema.safeParse(player);
   if (result.success) {
     return result.data as Player;
@@ -173,7 +207,7 @@ export function validatePlayer(player: any): Player | null {
 /**
  * Validates league configuration
  */
-export function validateLeagueConfig(config: any): LeagueConfig {
+export function validateLeagueConfig(config: unknown): LeagueConfig {
   const result = LeagueConfigSchema.safeParse(config);
   if (result.success) {
     return result.data as LeagueConfig;
@@ -185,7 +219,7 @@ export function validateLeagueConfig(config: any): LeagueConfig {
 /**
  * Validates the complete app state structure
  */
-export function validateAppState(state: any): state is AppState {
+export function validateAppState(state: unknown): state is AppState {
   return AppStateSchema.safeParse(state).success;
 }
 
@@ -199,7 +233,7 @@ export function validateTeamName(name: string): string {
 /**
  * Validates teams data structure
  */
-export function validateTeamsData(data: any): TeamsData {
+export function validateTeamsData(data: unknown): TeamsData {
   const result = TeamsDataSchema.safeParse(data);
   if (result.success) {
     // Asserting types because Zod transforms/defaults make exact type matching tricky

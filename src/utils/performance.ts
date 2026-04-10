@@ -10,7 +10,7 @@
  * @param delay The delay in milliseconds
  * @returns The debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   delay: number
 ): (...args: Parameters<T>) => void {
@@ -36,7 +36,7 @@ export function debounce<T extends (...args: any[]) => any>(
  * @param limit The time limit in milliseconds
  * @returns The throttled function
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
@@ -77,7 +77,7 @@ export function safeJsonParse<T>(json: string, fallback: T): T {
  * @returns Whether the object is valid
  */
 export function validateObjectStructure(
-  obj: any,
+  obj: unknown,
   requiredKeys: string[]
 ): boolean {
   if (!obj || typeof obj !== 'object') {
@@ -94,7 +94,7 @@ export function validateObjectStructure(
  * @param data The data to save
  * @returns Whether the save was successful
  */
-export function safeLocalStorageSave(key: string, data: any): boolean {
+export function safeLocalStorageSave(key: string, data: unknown): boolean {
   try {
     const serialized = JSON.stringify(data);
 
@@ -130,7 +130,7 @@ export function safeLocalStorageSave(key: string, data: any): boolean {
  * @param getKey Function to generate cache key from arguments
  * @returns Memoized function
  */
-export function memoize<T extends (...args: any[]) => any>(
+export function memoize<T extends (...args: unknown[]) => unknown>(
   fn: T,
   getKey?: (...args: Parameters<T>) => string
 ): T {
@@ -149,7 +149,9 @@ export function memoize<T extends (...args: any[]) => any>(
     // Limit cache size to prevent memory leaks
     if (cache.size > 100) {
       const firstKey = cache.keys().next().value;
-      cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        cache.delete(firstKey);
+      }
     }
 
     return result;

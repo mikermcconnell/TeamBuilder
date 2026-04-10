@@ -46,6 +46,7 @@ import { RosterTable } from './roster/RosterTable';
 import { WarningBanner } from './roster/WarningBanner';
 import { StructuredWarning } from '@/types/StructuredWarning';
 import { getPlayerAgeBand } from '@/utils/playerAgeBands';
+import { getPlayerDisplayAge } from '@/utils/playerProfile';
 import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
 
 interface PlayerRosterProps {
@@ -75,6 +76,8 @@ export function PlayerRoster({
   onDismissWarning,
   onDismissAllWarnings
 }: PlayerRosterProps) {
+  const normalizePlayerName = useCallback((name: string) => name.trim().toLowerCase(), []);
+
   // State
   const [filters, setFilters] = useState<RosterFilterState>(initialFilterState);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set());
@@ -282,7 +285,7 @@ export function PlayerRoster({
       }
       // Age spotlight filters
       if (activeAgeBands.length > 0) {
-        const ageBand = getPlayerAgeBand(player.age);
+        const ageBand = getPlayerAgeBand(getPlayerDisplayAge(player));
         if (ageBand === 'standard' || !activeAgeBands.includes(ageBand)) {
           return false;
         }
@@ -308,20 +311,23 @@ export function PlayerRoster({
   };
 
   const handleAddPlayer = () => {
-    if (!newPlayer.name.trim()) {
+    const trimmedName = newPlayer.name.trim();
+    const normalizedName = normalizePlayerName(trimmedName);
+
+    if (!trimmedName) {
       toast.error('Player name is required');
       return;
     }
 
-    const nameExists = rosterPlayers.some(p => p.name.toLowerCase() === newPlayer.name.toLowerCase());
+    const nameExists = rosterPlayers.some(p => normalizePlayerName(p.name) === normalizedName);
     if (nameExists) {
       toast.error('A player with this name already exists');
       return;
     }
 
     const player: Player = {
-      id: generatePlayerId(newPlayer.name),
-      name: newPlayer.name.trim(),
+      id: generatePlayerId(trimmedName),
+      name: trimmedName,
       gender: newPlayer.gender,
       skillRating: newPlayer.skillRating,
       execSkillRating: null,
@@ -833,7 +839,7 @@ export function PlayerRoster({
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Age</Label>
-                  <div className="font-medium">{viewPlayer.age ?? '-'}</div>
+                  <div className="font-medium">{getPlayerDisplayAge(viewPlayer) ?? '-'}</div>
                 </div>
               </div>
 
@@ -945,7 +951,27 @@ export function PlayerRoster({
             <Button variant="outline" onClick={() => setEditPlayer(null)}>Cancel</Button>
             <Button onClick={() => {
               if (editPlayer) {
-                onPlayerUpdate(editPlayer);
+                const trimmedName = editPlayer.name.trim();
+                const normalizedName = normalizePlayerName(trimmedName);
+
+                if (!trimmedName) {
+                  toast.error('Player name is required');
+                  return;
+                }
+
+                const duplicateNameExists = rosterPlayers.some(player =>
+                  player.id !== editPlayer.id && normalizePlayerName(player.name) === normalizedName
+                );
+
+                if (duplicateNameExists) {
+                  toast.error('A player with this name already exists');
+                  return;
+                }
+
+                onPlayerUpdate({
+                  ...editPlayer,
+                  name: trimmedName,
+                });
                 setEditPlayer(null);
                 toast.success('Player updated');
               }

@@ -16,6 +16,7 @@ import {
   deleteObject
 } from 'firebase/storage';
 import { db, storage, auth } from '../config/firebase';
+import { parseCSV } from '@/utils/csvProcessor';
 
 export interface SavedRoster {
   id: string;
@@ -56,9 +57,14 @@ export class RosterStorageService {
       const snapshot = await uploadString(storageRef, csvContent, 'raw');
       const csvUrl = await getDownloadURL(snapshot.ref);
 
-      // Count players (rows minus header)
-      const lines = csvContent.trim().split('\n');
-      const playerCount = Math.max(0, lines.length - 1);
+      let playerCount = 0;
+      try {
+        playerCount = parseCSV(csvContent).length;
+      } catch (parseError) {
+        console.warn('Falling back to newline-based player count for saved roster metadata:', parseError);
+        const lines = csvContent.trim().split(/\r?\n/);
+        playerCount = Math.max(0, lines.length - 1);
+      }
 
       // Create roster document
       const rosterData: Omit<SavedRoster, 'id'> = {
