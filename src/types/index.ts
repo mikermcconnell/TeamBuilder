@@ -123,6 +123,7 @@ export interface LeagueConfig {
   minMales: number;
   targetTeams?: number;
   allowMixedGender: boolean;
+  restrictToEvenTeams?: boolean;
 }
 
 export type TeamIterationType = 'manual' | 'ai' | 'generated';

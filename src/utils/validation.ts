@@ -137,6 +137,7 @@ export const LeagueConfigSchema = z.object({
   minMales: z.number().min(MIN_GENDER_COUNT).max(MAX_GENDER_COUNT).default(DEFAULT_MIN_MALES),
   targetTeams: z.number().min(MIN_TARGET_TEAMS).max(MAX_TARGET_TEAMS).optional(),
   allowMixedGender: z.boolean().default(true),
+  restrictToEvenTeams: z.boolean().default(true),
 });
 
 // AppState validation is complex due to nested structures, 

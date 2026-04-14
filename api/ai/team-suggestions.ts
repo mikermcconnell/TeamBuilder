@@ -43,7 +43,10 @@ export default async function handler(req: ServerlessRequest, res: ServerlessRes
     }
 
     const message = error instanceof Error ? error.message : 'Failed to generate team suggestions.';
-    const statusCode = message.includes('OPENAI_API_KEY') ? 500 : 502;
+    const statusCode = (
+      message.includes('OPENAI_API_KEY')
+      || message.includes('GEMMA_MODEL')
+    ) ? 500 : 502;
     sendError(res, 'MODEL_ERROR', message, statusCode);
   }
 }

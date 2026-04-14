@@ -1,4 +1,5 @@
 import { Player, Team, LeagueConfig, PlayerGroup } from '@/types';
+import { getEffectiveTeamCount } from '@/utils/teamCount';
 import { fuzzyMatcher } from '@/utils/fuzzyNameMatcher';
 
 import type { AITeamDraftPayload } from './ai-contracts';
@@ -118,7 +119,7 @@ export function validateAiTeamDraft(
 ): AITeamDraftValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const expectedTeamCount = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
+  const expectedTeamCount = getEffectiveTeamCount(players.length, config);
   const playerIds = new Set(players.map(player => player.id));
   const assignedIds = new Set<string>();
   const destinationByPlayer = new Map<string, string>();

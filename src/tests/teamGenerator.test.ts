@@ -148,4 +148,36 @@ describe('generateBalancedTeams', () => {
     expect(result.teams.every(team => team.players.length === 2)).toBe(true);
   });
 
+  it('rounds odd auto-calculated team counts up to the next even number by default', () => {
+    const players: Player[] = [
+      createPlayer({ id: 'p1', name: 'Alex', gender: 'M' }),
+      createPlayer({ id: 'p2', name: 'Blair', gender: 'F' }),
+      createPlayer({ id: 'p3', name: 'Casey', gender: 'M' }),
+      createPlayer({ id: 'p4', name: 'Drew', gender: 'F' }),
+      createPlayer({ id: 'p5', name: 'Evan', gender: 'M' }),
+    ];
+
+    const result = generateBalancedTeams(players, createConfig({ maxTeamSize: 2, targetTeams: undefined }), []);
+
+    expect(result.teams).toHaveLength(4);
+  });
+
+  it('keeps odd target team counts when the restriction is disabled', () => {
+    const players: Player[] = [
+      createPlayer({ id: 'p1', name: 'Alex', gender: 'M' }),
+      createPlayer({ id: 'p2', name: 'Blair', gender: 'F' }),
+      createPlayer({ id: 'p3', name: 'Casey', gender: 'M' }),
+      createPlayer({ id: 'p4', name: 'Drew', gender: 'F' }),
+      createPlayer({ id: 'p5', name: 'Evan', gender: 'M' }),
+    ];
+
+    const result = generateBalancedTeams(
+      players,
+      createConfig({ maxTeamSize: 2, targetTeams: undefined, restrictToEvenTeams: false }),
+      []
+    );
+
+    expect(result.teams).toHaveLength(3);
+  });
+
 });

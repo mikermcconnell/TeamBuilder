@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { LeagueConfig, Player } from '@/types';
 import { loadSavedConfigs, saveConfig, deleteConfig, validateConfig, loadLeaguePresets, updateConfig as updateSavedConfig, duplicateConfig, getConfiguredTeamCount } from '@/utils/configManager';
+import { isEvenTeamRestrictionEnabled, normalizeLeagueConfig, normalizeTeamCount } from '@/utils/teamCount';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,10 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
     () => validateConfig(config, playerCount),
     [config, playerCount]
   );
+  const evenTeamRestrictionEnabled = useMemo(
+    () => isEvenTeamRestrictionEnabled(config),
+    [config]
+  );
 
   // Calculate gender breakdown
   const genderStats = useMemo(() => {
@@ -58,7 +63,7 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
   }, [players]);
 
   const updateConfig = (updates: Partial<LeagueConfig>) => {
-    const updatedConfig = { ...config, ...updates };
+    const updatedConfig = normalizeLeagueConfig({ ...config, ...updates });
     onConfigChange(updatedConfig);
   };
 
@@ -68,7 +73,7 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
     const selectedPreset = customPreset || builtInPreset;
 
     if (selectedPreset) {
-      onConfigChange(selectedPreset);
+      onConfigChange(normalizeLeagueConfig(selectedPreset));
       toast.success(`Loaded preset: ${selectedPreset.name}`);
     }
   };
@@ -434,17 +439,33 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="targetTeams">Target Number of Teams (Optional)</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="targetTeams">Target Number of Teams (Optional)</Label>
+                <Button
+                  type="button"
+                  variant={evenTeamRestrictionEnabled ? 'secondary' : 'outline'}
+                  size="sm"
+                  onClick={() => updateConfig({ restrictToEvenTeams: !evenTeamRestrictionEnabled })}
+                >
+                  {evenTeamRestrictionEnabled ? 'Allow odd teams' : 'Require even teams'}
+                </Button>
+              </div>
               <Input
                 id="targetTeams"
                 type="number"
-                min="1"
+                min={evenTeamRestrictionEnabled ? '2' : '1'}
+                step={evenTeamRestrictionEnabled ? '2' : '1'}
                 placeholder="Auto-calculate"
-                value={config.targetTeams || ''}
+                value={normalizeTeamCount(config.targetTeams, config) || ''}
                 onChange={(e) => updateConfig({ 
                   targetTeams: e.target.value ? parseInt(e.target.value) || undefined : undefined 
                 })}
               />
+              <p className="text-xs text-slate-500">
+                {evenTeamRestrictionEnabled
+                  ? 'Even-team mode is on. Odd values automatically round up to the next even team count.'
+                  : 'Odd team counts are allowed.'}
+              </p>
             </div>
           </div>
         </CardContent>

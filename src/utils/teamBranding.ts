@@ -269,7 +269,13 @@ export function applyTeamBranding(
 }
 
 export function getTeamBrandPalette(index: number): TeamBrandPalette {
-  return TEAM_BRAND_PALETTE[index % TEAM_BRAND_PALETTE.length];
+  const colorPalette = TEAM_BRAND_PALETTE[index % TEAM_BRAND_PALETTE.length];
+  const mascot = TEAM_MASCOT_POOL[index % TEAM_MASCOT_POOL.length] || colorPalette.mascot;
+
+  return {
+    ...colorPalette,
+    mascot,
+  };
 }
 
 export function getColorName(color: string | undefined): string {

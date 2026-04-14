@@ -1,6 +1,7 @@
 import { Player, Team, LeagueConfig, TeamGenerationStats, PlayerGroup } from '@/types';
 import { fuzzyMatcher } from './fuzzyNameMatcher';
 import { applyTeamBranding } from './teamBranding';
+import { getEffectiveTeamCount } from './teamCount';
 
 export interface GenerationResult {
   teams: Team[];
@@ -54,7 +55,7 @@ export function generateBalancedTeams(
   const constraintGroups = createConstraintGroups(players, mutualPairs, playerGroups);
 
   // Calculate number of teams needed
-  const targetTeams = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
+  const targetTeams = getEffectiveTeamCount(players.length, config);
 
   // Initialize teams
   const teams: Team[] = [];
@@ -121,7 +122,7 @@ function generateRandomTeams(
   const constraintGroups = createConstraintGroups(players, [], playerGroups); // No mutual pairs in random mode
   const shuffledGroups = [...constraintGroups].sort(() => Math.random() - 0.5);
 
-  const targetTeams = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
+  const targetTeams = getEffectiveTeamCount(players.length, config);
 
   const teams: Team[] = [];
   for (let i = 0; i < targetTeams; i++) {
@@ -175,7 +176,7 @@ function generateManualTeams(
   playerMap: Map<string, Player>
 ): GenerationResult {
   // Create empty teams based on targetTeams configuration
-  const targetTeams = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
+  const targetTeams = getEffectiveTeamCount(players.length, config);
 
   const teams: Team[] = [];
   for (let i = 0; i < targetTeams; i++) {

@@ -56,6 +56,7 @@ const aiLeagueConfigSchema = z.object({
   minMales: z.number().int().nonnegative(),
   targetTeams: z.number().int().positive().optional(),
   allowMixedGender: z.boolean(),
+  restrictToEvenTeams: z.boolean().optional(),
 });
 
 const aiPlayerGroupSchema = z.object({

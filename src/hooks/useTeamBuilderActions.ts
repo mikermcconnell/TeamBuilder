@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { AppState, LeagueConfig, Player, PlayerGroup, Team, getEffectiveSkillRating } from '@/types';
 import { StructuredWarning } from '@/types/StructuredWarning';
 import { saveDefaultConfig } from '@/utils/configManager';
+import { normalizeLeagueConfig } from '@/utils/teamCount';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { applyTeamBranding, ensureUniqueTeamNames, getColorName, getTeamBrandPalette } from '@/utils/teamBranding';
 import { processMutualRequests, validateGroupsForGeneration } from '@/utils/playerGrouping';
@@ -279,8 +280,9 @@ export function useTeamBuilderActions({
   }, [setActiveTab, setAppState, setCurrentWorkspaceInfo, setIsFullScreenMode, setIsManualMode]);
 
   const handleConfigChange = useCallback((config: LeagueConfig) => {
-    setAppState(prev => ({ ...prev, config }));
-    saveDefaultConfig(config);
+    const normalizedConfig = normalizeLeagueConfig(config);
+    setAppState(prev => ({ ...prev, config: normalizedConfig }));
+    saveDefaultConfig(normalizedConfig);
   }, [setAppState]);
 
   const handleGenerateTeams = useCallback(async (randomize: boolean = false, manualMode: boolean = false) => {

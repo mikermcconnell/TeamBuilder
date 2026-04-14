@@ -64,6 +64,7 @@ export interface AILeagueConfigInput {
   minMales: number;
   targetTeams?: number;
   allowMixedGender: boolean;
+  restrictToEvenTeams?: boolean;
 }
 
 export interface AIPlayerGroupInput {

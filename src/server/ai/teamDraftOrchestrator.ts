@@ -2,6 +2,7 @@ import { validateAiTeamDraft } from '@/shared/ai-draft';
 import type { AITeamDraftPayload, TeamDraftRequest } from '@/shared/ai-contracts';
 import { toDomainLeagueConfig, toDomainPlayer, toDomainPlayerGroups } from '@/shared/ai-mappers';
 import type { LeagueConfig, Player, PlayerGroup } from '@/types';
+import { getEffectiveTeamCount } from '@/utils/teamCount';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 
 import { buildDraftPayload, cloneTeamDraft } from './teamDraftDomain';
@@ -96,7 +97,7 @@ function buildCandidateDrafts(
   playerGroups: PlayerGroup[],
   variant: 'primary' | 'alternate' | undefined
 ) {
-  const expectedTeamCount = config.targetTeams || Math.ceil(players.length / config.maxTeamSize);
+  const expectedTeamCount = getEffectiveTeamCount(players.length, config);
   const basePlayers = clonePlayers(players);
   const balancedGroups = cloneGroups(basePlayers, playerGroups);
   const balancedResult = generateBalancedTeams(
@@ -189,7 +190,7 @@ function buildFallbackResponse(
     ...buildDraftPayload(
       fallbackResult.teams,
       fallbackResult.unassignedPlayers,
-      config.targetTeams || Math.ceil(players.length / config.maxTeamSize)
+      getEffectiveTeamCount(players.length, config)
     ),
   };
 }

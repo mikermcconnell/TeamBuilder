@@ -15,7 +15,11 @@ describe('configManager generation validation', () => {
 
   it('uses the configured target team count when present', () => {
     expect(getConfiguredTeamCount(12, { ...baseConfig, targetTeams: 2 })).toBe(2);
-    expect(getConfiguredTeamCount(12, baseConfig)).toBe(3);
+    expect(getConfiguredTeamCount(12, baseConfig)).toBe(4);
+  });
+
+  it('allows odd team counts when the even-team restriction is turned off', () => {
+    expect(getConfiguredTeamCount(12, { ...baseConfig, restrictToEvenTeams: false })).toBe(3);
   });
 
   it('rejects team setups that cannot fit the whole roster', () => {

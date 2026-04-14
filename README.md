@@ -130,6 +130,11 @@ npm install
 # Add your server-side OpenAI key to .env.local
 # OPENAI_API_KEY=your_key_here
 
+# Optional: switch name matching to a local/self-hosted Gemma provider
+# AI_PROVIDER=gemma
+# GEMMA_BASE_URL=http://127.0.0.1:11434
+# GEMMA_MODEL=gemma4
+
 # Start frontend-only development server
 npm run dev
 
@@ -141,6 +146,28 @@ npm run build
 ```
 
 Use `npm run dev:vercel` if you want the server-side AI features to work locally.
+
+### Optional Gemma setup for AI name matching and group suggestions
+
+The current Gemma rollout supports:
+- `/api/ai/name-match`
+- `/api/ai/group-suggestions`
+- `/api/ai/team-suggestions`
+
+Other AI endpoints still use OpenAI for now.
+
+Add these values to `.env.local` if you want name matching to use a local or self-hosted Gemma runtime:
+
+```bash
+AI_PROVIDER=gemma
+GEMMA_BASE_URL=http://127.0.0.1:11434
+GEMMA_MODEL=gemma4
+```
+
+Current assumptions for the Gemma provider:
+- It targets an Ollama-compatible `/api/chat` endpoint
+- The model must return valid JSON
+- Team draft generation still uses OpenAI in this milestone
 
 ## 🌟 Use Cases & Examples
 

@@ -1,41 +1,42 @@
 import { LeagueConfig, Player } from '@/types';
+import { getEffectiveTeamCount, normalizeLeagueConfig } from '@/utils/teamCount';
 
 const STORAGE_KEY = 'teambuilder-configs';
 const DEFAULT_CONFIG_KEY = 'teambuilder-default-config';
 
 export const BUILT_IN_LEAGUE_PRESETS: LeagueConfig[] = [
-  {
+  normalizeLeagueConfig({
     id: 'preset-indoor-5v5',
     name: 'Indoor 5v5',
     maxTeamSize: 5,
     minFemales: 2,
     minMales: 0,
     allowMixedGender: true
-  },
-  {
+  }),
+  normalizeLeagueConfig({
     id: 'preset-summer-league',
     name: 'Summer League',
     maxTeamSize: 14,
     minFemales: 3,
     minMales: 0,
     allowMixedGender: true
-  },
-  {
+  }),
+  normalizeLeagueConfig({
     id: 'preset-hat-tournament',
     name: 'Hat Tournament',
     maxTeamSize: 7,
     minFemales: 2,
     minMales: 0,
     allowMixedGender: true
-  },
-  {
+  }),
+  normalizeLeagueConfig({
     id: 'preset-youth-clinic',
     name: 'Youth Clinic',
     maxTeamSize: 8,
     minFemales: 0,
     minMales: 0,
     allowMixedGender: true
-  }
+  })
 ];
 
 export function loadLeaguePresets(): LeagueConfig[] {
@@ -46,25 +47,25 @@ export function getDefaultConfig(): LeagueConfig {
   const saved = localStorage.getItem(DEFAULT_CONFIG_KEY);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      return normalizeLeagueConfig(JSON.parse(saved));
     } catch (error) {
       console.warn('Failed to parse saved default config:', error);
     }
   }
 
-  return {
+  return normalizeLeagueConfig({
     id: 'default',
     name: 'Default League',
     maxTeamSize: 12,
     minFemales: 2,
     minMales: 0,
     allowMixedGender: true
-  };
+  });
 }
 
 export function saveDefaultConfig(config: LeagueConfig): void {
   try {
-    localStorage.setItem(DEFAULT_CONFIG_KEY, JSON.stringify(config));
+    localStorage.setItem(DEFAULT_CONFIG_KEY, JSON.stringify(normalizeLeagueConfig(config)));
   } catch (error) {
     console.error('Failed to save default config:', error);
   }
@@ -75,7 +76,7 @@ export function loadSavedConfigs(): LeagueConfig[] {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const configs = JSON.parse(saved);
-      return Array.isArray(configs) ? configs : [];
+      return Array.isArray(configs) ? configs.map(config => normalizeLeagueConfig(config)) : [];
     }
   } catch (error) {
     console.warn('Failed to load saved configs:', error);
@@ -86,7 +87,7 @@ export function loadSavedConfigs(): LeagueConfig[] {
 
 export function saveConfigs(configs: LeagueConfig[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(configs.map(config => normalizeLeagueConfig(config))));
   } catch (error) {
     console.error('Failed to save configs:', error);
   }
@@ -95,11 +96,12 @@ export function saveConfigs(configs: LeagueConfig[]): void {
 export function saveConfig(config: LeagueConfig): void {
   const configs = loadSavedConfigs();
   const existingIndex = configs.findIndex(c => c.id === config.id);
+  const normalizedConfig = normalizeLeagueConfig(config);
   
   if (existingIndex >= 0) {
-    configs[existingIndex] = config;
+    configs[existingIndex] = normalizedConfig;
   } else {
-    configs.push(config);
+    configs.push(normalizedConfig);
   }
   
   saveConfigs(configs);
@@ -119,10 +121,10 @@ export function updateConfig(configId: string, updates: Partial<LeagueConfig>): 
     id: configs[existingIndex].id,
   };
 
-  configs[existingIndex] = updatedConfig;
+  configs[existingIndex] = normalizeLeagueConfig(updatedConfig);
   saveConfigs(configs);
 
-  return updatedConfig;
+  return configs[existingIndex] ?? null;
 }
 
 export function deleteConfig(configId: string): void {
@@ -132,22 +134,22 @@ export function deleteConfig(configId: string): void {
 }
 
 export function duplicateConfig(config: LeagueConfig, name: string): LeagueConfig {
-  const duplicate = {
+  const duplicate = normalizeLeagueConfig({
     ...config,
     id: generateConfigId(name),
     name,
-  };
+  });
 
   saveConfig(duplicate);
   return duplicate;
 }
 
 export function createConfigFromTemplate(name: string, template: LeagueConfig): LeagueConfig {
-  return {
+  return normalizeLeagueConfig({
     ...template,
     id: generateConfigId(name),
     name
-  };
+  });
 }
 
 export function generateConfigId(name: string): string {
@@ -156,18 +158,14 @@ export function generateConfigId(name: string): string {
 
 export function getConfiguredTeamCount(
   playerCount: number,
-  config: Pick<LeagueConfig, 'maxTeamSize' | 'targetTeams'>
+  config: Pick<LeagueConfig, 'maxTeamSize' | 'targetTeams' | 'restrictToEvenTeams'>
 ): number {
-  if (playerCount <= 0) {
-    return config.targetTeams ?? 0;
-  }
-
-  return config.targetTeams ?? Math.ceil(playerCount / config.maxTeamSize);
+  return getEffectiveTeamCount(playerCount, config);
 }
 
 export function getRosterFeasibilityWarnings(
   players: Pick<Player, 'gender'>[],
-  config: Pick<LeagueConfig, 'maxTeamSize' | 'targetTeams' | 'minFemales' | 'minMales'>
+  config: Pick<LeagueConfig, 'maxTeamSize' | 'targetTeams' | 'minFemales' | 'minMales' | 'restrictToEvenTeams'>
 ): string[] {
   const configuredTeamCount = getConfiguredTeamCount(players.length, config);
 
@@ -260,15 +258,16 @@ export function importConfigsFromJSON(jsonString: string): LeagueConfig[] {
     
     for (const item of data) {
       if (typeof item === 'object' && item !== null) {
-        const config: LeagueConfig = {
+        const config: LeagueConfig = normalizeLeagueConfig({
           id: item.id || generateConfigId(item.name || 'Imported Config'),
           name: item.name || 'Imported Config',
           maxTeamSize: Number(item.maxTeamSize) || 12,
           minFemales: Number(item.minFemales) || 0,
           minMales: Number(item.minMales) || 0,
           targetTeams: item.targetTeams ? Number(item.targetTeams) : undefined,
-          allowMixedGender: Boolean(item.allowMixedGender !== false)
-        };
+          allowMixedGender: Boolean(item.allowMixedGender !== false),
+          restrictToEvenTeams: item.restrictToEvenTeams !== false,
+        });
 
         const errors = validateConfig(config);
         if (errors.length === 0) {
