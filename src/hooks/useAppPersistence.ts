@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 import { AppState, Player, SavedWorkspace } from '@/types';
 import { getDefaultConfig } from '@/utils/configManager';
+import { normalizeLeagueConfig } from '@/utils/teamCount';
 import { validateAppState, validatePlayer } from '@/utils/validation';
 import { applyTeamBranding } from '@/utils/teamBranding';
 import { dataStorageService } from '@/services/dataStorageService';
@@ -86,7 +87,7 @@ function sanitizeLoadedState(loadedState: AppState): AppState | null {
     return null;
   }
 
-  const config = loadedState.config || getDefaultConfig();
+  const config = normalizeLeagueConfig(loadedState.config || getDefaultConfig());
   const players = loadedState.players || [];
   const teams = loadedState.teams || [];
   const unassignedPlayers = loadedState.unassignedPlayers || [];
@@ -388,15 +389,17 @@ export function useAppPersistence({
       const normalized = ensureTeamIterations({
         ...workspace,
         players: validatedPlayers,
-        config: workspace.config || getDefaultConfig(),
+        config: normalizeLeagueConfig(workspace.config || getDefaultConfig()),
       });
+
+      const normalizedConfig = normalizeLeagueConfig(workspace.config || getDefaultConfig());
 
       return applyTeamIterationToState({
         ...prev,
         players: validatedPlayers,
         playerGroups: workspace.playerGroups || [],
-        config: workspace.config || getDefaultConfig(),
-        teams: applyTeamBranding(workspace.teams || [], workspace.playerGroups || [], workspace.config || getDefaultConfig()),
+        config: normalizedConfig,
+        teams: applyTeamBranding(workspace.teams || [], workspace.playerGroups || [], normalizedConfig),
         unassignedPlayers: workspace.unassignedPlayers || [],
         stats: workspace.stats,
         teamIterations: normalized.teamIterations,

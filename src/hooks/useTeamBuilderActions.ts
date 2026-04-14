@@ -147,10 +147,30 @@ export function useTeamBuilderActions({
 }: UseTeamBuilderActionsOptions) {
   const syncActiveIteration = useCallback((state: AppState) => syncActiveTeamIterationToState(state), []);
 
-  const syncTargetTeamCount = (config: LeagueConfig, teamCount: number): LeagueConfig => ({
-    ...config,
-    targetTeams: teamCount > 0 ? teamCount : undefined,
-  });
+  const syncTargetTeamCount = (config: LeagueConfig, teamCount: number): LeagueConfig => {
+    const nextTargetTeams = teamCount > 0 ? teamCount : undefined;
+
+    if (nextTargetTeams === undefined) {
+      return normalizeLeagueConfig({
+        ...config,
+        targetTeams: undefined,
+      });
+    }
+
+    if (config.restrictToEvenTeams !== false && nextTargetTeams % 2 !== 0) {
+      return {
+        ...config,
+        targetTeams: nextTargetTeams,
+        restrictToEvenTeams: false,
+      };
+    }
+
+    return normalizeLeagueConfig({
+      ...config,
+      targetTeams: nextTargetTeams,
+      restrictToEvenTeams: config.restrictToEvenTeams,
+    });
+  };
 
   const clearExecRankingsFromState = useCallback((state: AppState, resetHistory: boolean): AppState => {
     const clearExecRanking = (player: Player): Player => ({
@@ -280,7 +300,7 @@ export function useTeamBuilderActions({
   }, [setActiveTab, setAppState, setCurrentWorkspaceInfo, setIsFullScreenMode, setIsManualMode]);
 
   const handleConfigChange = useCallback((config: LeagueConfig) => {
-    const normalizedConfig = normalizeLeagueConfig(config);
+    const normalizedConfig = normalizeLeagueConfig(config, { mode: 'enforce-even' });
     setAppState(prev => ({ ...prev, config: normalizedConfig }));
     saveDefaultConfig(normalizedConfig);
   }, [setAppState]);

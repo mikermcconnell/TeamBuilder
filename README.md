@@ -191,28 +191,6 @@ Current assumptions for the Gemma provider:
 - **Training Sessions**: Balanced practice teams
 - **Tournament Preparation**: Strategic team composition
 
-## 🌟 Use Cases & Examples
-
-### Recreational Sports
-- **Volleyball Leagues**: Balance skill levels for competitive matches
-- **Soccer Meetups**: Create fair teams for pickup games
-- **Basketball Tournaments**: Organize balanced brackets
-
-### Educational Settings
-- **PE Classes**: Quick team formation for sports activities
-- **Summer Camps**: Fair team distribution for camp games
-- **Intramural Sports**: Balanced competition between students
-
-### Corporate Events
-- **Team Building**: Mixed department team formation
-- **Company Sports Day**: Fair competition across skill levels
-- **Office Tournaments**: Balanced brackets for competitions
-
-### Youth Sports
-- **Club Teams**: Age and skill appropriate groupings
-- **Training Sessions**: Balanced practice teams
-- **Tournament Preparation**: Strategic team composition
-
 ## 📱 Browser Support
 
 - ✅ Chrome/Chromium (recommended)

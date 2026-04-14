@@ -189,6 +189,47 @@ export default defineConfig(({ mode }) => {
             }
 
             if (
+              normalizedId.includes('/src/components/ConfigurationPanel')
+              || normalizedId.includes('/src/utils/configManager')
+              || normalizedId.includes('/src/utils/teamCount')
+            ) {
+              return 'config'
+            }
+
+            if (
+              normalizedId.includes('/src/components/CSVUploader')
+              || normalizedId.includes('/src/utils/csvProcessor')
+            ) {
+              return 'csv-upload'
+            }
+
+            if (
+              normalizedId.includes('/src/components/PlayerRoster')
+              || normalizedId.includes('/src/components/PlayerGroups')
+              || normalizedId.includes('/src/utils/playerGrouping')
+            ) {
+              return 'roster'
+            }
+
+            if (
+              normalizedId.includes('/src/components/ExportPanel')
+              || normalizedId.includes('/src/components/PlayerEmail')
+              || normalizedId.includes('/src/utils/exportUtils')
+            ) {
+              return 'exports'
+            }
+
+            if (
+              normalizedId.includes('/src/contexts/')
+              || normalizedId.includes('/src/services/')
+              || normalizedId.includes('/src/hooks/useAppPersistence')
+              || normalizedId.includes('/src/components/Workspace')
+              || normalizedId.includes('/src/components/ProjectWorkspaceControls')
+            ) {
+              return 'workspace'
+            }
+
+            if (
               normalizedId.includes('/src/components/FullScreenTeamBuilder')
               || normalizedId.includes('/src/components/TeamDisplay')
               || normalizedId.includes('/src/components/TeamBoard')

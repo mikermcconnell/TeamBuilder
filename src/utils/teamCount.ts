@@ -2,6 +2,9 @@ import type { LeagueConfig } from '@/types';
 
 type EvenTeamConfig = Pick<LeagueConfig, 'restrictToEvenTeams'>;
 type TeamCountConfig = Pick<LeagueConfig, 'maxTeamSize' | 'targetTeams' | 'restrictToEvenTeams'>;
+interface NormalizeLeagueConfigOptions {
+  mode?: 'preserve-odd' | 'enforce-even';
+}
 
 export function isEvenTeamRestrictionEnabled(config?: EvenTeamConfig | null): boolean {
   return config?.restrictToEvenTeams !== false;
@@ -28,10 +31,34 @@ export function getEffectiveTeamCount(playerCount: number, config: TeamCountConf
 }
 
 export function normalizeLeagueConfig<T extends Partial<LeagueConfig>>(
-  config: T
+  config: T,
+  options: NormalizeLeagueConfigOptions = {}
 ): T & Pick<LeagueConfig, 'restrictToEvenTeams'> {
-  const restrictToEvenTeams = isEvenTeamRestrictionEnabled(config);
-  const targetTeams = normalizeTeamCount(config.targetTeams, { restrictToEvenTeams });
+  const mode = options.mode ?? 'preserve-odd';
+  const requestedRestriction = isEvenTeamRestrictionEnabled(config);
+  const requestedTargetTeams = config.targetTeams;
+  const hasOddExplicitTarget = requestedTargetTeams !== undefined
+    && requestedTargetTeams > 0
+    && requestedTargetTeams % 2 !== 0;
+
+  if (requestedRestriction && hasOddExplicitTarget) {
+    if (mode === 'enforce-even') {
+      return {
+        ...config,
+        restrictToEvenTeams: true,
+        targetTeams: normalizeTeamCount(requestedTargetTeams, { restrictToEvenTeams: true }),
+      } as T & Pick<LeagueConfig, 'restrictToEvenTeams'>;
+    }
+
+    return {
+      ...config,
+      restrictToEvenTeams: false,
+      targetTeams: requestedTargetTeams,
+    } as T & Pick<LeagueConfig, 'restrictToEvenTeams'>;
+  }
+
+  const restrictToEvenTeams = requestedRestriction;
+  const targetTeams = normalizeTeamCount(requestedTargetTeams, { restrictToEvenTeams });
 
   return {
     ...config,

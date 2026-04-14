@@ -261,6 +261,7 @@ describe('useTeamBuilderActions', () => {
 
     expect(result.current.appState.teams).toHaveLength(3);
     expect(result.current.appState.config.targetTeams).toBe(3);
+    expect(result.current.appState.config.restrictToEvenTeams).toBe(false);
 
     act(() => {
       result.current.handleRemoveTeam('team-1');
@@ -268,6 +269,7 @@ describe('useTeamBuilderActions', () => {
 
     expect(result.current.appState.teams).toHaveLength(2);
     expect(result.current.appState.config.targetTeams).toBe(2);
+    expect(result.current.appState.config.restrictToEvenTeams).toBe(false);
     expect(result.current.appState.unassignedPlayers).toEqual([
       expect.objectContaining({ id: 'player-on-team', teamId: undefined }),
     ]);

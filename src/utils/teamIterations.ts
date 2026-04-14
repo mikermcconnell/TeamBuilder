@@ -10,6 +10,7 @@ import {
 } from '@/types';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { applyTeamBranding, ensureUniqueTeamNames } from '@/utils/teamBranding';
+import { normalizeLeagueConfig } from '@/utils/teamCount';
 import { generateFullAiTeams } from '@/services/aiService';
 
 function clonePlayer(player: Player): Player {
@@ -250,11 +251,12 @@ function rebuildIncompleteIteration(
   config: LeagueConfig,
   playerGroups: PlayerGroup[]
 ): TeamIteration {
+  const repairedConfig = normalizeLeagueConfig(config);
   const clonedPlayers = players.map(clonePlayer);
   const clonedGroups = clonePlayerGroups(clonedPlayers, playerGroups);
 
   if (iteration.type === 'manual') {
-    const manualResult = generateBalancedTeams(clonedPlayers, config, clonedGroups, false, true);
+    const manualResult = generateBalancedTeams(clonedPlayers, repairedConfig, clonedGroups, false, true);
 
     return {
       ...iteration,
@@ -268,7 +270,7 @@ function rebuildIncompleteIteration(
 
   const generatedResult = generateBalancedTeams(
     clonedPlayers,
-    config,
+    repairedConfig,
     clonedGroups,
     iteration.type === 'ai',
     false

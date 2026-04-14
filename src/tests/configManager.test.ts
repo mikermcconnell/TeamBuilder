@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { LeagueConfig, Player } from '@/types';
 import { getConfiguredTeamCount, getRosterFeasibilityWarnings, validateConfig } from '@/utils/configManager';
+import { normalizeLeagueConfig } from '@/utils/teamCount';
 
 describe('configManager generation validation', () => {
   const baseConfig: LeagueConfig = {
@@ -20,6 +21,17 @@ describe('configManager generation validation', () => {
 
   it('allows odd team counts when the even-team restriction is turned off', () => {
     expect(getConfiguredTeamCount(12, { ...baseConfig, restrictToEvenTeams: false })).toBe(3);
+  });
+
+  it('preserves odd saved target team counts by disabling the even-team rule during normalization', () => {
+    const normalizedConfig = normalizeLeagueConfig({
+      ...baseConfig,
+      targetTeams: 3,
+      restrictToEvenTeams: true,
+    });
+
+    expect(normalizedConfig.targetTeams).toBe(3);
+    expect(normalizedConfig.restrictToEvenTeams).toBe(false);
   });
 
   it('rejects team setups that cannot fit the whole roster', () => {

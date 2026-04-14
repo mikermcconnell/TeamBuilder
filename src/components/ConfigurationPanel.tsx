@@ -63,7 +63,7 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
   }, [players]);
 
   const updateConfig = (updates: Partial<LeagueConfig>) => {
-    const updatedConfig = normalizeLeagueConfig({ ...config, ...updates });
+    const updatedConfig = normalizeLeagueConfig({ ...config, ...updates }, { mode: 'enforce-even' });
     onConfigChange(updatedConfig);
   };
 
