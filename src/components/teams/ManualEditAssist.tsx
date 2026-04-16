@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, WandSparkles } from 'lucide-react';
 import type { Player } from '@/types';
 import type { IterationInsights, ManualMoveRecommendation } from '@/utils/teamInsights';
 
@@ -14,16 +17,49 @@ export function ManualEditAssist({
   recommendations,
   insights,
 }: ManualEditAssistProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!isOpen) {
+    return (
+      <div className="absolute right-6 top-24 z-30">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setIsOpen(true)}
+          className="gap-2 rounded-full border-slate-200 bg-white/95 shadow-lg backdrop-blur hover:bg-white"
+          aria-label="Open manual edit assist"
+        >
+          <WandSparkles className="h-4 w-4" />
+          <span className="hidden sm:inline">Manual Edit Assist</span>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="absolute right-6 top-24 z-30 w-[320px] space-y-3">
       <Card className="border-slate-200 bg-white/95 shadow-xl backdrop-blur">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Manual Edit Assist</CardTitle>
-          <CardDescription>
-            {activePlayer
-              ? `While moving ${activePlayer.name}, these targets keep the draft in better shape.`
-              : 'Start dragging a player to see the best-fit landing spots.'}
-          </CardDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Manual Edit Assist</CardTitle>
+              <CardDescription>
+                {activePlayer
+                  ? `While moving ${activePlayer.name}, these targets keep the draft in better shape.`
+                  : 'Start dragging a player to see the best-fit landing spots.'}
+              </CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
+              className="h-8 w-8 shrink-0 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              aria-label="Hide manual edit assist"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-3">

@@ -47,7 +47,7 @@ describe('PlayerRoster', () => {
     expect(screen.getByText('Total Athletes')).toBeInTheDocument();
   });
 
-  it('lets the user toggle the new-player badge', () => {
+  it('marks a new player as returning on single click', async () => {
     vi.mocked(getUserRosters).mockResolvedValue([]);
 
     const onPlayerUpdate = vi.fn();
@@ -59,7 +59,7 @@ describe('PlayerRoster', () => {
       execSkillRating: null,
       teammateRequests: [],
       avoidRequests: [],
-      isNewPlayer: false,
+      isNewPlayer: true,
     } as Player;
 
     render(
@@ -78,15 +78,17 @@ describe('PlayerRoster', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /returning/i }));
+    fireEvent.click(screen.getByText('NEW'));
 
-    expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'player-2',
-      isNewPlayer: true,
-    }));
+    await waitFor(() => {
+      expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        id: 'player-2',
+        isNewPlayer: false,
+      }));
+    });
   });
 
-  it('shows a neutral badge when new-player status has not been reviewed yet', () => {
+  it('marks an unreviewed player as returning on single click', async () => {
     vi.mocked(getUserRosters).mockResolvedValue([]);
 
     const onPlayerUpdate = vi.fn();
@@ -116,12 +118,55 @@ describe('PlayerRoster', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /new\?/i }));
+    fireEvent.click(screen.getByText('REVIEW'));
 
-    expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'player-3',
-      isNewPlayer: true,
-    }));
+    await waitFor(() => {
+      expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        id: 'player-3',
+        isNewPlayer: false,
+      }));
+    });
+  });
+
+  it('marks a player as new on double click', async () => {
+    vi.mocked(getUserRosters).mockResolvedValue([]);
+
+    const onPlayerUpdate = vi.fn();
+    const player = {
+      id: 'player-4',
+      name: 'Fresh Face',
+      gender: 'F',
+      skillRating: 6,
+      execSkillRating: null,
+      teammateRequests: [],
+      avoidRequests: [],
+      isNewPlayer: false,
+    } as Player;
+
+    render(
+      <PlayerRoster
+        players={[player]}
+        onPlayerUpdate={onPlayerUpdate}
+        onPlayerAdd={vi.fn()}
+        onPlayerRemove={vi.fn()}
+        onClearExecRankings={vi.fn()}
+        onResetExecHistory={vi.fn()}
+        execHistoryCount={0}
+        pendingWarnings={[]}
+        onResolveWarning={vi.fn()}
+        onDismissWarning={vi.fn()}
+        onDismissAllWarnings={vi.fn()}
+      />
+    );
+
+    fireEvent.doubleClick(screen.getByText('RETURNING'));
+
+    await waitFor(() => {
+      expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        id: 'player-4',
+        isNewPlayer: true,
+      }));
+    });
   });
 
   it('checks historical rosters when adding a player manually', async () => {

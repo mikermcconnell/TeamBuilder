@@ -29,6 +29,7 @@ interface DroppableTeamCardProps {
     team: Team;
     allPlayers: Player[];
     config: LeagueConfig;
+    largestTeamSize?: number;
     onPlayerUpdate?: (player: Player) => void;
     onNameChange: (id: string, name: string) => void;
     onBrandingChange?: (id: string, updates: {
@@ -42,7 +43,7 @@ interface DroppableTeamCardProps {
     playerGroups?: PlayerGroup[];
 }
 
-export function DroppableTeamCard({ team, allPlayers, config, onPlayerUpdate, onNameChange, onBrandingChange, onRemoveTeam, playerGroups = [] }: DroppableTeamCardProps) {
+export function DroppableTeamCard({ team, allPlayers, config, largestTeamSize = 0, onPlayerUpdate, onNameChange, onBrandingChange, onRemoveTeam, playerGroups = [] }: DroppableTeamCardProps) {
     // Helper to get group info for a player
     const getPlayerGroupInfo = (playerId: string) => {
         const group = playerGroups.find(g => g.playerIds.includes(playerId));
@@ -101,6 +102,8 @@ export function DroppableTeamCard({ team, allPlayers, config, onPlayerUpdate, on
     // Stats
     const playerCount = team.players.length;
     const isOverCapacity = playerCount > config.maxTeamSize;
+    const shortfallCount = Math.max(0, largestTeamSize - playerCount);
+    const isShortTeam = shortfallCount > 0;
 
 
     const totalSkill = team.players.reduce((sum, p) => sum + getEffectiveSkillRating(p), 0);
@@ -191,6 +194,7 @@ export function DroppableTeamCard({ team, allPlayers, config, onPlayerUpdate, on
     if (isOver) statusColor = 'border-primary ring-2 ring-primary/20 shadow-xl transform scale-[1.02] z-10';
     else if (isOverCapacity) statusColor = 'border-red-200 bg-red-50/30';
     else if (genderIssues) statusColor = 'border-orange-200 bg-orange-50/30';
+    else if (isShortTeam) statusColor = 'border-sky-200 bg-sky-50/40';
 
     // Skill Color
     const getSkillColor = (val: number) => {
@@ -265,9 +269,22 @@ export function DroppableTeamCard({ team, allPlayers, config, onPlayerUpdate, on
                     )}
 
                     <div className="flex shrink-0 items-start gap-1 pl-1">
-                        <Badge variant={isOverCapacity ? "destructive" : "secondary"} className={`h-7 px-2 text-base font-bold md:text-lg ${isOverCapacity ? '' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                        <Badge
+                            variant={isOverCapacity ? "destructive" : "secondary"}
+                            className={`h-7 px-2 text-base font-bold md:text-lg ${isOverCapacity
+                                ? ''
+                                : isShortTeam
+                                    ? 'border border-sky-200 bg-sky-100 text-sky-700 hover:bg-sky-200'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                        >
                             {playerCount}/{config.maxTeamSize}
                         </Badge>
+                        {isShortTeam && (
+                            <Badge variant="secondary" className="h-7 px-2 border border-sky-200 bg-sky-100 text-sky-700 hover:bg-sky-200">
+                                Short {shortfallCount}
+                            </Badge>
+                        )}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-700">
@@ -350,6 +367,12 @@ export function DroppableTeamCard({ team, allPlayers, config, onPlayerUpdate, on
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                    {isShortTeam && (
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                            <span>Short</span>
+                            <span className="text-[12px]">-{shortfallCount}</span>
+                        </div>
+                    )}
                     <div className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${maleAverageMeta.className}`}>
                         <span>M Avg</span>
                         <span className="text-[12px]">{formatAverageSkill(maleAverageSkill)}</span>
@@ -451,6 +474,11 @@ export function DroppableTeamCard({ team, allPlayers, config, onPlayerUpdate, on
                             <Badge variant={isOverCapacity ? "destructive" : "secondary"}>
                                 {playerCount}/{config.maxTeamSize}
                             </Badge>
+                            {isShortTeam && (
+                                <Badge variant="secondary" className="border border-sky-200 bg-sky-100 text-sky-700">
+                                    Short {shortfallCount}
+                                </Badge>
+                            )}
                         </DialogTitle>
                     </DialogHeader>
 

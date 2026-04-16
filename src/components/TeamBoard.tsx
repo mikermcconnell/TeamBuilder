@@ -25,6 +25,8 @@ interface TeamBoardProps {
 }
 
 export function TeamBoard({ teams, players, config, onPlayerUpdate, onTeamNameChange, onTeamBrandingChange, onRemoveTeam, onAddTeam, onRefreshBranding, playerGroups = [] }: TeamBoardProps) {
+    const largestTeamSize = teams.reduce((maxSize, team) => Math.max(maxSize, team.players.length), 0);
+
     return (
         <div className="flex-1 h-full bg-gray-100/50 p-6 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between mb-6">
@@ -61,6 +63,7 @@ export function TeamBoard({ teams, players, config, onPlayerUpdate, onTeamNameCh
                                 onBrandingChange={onTeamBrandingChange}
                                 onRemoveTeam={onRemoveTeam}
                                 playerGroups={playerGroups}
+                                largestTeamSize={largestTeamSize}
                             />
                         </div>
                     ))}

@@ -8,6 +8,7 @@ import {
   generateShareSummaryText,
   generateLeagueOrganizerSummary,
 } from '@/utils/exportUtils';
+import { buildWorkspacePdfHtml, openWorkspacePdfPrintWindow } from '@/utils/workspacePdf';
 import { hexToRgba } from '@/utils/teamBranding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,8 @@ import {
   Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+type PreviewType = 'detailed' | 'summary' | 'report' | 'share' | 'organizer' | 'workspace';
 
 interface ExportPanelProps {
   teams: Team[];
@@ -46,7 +49,7 @@ export function ExportPanel({
   leagueMemory = [],
   activeIterationName,
 }: ExportPanelProps) {
-  const [previewType, setPreviewType] = useState<'detailed' | 'summary' | 'report' | 'share' | 'organizer'>('detailed');
+  const [previewType, setPreviewType] = useState<PreviewType>('detailed');
   const [reportText, setReportText] = useState<string>('');
 
   const shareSummary = useMemo(
@@ -63,6 +66,22 @@ export function ExportPanel({
       activeIterationName ? `${activeIterationName} Organizer Summary` : 'League Organizer Summary'
     ),
     [activeIterationName, config, leagueMemory, stats, teams, unassignedPlayers]
+  );
+  const workspacePdfHtml = useMemo(
+    () => buildWorkspacePdfHtml(
+      teams,
+      unassignedPlayers,
+      config,
+      playerGroups,
+      stats,
+      {
+        title: activeIterationName
+          ? `${config.name} — ${activeIterationName}`
+          : config.name || 'TeamBuilder Workspace Export',
+        subtitle: `${teams.length} teams • ${teams.reduce((sum, team) => sum + team.players.length, 0)} assigned players`,
+      }
+    ),
+    [activeIterationName, config, playerGroups, stats, teams, unassignedPlayers]
   );
 
   const handleExportDetailed = () => {
@@ -83,6 +102,19 @@ export function ExportPanel({
     const report = generateTeamReport(teams, unassignedPlayers, playerGroups, config, stats);
     setReportText(report);
     setPreviewType('report');
+  };
+
+  const handlePreviewWorkspacePdf = () => {
+    setPreviewType('workspace');
+  };
+
+  const handlePrintWorkspacePdf = () => {
+    try {
+      openWorkspacePdfPrintWindow(workspacePdfHtml);
+      toast.success('Workspace PDF print preview opened');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to open the PDF preview window');
+    }
   };
 
   const handleCopyReport = () => {
@@ -196,7 +228,7 @@ export function ExportPanel({
   return (
     <div className="space-y-6">
       {/* Export Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -284,6 +316,31 @@ export function ExportPanel({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <Printer className="h-5 w-5" />
+              Workspace PDF
+            </CardTitle>
+            <CardDescription>
+              Print-ready layout that matches the TeamBuilder workspace
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button onClick={handlePreviewWorkspacePdf} className="w-full" variant="outline">
+              <Eye className="h-4 w-4 mr-2" />
+              Preview PDF Layout
+            </Button>
+            <Button onClick={handlePrintWorkspacePdf} className="w-full">
+              <Printer className="h-4 w-4 mr-2" />
+              Print / Save PDF
+            </Button>
+            <p className="text-sm text-gray-600">
+              Opens a clean print view you can save as a PDF from your browser
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               Organizer Summary
             </CardTitle>
@@ -344,10 +401,11 @@ export function ExportPanel({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             Export Preview
-            <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as 'detailed' | 'summary' | 'report' | 'share' | 'organizer')}>
+            <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as PreviewType)}>
               <TabsList>
                 <TabsTrigger value="detailed">Detailed</TabsTrigger>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
+                <TabsTrigger value="workspace">Workspace PDF</TabsTrigger>
                 <TabsTrigger value="share">Shareable</TabsTrigger>
                 <TabsTrigger value="organizer">Organizer</TabsTrigger>
                 {reportText && <TabsTrigger value="report">Report</TabsTrigger>}
@@ -356,7 +414,7 @@ export function ExportPanel({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as 'detailed' | 'summary' | 'report' | 'share' | 'organizer')}>
+          <Tabs value={previewType} onValueChange={(value) => setPreviewType(value as PreviewType)}>
             <TabsContent value="detailed" className="space-y-4">
               <div className="border rounded-lg overflow-hidden">
                 <Table>
@@ -426,6 +484,23 @@ export function ExportPanel({
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="workspace" className="space-y-4">
+              <div className="flex gap-2 mb-4">
+                <Button onClick={handlePrintWorkspacePdf} size="sm">
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print / Save PDF
+                </Button>
+              </div>
+
+              <div className="rounded-xl border bg-white overflow-hidden">
+                <iframe
+                  title="Workspace PDF Preview"
+                  srcDoc={workspacePdfHtml}
+                  className="w-full h-[900px] bg-white"
+                />
               </div>
             </TabsContent>
 
