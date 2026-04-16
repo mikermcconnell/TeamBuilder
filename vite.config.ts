@@ -152,90 +152,38 @@ export default defineConfig(({ mode }) => {
           manualChunks(id) {
             const normalizedId = normalizeId(id)
 
-            if (normalizedId.includes('/node_modules/')) {
-              if (normalizedId.includes('/react-dom/') || normalizedId.includes('/react/')) {
-                return 'react-core'
-              }
-              if (normalizedId.includes('/firebase/')) {
-                return 'firebase'
-              }
-              if (normalizedId.includes('/@radix-ui/')) {
-                return 'ui'
-              }
-              if (normalizedId.includes('/@dnd-kit/')) {
-                return 'dragdrop'
-              }
-              if (normalizedId.includes('/recharts/')) {
-                return 'charts'
-              }
-              if (normalizedId.includes('/papaparse/') || normalizedId.includes('/read-excel-file/')) {
-                return 'importers'
-              }
-              if (
-                normalizedId.includes('/lucide-react/')
-                || normalizedId.includes('/clsx/')
-                || normalizedId.includes('/tailwind-merge/')
-              ) {
-                return 'utils'
-              }
+            if (!normalizedId.includes('/node_modules/')) {
+              return undefined
             }
 
-            if (
-              normalizedId.includes('/src/components/ai/')
-              || normalizedId.includes('/src/services/ai')
-              || normalizedId.includes('/src/shared/ai-')
-            ) {
-              return 'ai'
+            // Keep vendor chunking explicit, but let Rollup decide how app
+            // modules are grouped. Forcing app feature chunks here created a
+            // circular dependency between the config and AI bundles in
+            // production, which led to a blank page at runtime.
+            if (normalizedId.includes('/react-dom/') || normalizedId.includes('/react/')) {
+              return 'react-core'
             }
-
-            if (
-              normalizedId.includes('/src/components/ConfigurationPanel')
-              || normalizedId.includes('/src/utils/configManager')
-              || normalizedId.includes('/src/utils/teamCount')
-            ) {
-              return 'config'
+            if (normalizedId.includes('/firebase/')) {
+              return 'firebase'
             }
-
-            if (
-              normalizedId.includes('/src/components/CSVUploader')
-              || normalizedId.includes('/src/utils/csvProcessor')
-            ) {
-              return 'csv-upload'
+            if (normalizedId.includes('/@radix-ui/')) {
+              return 'ui'
             }
-
-            if (
-              normalizedId.includes('/src/components/PlayerRoster')
-              || normalizedId.includes('/src/components/PlayerGroups')
-              || normalizedId.includes('/src/utils/playerGrouping')
-            ) {
-              return 'roster'
+            if (normalizedId.includes('/@dnd-kit/')) {
+              return 'dragdrop'
             }
-
-            if (
-              normalizedId.includes('/src/components/ExportPanel')
-              || normalizedId.includes('/src/components/PlayerEmail')
-              || normalizedId.includes('/src/utils/exportUtils')
-            ) {
-              return 'exports'
+            if (normalizedId.includes('/recharts/')) {
+              return 'charts'
             }
-
-            if (
-              normalizedId.includes('/src/contexts/')
-              || normalizedId.includes('/src/services/')
-              || normalizedId.includes('/src/hooks/useAppPersistence')
-              || normalizedId.includes('/src/components/Workspace')
-              || normalizedId.includes('/src/components/ProjectWorkspaceControls')
-            ) {
-              return 'workspace'
+            if (normalizedId.includes('/papaparse/') || normalizedId.includes('/read-excel-file/')) {
+              return 'importers'
             }
-
             if (
-              normalizedId.includes('/src/components/FullScreenTeamBuilder')
-              || normalizedId.includes('/src/components/TeamDisplay')
-              || normalizedId.includes('/src/components/TeamBoard')
-              || normalizedId.includes('/src/hooks/useTeamBuilderActions')
+              normalizedId.includes('/lucide-react/')
+              || normalizedId.includes('/clsx/')
+              || normalizedId.includes('/tailwind-merge/')
             ) {
-              return 'team-builder'
+              return 'utils'
             }
 
             return undefined
