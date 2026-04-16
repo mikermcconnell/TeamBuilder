@@ -22,6 +22,7 @@ import {
 import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
 import { getPlayerAgeBand, isHighlightedPlayerAgeBand } from '@/utils/playerAgeBands';
 import { getPlayerDisplayAge } from '@/utils/playerProfile';
+import { getNewPlayerStatus, toggleNewPlayerFlag } from '@/utils/newPlayerDetection';
 import {
     ArrowUpDown,
     ArrowUp,
@@ -32,7 +33,8 @@ import {
     Trash2,
     Eye,
     Edit,
-    Zap
+    Zap,
+    Sparkles
 } from 'lucide-react';
 
 export type SortField = 'name' | 'gender' | 'skillRating' | 'execSkillRating' | 'isHandler' | 'group';
@@ -344,6 +346,7 @@ export function RosterTable({
                                 const ageHighlight = isHighlightedPlayerAgeBand(ageBand)
                                     ? ageBandDisplay[ageBand]
                                     : null;
+                                const newPlayerStatus = getNewPlayerStatus(player);
                                 const teammateRequests = player.teammateRequests ?? [];
                                 const avoidRequests = player.avoidRequests ?? [];
 
@@ -393,6 +396,34 @@ export function RosterTable({
                                                         </Tooltip>
                                                     </TooltipProvider>
                                                     <div className="flex flex-wrap items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onPlayerUpdate({ ...player, isNewPlayer: toggleNewPlayerFlag(player.isNewPlayer) })}
+                                                            className={`
+                                                                inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold transition-colors
+                                                                ${newPlayerStatus === 'new'
+                                                                    ? 'border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                                                    : newPlayerStatus === 'returning'
+                                                                        ? 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100'
+                                                                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100'
+                                                                }
+                                                            `}
+                                                            title={
+                                                                newPlayerStatus === 'new'
+                                                                    ? 'Mark as returning player'
+                                                                    : newPlayerStatus === 'returning'
+                                                                        ? 'Mark as new player'
+                                                                        : 'History not checked. Click to mark as new player'
+                                                            }
+                                                            aria-pressed={newPlayerStatus === 'new'}
+                                                        >
+                                                            <Sparkles className="h-3 w-3" />
+                                                            {newPlayerStatus === 'new'
+                                                                ? 'NEW'
+                                                                : newPlayerStatus === 'returning'
+                                                                    ? 'RETURNING'
+                                                                    : 'NEW?'}
+                                                        </button>
                                                         {player.email && (
                                                             <span className="text-[10px] text-muted-foreground hidden sm:inline-block">
                                                                 {player.email}

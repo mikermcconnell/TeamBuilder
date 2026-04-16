@@ -3,10 +3,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { Player, getEffectiveSkillRating } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { GripVertical, Unlink, Users, AlertTriangle } from 'lucide-react';
+import { GripVertical, Unlink, Users, AlertTriangle, Sparkles } from 'lucide-react';
 import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
 import { getPlayerAgeBand, isHighlightedPlayerAgeBand } from '@/utils/playerAgeBands';
 import { getPlayerDisplayAge } from '@/utils/playerProfile';
+import { getNewPlayerStatus, toggleNewPlayerFlag } from '@/utils/newPlayerDetection';
 
 interface DraggablePlayerCardProps {
   player: Player;
@@ -14,6 +15,7 @@ interface DraggablePlayerCardProps {
   groupColor?: string | null; // Group color for visual indicator
   groupLabel?: string | null; // Group label (A, B, C...)
   showSplitWarning?: boolean; // Show warning when player would be separated from group
+  onPlayerUpdate?: (player: Player) => void;
 }
 
 export function DraggablePlayerCard({
@@ -21,7 +23,8 @@ export function DraggablePlayerCard({
   compact = false,
   groupColor,
   groupLabel,
-  showSplitWarning = false
+  showSplitWarning = false,
+  onPlayerUpdate,
 }: DraggablePlayerCardProps) {
   const {
     attributes,
@@ -40,8 +43,9 @@ export function DraggablePlayerCard({
 
   const effectiveSkill = getEffectiveSkillRating(player);
   const registrationInfo = getPlayerRegistrationInfo(player);
-    const ageBand = getPlayerAgeBand(getPlayerDisplayAge(player));
+  const ageBand = getPlayerAgeBand(getPlayerDisplayAge(player));
   const highlightedAgeBand = isHighlightedPlayerAgeBand(ageBand) ? ageBand : null;
+  const newPlayerStatus = getNewPlayerStatus(player);
 
   const getSkillColor = (skill: number) => {
     const roundedSkill = Math.round(skill);
@@ -154,6 +158,49 @@ export function DraggablePlayerCard({
             </span>
           )}
         </div>
+        {onPlayerUpdate && (
+          <div className="mt-1">
+            <button
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onPlayerUpdate({ ...player, isNewPlayer: toggleNewPlayerFlag(player.isNewPlayer) });
+              }}
+              className={`
+                inline-flex items-center gap-1 rounded-full border font-bold transition-colors
+                ${compact ? 'h-4 px-1.5 text-[9px]' : 'h-5 px-2 text-[10px]'}
+                ${newPlayerStatus === 'new'
+                  ? 'border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                  : newPlayerStatus === 'returning'
+                    ? 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100'
+                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100'}
+              `}
+              title={
+                newPlayerStatus === 'new'
+                  ? 'Mark as returning player'
+                  : newPlayerStatus === 'returning'
+                    ? 'Mark as new player'
+                    : 'History not checked. Click to mark as new player'
+              }
+              aria-pressed={newPlayerStatus === 'new'}
+            >
+              <Sparkles className={compact ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+              {compact
+                ? newPlayerStatus === 'new'
+                  ? 'NEW'
+                  : newPlayerStatus === 'returning'
+                    ? 'RET'
+                    : 'NEW?'
+                : newPlayerStatus === 'new'
+                  ? 'NEW'
+                  : newPlayerStatus === 'returning'
+                    ? 'RETURNING'
+                    : 'NEW?'}
+            </button>
+          </div>
+        )}
         {highlightedAgeBand && (
           <div className={`mt-1 flex ${compact ? 'justify-start' : 'justify-start'}`}>
             <Badge

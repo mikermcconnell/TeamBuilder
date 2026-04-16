@@ -29,6 +29,7 @@ interface DroppableTeamCardProps {
     team: Team;
     allPlayers: Player[];
     config: LeagueConfig;
+    onPlayerUpdate?: (player: Player) => void;
     onNameChange: (id: string, name: string) => void;
     onBrandingChange?: (id: string, updates: {
         name?: string;
@@ -41,7 +42,7 @@ interface DroppableTeamCardProps {
     playerGroups?: PlayerGroup[];
 }
 
-export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBrandingChange, onRemoveTeam, playerGroups = [] }: DroppableTeamCardProps) {
+export function DroppableTeamCard({ team, allPlayers, config, onPlayerUpdate, onNameChange, onBrandingChange, onRemoveTeam, playerGroups = [] }: DroppableTeamCardProps) {
     // Helper to get group info for a player
     const getPlayerGroupInfo = (playerId: string) => {
         const group = playerGroups.find(g => g.playerIds.includes(playerId));
@@ -405,6 +406,7 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
                                                 compact
                                                 groupColor={groupInfo?.color}
                                                 groupLabel={groupInfo?.label}
+                                                onPlayerUpdate={onPlayerUpdate}
                                             />
                                         );
                                     })}
@@ -429,6 +431,7 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
                                                 compact
                                                 groupColor={groupInfo?.color}
                                                 groupLabel={groupInfo?.label}
+                                                onPlayerUpdate={onPlayerUpdate}
                                             />
                                         );
                                     })}
@@ -524,7 +527,7 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
                                     .sort((a, b) => getEffectiveSkillRating(b) - getEffectiveSkillRating(a))
                                     .map(player => (
                                         <div key={player.id} className="pointer-events-none">
-                                            <DraggablePlayerCard player={player} />
+                                            <DraggablePlayerCard player={player} onPlayerUpdate={onPlayerUpdate} />
                                         </div>
                                     ))}
                                 {team.players.filter(p => p.gender === 'F').length === 0 && (
@@ -550,7 +553,7 @@ export function DroppableTeamCard({ team, allPlayers, config, onNameChange, onBr
                                     .sort((a, b) => getEffectiveSkillRating(b) - getEffectiveSkillRating(a))
                                     .map(player => (
                                         <div key={player.id} className="pointer-events-none">
-                                            <DraggablePlayerCard player={player} />
+                                            <DraggablePlayerCard player={player} onPlayerUpdate={onPlayerUpdate} />
                                         </div>
                                     ))}
                                 {team.players.filter(p => p.gender === 'M').length === 0 && (

@@ -52,6 +52,7 @@ export const NORMALIZED_ROSTER_HEADERS = [
   'Teammate Requests',
   'Avoid Requests',
   'Email',
+  'New Player',
   'Age',
   'Registration Notes'
 ] as const;
@@ -65,8 +66,9 @@ export function serializePlayersToCSV(players: Player[]): string {
     [NORMALIZED_ROSTER_HEADERS[4]]: player.teammateRequests.join('; '),
     [NORMALIZED_ROSTER_HEADERS[5]]: player.avoidRequests.join('; '),
     [NORMALIZED_ROSTER_HEADERS[6]]: player.email ?? '',
-    [NORMALIZED_ROSTER_HEADERS[7]]: getPlayerAge(player) ?? '',
-    [NORMALIZED_ROSTER_HEADERS[8]]: getPlayerRegistrationNotes(player) ?? '',
+    [NORMALIZED_ROSTER_HEADERS[7]]: typeof player.isNewPlayer === 'boolean' ? (player.isNewPlayer ? 'Yes' : 'No') : '',
+    [NORMALIZED_ROSTER_HEADERS[8]]: getPlayerAge(player) ?? '',
+    [NORMALIZED_ROSTER_HEADERS[9]]: getPlayerRegistrationNotes(player) ?? '',
   }));
 
   return Papa.unparse(rows, {
@@ -158,6 +160,24 @@ function mergeRegistrationNotes(...values: Array<string | undefined>): string | 
   return Array.from(new Set(notes)).join('\n\n');
 }
 
+function parseNewPlayerFlag(value?: string): boolean | undefined {
+  const normalizedValue = value?.trim().toLowerCase();
+
+  if (!normalizedValue) {
+    return undefined;
+  }
+
+  if (['y', 'yes', 'true', '1', 'new'].includes(normalizedValue)) {
+    return true;
+  }
+
+  if (['n', 'no', 'false', '0', 'returning'].includes(normalizedValue)) {
+    return false;
+  }
+
+  return undefined;
+}
+
 export function validateAndProcessCSV(csvText: string): CSVValidationResult {
   const result: CSVValidationResult = {
     isValid: false,
@@ -222,6 +242,13 @@ function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVVa
   const teammateCol = headers.find(h => h.toLowerCase().includes('teammate')) || '';
   const avoidCol = headers.find(h => h.toLowerCase().includes('avoid')) || '';
   const emailCol = headers.find(h => h.toLowerCase().includes('email')) || '';
+  const newPlayerCol = headers.find(h => {
+    const normalizedHeader = h.toLowerCase().trim();
+    return normalizedHeader === 'new player'
+      || normalizedHeader === 'is new player'
+      || normalizedHeader === 'new'
+      || normalizedHeader === 'rookie';
+  }) || '';
   const registrationInfoCol = findRegistrationInfoColumn(headers);
   const experienceNotesCol = findExperienceNotesColumn(headers);
   const ageCol = headers.find(h => h.toLowerCase().trim() === 'age') || '';
@@ -338,6 +365,7 @@ function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVVa
       row[experienceNotesCol],
       row[registrationInfoCol],
     );
+    const isNewPlayer = parseNewPlayerFlag(row[newPlayerCol]);
 
     const player: Player = {
       id: generatePlayerId(name),
@@ -351,6 +379,7 @@ function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVVa
       gender,
       skillRating,
       execSkillRating,
+      ...(isNewPlayer !== undefined ? { isNewPlayer } : {}),
       teammateRequests,
       avoidRequests,
       ...(email && { email })

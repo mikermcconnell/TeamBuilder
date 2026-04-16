@@ -9,6 +9,7 @@ interface TeamBoardProps {
     teams: Team[];
     players: Player[];
     config: LeagueConfig;
+    onPlayerUpdate?: (player: Player) => void;
     onTeamNameChange: (id: string, name: string) => void;
     onTeamBrandingChange?: (id: string, updates: {
         name?: string;
@@ -23,7 +24,7 @@ interface TeamBoardProps {
     playerGroups?: PlayerGroup[];
 }
 
-export function TeamBoard({ teams, players, config, onTeamNameChange, onTeamBrandingChange, onRemoveTeam, onAddTeam, onRefreshBranding, playerGroups = [] }: TeamBoardProps) {
+export function TeamBoard({ teams, players, config, onPlayerUpdate, onTeamNameChange, onTeamBrandingChange, onRemoveTeam, onAddTeam, onRefreshBranding, playerGroups = [] }: TeamBoardProps) {
     return (
         <div className="flex-1 h-full bg-gray-100/50 p-6 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between mb-6">
@@ -55,6 +56,7 @@ export function TeamBoard({ teams, players, config, onTeamNameChange, onTeamBran
                                 team={team}
                                 allPlayers={players}
                                 config={config}
+                                onPlayerUpdate={onPlayerUpdate}
                                 onNameChange={onTeamNameChange}
                                 onBrandingChange={onTeamBrandingChange}
                                 onRemoveTeam={onRemoveTeam}

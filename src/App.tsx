@@ -838,6 +838,7 @@ function App() {
         playerGroups={appState.playerGroups}
         stats={workspaceStats}
         onPlayerMove={handlePlayerMove}
+        onPlayerUpdate={handlePlayerUpdate}
         onTeamNameChange={handleTeamNameChange}
         onTeamBrandingChange={handleTeamBrandingChange}
         onLoadWorkspace={handleLoadWorkspace}

@@ -16,12 +16,14 @@ import { WarningPanel } from './WarningPanel';
 import { auth } from '@/config/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RosterStorageService } from '@/services/rosterStorage';
+import { getUserRosters } from '@/services/rosterService';
 import { findPlayerMatches } from '@/services/aiService';
 import { StructuredWarning, parseWarnings, parseWarningMessage } from '@/types/StructuredWarning';
 import { MAX_CSV_SIZE_BYTES } from '@/config/constants';
 import * as XLSX from 'xlsx';
 import { processMutualRequests } from '@/utils/playerGrouping';
 import { applyWarningResolutionToRequests, isAvoidWarning } from '@/utils/warningResolution';
+import { flagNewPlayersFromHistory } from '@/utils/newPlayerDetection';
 
 interface CSVUploaderProps {
   onPlayersLoaded: (
@@ -170,6 +172,26 @@ export function CSVUploader({
     }
   };
 
+  const annotateNewPlayers = async (initialResult: CSVValidationResult): Promise<CSVValidationResult> => {
+    const userId = auth.currentUser?.uid;
+
+    if (!userId) {
+      return initialResult;
+    }
+
+    try {
+      const historicalRosters = await getUserRosters(userId, true);
+
+      return {
+        ...initialResult,
+        players: flagNewPlayersFromHistory(initialResult.players, historicalRosters),
+      };
+    } catch (error) {
+      console.error('Historical player lookup failed', error);
+      return initialResult;
+    }
+  };
+
   const handleFile = async (file: File) => {
     const extension = getFileExtension(file.name);
     if (!SUPPORTED_EXTENSIONS.includes(extension)) {
@@ -197,11 +219,12 @@ export function CSVUploader({
 
       // Attempt AI refinement if valid (or warning)
       const refinedResult = await refineMatches(result);
-      setValidationResult(refinedResult);
-      setStructuredWarnings(parseWarnings(refinedResult.warnings));
-      setCurrentCSVContent(serializePlayersToCSV(refinedResult.players));
+      const resultWithNewPlayers = await annotateNewPlayers(refinedResult);
+      setValidationResult(resultWithNewPlayers);
+      setStructuredWarnings(parseWarnings(resultWithNewPlayers.warnings));
+      setCurrentCSVContent(serializePlayersToCSV(resultWithNewPlayers.players));
 
-      if (refinedResult.isValid) {
+      if (resultWithNewPlayers.isValid) {
         toast.success('CSV file processed successfully');
       } else {
         toast.error('CSV file contains errors');
@@ -225,12 +248,13 @@ export function CSVUploader({
     (async () => {
       setRefiningStatus('Checking matches...');
       const refined = await refineMatches(result);
-      setValidationResult(refined);
-      setStructuredWarnings(parseWarnings(refined.warnings));
-      setCurrentCSVContent(serializePlayersToCSV(refined.players));
+      const resultWithNewPlayers = await annotateNewPlayers(refined);
+      setValidationResult(resultWithNewPlayers);
+      setStructuredWarnings(parseWarnings(resultWithNewPlayers.warnings));
+      setCurrentCSVContent(serializePlayersToCSV(resultWithNewPlayers.players));
       setRefiningStatus('');
 
-      if (refined.isValid) {
+      if (resultWithNewPlayers.isValid) {
         toast.success(`Loaded roster: ${rosterName}`);
       } else {
         toast.warning(`Loaded roster with warnings: ${rosterName}`);
@@ -623,6 +647,12 @@ export function CSVUploader({
                   </div>
                 </div>
 
+                {validationResult.players.some(player => player.isNewPlayer) && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    Detected {validationResult.players.filter(player => player.isNewPlayer).length} new player{validationResult.players.filter(player => player.isNewPlayer).length === 1 ? '' : 's'} from your historical roster data.
+                  </div>
+                )}
+
                 {/* Errors */}
                 {validationResult.errors.length > 0 && (
                   <Alert variant="destructive">
@@ -674,7 +704,16 @@ export function CSVUploader({
                         <TableBody>
                           {validationResult.players.slice(0, 5).map((player) => (
                             <TableRow key={player.id}>
-                              <TableCell className="font-medium">{player.name}</TableCell>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  <span>{player.name}</span>
+                                  {player.isNewPlayer && (
+                                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                                      NEW
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Badge variant="outline">{player.gender}</Badge>
                               </TableCell>

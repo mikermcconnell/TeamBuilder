@@ -46,6 +46,7 @@ interface FullScreenTeamBuilderProps {
   unassignedPlayers: Player[];
   config: LeagueConfig;
   onPlayerMove: (playerId: string, targetTeamId: string | null) => void;
+  onPlayerUpdate: (player: Player) => void;
   onTeamNameChange: (teamId: string, newName: string) => void;
   onTeamBrandingChange?: (teamId: string, updates: {
     name?: string;
@@ -83,6 +84,7 @@ export function FullScreenTeamBuilder({
   unassignedPlayers,
   config,
   onPlayerMove,
+  onPlayerUpdate,
   onTeamNameChange,
   onTeamBrandingChange,
   players,
@@ -512,6 +514,7 @@ export function FullScreenTeamBuilder({
               <PlayerSidebar
                 players={unassignedPlayers}
                 playerGroups={playerGroups}
+                onPlayerUpdate={onPlayerUpdate}
               />
             )}
           </div>
@@ -556,6 +559,7 @@ export function FullScreenTeamBuilder({
             teams={sortedTeams}
             players={players}
             config={config}
+            onPlayerUpdate={onPlayerUpdate}
             onTeamNameChange={onTeamNameChange}
             onTeamBrandingChange={onTeamBrandingChange}
             onAddTeam={onAddTeam}

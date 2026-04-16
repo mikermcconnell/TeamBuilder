@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@dnd-kit/sortable', () => ({
@@ -55,5 +55,24 @@ describe('DraggablePlayerCard', () => {
 
     expect(screen.queryByText('Young')).not.toBeInTheDocument();
     expect(screen.queryByText('Wise')).not.toBeInTheDocument();
+  });
+
+  it('lets the user toggle new-player status from compact team cards', () => {
+    const onPlayerUpdate = vi.fn();
+
+    render(
+      <DraggablePlayerCard
+        player={createPlayer()}
+        compact
+        onPlayerUpdate={onPlayerUpdate}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /new\?/i }));
+
+    expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'player-1',
+      isNewPlayer: true,
+    }));
   });
 });

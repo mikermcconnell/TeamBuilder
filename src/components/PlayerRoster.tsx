@@ -48,6 +48,9 @@ import { StructuredWarning } from '@/types/StructuredWarning';
 import { getPlayerAgeBand } from '@/utils/playerAgeBands';
 import { getPlayerDisplayAge } from '@/utils/playerProfile';
 import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
+import { auth } from '@/config/firebase';
+import { getUserRosters } from '@/services/rosterService';
+import { flagNewPlayersFromHistory } from '@/utils/newPlayerDetection';
 
 interface PlayerRosterProps {
   players: Player[];
@@ -310,7 +313,7 @@ export function PlayerRoster({
     return name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substr(2, 5);
   };
 
-  const handleAddPlayer = () => {
+  const handleAddPlayer = async () => {
     const trimmedName = newPlayer.name.trim();
     const normalizedName = normalizePlayerName(trimmedName);
 
@@ -325,7 +328,7 @@ export function PlayerRoster({
       return;
     }
 
-    const player: Player = {
+    let player: Player = {
       id: generatePlayerId(trimmedName),
       name: trimmedName,
       gender: newPlayer.gender,
@@ -335,6 +338,16 @@ export function PlayerRoster({
       avoidRequests: newPlayer.avoidRequests.split(',').map(s => s.trim()).filter(Boolean),
       ...(newPlayer.email.trim() && { email: newPlayer.email.trim() })
     };
+
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      try {
+        const historicalRosters = await getUserRosters(userId, true);
+        player = flagNewPlayersFromHistory([player], historicalRosters)[0] ?? player;
+      } catch (error) {
+        console.error('Failed to check historical roster matches for manual player', error);
+      }
+    }
 
     if (onPlayerAdd) {
       onPlayerAdd(player);
@@ -352,7 +365,7 @@ export function PlayerRoster({
   };
 
   const handleExportRosters = () => {
-    const headers = ['Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Skill Group', 'Teammate Requests', 'Avoid Requests', 'Email'];
+    const headers = ['Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Skill Group', 'Teammate Requests', 'Avoid Requests', 'Email', 'New Player'];
     const csvContent = [
       headers.join(','),
       ...rosterPlayers.map(player => [
@@ -363,7 +376,8 @@ export function PlayerRoster({
         getSkillGroup(player),
         `"${player.teammateRequests.join('; ')}"`,
         `"${player.avoidRequests.join('; ')}"`,
-        `"${player.email || ''}"`
+        `"${player.email || ''}"`,
+        typeof player.isNewPlayer === 'boolean' ? (player.isNewPlayer ? 'Yes' : 'No') : ''
       ].join(','))
     ].join('\n');
 

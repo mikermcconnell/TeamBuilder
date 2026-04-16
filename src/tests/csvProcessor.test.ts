@@ -94,6 +94,7 @@ describe('serializePlayersToCSV', () => {
       gender: 'F',
       skillRating: 7.5,
       execSkillRating: 8,
+      isNewPlayer: true,
       teammateRequests: ['Bob Example'],
       avoidRequests: [],
       email: 'alice@example.com',
@@ -123,8 +124,10 @@ describe('serializePlayersToCSV', () => {
       teammateRequests: ['Bob Example'],
       avoidRequests: [],
       email: 'alice@example.com',
+      isNewPlayer: true,
     });
     expect(getPlayerAge(result.players[0]!)).toBe(29);
     expect(getPlayerRegistrationNotes(result.players[0]!)).toBe('Line 1\nLine 2');
+    expect(result.players[0]?.isNewPlayer).toBe(true);
   });
 });

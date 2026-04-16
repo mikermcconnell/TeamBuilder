@@ -19,7 +19,8 @@ import {
   ArrowDown,
   Link,
   Maximize2,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPlayerGroup, getPlayerGroupColor, getPlayerGroupLabel, arePlayersInSameGroup, getGroupmates } from '@/utils/playerGrouping';
@@ -1409,6 +1410,16 @@ function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playe
             {player.name}
           </div>
           <div className="flex items-center gap-0.5 flex-shrink-0">
+            {player.isNewPlayer && (
+              <Badge
+                variant="secondary"
+                className={compact ? "text-[10px] h-5 px-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200" : "text-xs bg-emerald-100 text-emerald-800 hover:bg-emerald-200"}
+                title="New player"
+              >
+                <Sparkles className="mr-1 h-3 w-3" />
+                {!compact && 'NEW'}
+              </Badge>
+            )}
             {player.isHandler && (
               <Badge variant="secondary" className={compact ? "text-[10px] h-5 px-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-200" : "text-xs bg-yellow-100 text-yellow-800 hover:bg-yellow-200"}>H</Badge>
             )}

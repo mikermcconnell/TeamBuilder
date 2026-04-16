@@ -8,6 +8,7 @@ export interface PlayerProfile {
 export interface Player {
   id: string;
   name: string;
+  isNewPlayer?: boolean;
   profile?: PlayerProfile;
   /** @deprecated Prefer player.profile.registrationInfo */
   registrationInfo?: string;
@@ -199,7 +200,7 @@ export interface AppState {
   teamIterations?: TeamIteration[];
   activeTeamIterationId?: string | null;
   leagueMemory?: LeagueMemoryEntry[];
-  pendingWarnings?: import('./StructuredWarning').StructuredWarning[]; // Warnings awaiting resolution on Roster page
+  pendingWarnings?: import('./StructuredWarning.js').StructuredWarning[]; // Warnings awaiting resolution on Roster page
 }
 
 export interface SavedWorkspace {

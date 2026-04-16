@@ -18,9 +18,10 @@ import {
 interface PlayerSidebarProps {
     players: Player[];
     playerGroups: PlayerGroup[];
+    onPlayerUpdate?: (player: Player) => void;
 }
 
-export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
+export function PlayerSidebar({ players, playerGroups, onPlayerUpdate }: PlayerSidebarProps) {
     const { setNodeRef } = useDroppable({
         id: 'unassigned',
         data: { type: 'container', id: 'unassigned' },
@@ -213,6 +214,7 @@ export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
                                                         compact
                                                         groupColor={group.color}
                                                         groupLabel={group.label}
+                                                        onPlayerUpdate={onPlayerUpdate}
                                                     />
                                                 ))}
                                             </div>
@@ -231,6 +233,7 @@ export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
                                                         key={player.id}
                                                         player={player}
                                                         compact
+                                                        onPlayerUpdate={onPlayerUpdate}
                                                     />
                                                 ))}
                                             </div>
@@ -259,6 +262,7 @@ export function PlayerSidebar({ players, playerGroups }: PlayerSidebarProps) {
                                                 compact
                                                 groupColor={group?.color}
                                                 groupLabel={group?.label}
+                                                onPlayerUpdate={onPlayerUpdate}
                                             />
                                         );
                                     })
