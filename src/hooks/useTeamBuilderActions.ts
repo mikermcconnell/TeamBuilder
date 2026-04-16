@@ -10,6 +10,7 @@ import { applyTeamBranding, ensureUniqueTeamNames, getColorName, getTeamBrandPal
 import { processMutualRequests, validateGroupsForGeneration } from '@/utils/playerGrouping';
 import { syncActiveTeamIterationToState } from '@/utils/teamIterations';
 import { debounce } from '@/utils/performance';
+import { reconcileTeamState } from '@/utils/teamStateReconciler';
 import { validateTeamName } from '@/utils/validation';
 import { applyWarningResolutionToRequests, isAvoidWarning } from '@/utils/warningResolution';
 
@@ -413,13 +414,35 @@ export function useTeamBuilderActions({
       );
 
       const syncedGroupState = syncPlayersAndGroups(updatedPlayers, prev.playerGroups);
+      const shouldReconcileTeamState = prev.teams.length > 0 || prev.unassignedPlayers.length > 0 || Boolean(prev.stats);
+
+      if (!shouldReconcileTeamState) {
+        return syncActiveIteration({
+          ...prev,
+          players: syncedGroupState.players,
+          teams: updatedTeams,
+          unassignedPlayers: updatedUnassigned,
+          playerGroups: syncedGroupState.playerGroups,
+          execRatingHistory: updatedHistory
+        });
+      }
+
+      const reconciledState = reconcileTeamState(
+        syncedGroupState.players,
+        updatedTeams,
+        updatedUnassigned,
+        syncedGroupState.playerGroups,
+        prev.config,
+        prev.stats,
+      );
 
       return syncActiveIteration({
         ...prev,
-        players: syncedGroupState.players,
-        teams: updatedTeams,
-        unassignedPlayers: updatedUnassigned,
+        players: reconciledState.players,
+        teams: reconciledState.teams,
+        unassignedPlayers: reconciledState.unassignedPlayers,
         playerGroups: syncedGroupState.playerGroups,
+        stats: reconciledState.stats,
         execRatingHistory: updatedHistory
       });
     });
@@ -554,12 +577,22 @@ export function useTeamBuilderActions({
         )
       }));
 
+      const reconciledState = reconcileTeamState(
+        cleanedPlayers,
+        updatedTeams,
+        updatedUnassigned,
+        updatedPlayerGroups,
+        prev.config,
+        prev.stats,
+      );
+
       return syncActiveIteration({
         ...prev,
-        players: cleanedPlayers,
-        teams: updatedTeams,
-        unassignedPlayers: updatedUnassigned,
-        playerGroups: updatedPlayerGroups
+        players: reconciledState.players,
+        teams: reconciledState.teams,
+        unassignedPlayers: reconciledState.unassignedPlayers,
+        playerGroups: updatedPlayerGroups,
+        stats: reconciledState.stats,
       });
     });
   }, [setAppState, snapshotCurrentState, syncActiveIteration]);
@@ -608,11 +641,21 @@ export function useTeamBuilderActions({
         });
       });
 
+      const reconciledState = reconcileTeamState(
+        updatedPlayers,
+        updatedTeams,
+        updatedUnassigned,
+        prev.playerGroups,
+        prev.config,
+        prev.stats,
+      );
+
       return syncActiveIteration({
         ...prev,
-        players: updatedPlayers,
-        teams: updatedTeams,
-        unassignedPlayers: updatedUnassigned
+        players: reconciledState.players,
+        teams: reconciledState.teams,
+        unassignedPlayers: reconciledState.unassignedPlayers,
+        stats: reconciledState.stats,
       });
     });
   }, [setAppState, snapshotCurrentState, syncActiveIteration]);
@@ -664,7 +707,8 @@ export function useTeamBuilderActions({
         ...prev,
         players: updatedPlayers,
         teams: updatedTeams,
-        unassignedPlayers: updatedPlayers
+        unassignedPlayers: updatedPlayers,
+        stats: undefined,
       });
     });
   }, [setAppState, syncActiveIteration]);
@@ -816,12 +860,21 @@ export function useTeamBuilderActions({
         ...releasedPlayers,
       ];
       const updatedTeams = prev.teams.filter(existingTeam => existingTeam.id !== teamId);
+      const reconciledState = reconcileTeamState(
+        updatedPlayers,
+        updatedTeams,
+        updatedUnassignedPlayers,
+        prev.playerGroups,
+        prev.config,
+        prev.stats,
+      );
 
       return syncActiveIteration({
         ...prev,
-        players: updatedPlayers,
-        teams: updatedTeams,
-        unassignedPlayers: updatedUnassignedPlayers,
+        players: reconciledState.players,
+        teams: reconciledState.teams,
+        unassignedPlayers: reconciledState.unassignedPlayers,
+        stats: reconciledState.stats,
         config: syncTargetTeamCount(prev.config, updatedTeams.length),
       });
     });
