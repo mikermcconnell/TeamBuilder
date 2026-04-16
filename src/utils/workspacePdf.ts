@@ -594,21 +594,54 @@ export function buildWorkspacePdfHtml(
   `;
 }
 
-export function openWorkspacePdfPrintWindow(html: string): void {
-  const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+const WORKSPACE_PDF_PRINT_FRAME_ID = 'workspace-pdf-print-frame';
 
-  if (!printWindow) {
-    throw new Error('Unable to open the PDF preview window. Please allow pop-ups and try again.');
+function cleanupPrintFrame(frame: HTMLIFrameElement): void {
+  window.setTimeout(() => {
+    if (frame.parentNode) {
+      frame.parentNode.removeChild(frame);
+    }
+  }, 1000);
+}
+
+export function openWorkspacePdfPrintWindow(html: string): void {
+  const existingFrame = document.getElementById(WORKSPACE_PDF_PRINT_FRAME_ID);
+  if (existingFrame?.parentNode) {
+    existingFrame.parentNode.removeChild(existingFrame);
   }
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  const printFrame = document.createElement('iframe');
+  printFrame.id = WORKSPACE_PDF_PRINT_FRAME_ID;
+  printFrame.setAttribute('aria-hidden', 'true');
+  printFrame.style.position = 'fixed';
+  printFrame.style.right = '0';
+  printFrame.style.bottom = '0';
+  printFrame.style.width = '0';
+  printFrame.style.height = '0';
+  printFrame.style.border = '0';
+  printFrame.style.opacity = '0';
+  printFrame.style.pointerEvents = 'none';
 
-  printWindow.onload = () => {
-    printWindow.focus();
+  printFrame.onload = () => {
+    const frameWindow = printFrame.contentWindow;
+
+    if (!frameWindow) {
+      cleanupPrintFrame(printFrame);
+      console.error('Unable to access the Workspace PDF print frame.');
+      return;
+    }
+
+    frameWindow.onafterprint = () => {
+      cleanupPrintFrame(printFrame);
+    };
+
+    frameWindow.focus();
     window.setTimeout(() => {
-      printWindow.print();
-    }, 150);
+      frameWindow.print();
+      window.setTimeout(() => cleanupPrintFrame(printFrame), 4000);
+    }, 200);
   };
+
+  printFrame.srcdoc = html;
+  document.body.appendChild(printFrame);
 }

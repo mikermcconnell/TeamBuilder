@@ -111,9 +111,9 @@ export function ExportPanel({
   const handlePrintWorkspacePdf = () => {
     try {
       openWorkspacePdfPrintWindow(workspacePdfHtml);
-      toast.success('Workspace PDF print preview opened');
+      toast.success('Workspace PDF print dialog opened');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to open the PDF preview window');
+      toast.error(error instanceof Error ? error.message : 'Unable to open the PDF print dialog');
     }
   };
 
