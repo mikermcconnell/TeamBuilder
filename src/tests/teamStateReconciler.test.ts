@@ -101,4 +101,53 @@ describe('reconcileTeamState', () => {
     expect(reconciled.stats?.mustHaveRequestsHonored).toBe(2);
     expect(reconciled.stats?.mustHaveRequestsBroken).toBe(0);
   });
+
+  it('uses the exact matched requested player when similar full names exist', () => {
+    const carly = createPlayer({
+      id: 'carly',
+      name: 'Carly Munce',
+      gender: 'F',
+      teammateRequests: ['Thomas Black'],
+    });
+    const thomasBarnes = createPlayer({
+      id: 'thomas-barnes',
+      name: 'Thomas Barnes',
+      gender: 'M',
+    });
+    const thomasBlack = createPlayer({
+      id: 'thomas-black',
+      name: 'Thomas Black',
+      gender: 'M',
+    });
+
+    const teamOne: Team = {
+      id: 'team-1',
+      name: 'Team 1',
+      players: [carly, thomasBlack],
+      averageSkill: 0,
+      genderBreakdown: { M: 0, F: 0, Other: 0 },
+      handlerCount: 0,
+    };
+    const teamTwo: Team = {
+      id: 'team-2',
+      name: 'Team 2',
+      players: [thomasBarnes],
+      averageSkill: 0,
+      genderBreakdown: { M: 0, F: 0, Other: 0 },
+      handlerCount: 0,
+    };
+
+    const reconciled = reconcileTeamState(
+      [carly, thomasBarnes, thomasBlack],
+      [teamOne, teamTwo],
+      [],
+      [],
+      { ...config, targetTeams: 2 },
+      undefined,
+    );
+
+    expect(reconciled.stats?.mustHaveRequestsHonored).toBe(1);
+    expect(reconciled.stats?.mustHaveRequestsBroken).toBe(0);
+    expect(reconciled.players.find(player => player.id === 'carly')?.teammateRequestsParsed?.[0]?.matchedPlayerId).toBe('thomas-black');
+  });
 });

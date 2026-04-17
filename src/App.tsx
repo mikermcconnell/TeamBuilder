@@ -38,9 +38,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
 import { flushSync } from 'react-dom';
 import { IterationScoreCard } from '@/components/teams/IterationScoreCard';
-import { IterationComparisonPanel } from '@/components/teams/IterationComparisonPanel';
-import { LeagueMemoryPanel } from '@/components/teams/LeagueMemoryPanel';
-import { buildIterationInsights, createLeagueMemoryEntry } from '@/utils/teamInsights';
+import { buildIterationInsights } from '@/utils/teamInsights';
 
 
 // Import test runner for development
@@ -736,36 +734,6 @@ function App() {
     }
   }, [snapshotCurrentState, teamIterations]);
 
-  const handleSaveActiveIterationToLeagueMemory = useCallback(() => {
-    if (!activeIteration || activeIteration.status !== 'ready') {
-      toast.error('Open a finished team tab before saving league memory');
-      return;
-    }
-
-    const suggestedTitle = `${workspaceName || activeIteration.name} ${new Date().toLocaleDateString()}`;
-    const enteredTitle = window.prompt('Save this team setup to league memory as:', suggestedTitle);
-    if (enteredTitle === null) {
-      return;
-    }
-
-    snapshotCurrentState();
-    const memoryEntry = createLeagueMemoryEntry(activeIteration, enteredTitle);
-    setAppState(prev => ({
-      ...prev,
-      leagueMemory: [memoryEntry, ...(prev.leagueMemory ?? [])].slice(0, 12),
-    }));
-    toast.success(`Saved "${memoryEntry.title}" to league memory`);
-  }, [activeIteration, snapshotCurrentState, workspaceName]);
-
-  const handleRemoveLeagueMemoryEntry = useCallback((entryId: string) => {
-    snapshotCurrentState();
-    setAppState(prev => ({
-      ...prev,
-      leagueMemory: (prev.leagueMemory ?? []).filter(entry => entry.id !== entryId),
-    }));
-    toast.success('Removed league memory snapshot');
-  }, [snapshotCurrentState]);
-
   const handleDeleteAllIterations = useCallback(() => {
     if (!window.confirm('Delete all team tabs and start over?')) {
       return;
@@ -1143,72 +1111,6 @@ function App() {
                               </div>
                             );
                           })()}
-                        <div className="text-center space-y-2">
-                          <h2 className="text-3xl font-extrabold text-slate-800">{activeIteration?.name || 'Select Workspace'}</h2>
-                          <p className="text-slate-500 max-w-lg mx-auto">
-                            Review the current draft score, compare tabs side by side, then decide whether to keep editing or export.
-                          </p>
-                        </div>
-
-                        {activeIterationInsights && (
-                          <IterationScoreCard insights={activeIterationInsights} />
-                        )}
-
-                        <div className="grid gap-4 lg:grid-cols-3">
-                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                            <div className="text-sm font-bold text-slate-800">Guided next step</div>
-                            <p className="mt-2 text-sm text-slate-500">Open the workspace to make manual fixes with live move guidance.</p>
-                            <Button
-                              variant="outline"
-                              className="mt-4"
-                              onClick={() => {
-                                if (activeIteration?.id) {
-                                  flushSync(() => {
-                                    setAppState(prev => applyTeamIterationToState(prev, activeIteration.id));
-                                  });
-                                }
-                                setIsFullScreenMode(true);
-                              }}
-                            >
-                              Open Team Builder
-                            </Button>
-                          </div>
-                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                            <div className="text-sm font-bold text-slate-800">Compare tabs</div>
-                            <p className="mt-2 text-sm text-slate-500">Use the comparison view below to pick the strongest version before publishing.</p>
-                            <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                              {teamIterations.filter(iteration => iteration.status === 'ready').length} ready tab{teamIterations.filter(iteration => iteration.status === 'ready').length === 1 ? '' : 's'}
-                            </div>
-                          </div>
-                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                            <div className="text-sm font-bold text-slate-800">Publish or save history</div>
-                            <p className="mt-2 text-sm text-slate-500">Export the organizer summary or save this version to league memory for next season.</p>
-                            <div className="mt-4 flex gap-2">
-                              <Button variant="outline" onClick={() => setTeamsView('exports')}>
-                                Export
-                              </Button>
-                              <Button onClick={handleSaveActiveIterationToLeagueMemory}>
-                                Save history
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <IterationComparisonPanel
-                          iterations={teamIterations}
-                          activeIterationId={activeIteration?.id ?? null}
-                          config={appState.config}
-                          leagueMemory={leagueMemory}
-                        />
-
-                        <LeagueMemoryPanel
-                          activeIteration={activeIteration}
-                          leagueMemory={leagueMemory}
-                          activeInsights={activeIterationInsights}
-                          onSaveCurrent={handleSaveActiveIterationToLeagueMemory}
-                          onRemoveEntry={handleRemoveLeagueMemoryEntry}
-                        />
-
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
                           {/* Team Builder Card */}
                           <div
@@ -1248,6 +1150,47 @@ function App() {
                             </p>
                             <div className="mt-auto font-bold text-green-600 flex items-center group-hover:gap-2 transition-all">
                               VIEW EXPORTS <ArrowRight className="h-4 w-4 ml-2" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-center space-y-2">
+                          <h2 className="text-3xl font-extrabold text-slate-800">{activeIteration?.name || 'Select Workspace'}</h2>
+                          <p className="text-slate-500 max-w-lg mx-auto">
+                            Review the current draft score, then decide whether to keep editing or export.
+                          </p>
+                        </div>
+
+                        {activeIterationInsights && (
+                          <IterationScoreCard insights={activeIterationInsights} />
+                        )}
+
+                        <div className="grid gap-4 lg:grid-cols-2">
+                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                            <div className="text-sm font-bold text-slate-800">Guided next step</div>
+                            <p className="mt-2 text-sm text-slate-500">Open the workspace to make manual fixes with live move guidance.</p>
+                            <Button
+                              variant="outline"
+                              className="mt-4"
+                              onClick={() => {
+                                if (activeIteration?.id) {
+                                  flushSync(() => {
+                                    setAppState(prev => applyTeamIterationToState(prev, activeIteration.id));
+                                  });
+                                }
+                                setIsFullScreenMode(true);
+                              }}
+                            >
+                              Open Team Builder
+                            </Button>
+                          </div>
+                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                            <div className="text-sm font-bold text-slate-800">Exports & reports</div>
+                            <p className="mt-2 text-sm text-slate-500">Download the organizer summary, CSVs, and team reports for this version.</p>
+                            <div className="mt-4">
+                              <Button variant="outline" onClick={() => setTeamsView('exports')}>
+                                Open exports
+                              </Button>
                             </div>
                           </div>
                         </div>

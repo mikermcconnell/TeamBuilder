@@ -669,11 +669,10 @@ function calculateStats(
     player.teammateRequests.forEach((requestedName, index) => {
       const isMustHave = index === 0;
 
-      // Find if requested player exists
-      const requestedPlayer = allPlayers.find(
-        p => p.name.toLowerCase() === requestedName.toLowerCase() ||
-          fuzzyMatcher.isLikelyMatch(requestedName, p.name, 0.8)
-      );
+      const parsedRequest = player.teammateRequestsParsed?.find(request => request.name === requestedName);
+      const requestedPlayer = parsedRequest?.matchedPlayerId
+        ? allPlayers.find(candidate => candidate.id === parsedRequest.matchedPlayerId)
+        : allPlayers.find(candidate => candidate.name.toLowerCase() === requestedName.toLowerCase());
 
       if (!requestedPlayer) return;
 
