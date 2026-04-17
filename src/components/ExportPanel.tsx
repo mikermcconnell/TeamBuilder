@@ -10,6 +10,8 @@ import {
 } from '@/utils/exportUtils';
 import { buildWorkspacePdfHtml, openWorkspacePdfPrintWindow } from '@/utils/workspacePdf';
 import { hexToRgba } from '@/utils/teamBranding';
+import { sanitizeLegacyTeamName } from '@/utils/groupLabels';
+import { reconcileTeamState } from '@/utils/teamStateReconciler';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,55 +53,69 @@ export function ExportPanel({
 }: ExportPanelProps) {
   const [previewType, setPreviewType] = useState<PreviewType>('detailed');
   const [reportText, setReportText] = useState<string>('');
+  const reconciledExportState = useMemo(
+    () => reconcileTeamState(
+      [...teams.flatMap(team => team.players), ...unassignedPlayers],
+      teams,
+      unassignedPlayers,
+      playerGroups,
+      config,
+      stats,
+    ),
+    [config, playerGroups, stats, teams, unassignedPlayers]
+  );
+  const exportTeams = reconciledExportState.teams;
+  const exportUnassignedPlayers = reconciledExportState.unassignedPlayers;
+  const exportStats = reconciledExportState.stats ?? stats;
 
   const shareSummary = useMemo(
-    () => generateShareSummaryText(teams, config, stats, unassignedPlayers),
-    [teams, config, stats, unassignedPlayers]
+    () => generateShareSummaryText(exportTeams, config, exportStats, exportUnassignedPlayers),
+    [exportTeams, config, exportStats, exportUnassignedPlayers]
   );
   const organizerSummary = useMemo(
     () => generateLeagueOrganizerSummary(
-      teams,
-      unassignedPlayers,
+      exportTeams,
+      exportUnassignedPlayers,
       config,
-      stats,
+      exportStats,
       leagueMemory,
       activeIterationName ? `${activeIterationName} Organizer Summary` : 'League Organizer Summary'
     ),
-    [activeIterationName, config, leagueMemory, stats, teams, unassignedPlayers]
+    [activeIterationName, config, exportStats, exportTeams, exportUnassignedPlayers, leagueMemory]
   );
   const workspacePdfHtml = useMemo(
     () => buildWorkspacePdfHtml(
-      teams,
-      unassignedPlayers,
+      exportTeams,
+      exportUnassignedPlayers,
       config,
       playerGroups,
-      stats,
+      exportStats,
       {
         title: activeIterationName
           ? `${config.name} — ${activeIterationName}`
           : config.name || 'TeamBuilder Workspace Export',
-        subtitle: `${teams.length} teams • ${teams.reduce((sum, team) => sum + team.players.length, 0)} assigned players`,
+        subtitle: `${exportTeams.length} teams • ${exportTeams.reduce((sum, team) => sum + team.players.length, 0)} assigned players`,
       }
     ),
-    [activeIterationName, config, playerGroups, stats, teams, unassignedPlayers]
+    [activeIterationName, config, exportStats, exportTeams, exportUnassignedPlayers, playerGroups]
   );
 
   const handleExportDetailed = () => {
-    const csvContent = exportTeamsToCSV(teams, unassignedPlayers, playerGroups);
+    const csvContent = exportTeamsToCSV(exportTeams, exportUnassignedPlayers, playerGroups);
     const filename = `team_assignments_${new Date().toISOString().split('T')[0]}.csv`;
     downloadCSV(csvContent, filename);
     toast.success('Detailed team export downloaded');
   };
 
   const handleExportSummary = () => {
-    const csvContent = exportTeamSummaryToCSV(teams, playerGroups, config, stats);
+    const csvContent = exportTeamSummaryToCSV(exportTeams, playerGroups, config, exportStats);
     const filename = `team_summary_${new Date().toISOString().split('T')[0]}.csv`;
     downloadCSV(csvContent, filename);
     toast.success('Team summary export downloaded');
   };
 
   const handleGenerateReport = () => {
-    const report = generateTeamReport(teams, unassignedPlayers, playerGroups, config, stats);
+    const report = generateTeamReport(exportTeams, exportUnassignedPlayers, playerGroups, config, exportStats);
     setReportText(report);
     setPreviewType('report');
   };
@@ -175,10 +191,10 @@ export function ExportPanel({
     const headers = ['Team', 'Color', 'Player', 'Gender', 'Skill', 'Exec Skill', 'Avg Skill', 'Size', 'M', 'F', 'Other'];
     const rows = [headers];
 
-    teams.forEach(team => {
+    exportTeams.forEach(team => {
       team.players.forEach((player, index) => {
         rows.push([
-          team.name,
+          sanitizeLegacyTeamName(team.name),
           index === 0 ? (team.colorName || '') : '',
           player.name,
           player.gender,
@@ -193,7 +209,7 @@ export function ExportPanel({
       });
     });
 
-    unassignedPlayers.forEach(player => {
+    exportUnassignedPlayers.forEach(player => {
       rows.push([
         'Unassigned',
         '',
@@ -213,8 +229,8 @@ export function ExportPanel({
   };
 
   const getSummaryPreview = () => {
-    return teams.map(team => [
-      team.name,
+    return exportTeams.map(team => [
+      sanitizeLegacyTeamName(team.name),
       team.colorName || '',
       team.players.length.toString(),
       team.averageSkill.toFixed(1),
@@ -375,17 +391,17 @@ export function ExportPanel({
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{teams.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{exportTeams.length}</div>
               <div className="text-sm text-gray-600">Teams</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {teams.reduce((sum, team) => sum + team.players.length, 0)}
+                {exportTeams.reduce((sum, team) => sum + team.players.length, 0)}
               </div>
               <div className="text-sm text-gray-600">Assigned Players</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{unassignedPlayers.length}</div>
+              <div className="text-2xl font-bold text-orange-600">{exportUnassignedPlayers.length}</div>
               <div className="text-sm text-gray-600">Unassigned</div>
             </div>
             <div className="text-center">
@@ -513,7 +529,7 @@ export function ExportPanel({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {teams.map((team) => {
+                {exportTeams.map((team) => {
                   const teamColor = team.color || '#94A3B8';
                   return (
                     <Card key={team.id} className="overflow-hidden border-2" style={{ borderColor: hexToRgba(teamColor, 0.35) }}>
@@ -521,7 +537,7 @@ export function ExportPanel({
                         <CardTitle className="flex items-center justify-between gap-2">
                           <span className="flex items-center gap-2">
                             <span className="h-3 w-3 rounded-full" style={{ backgroundColor: teamColor }} />
-                            {team.name}
+                            {sanitizeLegacyTeamName(team.name)}
                           </span>
                           {team.colorName && <Badge variant="secondary">{team.colorName}</Badge>}
                         </CardTitle>
@@ -588,7 +604,7 @@ export function ExportPanel({
         </CardContent>
       </Card>
 
-      {stats && (
+      {exportStats && (
         <Card>
           <CardHeader>
             <CardTitle>Generation Performance</CardTitle>
@@ -602,24 +618,24 @@ export function ExportPanel({
                 <div className="flex items-center justify-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <span className="font-semibold text-green-600">
-                    {((stats.assignedPlayers / stats.totalPlayers) * 100).toFixed(1)}%
+                    {((exportStats.assignedPlayers / exportStats.totalPlayers) * 100).toFixed(1)}%
                   </span>
                 </div>
                 <div className="text-sm text-green-600">Assignment Rate</div>
               </div>
 
               <div className="text-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="font-semibold text-blue-600">{stats.mutualRequestsHonored}</div>
+                <div className="font-semibold text-blue-600">{exportStats.mutualRequestsHonored}</div>
                 <div className="text-sm text-blue-600">Requests Honored</div>
               </div>
 
               <div className="text-center p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                <div className="font-semibold text-orange-600">{stats.avoidRequestsViolated}</div>
+                <div className="font-semibold text-orange-600">{exportStats.avoidRequestsViolated}</div>
                 <div className="text-sm text-orange-600">Violations</div>
               </div>
 
               <div className="text-center p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                <div className="font-semibold text-purple-600">{stats.generationTime}ms</div>
+                <div className="font-semibold text-purple-600">{exportStats.generationTime}ms</div>
                 <div className="text-sm text-purple-600">Process Time</div>
               </div>
             </div>

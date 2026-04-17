@@ -210,4 +210,95 @@ describe('team iteration normalization', () => {
     expect(result.teamIterations[0]?.unassignedPlayers).toHaveLength(2);
     expect(result.teamIterations[0]?.errorMessage).toBe('This tab was repaired from incomplete saved data.');
   });
+
+  it('recomputes stale ready-iteration stats from the actual saved assignments', () => {
+    const players = [
+      {
+        id: 'carly',
+        name: 'Carly Munce',
+        gender: 'F',
+        skillRating: 6,
+        execSkillRating: null,
+        teammateRequests: ['Thomas Black'],
+        avoidRequests: [],
+      },
+      {
+        id: 'thomas-black',
+        name: 'Thomas Black',
+        gender: 'M',
+        skillRating: 6,
+        execSkillRating: null,
+        teammateRequests: [],
+        avoidRequests: [],
+      },
+      {
+        id: 'thomas-barnes',
+        name: 'Thomas Barnes',
+        gender: 'M',
+        skillRating: 6,
+        execSkillRating: null,
+        teammateRequests: [],
+        avoidRequests: [],
+      },
+    ];
+
+    const readyIteration: TeamIteration = {
+      id: 'reviewed-draft-1',
+      name: 'Reviewed Draft 1',
+      type: 'manual',
+      status: 'ready',
+      createdAt: '2026-04-17T00:00:00.000Z',
+      teams: [
+        {
+          id: 'team-1',
+          name: 'Group A Comets',
+          players: [players[0]!, players[1]!],
+          averageSkill: 0,
+          genderBreakdown: { M: 0, F: 0, Other: 0 },
+          handlerCount: 0,
+        },
+        {
+          id: 'team-2',
+          name: 'Group B Blaze',
+          players: [players[2]!],
+          averageSkill: 0,
+          genderBreakdown: { M: 0, F: 0, Other: 0 },
+          handlerCount: 0,
+        },
+      ],
+      unassignedPlayers: [],
+      stats: {
+        totalPlayers: 3,
+        assignedPlayers: 3,
+        unassignedPlayers: 0,
+        mutualRequestsHonored: 0,
+        mutualRequestsBroken: 0,
+        mustHaveRequestsHonored: 0,
+        mustHaveRequestsBroken: 1,
+        niceToHaveRequestsHonored: 0,
+        niceToHaveRequestsBroken: 0,
+        avoidRequestsViolated: 0,
+        conflictsDetected: 0,
+        generationTime: 123,
+      },
+    };
+
+    const result = ensureTeamIterations({
+      players,
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: {
+        ...getDefaultConfig(),
+        targetTeams: 2,
+        maxTeamSize: 2,
+      },
+      teamIterations: [readyIteration],
+      activeTeamIterationId: readyIteration.id,
+    });
+
+    expect(result.teamIterations[0]?.stats?.mustHaveRequestsHonored).toBe(1);
+    expect(result.teamIterations[0]?.stats?.mustHaveRequestsBroken).toBe(0);
+  });
 });

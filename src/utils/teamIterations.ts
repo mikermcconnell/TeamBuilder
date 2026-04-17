@@ -11,6 +11,7 @@ import {
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { applyTeamBranding, ensureUniqueTeamNames } from '@/utils/teamBranding';
 import { normalizeLeagueConfig } from '@/utils/teamCount';
+import { reconcileTeamState } from '@/utils/teamStateReconciler';
 import { generateFullAiTeams } from '@/services/aiService';
 
 function clonePlayer(player: Player): Player {
@@ -286,6 +287,47 @@ function rebuildIncompleteIteration(
   };
 }
 
+function reconcileReadyIteration(
+  iteration: TeamIteration,
+  players: Player[],
+  config: LeagueConfig,
+  playerGroups: PlayerGroup[],
+): TeamIteration {
+  if (iteration.status !== 'ready') {
+    return iteration;
+  }
+
+  const sourcePlayers = players.length > 0
+    ? players
+    : [
+      ...(iteration.teams ?? []).flatMap(team => team.players ?? []),
+      ...(iteration.unassignedPlayers ?? []),
+    ];
+
+  if (
+    sourcePlayers.length === 0
+    || (((iteration.teams ?? []).length === 0) && ((iteration.unassignedPlayers ?? []).length === 0) && !iteration.stats)
+  ) {
+    return iteration;
+  }
+
+  const reconciled = reconcileTeamState(
+    sourcePlayers,
+    iteration.teams ?? [],
+    iteration.unassignedPlayers ?? [],
+    playerGroups,
+    config,
+    iteration.stats,
+  );
+
+  return {
+    ...iteration,
+    teams: applyTeamBranding(reconciled.teams, playerGroups, config),
+    unassignedPlayers: reconciled.unassignedPlayers,
+    stats: cloneStats(reconciled.stats),
+  };
+}
+
 export function ensureTeamIterations(
   data: Pick<
     AppState,
@@ -306,11 +348,18 @@ export function ensureTeamIterations(
       ? rebuildIncompleteIteration(normalizedIteration, data.players ?? [], data.config, data.playerGroups || [])
       : normalizedIteration;
 
-    return {
+    const brandedIteration = {
       ...repairedIteration,
       teams: applyTeamBranding(repairedIteration.teams || [], data.playerGroups || [], data.config),
       unassignedPlayers: repairedIteration.unassignedPlayers || [],
     };
+
+    return reconcileReadyIteration(
+      brandedIteration,
+      data.players ?? [],
+      data.config,
+      data.playerGroups || [],
+    );
   });
 
   if (normalizedIterations.length > 0) {

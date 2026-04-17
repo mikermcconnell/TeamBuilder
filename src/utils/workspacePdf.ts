@@ -117,6 +117,17 @@ function buildSummaryCards(
   const requestSummary = stats
     ? `${stats.mustHaveRequestsHonored}/${stats.mustHaveRequestsHonored + stats.mustHaveRequestsBroken}`
     : '—';
+  const highestRankedTeam = teams.reduce<Team | null>(
+    (highest, team) => (!highest || team.averageSkill > highest.averageSkill ? team : highest),
+    null,
+  );
+  const lowestRankedTeam = teams.reduce<Team | null>(
+    (lowest, team) => (!lowest || team.averageSkill < lowest.averageSkill ? team : lowest),
+    null,
+  );
+  const balanceGap = highestRankedTeam && lowestRankedTeam
+    ? Math.abs(highestRankedTeam.averageSkill - lowestRankedTeam.averageSkill).toFixed(2)
+    : '—';
 
   const cards = [
     { label: 'Teams', value: String(teams.length) },
@@ -125,12 +136,30 @@ function buildSummaryCards(
     { label: 'Max Team Size', value: String(config.maxTeamSize) },
     { label: 'Must-have Requests', value: requestSummary },
     { label: 'Avoid Violations', value: String(stats?.avoidRequestsViolated ?? 0) },
+    {
+      label: 'Highest Avg Skill',
+      value: highestRankedTeam?.name ?? '—',
+      detail: highestRankedTeam ? `${highestRankedTeam.averageSkill.toFixed(2)} avg skill` : undefined,
+      textValue: true,
+    },
+    {
+      label: 'Lowest Avg Skill',
+      value: lowestRankedTeam?.name ?? '—',
+      detail: lowestRankedTeam ? `${lowestRankedTeam.averageSkill.toFixed(2)} avg skill` : undefined,
+      textValue: true,
+    },
+    {
+      label: 'Balance Gap',
+      value: balanceGap,
+      detail: highestRankedTeam && lowestRankedTeam ? 'Highest vs lowest team avg' : undefined,
+    },
   ];
 
   return cards.map(card => `
     <div class="summary-card">
       <div class="summary-card__label">${card.label}</div>
-      <div class="summary-card__value">${card.value}</div>
+      <div class="summary-card__value ${card.textValue ? 'summary-card__value--text' : ''}">${escapeHtml(card.value)}</div>
+      ${card.detail ? `<div class="summary-card__detail">${escapeHtml(card.detail)}</div>` : ''}
     </div>
   `).join('');
 }
@@ -257,7 +286,7 @@ export function buildWorkspacePdfHtml(
 
           .summary-grid {
             display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
             margin-bottom: 24px;
           }
@@ -283,6 +312,19 @@ export function buildWorkspacePdfHtml(
             font-size: 28px;
             font-weight: 800;
             letter-spacing: -0.03em;
+          }
+
+          .summary-card__value--text {
+            font-size: 18px;
+            line-height: 1.25;
+            letter-spacing: -0.02em;
+          }
+
+          .summary-card__detail {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.35;
           }
 
           .team-grid {
@@ -529,18 +571,26 @@ export function buildWorkspacePdfHtml(
             }
 
             .summary-grid {
-              grid-template-columns: repeat(6, minmax(0, 1fr));
+              grid-template-columns: repeat(3, minmax(0, 1fr));
               gap: 10px;
               margin-bottom: 16px;
+              break-inside: avoid;
             }
 
             .team-grid {
-              grid-template-columns: repeat(3, minmax(0, 1fr));
-              gap: 12px;
+              display: block;
             }
 
             .unassigned-panel__players {
               grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .team-card {
+              break-before: page;
+              page-break-before: always;
+              break-inside: avoid;
+              margin: 0;
+              min-height: calc(100vh - 32mm);
             }
 
             .team-card__header {
