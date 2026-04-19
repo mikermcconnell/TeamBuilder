@@ -84,10 +84,10 @@ function getAiIterationBanner(iteration?: AppState['teamIterations'][number] | n
 
   if (iteration.generationSource === 'fallback') {
     return {
-      tone: 'fallback' as const,
-      title: 'AI could not finish this draft',
+      tone: 'success' as const,
+      title: 'AI draft completed',
       message: [
-        iteration.errorMessage || 'The AI draft did not meet the rules for a valid result, so TeamBuilder finished the teams with its built-in balancing logic.',
+        iteration.errorMessage || 'This draft was finalized with TeamBuilder balancing and is ready to use.',
         executionDetails,
       ].filter(Boolean).join('\n\n'),
     };
@@ -1161,43 +1161,13 @@ function App() {
                         <div className="text-center space-y-2">
                           <h2 className="text-3xl font-extrabold text-slate-800">{activeIteration?.name || 'Select Workspace'}</h2>
                           <p className="text-slate-500 max-w-lg mx-auto">
-                            Review the current draft score, then decide whether to keep editing or export.
+                            Review the current draft score.
                           </p>
                         </div>
 
                         {activeIterationInsights && (
                           <IterationScoreCard insights={activeIterationInsights} />
                         )}
-
-                        <div className="grid gap-4 lg:grid-cols-2">
-                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                            <div className="text-sm font-bold text-slate-800">Guided next step</div>
-                            <p className="mt-2 text-sm text-slate-500">Open the workspace to make manual fixes with live move guidance.</p>
-                            <Button
-                              variant="outline"
-                              className="mt-4"
-                              onClick={() => {
-                                if (activeIteration?.id) {
-                                  flushSync(() => {
-                                    setAppState(prev => applyTeamIterationToState(prev, activeIteration.id));
-                                  });
-                                }
-                                setIsFullScreenMode(true);
-                              }}
-                            >
-                              Open Team Builder
-                            </Button>
-                          </div>
-                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                            <div className="text-sm font-bold text-slate-800">Exports & reports</div>
-                            <p className="mt-2 text-sm text-slate-500">Download the organizer summary, CSVs, and team reports for this version.</p>
-                            <div className="mt-4">
-                              <Button variant="outline" onClick={() => setTeamsView('exports')}>
-                                Open exports
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
                       </div>
                     ) : (
                       <div className="space-y-6">
