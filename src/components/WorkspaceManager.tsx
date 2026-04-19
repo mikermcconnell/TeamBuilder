@@ -118,6 +118,46 @@ export function WorkspaceManager({
         }
     };
 
+    const handleQuickSave = async () => {
+        if (!user) {
+            toast.error('Please sign in to save projects');
+            return;
+        }
+
+        const effectiveName = (contextWorkspaceName || saveName || '').trim();
+        const effectiveDescription = (contextWorkspaceDescription || saveDescription || '').trim();
+
+        if (!effectiveName) {
+            setSaveName('');
+            setSaveDescription(contextWorkspaceDescription || '');
+            setIsSaveDialogOpen(true);
+            return;
+        }
+
+        try {
+            await saveWorkspace(
+                {
+                    players,
+                    playerGroups,
+                    teams,
+                    unassignedPlayers,
+                    config,
+                    stats
+                },
+                {
+                    id: currentId || null,
+                    name: effectiveName,
+                    description: effectiveDescription
+                }
+            );
+            setCurrentWorkspaceInfo(currentId || null, effectiveName, effectiveDescription);
+        } catch (error: unknown) {
+            console.error('Failed to quick save project:', error);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            toast.error(`Save failed: ${message}`);
+        }
+    };
+
     const handleLoadClick = (id: string) => {
         onLoadWorkspace(id);
         setIsLoadDialogOpen(false);
@@ -287,6 +327,15 @@ export function WorkspaceManager({
             <div className="flex items-center gap-3 px-1">
                 <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">Projects</span>
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() => void handleQuickSave()}
+                        disabled={isSaving}
+                    >
+                        <Save className="h-4 w-4" />
+                        {isSaving ? 'Saving...' : 'Save Now'}
+                    </Button>
                     {saveDialog}
                     {loadDialog}
                 </div>
