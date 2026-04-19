@@ -1,4 +1,4 @@
-import type { AIPlayerInput, AITeamDraftPayload } from '@/shared/ai-contracts';
+import type { AIPlayerInput, AITeamDraftPayload } from '../../shared/ai-contracts.js';
 
 interface DraftTeamLike {
   players: Array<{ id: string }>;

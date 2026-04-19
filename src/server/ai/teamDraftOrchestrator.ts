@@ -1,13 +1,13 @@
-import { validateAiTeamDraft } from '@/shared/ai-draft';
-import type { AITeamDraftPayload, TeamDraftRequest } from '@/shared/ai-contracts';
-import { toDomainLeagueConfig, toDomainPlayer, toDomainPlayerGroups } from '@/shared/ai-mappers';
-import type { LeagueConfig, Player, PlayerGroup } from '@/types';
-import { getEffectiveTeamCount } from '@/utils/teamCount';
-import { generateBalancedTeams } from '@/utils/teamGenerator';
+import { validateAiTeamDraft } from '../../shared/ai-draft.js';
+import type { AITeamDraftPayload, TeamDraftRequest } from '../../shared/ai-contracts.js';
+import { toDomainLeagueConfig, toDomainPlayer, toDomainPlayerGroups } from '../../shared/ai-mappers.js';
+import type { LeagueConfig, Player, PlayerGroup } from '../../types/index.js';
+import { getEffectiveTeamCount } from '../../utils/teamCount.js';
+import { generateBalancedTeams } from '../../utils/teamGenerator.js';
 
-import { buildDraftPayload, cloneTeamDraft } from './teamDraftDomain';
-import { requestTeamDraft } from './openaiService';
-import { repairAiDraftGenderRequirements } from './teamDraftRepair';
+import { buildDraftPayload, cloneTeamDraft } from './teamDraftDomain.js';
+import { requestTeamDraft } from './openaiService.js';
+import { repairAiDraftGenderRequirements } from './teamDraftRepair.js';
 
 function shufflePlayers<T>(items: T[]): T[] {
   const shuffled = [...items];
@@ -167,7 +167,7 @@ function buildFallbackResponse(
   playerGroups: PlayerGroup[],
   variant: 'primary' | 'alternate' | undefined,
   validationErrors: string[],
-  lastAttemptMetadata: Pick<AITeamDraftPayload, 'requestedModel' | 'model' | 'responseId' | 'responseIds'>,
+  lastAttemptMetadata: Partial<Pick<AITeamDraftPayload, 'requestedModel' | 'model' | 'responseId' | 'responseIds'>>,
 ): AITeamDraftPayload {
   const fallbackResult = generateBalancedTeams(
     players.map(player => ({ ...player })),
@@ -202,7 +202,7 @@ export async function generateTeamDraftWithFallback(input: TeamDraftRequest): Pr
   const candidateDrafts = buildCandidateDrafts(players, config, playerGroups, input.variant);
 
   let validationErrors: string[] = [];
-  let lastAttemptMetadata: Pick<AITeamDraftPayload, 'requestedModel' | 'model' | 'responseId' | 'responseIds'> = {};
+  let lastAttemptMetadata: Partial<Pick<AITeamDraftPayload, 'requestedModel' | 'model' | 'responseId' | 'responseIds'>> = {};
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     const response = await requestTeamDraft(input, {

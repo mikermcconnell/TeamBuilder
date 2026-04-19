@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PlayerGroup, Player } from '@/types';
+import { LeagueConfig, PlayerGroup, Player } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -30,6 +30,7 @@ import { SuggestedGroupsPanel } from './SuggestedGroupsPanel';
 import { generateGroupSuggestions, SuggestedGroup } from '@/services/groupSuggestionService';
 
 interface PlayerGroupsProps {
+  config: LeagueConfig;
   playerGroups: PlayerGroup[];
   players: Player[];
   onAddPlayerToGroup: (playerId: string, groupId: string) => void;
@@ -45,6 +46,7 @@ interface PlayerGroupsProps {
 }
 
 export function PlayerGroups({
+  config,
   playerGroups,
   players,
   onAddPlayerToGroup,
@@ -67,7 +69,10 @@ export function PlayerGroups({
   const [suggestions, setSuggestions] = useState<SuggestedGroup[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
+  const maxManualGroupSize = config.maxTeamSize;
+  const autoGroupCap = Math.min(config.maxAutoGroupSize ?? 4, config.maxTeamSize);
   const ungroupedPlayers = players.filter(p => !p.groupId);
+  const manualOversizeGroups = playerGroups.filter(group => group.source !== 'auto' && group.players.length > autoGroupCap);
 
   // Detect conflicts for warning display
   const conflicts = detectRequestConflicts(players);
@@ -91,8 +96,8 @@ export function PlayerGroups({
 
   const handleAddToExistingGroup = (playerId: string, groupId: string) => {
     const group = playerGroups.find(g => g.id === groupId);
-    if (group && group.players.length >= 4) {
-      toast.error('Groups can have a maximum of 4 players');
+    if (group && group.players.length >= maxManualGroupSize) {
+      toast.error(`Groups can have a maximum of ${maxManualGroupSize} players`);
       return;
     }
     onAddPlayerToGroup(playerId, groupId);
@@ -104,8 +109,8 @@ export function PlayerGroups({
       toast.error('Please select at least one player');
       return;
     }
-    if (selectedPlayers.length > 4) {
-      toast.error('Groups can have a maximum of 4 players');
+    if (selectedPlayers.length > maxManualGroupSize) {
+      toast.error(`Groups can have a maximum of ${maxManualGroupSize} players`);
       return;
     }
     onCreateNewGroup(selectedPlayers);
@@ -127,7 +132,7 @@ export function PlayerGroups({
 
   const canAddToGroup = (groupId: string): boolean => {
     const group = playerGroups.find(g => g.id === groupId);
-    return group ? group.players.length < 4 : false;
+    return group ? group.players.length < maxManualGroupSize : false;
   };
 
   const handleMergeGroups = (sourceGroupId: string, targetGroupId: string) => {
@@ -137,8 +142,8 @@ export function PlayerGroups({
     if (!sourceGroup || !targetGroup) return;
 
     const totalPlayers = sourceGroup.players.length + targetGroup.players.length;
-    if (totalPlayers > 4) {
-      toast.error('Merged group would exceed 4 players');
+    if (totalPlayers > maxManualGroupSize) {
+      toast.error(`Merged group would exceed ${maxManualGroupSize} players`);
       return;
     }
 
@@ -257,12 +262,21 @@ export function PlayerGroups({
         </Alert>
       )}
 
+      {manualOversizeGroups.length > 0 && (
+        <Alert className="border-amber-200 bg-amber-50">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-900">
+            {manualOversizeGroups.length} manual group{manualOversizeGroups.length === 1 ? '' : 's'} exceed{manualOversizeGroups.length === 1 ? 's' : ''} the auto request group cap of {autoGroupCap}. That is allowed because these were manual overrides.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Info Alert */}
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
           Player groups are formed from mutual teammate requests. <Star className="h-3 w-3 inline text-amber-500 fill-amber-500" /> = must-have (first request),
-          <Heart className="h-3 w-3 inline text-pink-400 ml-1" /> = nice-to-have. Groups can contain 2-4 players.
+          <Heart className="h-3 w-3 inline text-pink-400 ml-1" /> = nice-to-have. Auto groups cap at {autoGroupCap}; manual groups can go up to {maxManualGroupSize}.
         </AlertDescription>
       </Alert>
 
@@ -288,7 +302,7 @@ export function PlayerGroups({
                 )}
               </CardTitle>
               <CardDescription>
-                Groups formed from mutual teammate requests
+                Auto-detected mutual request groups and manual overrides
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -311,9 +325,12 @@ export function PlayerGroups({
                             >
                               {group.label}
                             </div>
-                            Group {group.label} ({group.players.length}/4)
+                            Group {group.label} ({group.players.length}/{maxManualGroupSize})
                           </CardTitle>
                           <div className="flex items-center gap-2">
+                            <Badge variant="outline">
+                              {group.source === 'auto' ? 'Auto' : 'Manual'}
+                            </Badge>
                             <Button
                               variant="outline"
                               size="sm"
@@ -337,6 +354,11 @@ export function PlayerGroups({
                             </span>
                           </div>
                         </div>
+                        {group.source !== 'auto' && group.players.length > autoGroupCap && (
+                          <div className="text-xs text-amber-700">
+                            Manual override above auto cap ({autoGroupCap})
+                          </div>
+                        )}
                       </CardHeader>
 
                       <CardContent>
@@ -483,11 +505,11 @@ export function PlayerGroups({
               </DialogContent>
             </Dialog>
 
-            {selectedPlayers.length > 4 && (
+            {selectedPlayers.length > maxManualGroupSize && (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Groups can have a maximum of 4 players. Please deselect {selectedPlayers.length - 4} players.
+                  Groups can have a maximum of {maxManualGroupSize} players. Please deselect {selectedPlayers.length - maxManualGroupSize} players.
                 </AlertDescription>
               </Alert>
             )}
@@ -574,8 +596,8 @@ export function PlayerGroups({
                                   disabled={!canAddToGroup(group.id)}
                                 >
                                   <div className="flex flex-col">
-                                    <div>
-                                      Group {group.label} ({group.players.length}/4)
+                                      <div>
+                                      Group {group.label} ({group.players.length}/{maxManualGroupSize})
                                       {!canAddToGroup(group.id) && ' - Full'}
                                     </div>
                                     {group.players.length > 0 && (
@@ -619,7 +641,7 @@ export function PlayerGroups({
           <DialogHeader>
             <DialogTitle>Merge Groups</DialogTitle>
             <DialogDescription>
-              Select groups to merge. The merged group cannot exceed 4 players.
+              Select groups to merge. The merged group cannot exceed {maxManualGroupSize} players.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -631,7 +653,7 @@ export function PlayerGroups({
                     .filter(g => g.id !== selectedGroupForMerge)
                     .map(group => {
                       const sourceGroup = playerGroups.find(g => g.id === selectedGroupForMerge);
-                      const wouldExceedLimit = sourceGroup && (sourceGroup.players.length + group.players.length > 4);
+                      const wouldExceedLimit = sourceGroup && (sourceGroup.players.length + group.players.length > maxManualGroupSize);
 
                       return (
                         <Button
@@ -648,9 +670,9 @@ export function PlayerGroups({
                             >
                               {group.label}
                             </div>
-                            Group {group.label} ({group.players.length}/4)
+                            Group {group.label} ({group.players.length}/{maxManualGroupSize})
                             {wouldExceedLimit && (
-                              <span className="text-xs text-red-600">Would exceed 4 players</span>
+                              <span className="text-xs text-red-600">Would exceed {maxManualGroupSize} players</span>
                             )}
                           </div>
                         </Button>
@@ -676,7 +698,7 @@ export function PlayerGroups({
                         >
                           {group.label}
                         </div>
-                        Group {group.label} ({group.players.length}/4)
+                        Group {group.label} ({group.players.length}/{maxManualGroupSize})
                       </div>
                     </Button>
                   ))}

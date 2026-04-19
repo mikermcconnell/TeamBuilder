@@ -29,6 +29,12 @@ export interface Player {
   unfulfilledRequests?: UnfulfilledRequest[];
 }
 
+export interface PlayerUpdateOptions {
+  persistImmediately?: boolean;
+}
+
+export type PlayerUpdateHandler = (player: Player, options?: PlayerUpdateOptions) => void;
+
 export interface TeamsData {
   id?: string;
   userId: string;
@@ -96,6 +102,7 @@ export interface PlayerGroup {
   color: string; // Color for visual identification
   playerIds: string[];
   players: Player[];
+  source?: 'auto' | 'manual';
 }
 
 export interface Team {
@@ -120,6 +127,7 @@ export interface LeagueConfig {
   id: string;
   name: string;
   maxTeamSize: number;
+  maxAutoGroupSize?: number;
   minFemales: number;
   minMales: number;
   targetTeams?: number;

@@ -34,6 +34,16 @@ describe('configManager generation validation', () => {
     expect(normalizedConfig.restrictToEvenTeams).toBe(false);
   });
 
+  it('caps the auto request group size at the max team size during normalization', () => {
+    const normalizedConfig = normalizeLeagueConfig({
+      ...baseConfig,
+      maxTeamSize: 5,
+      maxAutoGroupSize: 8,
+    });
+
+    expect(normalizedConfig.maxAutoGroupSize).toBe(5);
+  });
+
   it('rejects team setups that cannot fit the whole roster', () => {
     const errors = validateConfig({ ...baseConfig, targetTeams: 2 }, 12);
 

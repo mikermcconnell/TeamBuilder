@@ -6,9 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Mail, 
-  Send, 
+import {
+  Mail,
+  Send,
   Copy, 
   Eye, 
   CheckCircle, 
@@ -17,6 +17,7 @@ import {
   ExternalLink 
 } from 'lucide-react';
 import { Player, Team } from '@/types';
+import { sanitizeLegacyTeamName } from '@/utils/groupLabels';
 
 interface PlayerEmailProps {
   teams: Team[];
@@ -65,7 +66,7 @@ The Event Organizers`
 
   const generateEmailContent = (player: Player): { subject: string; body: string } => {
     const team = getPlayerTeam(player.id);
-    const teamName = team ? team.name : 'Unassigned';
+    const teamName = team ? sanitizeLegacyTeamName(team.name) : 'Unassigned';
     
     let teamRoster = '';
     if (team) {
@@ -291,7 +292,7 @@ The Event Organizers`
                             </Badge>
                             {team && (
                               <Badge className="bg-primary text-white text-xs">
-                                {team.name}
+                                {sanitizeLegacyTeamName(team.name)}
                               </Badge>
                             )}
                             {wasEmailSent && (

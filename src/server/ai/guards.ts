@@ -4,8 +4,8 @@ import {
   getEffectiveSkillRating,
   type Player,
   type Team,
-} from '@/types';
-import { fuzzyMatcher } from '@/utils/fuzzyNameMatcher';
+} from '../../types/index.js';
+import { fuzzyMatcher } from '../../utils/fuzzyNameMatcher.js';
 import type {
   AILeagueConfigInput,
   AIPlayerGroupInput,
@@ -20,7 +20,7 @@ import type {
   TeamSuggestionAction,
   TeamSuggestionDto,
   TeamSuggestionsRequest,
-} from '@/shared/ai-contracts';
+} from '../../shared/ai-contracts.js';
 
 const aiPlayerSchema = z.object({
   id: z.string().min(1),
@@ -227,26 +227,26 @@ function validateGroupedMoves(
 }
 
 export function parseTeamSuggestionsRequest(input: unknown): TeamSuggestionsRequest {
-  return teamSuggestionsRequestSchema.parse(input);
+  return teamSuggestionsRequestSchema.parse(input) as TeamSuggestionsRequest;
 }
 
 export function parseNameMatchRequest(input: unknown): NameMatchRequest {
-  return nameMatchRequestSchema.parse(input);
+  return nameMatchRequestSchema.parse(input) as NameMatchRequest;
 }
 
 export function parseGroupSuggestionsRequest(input: unknown): GroupSuggestionsRequest {
-  return groupSuggestionsRequestSchema.parse(input);
+  return groupSuggestionsRequestSchema.parse(input) as GroupSuggestionsRequest;
 }
 
 export function parseTeamDraftRequest(input: unknown): TeamDraftRequest {
-  return teamDraftRequestSchema.parse(input);
+  return teamDraftRequestSchema.parse(input) as TeamDraftRequest;
 }
 
 export function validateTeamSuggestions(
   input: TeamSuggestionsRequest,
   suggestions: unknown
 ): TeamSuggestionDto[] {
-  const parsedSuggestions = z.array(teamSuggestionSchema).parse(suggestions);
+  const parsedSuggestions = z.array(teamSuggestionSchema).parse(suggestions) as TeamSuggestionDto[];
   const playerIds = new Set(input.players.map(player => player.id));
   const teamIds = new Set(input.teams.map(team => team.id));
   teamIds.add('unassigned');
@@ -306,7 +306,7 @@ export function validateNameMatches(
   input: NameMatchRequest,
   matches: unknown
 ): NameMatchDto[] {
-  const parsedMatches = z.array(nameMatchSchema).parse(matches);
+  const parsedMatches = z.array(nameMatchSchema).parse(matches) as NameMatchDto[];
   const requestedSet = new Set(input.requestedNames);
   const rosterSet = new Set(input.rosterNames);
 
@@ -317,7 +317,7 @@ export function validateGroupSuggestions(
   input: GroupSuggestionsRequest,
   suggestions: unknown
 ): SuggestedGroupDto[] {
-  const parsedSuggestions = z.array(groupSuggestionSchema).parse(suggestions);
+  const parsedSuggestions = z.array(groupSuggestionSchema).parse(suggestions) as SuggestedGroupDto[];
   const playerMap = new Map(input.players.map(player => [player.id, player]));
   const groupedPlayerIds = new Set(input.existingGroups.flatMap(group => group.playerIds));
 

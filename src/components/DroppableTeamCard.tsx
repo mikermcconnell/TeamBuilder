@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Player, Team, LeagueConfig, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, PlayerUpdateHandler, getEffectiveSkillRating } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { TEAM_BRAND_PALETTE, getColorName, hexToRgba } from '@/utils/teamBranding';
+import { sanitizeLegacyTeamName } from '@/utils/groupLabels';
 import { getPlayerAgeBand } from '@/utils/playerAgeBands';
 import { getPlayerDisplayAge } from '@/utils/playerProfile';
 
@@ -30,7 +31,7 @@ interface DroppableTeamCardProps {
     allPlayers: Player[];
     config: LeagueConfig;
     largestTeamSize?: number;
-    onPlayerUpdate?: (player: Player) => void;
+    onPlayerUpdate?: PlayerUpdateHandler;
     onNameChange: (id: string, name: string) => void;
     onBrandingChange?: (id: string, updates: {
         name?: string;
@@ -44,6 +45,7 @@ interface DroppableTeamCardProps {
 }
 
 export function DroppableTeamCard({ team, allPlayers, config, largestTeamSize = 0, onPlayerUpdate, onNameChange, onBrandingChange, onRemoveTeam, playerGroups = [] }: DroppableTeamCardProps) {
+    const displayTeamName = sanitizeLegacyTeamName(team.name);
     // Helper to get group info for a player
     const getPlayerGroupInfo = (playerId: string) => {
         const group = playerGroups.find(g => g.playerIds.includes(playerId));
@@ -57,21 +59,21 @@ export function DroppableTeamCard({ team, allPlayers, config, largestTeamSize = 
     const [isEditing, setIsEditing] = React.useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
     const [isBrandingOpen, setIsBrandingOpen] = React.useState(false);
-    const [tempName, setTempName] = React.useState(team.name);
-    const [brandingName, setBrandingName] = React.useState(team.name);
+    const [tempName, setTempName] = React.useState(displayTeamName);
+    const [brandingName, setBrandingName] = React.useState(displayTeamName);
     const [brandingColor, setBrandingColor] = React.useState(team.color || '#94A3B8');
 
     React.useEffect(() => {
-        setTempName(team.name);
-        setBrandingName(team.name);
+        setTempName(displayTeamName);
+        setBrandingName(displayTeamName);
         setBrandingColor(team.color || '#94A3B8');
-    }, [team.color, team.name]);
+    }, [displayTeamName, team.color]);
 
     const handleNameSave = () => {
         if (tempName.trim()) {
             onNameChange(team.id, tempName.trim());
         } else {
-            setTempName(team.name);
+            setTempName(displayTeamName);
         }
         setIsEditing(false);
     };
@@ -232,7 +234,7 @@ export function DroppableTeamCard({ team, allPlayers, config, largestTeamSize = 
                         <div
                             className="flex-1 min-w-0 group/name cursor-pointer"
                             onClick={() => {
-                                setTempName(team.name);
+                                setTempName(displayTeamName);
                                 setIsEditing(true);
                             }}
                         >
@@ -246,9 +248,9 @@ export function DroppableTeamCard({ team, allPlayers, config, largestTeamSize = 
                                             WebkitBoxOrient: 'vertical',
                                             overflow: 'hidden',
                                         }}
-                                        title={team.name}
+                                        title={displayTeamName}
                                     >
-                                        {team.name}
+                                        {displayTeamName}
                                     </span>
                                 {team.colorName && (
                                     <Badge
@@ -470,7 +472,7 @@ export function DroppableTeamCard({ team, allPlayers, config, largestTeamSize = 
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <span className="h-3 w-3 rounded-full" style={{ backgroundColor: teamColor }} />
-                            {team.name}
+                            {displayTeamName}
                             <Badge variant={isOverCapacity ? "destructive" : "secondary"}>
                                 {playerCount}/{config.maxTeamSize}
                             </Badge>
@@ -687,7 +689,7 @@ export function DroppableTeamCard({ team, allPlayers, config, largestTeamSize = 
                             <div className="flex items-center gap-3">
                                 <span className="h-4 w-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: safeBrandingColor }} />
                                 <div>
-                                    <div className="font-bold text-slate-800">{brandingName || team.name}</div>
+                                    <div className="font-bold text-slate-800">{brandingName || displayTeamName}</div>
                                     <div className="text-sm text-slate-500">{getColorName(safeBrandingColor)} team preview</div>
                                 </div>
                             </div>

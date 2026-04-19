@@ -58,6 +58,7 @@ describe('DraggablePlayerCard', () => {
   });
 
   it('lets the user toggle new-player status from compact team cards', () => {
+    vi.useFakeTimers();
     const onPlayerUpdate = vi.fn();
 
     render(
@@ -68,11 +69,14 @@ describe('DraggablePlayerCard', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /new\?/i }));
+    fireEvent.click(screen.getByRole('button', { name: /new-player status: unreviewed/i }));
+    vi.runAllTimers();
 
     expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
       id: 'player-1',
-      isNewPlayer: true,
-    }));
+      isNewPlayer: false,
+    }), { persistImmediately: true });
+
+    vi.useRealTimers();
   });
 });

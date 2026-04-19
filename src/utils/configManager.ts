@@ -212,6 +212,14 @@ export function validateConfig(config: LeagueConfig, playerCount = 0): string[] 
     errors.push('Max team size cannot exceed 50');
   }
 
+  if (config.maxAutoGroupSize !== undefined && config.maxAutoGroupSize < 2) {
+    errors.push('Max request group size must be at least 2');
+  }
+
+  if (config.maxAutoGroupSize !== undefined && config.maxAutoGroupSize > config.maxTeamSize) {
+    errors.push('Max request group size cannot exceed max team size');
+  }
+
   if (config.minFemales < 0) {
     errors.push('Minimum females cannot be negative');
   }
@@ -262,6 +270,7 @@ export function importConfigsFromJSON(jsonString: string): LeagueConfig[] {
           id: item.id || generateConfigId(item.name || 'Imported Config'),
           name: item.name || 'Imported Config',
           maxTeamSize: Number(item.maxTeamSize) || 12,
+          maxAutoGroupSize: item.maxAutoGroupSize ? Number(item.maxAutoGroupSize) : undefined,
           minFemales: Number(item.minFemales) || 0,
           minMales: Number(item.minMales) || 0,
           targetTeams: item.targetTeams ? Number(item.targetTeams) : undefined,

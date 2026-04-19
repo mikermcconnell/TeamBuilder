@@ -1,7 +1,7 @@
-import type { GroupSuggestionsRequest, NameMatchRequest, TeamSuggestionsRequest } from '@/shared/ai-contracts';
+import type { GroupSuggestionsRequest, NameMatchRequest, TeamSuggestionsRequest } from '../../shared/ai-contracts.js';
 
-import { gemmaGroupSuggestionsProvider, gemmaNameMatchProvider, gemmaTeamSuggestionsProvider } from './providers/gemmaProvider';
-import { openAIGroupSuggestionsProvider, openAINameMatchProvider, openAITeamSuggestionsProvider } from './providers/openaiProvider';
+import { gemmaGroupSuggestionsProvider, gemmaNameMatchProvider, gemmaTeamSuggestionsProvider } from './providers/gemmaProvider.js';
+import { openAIGroupSuggestionsProvider, openAINameMatchProvider, openAITeamSuggestionsProvider } from './providers/openaiProvider.js';
 
 export type AIProviderName = 'openai' | 'gemma';
 

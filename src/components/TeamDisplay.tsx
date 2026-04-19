@@ -25,6 +25,7 @@ import {
 import { toast } from 'sonner';
 import { getPlayerGroup, getPlayerGroupColor, getPlayerGroupLabel, arePlayersInSameGroup, getGroupmates } from '@/utils/playerGrouping';
 import { Input } from '@/components/ui/input';
+import { sanitizeLegacyTeamName } from '@/utils/groupLabels';
 
 interface TeamDisplayProps {
   teams: Team[];
@@ -290,9 +291,9 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
       const canJoin = canPlayerJoinTeam(player, team, config, true); // Allow oversize for dropdown too
       const isCurrentTeam = player.teamId === team.id;
 
-      let label = `Move to ${team.name}`;
+      let label = `Move to ${sanitizeLegacyTeamName(team.name)}`;
       if (isInGroup) {
-        label = `Move Group ${groupLabel} to ${team.name}`;
+        label = `Move Group ${groupLabel} to ${sanitizeLegacyTeamName(team.name)}`;
       }
       if (team.players.length >= config.maxTeamSize) {
         label += ' (will exceed limit)';
@@ -398,10 +399,10 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
               ) : (
                 <span
                   className="cursor-pointer hover:bg-gray-100 px-1 rounded text-xs truncate"
-                  onClick={() => startEditingTeamName(team.id, team.name)}
+                  onClick={() => startEditingTeamName(team.id, sanitizeLegacyTeamName(team.name))}
                   title="Click to edit team name"
                 >
-                  {team.name}
+                  {sanitizeLegacyTeamName(team.name)}
                 </span>
               )}
             </CardTitle>
@@ -715,10 +716,10 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                             ) : (
                               <span
                                 className="cursor-pointer hover:bg-gray-100 px-1 rounded text-xs truncate"
-                                onClick={() => startEditingTeamName(team.id, team.name)}
+                                onClick={() => startEditingTeamName(team.id, sanitizeLegacyTeamName(team.name))}
                                 title="Click to edit team name"
                               >
-                                {team.name}
+                                {sanitizeLegacyTeamName(team.name)}
                               </span>
                             )}
                           </CardTitle>
@@ -1109,10 +1110,10 @@ export function TeamDisplay({ teams, unassignedPlayers, config, onPlayerMove, on
                     ) : (
                       <span
                         className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
-                        onClick={() => startEditingTeamName(team.id, team.name)}
+                        onClick={() => startEditingTeamName(team.id, sanitizeLegacyTeamName(team.name))}
                         title="Click to edit team name"
                       >
-                        {team.name}
+                        {sanitizeLegacyTeamName(team.name)}
                       </span>
                     )}
                   </CardTitle>

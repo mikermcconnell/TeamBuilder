@@ -81,10 +81,13 @@ describe('PlayerRoster', () => {
     fireEvent.click(screen.getByText('NEW'));
 
     await waitFor(() => {
-      expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
-        id: 'player-2',
-        isNewPlayer: false,
-      }));
+      expect(onPlayerUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player-2',
+          isNewPlayer: false,
+        }),
+        { persistImmediately: true }
+      );
     });
   });
 
@@ -121,10 +124,13 @@ describe('PlayerRoster', () => {
     fireEvent.click(screen.getByText('REVIEW'));
 
     await waitFor(() => {
-      expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
-        id: 'player-3',
-        isNewPlayer: false,
-      }));
+      expect(onPlayerUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player-3',
+          isNewPlayer: false,
+        }),
+        { persistImmediately: true }
+      );
     });
   });
 
@@ -162,10 +168,13 @@ describe('PlayerRoster', () => {
     fireEvent.doubleClick(screen.getByText('RETURNING'));
 
     await waitFor(() => {
-      expect(onPlayerUpdate).toHaveBeenCalledWith(expect.objectContaining({
-        id: 'player-4',
-        isNewPlayer: true,
-      }));
+      expect(onPlayerUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player-4',
+          isNewPlayer: true,
+        }),
+        { persistImmediately: true }
+      );
     });
   });
 

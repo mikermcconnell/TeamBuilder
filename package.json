@@ -13,6 +13,13 @@
     "test:run": "vitest run",
     "test:smoke": "vitest run src/tests/workspaceService.test.ts",
     "test:rules": "node scripts/run-rules-tests.mjs",
+    "firebase": "firebase",
+    "firebase:whoami": "firebase login:list",
+    "firebase:project": "firebase use",
+    "firebase:deploy:rules": "firebase deploy --only firestore:rules,storage",
+    "firebase:deploy:indexes": "firebase deploy --only firestore:indexes",
+    "firebase:deploy:hosting": "firebase deploy --only hosting",
+    "workspace:publish": "node scripts/publish-generated-workspace.mjs",
     "verify": "pnpm lint && pnpm test:run && pnpm test:rules && pnpm build"
   },
   "dependencies": {

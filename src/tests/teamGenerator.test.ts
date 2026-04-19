@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LeagueConfig, Player, Team } from '@/types';
-import { generateBalancedTeams } from '@/utils/teamGenerator';
+import { generateBalancedTeams, wouldSwapBreakGenderConstraints } from '@/utils/teamGenerator';
 
 function createPlayer(overrides: Partial<Player> & Pick<Player, 'id' | 'name' | 'gender'>): Player {
   return {
@@ -131,6 +131,88 @@ describe('generateBalancedTeams', () => {
       const expectedAverage = team.players.reduce((sum, player) => sum + effectiveSkill(player), 0) / team.players.length;
       expect(team.averageSkill).toBeCloseTo(expectedAverage, 5);
     });
+  });
+
+  it('tries to spread new players across teams as a soft preference', () => {
+    const players: Player[] = [
+      createPlayer({ id: 'p1', name: 'Alex', gender: 'M', skillRating: 5 }),
+      createPlayer({ id: 'p2', name: 'Blair', gender: 'F', skillRating: 5 }),
+      createPlayer({ id: 'p3', name: 'Casey', gender: 'M', skillRating: 5, isNewPlayer: true }),
+      createPlayer({ id: 'p4', name: 'Drew', gender: 'F', skillRating: 5 }),
+      createPlayer({ id: 'p5', name: 'Evan', gender: 'M', skillRating: 5, isNewPlayer: true }),
+      createPlayer({ id: 'p6', name: 'Finley', gender: 'F', skillRating: 5 }),
+    ];
+
+    const result = generateBalancedTeams(
+      players,
+      createConfig({ allowMixedGender: true, maxTeamSize: 3, targetTeams: 2 }),
+      []
+    );
+
+    const newPlayersPerTeam = result.teams.map(team =>
+      team.players.filter(player => player.isNewPlayer).length
+    );
+
+    expect(result.unassignedPlayers).toHaveLength(0);
+    expect(result.teams).toHaveLength(2);
+    expect(newPlayersPerTeam.sort((a, b) => a - b)).toEqual([1, 1]);
+  });
+
+  it('does not split a hard player group during the post-assignment balancing step', () => {
+    const players: Player[] = [
+      createPlayer({ id: 'p1', name: 'Alex', gender: 'M', skillRating: 10, groupId: 'group-1' }),
+      createPlayer({ id: 'p2', name: 'Blair', gender: 'F', skillRating: 2, groupId: 'group-1' }),
+      createPlayer({ id: 'p3', name: 'Casey', gender: 'M', skillRating: 9 }),
+      createPlayer({ id: 'p4', name: 'Drew', gender: 'F', skillRating: 1 }),
+    ];
+
+    const playerGroups = [
+      {
+        id: 'group-1',
+        label: 'A',
+        color: '#3B82F6',
+        playerIds: ['p1', 'p2'],
+        players: [players[0], players[1]].filter(Boolean) as Player[],
+      },
+    ];
+
+    const result = generateBalancedTeams(
+      players,
+      createConfig({ allowMixedGender: true, maxTeamSize: 2, targetTeams: 2 }),
+      playerGroups
+    );
+
+    const groupedTeamIds = result.teams
+      .filter(team => team.players.some(player => player.id === 'p1' || player.id === 'p2'))
+      .map(team => team.id);
+
+    expect(result.unassignedPlayers).toHaveLength(0);
+    expect(new Set(groupedTeamIds).size).toBe(1);
+  });
+
+  it('blocks balancing swaps that would break gender minimums', () => {
+    const config = createConfig({ allowMixedGender: true, maxTeamSize: 12, minFemales: 4, minMales: 7 });
+    const team1: Team = {
+      id: 'team-1',
+      name: 'Team 1',
+      players: [],
+      averageSkill: 6,
+      genderBreakdown: { M: 8, F: 4, Other: 0 },
+      handlerCount: 0,
+    };
+    const team2: Team = {
+      id: 'team-2',
+      name: 'Team 2',
+      players: [],
+      averageSkill: 6,
+      genderBreakdown: { M: 7, F: 5, Other: 0 },
+      handlerCount: 0,
+    };
+
+    const femalePlayer = createPlayer({ id: 'p1', name: 'Alex', gender: 'F', skillRating: 8 });
+    const malePlayer = createPlayer({ id: 'p2', name: 'Blair', gender: 'M', skillRating: 5 });
+
+    expect(wouldSwapBreakGenderConstraints(team1, team2, femalePlayer, malePlayer, config)).toBe(true);
   });
 
   it('respects target team count and can still place a balanced roster in random mode', () => {

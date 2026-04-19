@@ -54,6 +54,7 @@ export function sanitizeString(input: string, maxLength = 100): string {
 export const PlayerSchema = z.object({
   id: z.string().default(() => `player-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`),
   name: z.string().min(1, "Player name cannot be empty").transform(val => sanitizeString(val, MAX_PLAYER_NAME_LENGTH)),
+  isNewPlayer: z.boolean().optional(),
   profile: z.object({
     registrationInfo: z.string().transform(val => sanitizeString(val)).optional(),
     // Legacy field; folded into registrationInfo during transform.
@@ -65,8 +66,8 @@ export const PlayerSchema = z.object({
   experienceNotes: z.string().transform(val => sanitizeString(val)).optional(),
   age: z.number().int().min(0).max(120).optional(),
   gender: z.enum(['M', 'F', 'Other']).default('Other'),
-  skillRating: z.number().min(1).max(10).catch(5), // Default to 5 if invalid
-  execSkillRating: z.number().min(1).max(10).nullable().default(null),
+  skillRating: z.number().min(0).max(10).catch(5), // Default to 5 if invalid
+  execSkillRating: z.number().min(0).max(10).nullable().default(null),
   teammateRequests: z.array(z.string().transform(val => sanitizeString(val, MAX_PLAYER_NAME_LENGTH)))
     .default([])
     .transform(arr => arr.slice(0, MAX_TEAMMATE_REQUESTS)),
@@ -80,7 +81,7 @@ export const PlayerSchema = z.object({
   unfulfilledRequests: z.array(z.object({
     playerId: z.string().optional(),
     name: z.string(),
-    reason: z.enum(['non-reciprocal', 'group-full'])
+    reason: z.enum(['non-reciprocal', 'group-full', 'conflict', 'partial'])
   })).optional()
 }).transform((player) => {
   const notes = [
@@ -133,6 +134,7 @@ export const LeagueConfigSchema = z.object({
   id: z.string().default('default'),
   name: z.string().default('Default League').transform(val => sanitizeString(val, MAX_LEAGUE_NAME_LENGTH)),
   maxTeamSize: z.number().min(MIN_TEAM_SIZE).max(MAX_TEAM_SIZE).default(DEFAULT_MAX_TEAM_SIZE),
+  maxAutoGroupSize: z.number().int().min(2).max(MAX_TEAM_SIZE).optional(),
   minFemales: z.number().min(MIN_GENDER_COUNT).max(MAX_GENDER_COUNT).default(DEFAULT_MIN_FEMALES),
   minMales: z.number().min(MIN_GENDER_COUNT).max(MAX_GENDER_COUNT).default(DEFAULT_MIN_MALES),
   targetTeams: z.number().min(MIN_TARGET_TEAMS).max(MAX_TARGET_TEAMS).optional(),

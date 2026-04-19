@@ -1,5 +1,5 @@
-import { Player, CSVValidationResult, CSVRow, Gender, PlayerGroup, getPlayerAge, getPlayerRegistrationNotes } from '@/types';
-import { processMutualRequests } from './playerGrouping';
+import { Player, CSVValidationResult, CSVRow, Gender, LeagueConfig, PlayerGroup, getPlayerAge, getPlayerRegistrationNotes } from '@/types';
+import { getEffectiveAutoGroupSize, processMutualRequests } from './playerGrouping';
 import { fuzzyMatcher, FuzzyMatchResult } from './fuzzyNameMatcher';
 import Papa from 'papaparse';
 
@@ -178,7 +178,10 @@ function parseNewPlayerFlag(value?: string): boolean | undefined {
   return undefined;
 }
 
-export function validateAndProcessCSV(csvText: string): CSVValidationResult {
+export function validateAndProcessCSV(
+  csvText: string,
+  config?: Pick<LeagueConfig, 'maxTeamSize' | 'maxAutoGroupSize'>
+): CSVValidationResult {
   const result: CSVValidationResult = {
     isValid: false,
     errors: [],
@@ -205,9 +208,9 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
 
     // Process based on detected format
     if (formatDetection.format === 'registration') {
-      return processRegistrationFormat(rows, result);
+      return processRegistrationFormat(rows, result, config);
     } else {
-      return processLegacyFormat(rows, result);
+      return processLegacyFormat(rows, result, config);
     }
 
   } catch (error) {
@@ -220,7 +223,11 @@ export function validateAndProcessCSV(csvText: string): CSVValidationResult {
 /**
  * Process legacy CSV format (existing format)
  */
-function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVValidationResult {
+function processLegacyFormat(
+  rows: CSVRow[],
+  result: CSVValidationResult,
+  config?: Pick<LeagueConfig, 'maxTeamSize' | 'maxAutoGroupSize'>
+): CSVValidationResult {
   const headers = Object.keys(rows[0]);
 
   // Check required columns for legacy format
@@ -389,13 +396,17 @@ function processLegacyFormat(rows: CSVRow[], result: CSVValidationResult): CSVVa
     actualRowNumber++;
   }
 
-  return finalizePlayers(players, result);
+      return finalizePlayers(players, result, config);
 }
 
 /**
  * Process new registration CSV format
  */
-function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult): CSVValidationResult {
+function processRegistrationFormat(
+  rows: CSVRow[],
+  result: CSVValidationResult,
+  config?: Pick<LeagueConfig, 'maxTeamSize' | 'maxAutoGroupSize'>
+): CSVValidationResult {
   const headers = Object.keys(rows[0]);
 
   // Check required columns for registration format
@@ -635,13 +646,17 @@ function processRegistrationFormat(rows: CSVRow[], result: CSVValidationResult):
     result.warnings.push('Registration format detected - email not available');
   }
 
-  return finalizePlayers(players, result);
+      return finalizePlayers(players, result, config);
 }
 
 /**
  * Shared logic for finalizing player processing
  */
-function finalizePlayers(players: Player[], result: CSVValidationResult): CSVValidationResult {
+function finalizePlayers(
+  players: Player[],
+  result: CSVValidationResult,
+  config?: Pick<LeagueConfig, 'maxTeamSize' | 'maxAutoGroupSize'>
+): CSVValidationResult {
   // Validate teammate/avoid requests with fuzzy matching
   const playerNames = players.map(p => p.name);
 
@@ -724,10 +739,14 @@ function finalizePlayers(players: Player[], result: CSVValidationResult): CSVVal
   });
 
   // Process mutual requests and create player groups
-  const { cleanedPlayers, playerGroups } = processMutualRequests(players);
+  const autoGroupLimit = getEffectiveAutoGroupSize(config);
+  const { cleanedPlayers, playerGroups, nearMissGroups } = processMutualRequests(players, {
+    maxGroupSize: autoGroupLimit,
+  });
 
   result.players = cleanedPlayers;
   result.playerGroups = playerGroups;
+  result.nearMissGroups = nearMissGroups;
   result.isValid = result.errors.length === 0;
 
   if (result.isValid && cleanedPlayers.length === 0) {
@@ -739,6 +758,13 @@ function finalizePlayers(players: Player[], result: CSVValidationResult): CSVVal
   const groupedPlayerCount = playerGroups.reduce((sum, group) => sum + group.players.length, 0);
   if (groupedPlayerCount > 0 && !result.warnings.some(w => w.includes('player groups'))) {
     result.warnings.push(`Found ${playerGroups.length} player groups with ${groupedPlayerCount} players. Non-mutual requests have been removed.`);
+  }
+
+  const oversizedAutoGroups = nearMissGroups.filter(group => group.reason === 'group-too-large');
+  if (oversizedAutoGroups.length > 0) {
+    result.warnings.push(
+      `${oversizedAutoGroups.length} mutual-request group${oversizedAutoGroups.length === 1 ? '' : 's'} exceeded the current auto group cap of ${autoGroupLimit}. Review those players manually if you still want them grouped together.`
+    );
   }
 
   return result;

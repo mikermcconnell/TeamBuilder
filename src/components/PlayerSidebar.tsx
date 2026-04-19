@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Player, PlayerGroup, getEffectiveSkillRating } from '@/types';
+import { Player, PlayerGroup, PlayerUpdateHandler, getEffectiveSkillRating } from '@/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,7 +18,7 @@ import {
 interface PlayerSidebarProps {
     players: Player[];
     playerGroups: PlayerGroup[];
-    onPlayerUpdate?: (player: Player) => void;
+    onPlayerUpdate?: PlayerUpdateHandler;
 }
 
 export function PlayerSidebar({ players, playerGroups, onPlayerUpdate }: PlayerSidebarProps) {

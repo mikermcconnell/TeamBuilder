@@ -29,6 +29,7 @@ export class DataStorageService {
 
   async save(data: AppState): Promise<{ type: 'cloud' | 'local'; error?: unknown }> {
     const lastUpdated = new Date().toISOString();
+    this.saveToLocalStorage(data, lastUpdated);
 
     try {
       if (this.user) {
@@ -40,15 +41,12 @@ export class DataStorageService {
           lastUpdated
         });
 
-        this.saveToLocalStorage(data, lastUpdated);
         return { type: 'cloud' };
       }
 
-      this.saveToLocalStorage(data, lastUpdated);
       return { type: 'local' };
     } catch (error) {
       console.error('Error saving data:', error);
-      this.saveToLocalStorage(data, lastUpdated);
       return { type: 'local', error };
     }
   }

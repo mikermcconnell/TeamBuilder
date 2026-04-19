@@ -1,4 +1,5 @@
-import { Player, PlayerGroup, TeammateRequest, RequestConflict, NearMissGroup, UnfulfilledRequest } from '@/types';
+import { LeagueConfig, Player, PlayerGroup, TeammateRequest, RequestConflict, NearMissGroup, UnfulfilledRequest } from '@/types';
+import { getGroupLabelFromIndex } from '@/utils/groupLabels';
 
 // Predefined colors for player groups
 const GROUP_COLORS = [
@@ -179,8 +180,22 @@ export interface ProcessMutualRequestsResult {
   nearMissGroups: NearMissGroup[];
 }
 
+interface ProcessMutualRequestsOptions {
+  maxGroupSize?: number;
+}
+
+export function getEffectiveAutoGroupSize(
+  config?: Pick<LeagueConfig, 'maxTeamSize' | 'maxAutoGroupSize'> | null
+): number {
+  const maxTeamSize = config?.maxTeamSize ?? 4;
+  const configuredLimit = config?.maxAutoGroupSize ?? 4;
+
+  return Math.max(2, Math.min(configuredLimit, maxTeamSize));
+}
+
 // Function to process mutual requests and create groups
-export function processMutualRequests(players: Player[]): ProcessMutualRequestsResult {
+export function processMutualRequests(players: Player[], options: ProcessMutualRequestsOptions = {}): ProcessMutualRequestsResult {
+  const maxGroupSize = Math.max(2, options.maxGroupSize ?? 4);
   const cleanedPlayers = players.map(p => ({
     ...p,
     teammateRequests: [] as string[],
@@ -236,7 +251,7 @@ export function processMutualRequests(players: Player[]): ProcessMutualRequestsR
     // Build a group using BFS to find all connected players
     const groupPlayerIds = new Set<string>([player.id]);
     const queue = [player.id];
-    const overflowPlayers: string[] = []; // Track players that couldn't fit
+    const overflowPlayers = new Set<string>(); // Track players that couldn't fit
 
     while (queue.length > 0) {
       const currentPlayerId = queue.shift()!;
@@ -247,12 +262,12 @@ export function processMutualRequests(players: Player[]): ProcessMutualRequestsR
 
       for (const connectedId of currentConnections) {
         if (!groupPlayerIds.has(connectedId) && !processedPlayerIds.has(connectedId)) {
-          if (groupPlayerIds.size < 4) {
+          if (groupPlayerIds.size < maxGroupSize) {
             groupPlayerIds.add(connectedId);
             queue.push(connectedId);
           } else {
             // Track overflow for near-miss detection
-            overflowPlayers.push(connectedId);
+            overflowPlayers.add(connectedId);
           }
         }
       }
@@ -266,17 +281,18 @@ export function processMutualRequests(players: Player[]): ProcessMutualRequestsR
 
       const group: PlayerGroup = {
         id: `group-${groupIndex}`,
-        label: String.fromCharCode(65 + groupIndex), // A, B, C, etc.
+        label: getGroupLabelFromIndex(groupIndex),
         color: GROUP_COLORS[groupIndex % GROUP_COLORS.length] || GROUP_COLORS[0],
         playerIds: Array.from(groupPlayerIds),
         players: groupPlayers,
+        source: 'auto',
       };
 
       playerGroups.push(group);
 
       // Track near-miss if players overflowed
-      if (overflowPlayers.length > 0) {
-        const allIds = [...Array.from(groupPlayerIds), ...overflowPlayers];
+      if (overflowPlayers.size > 0) {
+        const allIds = [...Array.from(groupPlayerIds), ...Array.from(overflowPlayers)];
         const allNames = allIds.map(id => players.find(p => p.id === id)?.name || 'Unknown');
         nearMissGroups.push({
           playerIds: allIds,
@@ -362,21 +378,37 @@ export function processMutualRequests(players: Player[]): ProcessMutualRequestsR
 // Validate groups against league config BEFORE team generation
 export function validateGroupsForGeneration(
   playerGroups: PlayerGroup[],
-  maxTeamSize: number
+  config: Pick<LeagueConfig, 'maxTeamSize' | 'maxAutoGroupSize'>
 ): { valid: boolean; warnings: string[]; errors: string[] } {
   const warnings: string[] = [];
   const errors: string[] = [];
+  const autoGroupLimit = getEffectiveAutoGroupSize(config);
 
   for (const group of playerGroups) {
-    if (group.players.length > maxTeamSize) {
+    if (group.players.length > config.maxTeamSize) {
       errors.push(
-        `Group ${group.label} has ${group.players.length} players, but max team size is ${maxTeamSize}. ` +
+        `Group ${group.label} has ${group.players.length} players, but max team size is ${config.maxTeamSize}. ` +
         `This group cannot be placed on any team together.`
       );
-    } else if (group.players.length === maxTeamSize) {
+      continue;
+    }
+
+    if (group.players.length === config.maxTeamSize) {
       warnings.push(
         `Group ${group.label} has ${group.players.length} players, which fills an entire team. ` +
         `No other players can join this team.`
+      );
+    }
+
+    if (group.source !== 'auto' && group.players.length > autoGroupLimit) {
+      warnings.push(
+        `Group ${group.label} has ${group.players.length} players, which exceeds the auto request group cap of ${autoGroupLimit}. ` +
+        `This is still allowed because the group was created or edited manually.`
+      );
+    } else if (group.source === 'auto' && group.players.length > autoGroupLimit) {
+      warnings.push(
+        `Group ${group.label} has ${group.players.length} players, which exceeds the current auto request group cap of ${autoGroupLimit}. ` +
+        `Consider refreshing request groups from the roster.`
       );
     }
   }

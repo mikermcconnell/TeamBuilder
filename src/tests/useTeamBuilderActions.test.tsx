@@ -68,6 +68,7 @@ function createAppState(overrides: Partial<AppState> = {}): AppState {
 
 function renderActions(initialState: AppState) {
   const snapshotCurrentState = vi.fn();
+  const persistAppStateImmediately = vi.fn();
   const setActiveTab = vi.fn();
   const setIsManualMode = vi.fn();
   const setIsFullScreenMode = vi.fn();
@@ -79,6 +80,7 @@ function renderActions(initialState: AppState) {
       appState,
       setAppState,
       snapshotCurrentState,
+      persistAppStateImmediately,
       setActiveTab,
       setIsManualMode,
       setIsFullScreenMode,
@@ -93,6 +95,7 @@ function renderActions(initialState: AppState) {
   return {
     ...hook,
     snapshotCurrentState,
+    persistAppStateImmediately,
     setActiveTab,
     setIsManualMode,
     setIsFullScreenMode,
@@ -305,6 +308,36 @@ describe('useTeamBuilderActions', () => {
 
     expect(result.current.appState.playerGroups[0]?.players[0]?.skillRating).toBe(9);
     expect(result.current.appState.playerGroups[0]?.playerIds).toEqual(['grouped-player']);
+  });
+
+  it('persists immediately when requested for a player review toggle', () => {
+    const reviewedPlayer = createPlayer({
+      id: 'review-player',
+      name: 'Review Player',
+      isNewPlayer: true,
+    });
+
+    const { result, persistAppStateImmediately } = renderActions(createAppState({
+      players: [reviewedPlayer],
+      unassignedPlayers: [reviewedPlayer],
+    }));
+
+    act(() => {
+      result.current.handlePlayerUpdate({
+        ...reviewedPlayer,
+        isNewPlayer: false,
+      }, { persistImmediately: true });
+    });
+
+    expect(result.current.appState.players[0]?.isNewPlayer).toBe(false);
+    expect(persistAppStateImmediately).toHaveBeenCalledWith(expect.objectContaining({
+      players: [
+        expect.objectContaining({
+          id: 'review-player',
+          isNewPlayer: false,
+        }),
+      ],
+    }));
   });
 
   it('creates a mutual-request group when a warning resolution fixes a missing teammate match', () => {

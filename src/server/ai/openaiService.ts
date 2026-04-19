@@ -1,19 +1,17 @@
 import OpenAI from 'openai';
 
-import { calculateAverageSkillByGender } from '@/shared/ai-draft';
-import { getEffectiveTeamCount } from '@/utils/teamCount';
+import { calculateAverageSkillByGender } from '../../shared/ai-draft.js';
+import { getEffectiveTeamCount } from '../../utils/teamCount.js';
 import type {
-  AITeamDraftPayload,
   GroupSuggestionsRequest,
   NameMatchRequest,
   TeamDraftRequest,
   TeamSuggestionsRequest,
-} from '@/shared/ai-contracts';
-import { toDomainLeagueConfig, toDomainPlayer, toDomainPlayerGroups } from '@/shared/ai-mappers';
-import type { LeagueConfig, Player, PlayerGroup } from '@/types';
-import { applyTeamDraftPlan, type TeamDraftCandidate, type TeamDraftPlanResponse } from './teamDraftPlanner';
-import { buildDraftSnapshot, cloneTeamDraft, getDraftBucketIds } from './teamDraftDomain';
-import { getGroupSuggestionsProvider, getNameMatchProvider, getTeamSuggestionsProvider } from './provider';
+} from '../../shared/ai-contracts.js';
+import { toDomainLeagueConfig, toDomainPlayer, toDomainPlayerGroups } from '../../shared/ai-mappers.js';
+import { applyTeamDraftPlan, type TeamDraftCandidate, type TeamDraftPlanResponse } from './teamDraftPlanner.js';
+import { buildDraftSnapshot, cloneTeamDraft, getDraftBucketIds } from './teamDraftDomain.js';
+import { getGroupSuggestionsProvider, getNameMatchProvider, getTeamSuggestionsProvider } from './provider.js';
 
 const AI_MODEL = 'gpt-5.4';
 
@@ -44,7 +42,7 @@ function getClient() {
 
 async function createStructuredResponse<T>(options: {
   schemaName: string;
-  schema: object;
+  schema: Record<string, unknown>;
   systemPrompt: string;
   userPayload: unknown;
 }): Promise<StructuredResponseResult<T>> {

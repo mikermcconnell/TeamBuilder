@@ -1,4 +1,4 @@
-import type { LeagueConfig } from '@/types';
+import type { LeagueConfig } from '../types/index.js';
 
 type EvenTeamConfig = Pick<LeagueConfig, 'restrictToEvenTeams'>;
 type TeamCountConfig = Pick<LeagueConfig, 'maxTeamSize' | 'targetTeams' | 'restrictToEvenTeams'>;
@@ -59,10 +59,20 @@ export function normalizeLeagueConfig<T extends Partial<LeagueConfig>>(
 
   const restrictToEvenTeams = requestedRestriction;
   const targetTeams = normalizeTeamCount(requestedTargetTeams, { restrictToEvenTeams });
+  const normalizedMaxAutoGroupSize = typeof config.maxAutoGroupSize === 'number'
+    ? Math.max(
+      2,
+      Math.min(
+        Math.floor(config.maxAutoGroupSize),
+        typeof config.maxTeamSize === 'number' ? config.maxTeamSize : Math.floor(config.maxAutoGroupSize),
+      ),
+    )
+    : undefined;
 
   return {
     ...config,
     restrictToEvenTeams,
+    ...(normalizedMaxAutoGroupSize !== undefined ? { maxAutoGroupSize: normalizedMaxAutoGroupSize } : {}),
     ...(targetTeams !== undefined ? { targetTeams } : {}),
   } as T & Pick<LeagueConfig, 'restrictToEvenTeams'>;
 }

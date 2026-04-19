@@ -2,6 +2,7 @@ import { Team, Player, PlayerGroup, LeagueConfig, TeamGenerationStats, LeagueMem
 import { getPlayerGroupLabel } from './playerGrouping';
 import { generateShareableSummary } from './teamBranding';
 import { buildIterationInsights } from './teamInsights';
+import { sanitizeLegacyTeamName } from './groupLabels';
 
 export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], playerGroups: PlayerGroup[] = []): string {
   const headers = ['Team', 'Team Color', 'Player Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Player Group', 'Average Team Skill', 'Team Size', 'Males', 'Females', 'Other'];
@@ -12,7 +13,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
     team.players.forEach((player, index) => {
       const groupLabel = getPlayerGroupLabel(playerGroups, player.id) || '';
       const row = [
-        team.name,
+        sanitizeLegacyTeamName(team.name),
         index === 0 ? (team.colorName || '') : '',
         player.name,
         player.gender,
@@ -86,7 +87,7 @@ export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[
     const groupsStr = Array.from(teamGroups).join(', ') || 'None';
 
     const row = [
-      team.name,
+      sanitizeLegacyTeamName(team.name),
       team.colorName || '',
       team.players.length.toString(),
       team.averageSkill.toFixed(2),
@@ -170,8 +171,9 @@ export function generateTeamReport(teams: Team[], unassignedPlayers: Player[], p
 
   // Team details
   teams.forEach((team, index) => {
-    report += `${team.name.toUpperCase()}\n`;
-    report += '-'.repeat(team.name.length) + '\n';
+    const teamName = sanitizeLegacyTeamName(team.name);
+    report += `${teamName.toUpperCase()}\n`;
+    report += '-'.repeat(teamName.length) + '\n';
     if (team.colorName) {
       report += `Brand: ${team.colorName}\n`;
     }
@@ -312,7 +314,7 @@ export function generateLeagueOrganizerSummary(
     '-----',
     ...teams.flatMap(team => {
       const teamLines = [
-        `${team.name} — ${team.players.length} players, avg skill ${team.averageSkill.toFixed(1)}, ${team.genderBreakdown.F}F/${team.genderBreakdown.M}M/${team.genderBreakdown.Other}O`,
+        `${sanitizeLegacyTeamName(team.name)} — ${team.players.length} players, avg skill ${team.averageSkill.toFixed(1)}, ${team.genderBreakdown.F}F/${team.genderBreakdown.M}M/${team.genderBreakdown.Other}O`,
         `  Players: ${team.players.map(player => player.name).join(', ')}`,
       ];
 

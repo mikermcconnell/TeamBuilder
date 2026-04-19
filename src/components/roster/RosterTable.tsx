@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Player } from '@/types';
+import { Player, PlayerUpdateHandler } from '@/types';
 import {
     Table,
     TableBody,
@@ -48,7 +48,7 @@ interface RosterTableProps {
     players: Player[];
     selectedPlayerIds: Set<string>;
     onSelectionChange: (ids: Set<string>) => void;
-    onPlayerUpdate: (player: Player) => void;
+    onPlayerUpdate: PlayerUpdateHandler;
     onPlayerRemove?: (player: Player) => void;
     onViewPlayer: (player: Player) => void;
     onEditPlayer: (player: Player) => void;
@@ -396,7 +396,7 @@ export function RosterTable({
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <NewPlayerBadge
                                                             player={player}
-                                                            onStatusChange={(isNewPlayer) => onPlayerUpdate({ ...player, isNewPlayer })}
+                                                            onStatusChange={(isNewPlayer) => onPlayerUpdate({ ...player, isNewPlayer }, { persistImmediately: true })}
                                                         />
                                                         {player.email && (
                                                             <span className="text-[10px] text-muted-foreground hidden sm:inline-block">

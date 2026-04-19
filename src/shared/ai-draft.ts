@@ -1,8 +1,8 @@
-import { Player, Team, LeagueConfig, PlayerGroup } from '@/types';
-import { getEffectiveTeamCount } from '@/utils/teamCount';
-import { fuzzyMatcher } from '@/utils/fuzzyNameMatcher';
+import { Player, Team, LeagueConfig, PlayerGroup } from '../types/index.js';
+import { getEffectiveTeamCount } from '../utils/teamCount.js';
+import { fuzzyMatcher } from '../utils/fuzzyNameMatcher.js';
 
-import type { AITeamDraftPayload } from './ai-contracts';
+import type { AITeamDraftPayload } from './ai-contracts.js';
 
 export interface AITeamDraftValidationResult {
   valid: boolean;

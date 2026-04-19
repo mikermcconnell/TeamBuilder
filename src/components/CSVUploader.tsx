@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Player, CSVValidationResult, PlayerGroup } from '@/types';
+import { Player, CSVValidationResult, LeagueConfig, PlayerGroup } from '@/types';
 import { validateAndProcessCSV, generateSampleCSV, serializePlayersToCSV, NORMALIZED_ROSTER_HEADERS } from '@/utils/csvProcessor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,11 +21,12 @@ import { findPlayerMatches } from '@/services/aiService';
 import { StructuredWarning, parseWarnings, parseWarningMessage } from '@/types/StructuredWarning';
 import { MAX_CSV_SIZE_BYTES } from '@/config/constants';
 import * as XLSX from 'xlsx';
-import { processMutualRequests } from '@/utils/playerGrouping';
+import { getEffectiveAutoGroupSize, processMutualRequests } from '@/utils/playerGrouping';
 import { applyWarningResolutionToRequests, isAvoidWarning } from '@/utils/warningResolution';
 import { flagNewPlayersFromHistory } from '@/utils/newPlayerDetection';
 
 interface CSVUploaderProps {
+  config: LeagueConfig;
   onPlayersLoaded: (
     players: Player[],
     playerGroups?: PlayerGroup[],
@@ -38,6 +39,7 @@ interface CSVUploaderProps {
 }
 
 export function CSVUploader({
+  config,
   onPlayersLoaded,
   onNavigateToRoster,
   currentRosterCsvContent,
@@ -215,7 +217,7 @@ export function CSVUploader({
         text = await file.text();
       }
       setCurrentCSVContent(text);
-      const result = validateAndProcessCSV(text);
+      const result = validateAndProcessCSV(text, config);
 
       // Attempt AI refinement if valid (or warning)
       const refinedResult = await refineMatches(result);
@@ -240,7 +242,7 @@ export function CSVUploader({
 
   const handleLoadFromCloud = (csvContent: string, rosterName: string) => {
     setUploadedFileName(`${rosterName}.csv`);
-    const result = validateAndProcessCSV(csvContent);
+    const result = validateAndProcessCSV(csvContent, config);
     // Silent refinement for cloud load? Or show loader? 
     // Usually cloud load is instant, maybe skip AI for now or handle async
     // Let's do it async but show result immediately, then update?
@@ -316,7 +318,9 @@ export function CSVUploader({
     };
 
     const updatedPlayers = validationResult.players.map(p => p.id === player.id ? updatedPlayer : p);
-    const { cleanedPlayers, playerGroups } = processMutualRequests(updatedPlayers);
+    const { cleanedPlayers, playerGroups } = processMutualRequests(updatedPlayers, {
+      maxGroupSize: getEffectiveAutoGroupSize(config),
+    });
 
     setValidationResult(prev => prev ? {
       ...prev,

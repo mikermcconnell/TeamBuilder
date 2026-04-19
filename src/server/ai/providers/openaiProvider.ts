@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
-import { calculateAverageSkillByGender } from '@/shared/ai-draft';
-import type { GroupSuggestionsRequest, NameMatchRequest, TeamSuggestionsRequest } from '@/shared/ai-contracts';
+import { calculateAverageSkillByGender } from '../../../shared/ai-draft.js';
+import type { GroupSuggestionsRequest, NameMatchRequest, TeamSuggestionsRequest } from '../../../shared/ai-contracts.js';
 import type {
   AIGroupSuggestionsProvider,
   AINameMatchProvider,
@@ -9,8 +9,8 @@ import type {
   GroupSuggestionsProviderResult,
   NameMatchProviderResult,
   TeamSuggestionsProviderResult,
-} from '@/server/ai/provider';
-import { groupSuggestionsSchema, nameMatchesSchema, teamSuggestionsSchema } from '@/server/ai/providerSchemas';
+} from '../provider.js';
+import { groupSuggestionsSchema, nameMatchesSchema, teamSuggestionsSchema } from '../providerSchemas.js';
 
 const OPENAI_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-5.4';
 

@@ -10,9 +10,9 @@ import {
   RequestGuardError,
   type ServerlessRequest,
   type ServerlessResponse,
-} from '../../src/server/ai/http';
-import { parseNameMatchRequest, validateNameMatches } from '../../src/server/ai/guards';
-import { requestNameMatches } from '../../src/server/ai/openaiService';
+} from '../../src/server/ai/http.js';
+import { parseNameMatchRequest, validateNameMatches } from '../../src/server/ai/guards.js';
+import { requestNameMatches } from '../../src/server/ai/openaiService.js';
 
 export default async function handler(req: ServerlessRequest, res: ServerlessResponse) {
   if (!allowOnlyPost(req, res)) {

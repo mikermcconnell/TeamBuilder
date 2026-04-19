@@ -1,7 +1,7 @@
-import type { AITeamDraftPayload } from '@/shared/ai-contracts';
-import { validateAiTeamDraft } from '@/shared/ai-draft';
-import type { LeagueConfig, Player, PlayerGroup } from '@/types';
-import { cloneTeamDraft } from './teamDraftDomain';
+import type { AITeamDraftPayload } from '../../shared/ai-contracts.js';
+import { validateAiTeamDraft } from '../../shared/ai-draft.js';
+import type { LeagueConfig, Player, PlayerGroup } from '../../types/index.js';
+import { cloneTeamDraft } from './teamDraftDomain.js';
 
 interface DraftUnit {
   id: string;

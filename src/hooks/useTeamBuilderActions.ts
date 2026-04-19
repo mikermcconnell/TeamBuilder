@@ -1,18 +1,20 @@
 import { Dispatch, SetStateAction, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { toast } from 'sonner';
 
-import { AppState, LeagueConfig, Player, PlayerGroup, Team, getEffectiveSkillRating } from '@/types';
+import { AppState, LeagueConfig, Player, PlayerGroup, PlayerUpdateOptions, Team, getEffectiveSkillRating } from '@/types';
 import { StructuredWarning } from '@/types/StructuredWarning';
 import { saveDefaultConfig } from '@/utils/configManager';
 import { normalizeLeagueConfig } from '@/utils/teamCount';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { applyTeamBranding, ensureUniqueTeamNames, getColorName, getTeamBrandPalette } from '@/utils/teamBranding';
-import { processMutualRequests, validateGroupsForGeneration } from '@/utils/playerGrouping';
+import { getEffectiveAutoGroupSize, processMutualRequests, validateGroupsForGeneration } from '@/utils/playerGrouping';
 import { syncActiveTeamIterationToState } from '@/utils/teamIterations';
 import { debounce } from '@/utils/performance';
 import { reconcileTeamState } from '@/utils/teamStateReconciler';
 import { validateTeamName } from '@/utils/validation';
 import { applyWarningResolutionToRequests, isAvoidWarning } from '@/utils/warningResolution';
+import { getGroupLabelFromIndex } from '@/utils/groupLabels';
 
 const normalizeName = (name: string): string => name.trim().toLowerCase();
 const GROUP_COLORS = [
@@ -70,28 +72,36 @@ function syncPlayersAndGroups(players: Player[], playerGroups: PlayerGroup[]) {
 }
 
 function getNextGroupLabel(usedLabels: Set<string>): string {
-  for (let i = 0; i < 26; i++) {
-    const label = String.fromCharCode(65 + i);
+  let index = 0;
+
+  while (true) {
+    const label = getGroupLabelFromIndex(index);
     if (!usedLabels.has(label)) {
       usedLabels.add(label);
       return label;
     }
-  }
 
-  const fallbackLabel = `G${usedLabels.size + 1}`;
-  usedLabels.add(fallbackLabel);
-  return fallbackLabel;
+    index += 1;
+  }
 }
 
-function appendDerivedGroups(players: Player[], existingGroups: PlayerGroup[]) {
-  const syncedState = syncPlayersAndGroups(players, existingGroups);
+function rebuildAutoGroups(
+  players: Player[],
+  existingGroups: PlayerGroup[],
+  config: LeagueConfig
+) {
+  const manualGroups = existingGroups.filter(group => group.source !== 'auto');
+  const syncedState = syncPlayersAndGroups(players, manualGroups);
   const ungroupedPlayers = syncedState.players.filter(player => !player.groupId);
 
   if (ungroupedPlayers.length < 2) {
     return syncedState;
   }
 
-  const { playerGroups: derivedGroups } = processMutualRequests(ungroupedPlayers);
+  const { playerGroups: derivedGroups } = processMutualRequests(ungroupedPlayers, {
+    maxGroupSize: getEffectiveAutoGroupSize(config),
+  });
+
   if (derivedGroups.length === 0) {
     return syncedState;
   }
@@ -102,6 +112,7 @@ function appendDerivedGroups(players: Player[], existingGroups: PlayerGroup[]) {
     id: `group-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
     label: getNextGroupLabel(usedLabels),
     color: GROUP_COLORS[(syncedState.playerGroups.length + index) % GROUP_COLORS.length] || GROUP_COLORS[0] || '#3B82F6',
+    source: 'auto' as const,
   }));
 
   const derivedGroupByPlayerId = new Map<string, string>();
@@ -131,6 +142,7 @@ interface UseTeamBuilderActionsOptions {
   appState: AppState;
   setAppState: Dispatch<SetStateAction<AppState>>;
   snapshotCurrentState: () => void;
+  persistAppStateImmediately?: (state: AppState) => Promise<void> | void;
   setActiveTab: Dispatch<SetStateAction<string>>;
   setIsManualMode: Dispatch<SetStateAction<boolean>>;
   setIsFullScreenMode: Dispatch<SetStateAction<boolean>>;
@@ -141,6 +153,7 @@ export function useTeamBuilderActions({
   appState,
   setAppState,
   snapshotCurrentState,
+  persistAppStateImmediately,
   setActiveTab,
   setIsManualMode,
   setIsFullScreenMode,
@@ -302,7 +315,16 @@ export function useTeamBuilderActions({
 
   const handleConfigChange = useCallback((config: LeagueConfig) => {
     const normalizedConfig = normalizeLeagueConfig(config, { mode: 'enforce-even' });
-    setAppState(prev => ({ ...prev, config: normalizedConfig }));
+    setAppState(prev => {
+      const rebuiltGroupState = rebuildAutoGroups(prev.players, prev.playerGroups, normalizedConfig);
+
+      return {
+        ...prev,
+        config: normalizedConfig,
+        players: rebuiltGroupState.players,
+        playerGroups: rebuiltGroupState.playerGroups,
+      };
+    });
     saveDefaultConfig(normalizedConfig);
   }, [setAppState]);
 
@@ -314,7 +336,7 @@ export function useTeamBuilderActions({
 
     snapshotCurrentState();
 
-    const validation = validateGroupsForGeneration(appState.playerGroups, appState.config.maxTeamSize);
+    const validation = validateGroupsForGeneration(appState.playerGroups, appState.config);
 
     if (!validation.valid) {
       validation.errors.forEach(error => {
@@ -364,9 +386,7 @@ export function useTeamBuilderActions({
     }
   }, [appState.config, appState.playerGroups, appState.players, setActiveTab, setAppState, setIsManualMode, snapshotCurrentState, syncActiveIteration]);
 
-  const handlePlayerUpdate = useCallback((updatedPlayer: Player) => {
-    snapshotCurrentState();
-    setAppState(prev => {
+  const buildUpdatedPlayerState = useCallback((prev: AppState, updatedPlayer: Player) => {
       const existingPlayer = prev.players.find(p => p.id === updatedPlayer.id);
       const updatedHistory = { ...prev.execRatingHistory };
 
@@ -445,8 +465,29 @@ export function useTeamBuilderActions({
         stats: reconciledState.stats,
         execRatingHistory: updatedHistory
       });
-    });
-  }, [setAppState, snapshotCurrentState, syncActiveIteration]);
+  }, [syncActiveIteration]);
+
+  const handlePlayerUpdate = useCallback((updatedPlayer: Player, options?: PlayerUpdateOptions) => {
+    snapshotCurrentState();
+
+    if (options?.persistImmediately) {
+      let nextState: AppState | undefined;
+
+      flushSync(() => {
+        setAppState(prev => {
+          nextState = buildUpdatedPlayerState(prev, updatedPlayer);
+          return nextState;
+        });
+      });
+
+      if (nextState) {
+        void persistAppStateImmediately?.(nextState);
+      }
+      return;
+    }
+
+    setAppState(prev => buildUpdatedPlayerState(prev, updatedPlayer));
+  }, [buildUpdatedPlayerState, persistAppStateImmediately, setAppState, snapshotCurrentState]);
 
   const handlePlayerAdd = useCallback((newPlayer: Player) => {
     snapshotCurrentState();
@@ -495,7 +536,7 @@ export function useTeamBuilderActions({
       );
 
       const updatedPlayers = prev.players.map(p => p.id === player.id ? updatedPlayer : p);
-      const syncedGroupState = appendDerivedGroups(updatedPlayers, prev.playerGroups);
+      const syncedGroupState = rebuildAutoGroups(updatedPlayers, prev.playerGroups, prev.config);
 
       return {
         ...prev,
@@ -887,7 +928,7 @@ export function useTeamBuilderActions({
       const targetGroup = prev.playerGroups.find(g => g.id === groupId);
       const player = prev.players.find(p => p.id === playerId);
 
-      if (!targetGroup || !player || targetGroup.players.length >= 4) {
+      if (!targetGroup || !player || targetGroup.players.length >= prev.config.maxTeamSize) {
         return prev;
       }
 
@@ -896,7 +937,8 @@ export function useTeamBuilderActions({
           return {
             ...group,
             playerIds: [...group.playerIds, playerId],
-            players: [...group.players, player]
+            players: [...group.players, player],
+            source: 'manual' as const,
           };
         }
         return group;
@@ -919,7 +961,8 @@ export function useTeamBuilderActions({
       const updatedGroups = prev.playerGroups.map(group => ({
         ...group,
         playerIds: group.playerIds.filter(id => id !== playerId),
-        players: group.players.filter(p => p.id !== playerId)
+        players: group.players.filter(p => p.id !== playerId),
+        source: group.playerIds.includes(playerId) ? 'manual' as const : group.source,
       })).filter(group => group.players.length > 0);
 
       const updatedPlayers = prev.players.map(p =>
@@ -938,19 +981,11 @@ export function useTeamBuilderActions({
     setAppState(prev => {
       const selectedPlayers = prev.players.filter(p => playerIds.includes(p.id));
 
-      if (selectedPlayers.length === 0 || selectedPlayers.length > 4) {
+      if (selectedPlayers.length === 0 || selectedPlayers.length > prev.config.maxTeamSize) {
         return prev;
       }
 
-      const usedLabels = prev.playerGroups.map(g => g.label);
-      let nextLabel = 'A';
-      for (let i = 0; i < 26; i++) {
-        const label = String.fromCharCode(65 + i);
-        if (!usedLabels.includes(label)) {
-          nextLabel = label;
-          break;
-        }
-      }
+      const nextLabel = getNextGroupLabel(new Set(prev.playerGroups.map(group => group.label)));
 
       const colors = [
         '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#F97316',
@@ -963,7 +998,8 @@ export function useTeamBuilderActions({
         label: nextLabel,
         color: groupColor,
         playerIds,
-        players: selectedPlayers
+        players: selectedPlayers,
+        source: 'manual',
       };
 
       const updatedPlayers = prev.players.map(p =>
@@ -1002,6 +1038,9 @@ export function useTeamBuilderActions({
       const targetGroup = prev.playerGroups.find(g => g.id === targetGroupId);
 
       if (!sourceGroup || !targetGroup) return prev;
+      if (sourceGroup.players.length + targetGroup.players.length > prev.config.maxTeamSize) {
+        return prev;
+      }
 
       const updatedPlayers = prev.players.map(player => {
         if (sourceGroup.playerIds.includes(player.id)) {
@@ -1015,7 +1054,8 @@ export function useTeamBuilderActions({
           return {
             ...group,
             playerIds: [...group.playerIds, ...sourceGroup.playerIds],
-            players: [...group.players, ...sourceGroup.players]
+            players: [...group.players, ...sourceGroup.players],
+            source: 'manual' as const,
           };
         }
         return group;

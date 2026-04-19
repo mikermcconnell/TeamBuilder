@@ -190,6 +190,7 @@ function App() {
     applyLoadedWorkspace,
     restoreImportedState,
     syncWorkspaceSaveStatus,
+    persistAppStateImmediately,
   } = useAppPersistence({
     user,
     appState,
@@ -366,6 +367,7 @@ function App() {
     appState,
     setAppState,
     snapshotCurrentState,
+    persistAppStateImmediately,
     setActiveTab,
     setIsManualMode,
     setIsFullScreenMode,
@@ -441,7 +443,7 @@ function App() {
       toast.warning(warning, { duration: 5000 });
     });
 
-    const validation = validateGroupsForGeneration(appState.playerGroups, appState.config.maxTeamSize);
+    const validation = validateGroupsForGeneration(appState.playerGroups, appState.config);
 
     if (!validation.valid) {
       validation.errors.forEach(error => {
@@ -951,6 +953,7 @@ function App() {
 
                     <div id="csv-upload-trigger">
                       <CSVUploader
+                        config={appState.config}
                         onPlayersLoaded={handleRosterCsvLoaded}
                         onNavigateToRoster={() => setActiveTab('roster')}
                         currentRosterCsvContent={currentRosterCsvContent}
@@ -1016,6 +1019,7 @@ function App() {
                   <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                     <h3 className="text-lg font-extrabold text-slate-700 mb-4">Player Groups</h3>
                     <PlayerGroups
+                      config={appState.config}
                       playerGroups={appState.playerGroups}
                       players={appState.players}
                       onAddPlayerToGroup={handleAddPlayerToGroup}

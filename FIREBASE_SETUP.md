@@ -1,5 +1,49 @@
 # Firebase Setup Guide for TeamBuilder
 
+## Repo status on April 16, 2026
+
+This repo is already wired to Firebase CLI:
+
+- local CLI available through `pnpm`
+- default Firebase project: `teambuilder-3b79e`
+- current CLI login on this machine: `michaelryanmcconnell@gmail.com`
+
+### Repo commands
+
+Run these from the repo root:
+
+```bash
+pnpm firebase:whoami
+pnpm firebase:project
+pnpm firebase:deploy:rules
+pnpm firebase:deploy:indexes
+pnpm firebase:deploy:hosting
+```
+
+### Important
+
+Firebase CLI login is still different from Firebase Admin credentials, but the workspace publish script now supports both modes:
+
+- **Firebase CLI login** on this machine can publish generated workspaces directly through Google APIs
+- **Firebase Admin credentials** are still recommended for headless automation, CI, or shared scripts
+
+If you want a portable setup that works without this machine's Firebase CLI session, add Admin credentials.
+
+Recommended for this repo:
+
+```env
+FIREBASE_PROJECT_ID=teambuilder-3b79e
+FIREBASE_SERVICE_ACCOUNT_PATH=C:/secure/team-builder-service-account.json
+```
+
+The workspace publish script also supports:
+
+```env
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
+```
+
+If neither Admin credential option is set, the script will fall back to the existing local Firebase CLI login.
+
 ## 🚀 Quick Start - Simple Cloud Save
 
 TeamBuilder now supports optional cloud saving through Firebase. When signed in, your data automatically syncs to the cloud. When signed out, data is saved locally only.

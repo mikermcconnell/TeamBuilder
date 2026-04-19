@@ -64,6 +64,7 @@ const config: LeagueConfig = {
 const player: Player = {
   id: 'player-1',
   name: 'Alex Example',
+  isNewPlayer: false,
   gender: 'M',
   skillRating: 7,
   execSkillRating: 7.5,
@@ -214,6 +215,131 @@ describe('WorkspaceService', () => {
         name: 'Offline Project',
       }),
     ]);
+  });
+
+  it('preserves new-player review flags in cloud project saves', async () => {
+    const result = await WorkspaceService.saveWorkspace(
+      {
+        userId: 'user-123',
+        name: 'Project Alpha',
+        description: 'Roster review state',
+        players: [player],
+        playerGroups: [],
+        config,
+        teams: [],
+        unassignedPlayers: [player],
+        version: 1,
+      },
+      'workspace-new-player-state'
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'workspace-new-player-state',
+        type: 'cloud',
+      })
+    );
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'workspace-new-player-state', path: 'workspaces/workspace-new-player-state' }),
+      expect.objectContaining({
+        players: [
+          expect.objectContaining({
+            id: 'player-1',
+            isNewPlayer: false,
+          }),
+        ],
+      }),
+      { merge: true }
+    );
+  });
+
+  it('preserves all core roster, group, and team fields in cloud project saves', async () => {
+    const detailedPlayer: Player = {
+      ...player,
+      id: 'player-rich',
+      name: 'Rich Player',
+      isNewPlayer: true,
+      gender: 'F',
+      skillRating: 0,
+      execSkillRating: 0,
+      isHandler: true,
+      email: 'rich@example.com',
+      teammateRequests: ['Teammate One'],
+      avoidRequests: ['Avoid One'],
+      profile: {
+        age: 18,
+        registrationInfo: 'Young player',
+      },
+      groupId: 'group-1',
+      teamId: 'team-1',
+    };
+
+    await WorkspaceService.saveWorkspace(
+      {
+        userId: 'user-123',
+        name: 'Comprehensive Save',
+        description: 'Full field coverage',
+        players: [detailedPlayer],
+        playerGroups: [
+          {
+            id: 'group-1',
+            label: 'A',
+            color: '#3B82F6',
+            playerIds: ['player-rich'],
+            players: [detailedPlayer],
+          },
+        ],
+        config,
+        teams: [
+          {
+            id: 'team-1',
+            name: 'Blue Jays',
+            players: [detailedPlayer],
+            averageSkill: 0,
+            genderBreakdown: { M: 0, F: 1, Other: 0 },
+          },
+        ],
+        unassignedPlayers: [],
+        version: 1,
+      },
+      'workspace-full-field-state'
+    );
+
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'workspace-full-field-state', path: 'workspaces/workspace-full-field-state' }),
+      expect.objectContaining({
+        players: [
+          expect.objectContaining({
+            id: 'player-rich',
+            isNewPlayer: true,
+            gender: 'F',
+            skillRating: 0,
+            execSkillRating: 0,
+            isHandler: true,
+            teammateRequests: ['Teammate One'],
+            avoidRequests: ['Avoid One'],
+            profile: expect.objectContaining({
+              age: 18,
+            }),
+            groupId: 'group-1',
+            teamId: 'team-1',
+          }),
+        ],
+        playerGroups: [
+          expect.objectContaining({
+            id: 'group-1',
+            playerIds: ['player-rich'],
+          }),
+        ],
+        teams: [
+          expect.objectContaining({
+            id: 'team-1',
+            players: [expect.objectContaining({ id: 'player-rich' })],
+          }),
+        ],
+      }),
+      { merge: true }
+    );
   });
 
   it('reloads a locally saved project after a cloud fallback failure', async () => {

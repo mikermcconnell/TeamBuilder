@@ -1,7 +1,7 @@
-import { Player, Team, LeagueConfig, TeamGenerationStats, PlayerGroup } from '@/types';
-import { fuzzyMatcher } from './fuzzyNameMatcher';
-import { applyTeamBranding } from './teamBranding';
-import { getEffectiveTeamCount } from './teamCount';
+import { Player, Team, LeagueConfig, TeamGenerationStats, PlayerGroup } from '../types/index.js';
+import { fuzzyMatcher } from './fuzzyNameMatcher.js';
+import { applyTeamBranding } from './teamBranding.js';
+import { getEffectiveTeamCount } from './teamCount.js';
 
 export interface GenerationResult {
   teams: Team[];
@@ -41,11 +41,11 @@ export function generateBalancedTeams(
   const playerMap = new Map(players.map(p => [p.name.toLowerCase(), p]));
 
   if (manualMode) {
-    return generateManualTeams(players, config, playerGroups, startTime, playerMap);
+    return generateManualTeams(players, config, playerGroups, startTime);
   }
 
   if (randomize) {
-    return generateRandomTeams(players, config, playerGroups, startTime, playerMap);
+    return generateRandomTeams(players, config, playerGroups, startTime);
   }
 
   // Find mutual teammate requests
@@ -77,11 +77,11 @@ export function generateBalancedTeams(
   for (const group of sortedGroups) {
     if (group.some(p => assignedPlayerIds.has(p.id))) continue;
 
-    const bestTeam = findBestTeamForGroup(group, teams, config, playerMap);
+    const bestTeam = findBestTeamForGroup(group, teams, config);
 
     if (bestTeam && canAssignGroupToTeam(group, bestTeam, config)) {
       // Check avoid constraints for all players in the group
-      const hasViolations = group.some(player => hasAvoidConflict(player, bestTeam, playerMap));
+      const hasViolations = group.some(player => hasAvoidConflict(player, bestTeam));
 
       if (!hasViolations) {
         group.forEach(player => {
@@ -99,7 +99,7 @@ export function generateBalancedTeams(
   }
 
   // Balance teams by skill after initial assignment, respecting avoid constraints
-  balanceTeamsBySkill(teams, playerMap);
+  balanceTeamsBySkill(teams, config);
 
   const stats = calculateStats(players, teams, unassignedPlayers, mutualPairs, playerGroups, startTime);
 
@@ -115,7 +115,6 @@ function generateRandomTeams(
   config: LeagueConfig,
   playerGroups: PlayerGroup[],
   startTime: number,
-  playerMap: Map<string, Player>
 ): GenerationResult {
   // Even in random mode, we need to honor custom groups
   // Create constraint groups but then assign them randomly
@@ -137,7 +136,7 @@ function generateRandomTeams(
       if (!canAssignGroupToTeam(group, team, config)) return false;
 
       // Check avoid constraints for all players in the group
-      if (group.some(player => hasAvoidConflict(player, team, playerMap))) return false;
+      if (group.some(player => hasAvoidConflict(player, team))) return false;
 
       return true;
     });
@@ -173,7 +172,6 @@ function generateManualTeams(
   config: LeagueConfig,
   playerGroups: PlayerGroup[],
   startTime: number,
-  playerMap: Map<string, Player>
 ): GenerationResult {
   // Create empty teams based on targetTeams configuration
   const targetTeams = getEffectiveTeamCount(players.length, config);
@@ -271,14 +269,13 @@ function findBestTeamForGroup(
   group: Player[],
   teams: Team[],
   config: LeagueConfig,
-  playerMap: Map<string, Player>
 ): Team | null {
   const availableTeams = teams.filter(team => {
     // Check if team can accommodate the group
     if (!canAssignGroupToTeam(group, team, config)) return false;
 
     // Check avoid constraints for all players in the group
-    if (group.some(player => hasAvoidConflict(player, team, playerMap))) return false;
+    if (group.some(player => hasAvoidConflict(player, team))) return false;
 
     return true;
   });
@@ -298,6 +295,16 @@ function findBestTeamForGroup(
 
     if (a.players.length !== b.players.length) {
       return a.players.length - b.players.length;
+    }
+
+    const incomingNewPlayers = countNewPlayers(group);
+    if (incomingNewPlayers > 0) {
+      const aNewPlayerCount = countNewPlayers(a.players);
+      const bNewPlayerCount = countNewPlayers(b.players);
+
+      if (aNewPlayerCount !== bNewPlayerCount) {
+        return aNewPlayerCount - bNewPlayerCount;
+      }
     }
 
     // Prefer teams that would have better skill balance and handler balance
@@ -407,7 +414,54 @@ function calculateOverallAverageSkill(teams: Team[]): number {
   return allPlayers.length > 0 ? totalSkill / allPlayers.length : 0;
 }
 
-function balanceTeamsBySkill(teams: Team[], playerMap: Map<string, Player>): void {
+function countNewPlayers(players: Player[]): number {
+  return players.filter(player => player.isNewPlayer === true).length;
+}
+
+function isGroupedPlayer(player: Player): boolean {
+  return typeof player.groupId === 'string' && player.groupId.length > 0;
+}
+
+export function wouldSwapBreakGenderConstraints(
+  team1: Team,
+  team2: Team,
+  player1: Player,
+  player2: Player,
+  config: LeagueConfig,
+): boolean {
+  const team1After = {
+    M: team1.genderBreakdown.M - (player1.gender === 'M' ? 1 : 0) + (player2.gender === 'M' ? 1 : 0),
+    F: team1.genderBreakdown.F - (player1.gender === 'F' ? 1 : 0) + (player2.gender === 'F' ? 1 : 0),
+    Other: team1.genderBreakdown.Other - (player1.gender === 'Other' ? 1 : 0) + (player2.gender === 'Other' ? 1 : 0),
+  };
+
+  const team2After = {
+    M: team2.genderBreakdown.M - (player2.gender === 'M' ? 1 : 0) + (player1.gender === 'M' ? 1 : 0),
+    F: team2.genderBreakdown.F - (player2.gender === 'F' ? 1 : 0) + (player1.gender === 'F' ? 1 : 0),
+    Other: team2.genderBreakdown.Other - (player2.gender === 'Other' ? 1 : 0) + (player1.gender === 'Other' ? 1 : 0),
+  };
+
+  if (team1After.F < config.minFemales || team2After.F < config.minFemales) {
+    return true;
+  }
+
+  if (team1After.M < config.minMales || team2After.M < config.minMales) {
+    return true;
+  }
+
+  if (!config.allowMixedGender) {
+    const team1GenderTypes = [team1After.M > 0, team1After.F > 0, team1After.Other > 0].filter(Boolean).length;
+    const team2GenderTypes = [team2After.M > 0, team2After.F > 0, team2After.Other > 0].filter(Boolean).length;
+
+    if (team1GenderTypes > 1 || team2GenderTypes > 1) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function balanceTeamsBySkill(teams: Team[], config: LeagueConfig): void {
   const maxIterations = 5; // Reduced iterations for performance
   const minImprovementThreshold = 0.1; // Stop if improvement is minimal
 
@@ -451,6 +505,11 @@ function balanceTeamsBySkill(teams: Team[], playerMap: Map<string, Player>): voi
 
       for (const weakPlayer of weakPlayers) {
         for (const strongPlayer of strongPlayers) {
+          // Player groups are a hard requirement. Never break them during skill balancing.
+          if (isGroupedPlayer(weakPlayer) || isGroupedPlayer(strongPlayer)) {
+            continue;
+          }
+
           // Quick check: Skip if swap wouldn't help
           const weakSkill = weakPlayer.execSkillRating !== null ? weakPlayer.execSkillRating : weakPlayer.skillRating;
           const strongSkill = strongPlayer.execSkillRating !== null ? strongPlayer.execSkillRating : strongPlayer.skillRating;
@@ -458,10 +517,10 @@ function balanceTeamsBySkill(teams: Team[], playerMap: Map<string, Player>): voi
 
           // Check if swap would create avoid conflicts
           const wouldCreateConflicts =
-            hasAvoidConflict(weakPlayer, strongerTeam, playerMap) ||
-            hasAvoidConflict(strongPlayer, weakerTeam, playerMap);
+            hasAvoidConflict(weakPlayer, strongerTeam) ||
+            hasAvoidConflict(strongPlayer, weakerTeam);
 
-          if (!wouldCreateConflicts) {
+          if (!wouldCreateConflicts && !wouldSwapBreakGenderConstraints(weakerTeam, strongerTeam, weakPlayer, strongPlayer, config)) {
             const improvement = calculateSwapImprovement(
               weakerTeam, strongerTeam, weakPlayer, strongPlayer
             );
@@ -548,10 +607,20 @@ function calculateSwapImprovement(
 
   const newHandlerDiff = Math.abs(t1NewHandlers - targetHandlers) + Math.abs(t2NewHandlers - targetHandlers);
 
+  const team1NewPlayerCount = countNewPlayers(team1.players);
+  const team2NewPlayerCount = countNewPlayers(team2.players);
+  const player1IsNew = player1.isNewPlayer === true ? 1 : 0;
+  const player2IsNew = player2.isNewPlayer === true ? 1 : 0;
+  const currentNewPlayerDiff = Math.abs(team1NewPlayerCount - team2NewPlayerCount);
+  const newTeam1NewPlayerCount = team1NewPlayerCount - player1IsNew + player2IsNew;
+  const newTeam2NewPlayerCount = team2NewPlayerCount - player2IsNew + player1IsNew;
+  const newNewPlayerDiff = Math.abs(newTeam1NewPlayerCount - newTeam2NewPlayerCount);
+
   const skillImprovement = currentDiff - newDiff;
   const handlerImprovement = (currentHandlerDiff - newHandlerDiff) * 0.5; // Weight handler improvement
+  const newPlayerImprovement = (currentNewPlayerDiff - newNewPlayerDiff) * 0.35;
 
-  return skillImprovement + handlerImprovement; // Positive value means improvement
+  return skillImprovement + handlerImprovement + newPlayerImprovement; // Positive value means improvement
 }
 
 function swapPlayers(team1: Team, team2: Team, player1: Player, player2: Player): void {
@@ -722,7 +791,7 @@ function calculateStats(
   };
 }
 
-function hasAvoidConflict(player: Player, team: Team, playerMap: Map<string, Player>): boolean {
+function hasAvoidConflict(player: Player, team: Team): boolean {
   const teamPlayerNames = team.players.map(p => p.name);
 
   // Check if player avoids anyone on the team (with fuzzy matching)

@@ -3,8 +3,8 @@ import type {
   AIPlayerGroupInput,
   AIPlayerInput,
   AITeamInput,
-} from '@/shared/ai-contracts';
-import type { LeagueConfig, Player, PlayerGroup, Team } from '@/types';
+} from './ai-contracts.js';
+import type { LeagueConfig, Player, PlayerGroup, Team } from '../types/index.js';
 
 export function toAIPlayerInput(player: Player): AIPlayerInput {
   return {

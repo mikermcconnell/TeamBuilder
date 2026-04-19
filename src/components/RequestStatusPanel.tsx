@@ -161,7 +161,7 @@ export function RequestStatusPanel({
                                             {group.potentialSize} players
                                         </Badge>
                                         <span className="text-xs text-orange-600">
-                                            {group.reason === 'group-too-large' && 'Exceeds max group size (4)'}
+                                            {group.reason === 'group-too-large' && 'Exceeds configured auto group size'}
                                             {group.reason === 'would-exceed-team-size' && 'Would exceed max team size'}
                                             {group.reason === 'gender-constraints' && 'Gender requirements not met'}
                                             {group.reason === 'avoid-conflict' && 'Avoid conflict between members'}

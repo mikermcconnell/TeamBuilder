@@ -5,6 +5,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { CSVUploader } from '@/components/CSVUploader';
 import { getUserRosters } from '@/services/rosterService';
 
+const config = {
+  id: 'league-1',
+  name: 'League',
+  maxTeamSize: 12,
+  minFemales: 0,
+  minMales: 0,
+  allowMixedGender: true,
+} as const;
+
 vi.mock('@/services/rosterService', () => ({
   getUserRosters: vi.fn(),
 }));
@@ -45,6 +54,7 @@ describe('CSVUploader', () => {
 
     render(
       <CSVUploader
+        config={config}
         onPlayersLoaded={vi.fn()}
         currentRosterCsvContent="live-roster-csv"
         currentRosterPlayerCount={4}
@@ -82,6 +92,7 @@ describe('CSVUploader', () => {
 
     const { container } = render(
       <CSVUploader
+        config={config}
         onPlayersLoaded={vi.fn()}
       />
     );

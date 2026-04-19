@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Player, Gender, getEffectiveSkillRating } from '@/types';
+import { Player, Gender, PlayerUpdateHandler, getEffectiveSkillRating } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -54,7 +54,7 @@ import { flagNewPlayersFromHistory } from '@/utils/newPlayerDetection';
 
 interface PlayerRosterProps {
   players: Player[];
-  onPlayerUpdate: (player: Player) => void;
+  onPlayerUpdate: PlayerUpdateHandler;
   onPlayerAdd?: (player: Player) => void;
   onPlayerRemove?: (playerId: string) => void;
   onClearExecRankings?: () => void;

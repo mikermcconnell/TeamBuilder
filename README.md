@@ -147,6 +147,38 @@ npm run build
 
 Use `npm run dev:vercel` if you want the server-side AI features to work locally.
 
+### Publish generated teams into a saved project
+
+If you already have a registration export and a generated teams CSV, you can turn that into a TeamBuilder project backup and optionally publish it straight to Firestore:
+
+```bash
+pnpm workspace:publish \
+  --roster "Rosters/Spring Outdoor 2026_event-registrations_2026-04-14_11_23.csv" \
+  --teams "Rosters/Spring Outdoor 2026_generated_teams.csv" \
+  --project-name "Spring Outdoor 2026 AI Draft"
+```
+
+Add `--publish firestore --user-email you@example.com` to write the workspace directly into the signed-in user's project list. The script also keeps mutual request groups so the draft can be regenerated later inside the app.
+
+Direct Firestore publish now supports either:
+
+- an existing local Firebase CLI login on this machine, or
+- Firebase Admin credentials in `.env.local`
+
+For repeatable automation or headless environments, add one of these to `.env.local`:
+
+```bash
+FIREBASE_PROJECT_ID=teambuilder-3b79e
+FIREBASE_SERVICE_ACCOUNT_PATH=C:/secure/team-builder-service-account.json
+```
+
+or:
+
+```bash
+FIREBASE_PROJECT_ID=teambuilder-3b79e
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
+```
+
 ### Optional Gemma setup for AI name matching and group suggestions
 
 The current Gemma rollout supports:

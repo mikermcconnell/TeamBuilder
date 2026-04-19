@@ -1,6 +1,6 @@
-import type { ApiErrorCode, ApiFailure, ApiSuccess } from '@/shared/ai-contracts';
-import { MAX_AI_REQUEST_BYTES } from '@/config/constants';
-import { enforceAiRateLimits, verifyAuthenticatedAiUser, type RequestHeaders } from './security';
+import type { ApiErrorCode, ApiFailure, ApiSuccess } from '../../shared/ai-contracts.js';
+import { MAX_AI_REQUEST_BYTES } from '../../config/constants.js';
+import { enforceAiRateLimits, verifyAuthenticatedAiUser, type RequestHeaders } from './security.js';
 
 export interface ServerlessRequest {
   method?: string;

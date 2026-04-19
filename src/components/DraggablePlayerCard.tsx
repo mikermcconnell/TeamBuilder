@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Player, getEffectiveSkillRating } from '@/types';
+import { Player, PlayerUpdateHandler, getEffectiveSkillRating } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { NewPlayerBadge } from '@/components/NewPlayerBadge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -15,7 +15,7 @@ interface DraggablePlayerCardProps {
   groupColor?: string | null; // Group color for visual indicator
   groupLabel?: string | null; // Group label (A, B, C...)
   showSplitWarning?: boolean; // Show warning when player would be separated from group
-  onPlayerUpdate?: (player: Player) => void;
+  onPlayerUpdate?: PlayerUpdateHandler;
 }
 
 export function DraggablePlayerCard({
@@ -162,7 +162,7 @@ export function DraggablePlayerCard({
             <NewPlayerBadge
               player={player}
               compact={compact}
-              onStatusChange={(isNewPlayer) => onPlayerUpdate({ ...player, isNewPlayer })}
+              onStatusChange={(isNewPlayer) => onPlayerUpdate({ ...player, isNewPlayer }, { persistImmediately: true })}
             />
           </div>
         )}

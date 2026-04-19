@@ -10,9 +10,9 @@ import {
   RequestGuardError,
   type ServerlessRequest,
   type ServerlessResponse,
-} from '../../src/server/ai/http';
-import { parseTeamDraftRequest } from '../../src/server/ai/guards';
-import { generateTeamDraftWithFallback } from '../../src/server/ai/teamDraftOrchestrator';
+} from '../../src/server/ai/http.js';
+import { parseTeamDraftRequest } from '../../src/server/ai/guards.js';
+import { generateTeamDraftWithFallback } from '../../src/server/ai/teamDraftOrchestrator.js';
 
 export default async function handler(req: ServerlessRequest, res: ServerlessResponse) {
   if (!allowOnlyPost(req, res)) {

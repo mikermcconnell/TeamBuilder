@@ -1,4 +1,5 @@
 import { LeagueConfig, PlayerGroup, Team, TeamGenerationStats } from '@/types';
+import { normalizeGroupLabel, sanitizeLegacyTeamName } from '@/utils/groupLabels';
 
 interface TeamBrandPalette {
   color: string;
@@ -109,7 +110,7 @@ function buildMascotRotation(primaryMascot: string, offset: number): string[] {
 }
 
 function splitTeamNameBaseAndMascot(name: string): { base: string; mascot: string | null } {
-  const cleanedName = stripTrailingCopyOrNumber(name);
+  const cleanedName = stripTrailingCopyOrNumber(sanitizeLegacyTeamName(name));
   const lowerName = cleanedName.toLocaleLowerCase();
   const matchedMascot = TEAM_MASCOT_POOL.find(mascot => lowerName.endsWith(` ${mascot.toLocaleLowerCase()}`));
 
@@ -135,7 +136,7 @@ function buildAlternativeTeamNameCandidates(name: string, offset = 0): string[] 
 }
 
 export function getUniqueTeamName(baseName: string, usedNames: Set<string>, fallbackCandidates: string[] = []): string {
-  const trimmedName = baseName.trim() || 'Team';
+  const trimmedName = sanitizeLegacyTeamName(baseName) || 'Team';
   const candidates = getUniqueValues([trimmedName, ...fallbackCandidates]);
 
   for (const candidate of candidates) {
@@ -190,7 +191,7 @@ function deriveLeagueBaseName(configName: string): string {
 function getDominantGroupLabel(team: Team, playerGroups: PlayerGroup[]): string | null {
   const candidates = playerGroups
     .map(group => ({
-      label: group.label,
+      label: normalizeGroupLabel(group.label),
       count: team.players.filter(player => group.playerIds.includes(player.id)).length,
     }))
     .filter(group => group.count > 0)
@@ -246,6 +247,8 @@ export function applyTeamBranding(
     let finalName = keepManualName
       ? team.name
       : (options.forceRename || shouldReplaceTeamName(team.name) ? suggestedName : team.name);
+
+    finalName = sanitizeLegacyTeamName(finalName);
 
     if (!keepManualName && usedNames.has(normalizeNameKey(finalName))) {
       finalName = `${suggestedName} ${index + 1}`;
@@ -317,7 +320,7 @@ export function generateShareableSummary(
 
   teams.forEach(team => {
     const colorLabel = team.colorName ? `${team.colorName} • ` : '';
-    lines.push(`${colorLabel}${team.name}`);
+    lines.push(`${colorLabel}${sanitizeLegacyTeamName(team.name)}`);
     lines.push(`Players: ${team.players.length} • Avg Skill: ${team.averageSkill.toFixed(1)} • ${team.genderBreakdown.F}F / ${team.genderBreakdown.M}M / ${team.genderBreakdown.Other}O`);
     lines.push(team.players.map(player => player.name).join(', '));
     lines.push('');

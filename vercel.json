@@ -14,6 +14,22 @@
   ],
   "rewrites": [
     {
+      "source": "/api/ai/team-suggestions",
+      "destination": "/api/ai/team-suggestions.ts"
+    },
+    {
+      "source": "/api/ai/name-match",
+      "destination": "/api/ai/name-match.ts"
+    },
+    {
+      "source": "/api/ai/group-suggestions",
+      "destination": "/api/ai/group-suggestions.ts"
+    },
+    {
+      "source": "/api/ai/team-draft",
+      "destination": "/api/ai/team-draft.ts"
+    },
+    {
       "source": "/((?!api/.*)(?!_next/.*)(?!static/.*)(?!sitemap.xml)(?!robots.txt)(?!manifest.json).*)",
       "destination": "/index.html"
     }

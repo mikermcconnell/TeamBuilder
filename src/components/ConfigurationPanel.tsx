@@ -52,6 +52,10 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
     () => isEvenTeamRestrictionEnabled(config),
     [config]
   );
+  const effectiveAutoGroupCap = useMemo(
+    () => Math.min(config.maxAutoGroupSize ?? 4, config.maxTeamSize),
+    [config.maxAutoGroupSize, config.maxTeamSize]
+  );
 
   // Calculate gender breakdown
   const genderStats = useMemo(() => {
@@ -254,6 +258,7 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
                     <div>Max team size: {preset.maxTeamSize}</div>
+                    <div>Max request group size: {Math.min(preset.maxAutoGroupSize ?? 4, preset.maxTeamSize)}</div>
                     <div>Min females: {preset.minFemales}</div>
                     <div>Min males: {preset.minMales}</div>
                   </div>
@@ -317,6 +322,7 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
                       </div>
                       <div className="text-sm text-gray-600 space-y-1">
                         <div>Max team size: {preset.maxTeamSize}</div>
+                        <div>Max request group size: {Math.min(preset.maxAutoGroupSize ?? 4, preset.maxTeamSize)}</div>
                         <div>Min females: {preset.minFemales}</div>
                         <div>Min males: {preset.minMales}</div>
                       </div>
@@ -425,7 +431,7 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="maxTeamSize">Maximum Team Size</Label>
               <Input
@@ -438,6 +444,24 @@ export function ConfigurationPanel({ config, onConfigChange, playerCount, player
               />
             </div>
             
+            <div className="space-y-2">
+              <Label htmlFor="maxAutoGroupSize">Max Request Group Size</Label>
+              <Input
+                id="maxAutoGroupSize"
+                type="number"
+                min="2"
+                max={config.maxTeamSize}
+                placeholder="4"
+                value={config.maxAutoGroupSize ?? ''}
+                onChange={(e) => updateConfig({
+                  maxAutoGroupSize: e.target.value ? parseInt(e.target.value, 10) || undefined : undefined,
+                })}
+              />
+              <p className="text-xs text-slate-500">
+                Caps auto-created mutual request groups. Current auto cap: {effectiveAutoGroupCap}. Manual groups can still be larger, up to the team size.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="targetTeams">Target Number of Teams (Optional)</Label>

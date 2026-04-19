@@ -84,11 +84,19 @@ export class WorkspaceService {
 
         // Recursively remove all undefined values (Firestore doesn't allow them)
         const payload = cleanUndefinedDeep(rawPayload) as SavedWorkspace;
+        try {
+            this.upsertLocalWorkspace(payload);
+        } catch (storageError) {
+            if (storageError instanceof DOMException &&
+                (storageError.name === 'QuotaExceededError' || storageError.code === 22)) {
+                throw new Error('Local storage is full. Please delete old projects or sign in for cloud storage.');
+            }
+            throw storageError;
+        }
 
         try {
             const workspaceRef = doc(db, this.COLLECTION, workspaceId);
             await setDoc(workspaceRef, payload, { merge: true });
-            this.upsertLocalWorkspace(payload);
             return { id: workspaceId, type: 'cloud' };
         } catch (error: unknown) {
             // Log detailed error info for debugging
@@ -102,22 +110,7 @@ export class WorkspaceService {
 
             // Fallback to LocalStorage
             // We need to store it in a list in localStorage to simulate the collection
-            try {
-                try {
-                    this.upsertLocalWorkspace(payload);
-                } catch (storageError) {
-                    // Handle localStorage quota exceeded
-                    if (storageError instanceof DOMException &&
-                        (storageError.name === 'QuotaExceededError' || storageError.code === 22)) {
-                        throw new Error('Local storage is full. Please delete old projects or sign in for cloud storage.');
-                    }
-                    throw storageError;
-                }
-                return { id: workspaceId, type: 'local', error };
-            } catch (localError) {
-                console.error('Failed to save locally:', localError);
-                throw localError instanceof Error ? localError : new Error('Failed to save project everywhere');
-            }
+            return { id: workspaceId, type: 'local', error };
         }
     }
 

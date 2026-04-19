@@ -14,7 +14,7 @@ import {
   DropAnimation
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Player, Team, LeagueConfig, PlayerGroup, TeamGenerationStats, TeamIteration, TeamIterationStatus, LeagueMemoryEntry } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, PlayerUpdateHandler, TeamGenerationStats, TeamIteration, TeamIterationStatus, LeagueMemoryEntry } from '@/types';
 import { getPlayerGroup } from '@/utils/playerGrouping';
 import { PlayerSidebar } from './PlayerSidebar';
 import { TeamBoard } from './TeamBoard';
@@ -46,7 +46,7 @@ interface FullScreenTeamBuilderProps {
   unassignedPlayers: Player[];
   config: LeagueConfig;
   onPlayerMove: (playerId: string, targetTeamId: string | null) => void;
-  onPlayerUpdate: (player: Player) => void;
+  onPlayerUpdate: PlayerUpdateHandler;
   onTeamNameChange: (teamId: string, newName: string) => void;
   onTeamBrandingChange?: (teamId: string, updates: {
     name?: string;

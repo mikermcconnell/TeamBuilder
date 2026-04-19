@@ -82,7 +82,7 @@ function buildExecRatingHistory(players: Player[], existingHistory?: AppState['e
   return migratedHistory;
 }
 
-function sanitizeLoadedState(loadedState: AppState): AppState | null {
+export function sanitizeLoadedState(loadedState: AppState): AppState | null {
   if (!validateAppState(loadedState)) {
     return null;
   }
@@ -437,6 +437,60 @@ export function useAppPersistence({
     });
   }, []);
 
+  const persistAppStateImmediately = useCallback(async (state: AppState) => {
+    setPersistenceSnapshot({
+      phase: 'saving',
+      scope: 'device',
+      surface: user ? 'cloud' : 'local',
+    });
+
+    try {
+      const deviceResult = await dataStorageService.save(state);
+
+      if (currentWorkspaceId && user && workspaceName.trim()) {
+        const workspaceResult = await saveWorkspace({
+          players: state.players,
+          playerGroups: state.playerGroups,
+          config: state.config,
+          teams: state.teams,
+          unassignedPlayers: state.unassignedPlayers,
+          stats: state.stats,
+          teamIterations: state.teamIterations,
+          activeTeamIterationId: state.activeTeamIterationId,
+          leagueMemory: state.leagueMemory,
+        }, {
+          id: currentWorkspaceId,
+          name: workspaceName,
+          description: workspaceDescription,
+          silent: true,
+          refreshList: false,
+        });
+
+        if (workspaceResult) {
+          setPersistenceSnapshot({
+            phase: workspaceResult.type === 'local' ? 'retrying' : 'saved',
+            scope: 'project',
+            surface: workspaceResult.type,
+          });
+          return;
+        }
+      }
+
+      setPersistenceSnapshot({
+        phase: deviceResult.type === 'local' && user ? 'retrying' : 'saved',
+        scope: 'device',
+        surface: deviceResult.type,
+      });
+    } catch (error) {
+      console.error('Immediate save failed:', error);
+      setPersistenceSnapshot({
+        phase: 'error',
+        scope: currentWorkspaceId && user && workspaceName.trim() ? 'project' : 'device',
+        surface: user ? 'cloud' : 'local',
+      });
+    }
+  }, [currentWorkspaceId, saveWorkspace, user, workspaceDescription, workspaceName]);
+
   const persistenceStatus = useMemo(
     () => describePersistenceStatus(persistenceSnapshot, user, Boolean(currentWorkspaceId)),
     [currentWorkspaceId, persistenceSnapshot, user]
@@ -448,5 +502,6 @@ export function useAppPersistence({
     applyLoadedWorkspace,
     restoreImportedState,
     syncWorkspaceSaveStatus,
+    persistAppStateImmediately,
   };
 }

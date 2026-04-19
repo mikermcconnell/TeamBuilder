@@ -1,5 +1,5 @@
 import React from 'react';
-import { Team, LeagueConfig, Player, PlayerGroup } from '@/types';
+import { Team, LeagueConfig, Player, PlayerGroup, PlayerUpdateHandler } from '@/types';
 import { DroppableTeamCard } from './DroppableTeamCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ interface TeamBoardProps {
     teams: Team[];
     players: Player[];
     config: LeagueConfig;
-    onPlayerUpdate?: (player: Player) => void;
+    onPlayerUpdate?: PlayerUpdateHandler;
     onTeamNameChange: (id: string, name: string) => void;
     onTeamBrandingChange?: (id: string, updates: {
         name?: string;

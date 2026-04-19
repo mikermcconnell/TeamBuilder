@@ -1,5 +1,5 @@
-import { calculateAverageSkillByGender } from '@/shared/ai-draft';
-import type { GroupSuggestionsRequest, NameMatchRequest, TeamSuggestionsRequest } from '@/shared/ai-contracts';
+import { calculateAverageSkillByGender } from '../../../shared/ai-draft.js';
+import type { GroupSuggestionsRequest, NameMatchRequest, TeamSuggestionsRequest } from '../../../shared/ai-contracts.js';
 import type {
   AIGroupSuggestionsProvider,
   AINameMatchProvider,
@@ -7,7 +7,7 @@ import type {
   GroupSuggestionsProviderResult,
   NameMatchProviderResult,
   TeamSuggestionsProviderResult,
-} from '@/server/ai/provider';
+} from '../provider.js';
 
 interface OllamaChatResponse {
   model?: string;
