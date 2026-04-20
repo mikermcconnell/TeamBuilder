@@ -62,4 +62,19 @@ describe('describePersistenceStatus', () => {
       })
     );
   });
+
+  it('shows conflict guidance when a project save is stale', () => {
+    expect(
+      describePersistenceStatus(
+        { phase: 'conflict', scope: 'project', surface: 'local' },
+        { uid: 'user-1' } as never,
+        true
+      )
+    ).toEqual(
+      expect.objectContaining({
+        title: 'Sync conflict',
+        detail: 'Reload or save as a new project',
+      })
+    );
+  });
 });

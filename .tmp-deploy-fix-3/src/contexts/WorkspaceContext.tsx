@@ -1,0 +1,245 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+// Workspace Context for managing projects
+import { SavedWorkspace, AppState, LeagueConfig } from '@/types';
+import { WorkspaceService } from '@/services/workspaceService';
+import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
+import type { WorkspaceSaveResult } from '@/hooks/useAppPersistence';
+
+interface WorkspaceContextType {
+    currentWorkspaceId: string | null;
+    workspaceName: string;
+    workspaceDescription: string;
+    savedWorkspaces: SavedWorkspace[];
+    isLoading: boolean;
+    isSaving: boolean;
+
+    // Actions
+    loadWorkspaces: () => Promise<void>;
+    saveWorkspace: (
+        data: Partial<AppState>,
+        options?: {
+            id?: string | null;
+            name?: string;
+            description?: string;
+            silent?: boolean;
+            refreshList?: boolean;
+        }
+    ) => Promise<WorkspaceSaveResult | undefined>;
+    loadWorkspace: (id: string) => Promise<SavedWorkspace | null>;
+    deleteWorkspace: (id: string) => Promise<void>;
+    setCurrentWorkspaceInfo: (id: string | null, name: string, description: string) => void;
+    createNewWorkspace: () => void;
+}
+
+const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
+
+export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
+
+    // Workspace State
+    const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
+    const [workspaceName, setWorkspaceName] = useState('');
+    const [workspaceDescription, setWorkspaceDescription] = useState('');
+    const [savedWorkspaces, setSavedWorkspaces] = useState<SavedWorkspace[]>([]);
+
+    // Loading States
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const loadWorkspaces = useCallback(async () => {
+        if (!user) return;
+        setIsLoading(true);
+        try {
+            const workspaces = await WorkspaceService.getUserWorkspaces(user.uid);
+            setSavedWorkspaces(workspaces);
+        } catch (error) {
+            console.error('Failed to load saved workspaces:', error);
+            toast.error('Failed to load saved projects');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user]);
+
+    // Reset state when user logs out
+    useEffect(() => {
+        if (!user) {
+            setCurrentWorkspaceId(null);
+            setWorkspaceName('');
+            setWorkspaceDescription('');
+            setSavedWorkspaces([]);
+        } else {
+            void loadWorkspaces();
+        }
+    }, [user, loadWorkspaces]);
+
+    const saveWorkspace = useCallback(async (
+        appState: Partial<AppState>,
+        options?: {
+            id?: string | null;
+            name?: string;
+            description?: string;
+            silent?: boolean;
+            refreshList?: boolean;
+        }
+    ) => {
+        if (!user) {
+            if (!options?.silent) {
+                toast.error('Please sign in to save projects');
+            }
+            return;
+        }
+
+        const effectiveId = options?.id ?? currentWorkspaceId;
+        const trimmedName = (options?.name ?? workspaceName).trim();
+        const trimmedDescription = (options?.description ?? workspaceDescription).trim();
+
+        if (!trimmedName) {
+            if (!options?.silent) {
+                toast.error('Please enter a project name');
+            }
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const payload: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'> = {
+                userId: user.uid,
+                name: trimmedName,
+                description: trimmedDescription,
+                players: appState.players || [],
+                playerGroups: appState.playerGroups || [],
+                config: appState.config || ({} as LeagueConfig), // Should be safe if called correctly
+                teams: appState.teams || [],
+                unassignedPlayers: appState.unassignedPlayers || [],
+                stats: appState.stats,
+                teamIterations: appState.teamIterations || [],
+                activeTeamIterationId: appState.activeTeamIterationId ?? null,
+                leagueMemory: appState.leagueMemory || [],
+                version: 1,
+            };
+
+            const result = await WorkspaceService.saveWorkspace(payload, effectiveId || undefined);
+
+            // Handle result (check if string or object, though we updated service to return object)
+            // Ideally we update the interface to match, but JS runtime will return the object
+            const id = typeof result === 'string' ? result : result.id;
+
+            setCurrentWorkspaceId(id);
+            setWorkspaceName(trimmedName);
+            setWorkspaceDescription(trimmedDescription);
+
+            // Update the list smoothly without full reload if possible, but fetching is safer
+            if (options?.refreshList !== false) {
+                await loadWorkspaces();
+            }
+
+            // Show appropriate feedback
+            if (typeof result !== 'string' && result.type === 'local') {
+                // Log the actual error that caused fallback
+                console.error('Cloud save failed, error details:', result.error);
+                if (!options?.silent) {
+                    const errorCode = result.error?.code || 'unknown';
+                    const errorMsg = result.error?.message || 'Check your ad blocker';
+                    toast.warning(`Cloud save blocked (${errorCode}). Saved locally.`, {
+                        description: errorMsg.substring(0, 100),
+                        duration: 8000,
+                    });
+                }
+            } else if (!options?.silent) {
+                toast.success('Project saved to cloud');
+            }
+
+            return typeof result === 'string'
+                ? { id, type: 'cloud' }
+                : { id, type: result.type, error: result.error };
+        } catch (error) {
+            console.error('Failed to save project:', error);
+            if (!options?.silent) {
+                toast.error('Failed to save project');
+            }
+            throw error;
+        } finally {
+            setIsSaving(false);
+        }
+    }, [user, workspaceName, workspaceDescription, currentWorkspaceId, loadWorkspaces]);
+
+    const loadWorkspace = useCallback(async (id: string) => {
+        if (!user) return null;
+        setIsLoading(true);
+        try {
+            const workspace = await WorkspaceService.getWorkspace(id, user.uid);
+            if (workspace) {
+                setCurrentWorkspaceId(workspace.id);
+                setWorkspaceName(workspace.name);
+                setWorkspaceDescription(workspace.description || '');
+                return workspace;
+            }
+            return null;
+        } catch (error) {
+            console.error('Failed to load project:', error);
+            toast.error('Failed to load project');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user]);
+
+    const deleteWorkspace = useCallback(async (id: string) => {
+        if (!user) return;
+        try {
+            await WorkspaceService.deleteWorkspace(id, user.uid);
+            toast.success('Project deleted');
+
+            if (currentWorkspaceId === id) {
+                setCurrentWorkspaceId(null);
+                setWorkspaceName('');
+                setWorkspaceDescription('');
+            }
+
+            loadWorkspaces();
+        } catch (error) {
+            console.error('Failed to delete project:', error);
+            toast.error('Failed to delete project');
+        }
+    }, [user, currentWorkspaceId, loadWorkspaces]);
+
+    const setCurrentWorkspaceInfo = useCallback((id: string | null, name: string, description: string) => {
+        if (id !== undefined) setCurrentWorkspaceId(id);
+        setWorkspaceName(name);
+        setWorkspaceDescription(description);
+    }, []);
+
+    const createNewWorkspace = useCallback(() => {
+        setCurrentWorkspaceId(null);
+        setWorkspaceName('Project ' + new Date().toLocaleDateString());
+        setWorkspaceDescription('');
+    }, []);
+
+    return (
+        <WorkspaceContext.Provider value={{
+            currentWorkspaceId,
+            workspaceName,
+            workspaceDescription,
+            savedWorkspaces,
+            isLoading,
+            isSaving,
+            loadWorkspaces,
+            saveWorkspace,
+            loadWorkspace,
+            deleteWorkspace,
+            setCurrentWorkspaceInfo,
+            createNewWorkspace
+        }}>
+            {children}
+        </WorkspaceContext.Provider>
+    );
+}
+
+export function useWorkspace() {
+    const context = useContext(WorkspaceContext);
+    if (context === undefined) {
+        throw new Error('useWorkspace must be used within a WorkspaceProvider');
+    }
+    return context;
+}

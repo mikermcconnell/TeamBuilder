@@ -1,0 +1,9 @@
+Name,Gender,Skill Rating,Email,Teammate Requests,Avoid Requests
+Alice Johnson,F,8,alice@example.com,Bob Smith,
+Bob Smith,M,7,bob@example.com,Alice Johnson,
+Charlie Brown,M,6,charlie@example.com,,
+Diana Prince,F,9,diana@example.com,,
+Ethan Hunt,M,5,ethan@example.com,,
+Fiona Green,F,4,fiona@example.com,,
+George White,M,6,george@example.com,,
+Hannah Lee,F,7,hannah@example.com,,

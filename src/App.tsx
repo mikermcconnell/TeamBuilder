@@ -6,6 +6,7 @@ import { getDefaultConfig, getRosterFeasibilityWarnings, validateConfig } from '
 import { getProjectBackupFilename, parseProjectBackup, serializeProjectBackup } from '@/utils/projectRecovery';
 import { validateGroupsForGeneration } from '@/utils/playerGrouping';
 import { serializePlayersToCSV } from '@/utils/csvProcessor';
+import { mergeWorkspaceStateForConflict } from '@/services/persistence/workspaceMerge';
 import {
   applyTeamIterationToState,
   createAiTeamIteration,
@@ -37,8 +38,6 @@ import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
 import { flushSync } from 'react-dom';
-import { IterationScoreCard } from '@/components/teams/IterationScoreCard';
-import { buildIterationInsights } from '@/utils/teamInsights';
 
 
 // Import test runner for development
@@ -116,10 +115,13 @@ function App() {
     savedWorkspaces,
     isSaving: isSavingWorkspace,
     isLoading: isFetchingWorkspaces,
+    lastWorkspaceConflict,
     saveWorkspace,
     loadWorkspace,
+    getWorkspaceSnapshot,
     deleteWorkspace,
-    setCurrentWorkspaceInfo
+    setCurrentWorkspaceInfo,
+    clearWorkspaceConflict,
   } = useWorkspace();
 
   const [isFullScreenMode, setIsFullScreenMode] = useState(false);
@@ -241,7 +243,9 @@ function App() {
         description: workspaceDescription,
       });
       syncWorkspaceSaveStatus(result);
-      setIsSaveWorkspaceDialogOpen(false);
+      if (result && result.type !== 'conflict' && result.type !== 'error') {
+        setIsSaveWorkspaceDialogOpen(false);
+      }
     } catch (e) {
       // Toast handled in context
     }
@@ -257,6 +261,80 @@ function App() {
     }
     setLoadingWorkspaceId(null);
   }, [applyLoadedWorkspace, loadWorkspace]);
+
+  const handleReloadWorkspaceAfterConflict = useCallback(async () => {
+    if (!currentWorkspaceId) {
+      return;
+    }
+
+    if (!window.confirm('Reload the latest cloud version? Your current unsaved changes in this tab will be replaced.')) {
+      return;
+    }
+
+    await handleLoadWorkspace(currentWorkspaceId);
+    clearWorkspaceConflict();
+  }, [clearWorkspaceConflict, currentWorkspaceId, handleLoadWorkspace]);
+
+  const handleSaveWorkspaceAsCopy = useCallback(async () => {
+    const baseName = workspaceName.trim() || 'Recovered Project';
+    const copyName = /\(copy\)$/i.test(baseName) ? baseName : `${baseName} (copy)`;
+    setCurrentWorkspaceInfo(null, copyName, workspaceDescription);
+
+    try {
+      const result = await saveWorkspace(appState, {
+        id: null,
+        name: copyName,
+        description: workspaceDescription,
+      });
+
+      syncWorkspaceSaveStatus(result);
+      if (result && result.type !== 'conflict' && result.type !== 'error') {
+        clearWorkspaceConflict();
+      }
+    } catch {
+      // Toast handled in context
+    }
+  }, [appState, clearWorkspaceConflict, saveWorkspace, setCurrentWorkspaceInfo, syncWorkspaceSaveStatus, workspaceDescription, workspaceName]);
+
+  const handleMergeWorkspaceAfterConflict = useCallback(async () => {
+    if (!currentWorkspaceId || !lastWorkspaceConflict?.conflict?.actualRevision) {
+      return;
+    }
+
+    const latestWorkspace = await getWorkspaceSnapshot(currentWorkspaceId);
+    if (!latestWorkspace) {
+      return;
+    }
+
+    const mergedState = mergeWorkspaceStateForConflict(latestWorkspace, appState);
+
+    try {
+      const result = await saveWorkspace(mergedState, {
+        id: currentWorkspaceId,
+        name: workspaceName,
+        description: workspaceDescription,
+        expectedRevision: latestWorkspace.revision,
+      });
+
+      syncWorkspaceSaveStatus(result);
+      if (result && result.type !== 'conflict' && result.type !== 'error') {
+        clearWorkspaceConflict();
+        toast.success('Merged your draft with the latest saved project');
+      }
+    } catch {
+      // Toast handled in context
+    }
+  }, [
+    appState,
+    clearWorkspaceConflict,
+    currentWorkspaceId,
+    getWorkspaceSnapshot,
+    lastWorkspaceConflict?.conflict?.actualRevision,
+    saveWorkspace,
+    syncWorkspaceSaveStatus,
+    workspaceDescription,
+    workspaceName,
+  ]);
 
   const handleDeleteWorkspaceAction = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -390,13 +468,6 @@ function App() {
   const workspaceTeams = activeIteration?.teams ?? appState.teams;
   const workspaceUnassignedPlayers = activeIteration?.unassignedPlayers ?? appState.unassignedPlayers;
   const workspaceStats = activeIteration?.stats ?? appState.stats;
-  const activeIterationInsights = useMemo(() => {
-    if (!activeIteration || activeIteration.status !== 'ready') {
-      return null;
-    }
-
-    return buildIterationInsights(activeIteration, appState.config, leagueMemory);
-  }, [activeIteration, appState.config, leagueMemory]);
   const execHistoryCount = Object.keys(appState.execRatingHistory || {}).length;
   const currentRosterCsvContent = useMemo(
     () => appState.players.length > 0 ? serializePlayersToCSV(appState.players) : '',
@@ -859,6 +930,11 @@ function App() {
           setCurrentWorkspaceInfo={setCurrentWorkspaceInfo}
           isSavingWorkspace={isSavingWorkspace}
           onSaveWorkspace={handleSaveWorkspace}
+          workspaceConflict={lastWorkspaceConflict}
+          onReloadWorkspaceAfterConflict={handleReloadWorkspaceAfterConflict}
+          onMergeWorkspaceAfterConflict={handleMergeWorkspaceAfterConflict}
+          onSaveWorkspaceAsCopy={handleSaveWorkspaceAsCopy}
+          onDismissWorkspaceConflict={clearWorkspaceConflict}
           workspaceSearchTerm={workspaceSearchTerm}
           onWorkspaceSearchTermChange={setWorkspaceSearchTerm}
           isFetchingWorkspaces={isFetchingWorkspaces}
@@ -1158,16 +1234,6 @@ function App() {
                           </div>
                         </div>
 
-                        <div className="text-center space-y-2">
-                          <h2 className="text-3xl font-extrabold text-slate-800">{activeIteration?.name || 'Select Workspace'}</h2>
-                          <p className="text-slate-500 max-w-lg mx-auto">
-                            Review the current draft score.
-                          </p>
-                        </div>
-
-                        {activeIterationInsights && (
-                          <IterationScoreCard insights={activeIterationInsights} />
-                        )}
                       </div>
                     ) : (
                       <div className="space-y-6">

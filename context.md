@@ -170,6 +170,9 @@ interface PlayerGroup {
    - Mutual Teammate Requests (honored when possible)
    - Skill Balance (optimized after other constraints)
 
+### Draft priority reference
+- See `TEAM_DRAFT_PRIORITIES.md` for the preferred AI draft order for this workspace, including the default 10-team setup and the rule that groups are non-negotiable.
+
 2. **Generation Types:**
    - Balanced Teams: Honors constraints and balances skill
    - Random Teams: Ignores preferences, random distribution

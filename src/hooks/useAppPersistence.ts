@@ -8,18 +8,13 @@ import { normalizeLeagueConfig } from '@/utils/teamCount';
 import { validateAppState, validatePlayer } from '@/utils/validation';
 import { applyTeamBranding } from '@/utils/teamBranding';
 import { dataStorageService } from '@/services/dataStorageService';
+import type { WorkspaceSaveResult } from '@/services/persistence/saveTypes';
 import { applyTeamIterationToState, ensureTeamIterations } from '@/utils/teamIterations';
 
 const normalizeName = (name: string): string => name.trim().toLowerCase();
 
-export interface WorkspaceSaveResult {
-  id: string;
-  type: 'cloud' | 'local';
-  error?: unknown;
-}
-
 type PersistenceScope = 'device' | 'project';
-type PersistencePhase = 'idle' | 'saving' | 'saved' | 'retrying' | 'error';
+type PersistencePhase = 'idle' | 'saving' | 'saved' | 'retrying' | 'conflict' | 'error';
 type PersistenceSurface = 'cloud' | 'local';
 
 interface PersistenceSnapshot {
@@ -50,6 +45,8 @@ interface UseAppPersistenceOptions {
       description?: string;
       silent?: boolean;
       refreshList?: boolean;
+      expectedRevision?: number | null;
+      force?: boolean;
     }
   ) => Promise<WorkspaceSaveResult | undefined>;
 }
@@ -176,6 +173,15 @@ export function describePersistenceStatus(
     };
   }
 
+  if (snapshot.phase === 'conflict') {
+    return {
+      title: 'Sync conflict',
+      detail: 'Reload or save as a new project',
+      tone: 'warning',
+      icon: 'warning',
+    };
+  }
+
   if (!user) {
     return {
       title: snapshot.phase === 'saved' ? 'Saved locally' : 'Not signed in',
@@ -292,12 +298,21 @@ export function useAppPersistence({
           return;
         }
 
-        if (result.error && user) {
+        if (result.type === 'local' && user) {
           console.warn('Auto-saved to local only due to error:', result.error);
           setPersistenceSnapshot({
             phase: 'retrying',
             scope: 'device',
             surface: 'local',
+          });
+          return;
+        }
+
+        if (result.type === 'error') {
+          setPersistenceSnapshot({
+            phase: 'error',
+            scope: 'device',
+            surface: user ? 'cloud' : 'local',
           });
           return;
         }
@@ -356,9 +371,15 @@ export function useAppPersistence({
         }
 
         setPersistenceSnapshot({
-          phase: result.type === 'local' ? 'retrying' : 'saved',
+          phase: result.type === 'conflict'
+            ? 'conflict'
+            : result.type === 'local'
+              ? 'retrying'
+              : result.type === 'error'
+                ? 'error'
+                : 'saved',
           scope: 'project',
-          surface: result.type,
+          surface: result.type === 'cloud' ? 'cloud' : 'local',
         });
       } catch (error) {
         console.error('Auto-save failed:', error);
@@ -379,6 +400,30 @@ export function useAppPersistence({
     workspaceDescription,
     workspaceName,
   ]);
+
+  useEffect(() => {
+    if (!dataLoaded) {
+      return undefined;
+    }
+
+    const flushPendingState = () => {
+      void dataStorageService.save(appState);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushPendingState();
+      }
+    };
+
+    window.addEventListener('pagehide', flushPendingState);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pagehide', flushPendingState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [appState, dataLoaded]);
 
   const applyLoadedWorkspace = useCallback((workspace: SavedWorkspace) => {
     setAppState(prev => {
@@ -405,7 +450,9 @@ export function useAppPersistence({
         teamIterations: normalized.teamIterations,
         activeTeamIterationId: normalized.activeTeamIterationId,
         leagueMemory: workspace.leagueMemory || [],
-        execRatingHistory: buildExecRatingHistory(validatedPlayers, prev.execRatingHistory),
+        execRatingHistory: buildExecRatingHistory(validatedPlayers, workspace.execRatingHistory),
+        savedConfigs: workspace.savedConfigs || [],
+        pendingWarnings: workspace.pendingWarnings || [],
       }, normalized.activeTeamIterationId);
     });
   }, [setAppState]);
@@ -431,9 +478,15 @@ export function useAppPersistence({
     }
 
     setPersistenceSnapshot({
-      phase: result.type === 'local' ? 'retrying' : 'saved',
+      phase: result.type === 'conflict'
+        ? 'conflict'
+        : result.type === 'local'
+          ? 'retrying'
+          : result.type === 'error'
+            ? 'error'
+            : 'saved',
       scope: 'project',
-      surface: result.type,
+      surface: result.type === 'cloud' ? 'cloud' : 'local',
     });
   }, []);
 
@@ -468,18 +521,28 @@ export function useAppPersistence({
 
         if (workspaceResult) {
           setPersistenceSnapshot({
-            phase: workspaceResult.type === 'local' ? 'retrying' : 'saved',
+            phase: workspaceResult.type === 'conflict'
+              ? 'conflict'
+              : workspaceResult.type === 'local'
+                ? 'retrying'
+                : workspaceResult.type === 'error'
+                  ? 'error'
+                  : 'saved',
             scope: 'project',
-            surface: workspaceResult.type,
+            surface: workspaceResult.type === 'cloud' ? 'cloud' : 'local',
           });
           return;
         }
       }
 
       setPersistenceSnapshot({
-        phase: deviceResult.type === 'local' && user ? 'retrying' : 'saved',
+        phase: deviceResult.type === 'error'
+          ? 'error'
+          : deviceResult.type === 'local' && user
+            ? 'retrying'
+            : 'saved',
         scope: 'device',
-        surface: deviceResult.type,
+        surface: deviceResult.type === 'cloud' ? 'cloud' : 'local',
       });
     } catch (error) {
       console.error('Immediate save failed:', error);

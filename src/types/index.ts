@@ -224,13 +224,19 @@ export interface SavedWorkspace {
   teams: Team[];          // Empty if not yet generated
   unassignedPlayers: Player[]; // Empty if not yet generated
   stats?: TeamGenerationStats;
+  execRatingHistory: Record<string, { rating: number; updatedAt: number }>;
+  savedConfigs: LeagueConfig[];
   teamIterations?: TeamIteration[];
   activeTeamIterationId?: string | null;
   leagueMemory?: LeagueMemoryEntry[];
+  pendingWarnings?: import('./StructuredWarning.js').StructuredWarning[];
 
   // Metadata
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
+  createdAtServer?: string;
+  updatedAtServer?: string;
+  revision: number;
   tags?: string[];
   version: number;
 }

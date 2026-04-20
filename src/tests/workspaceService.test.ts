@@ -7,7 +7,9 @@ const {
   mockGetDoc,
   mockGetDocs,
   mockQuery,
+  mockServerTimestamp,
   mockSetDoc,
+  MockTimestamp,
   mockWhere,
 } = vi.hoisted(() => {
   let generatedId = 0;
@@ -28,7 +30,14 @@ const {
     mockGetDoc: vi.fn(),
     mockGetDocs: vi.fn(),
     mockQuery: vi.fn((...args: unknown[]) => ({ kind: 'query', args })),
+    mockServerTimestamp: vi.fn(() => ({ kind: 'server-timestamp' })),
     mockSetDoc: vi.fn(),
+    MockTimestamp: class MockTimestamp {
+      constructor(private readonly iso: string) {}
+      toDate() {
+        return new Date(this.iso);
+      }
+    },
     mockWhere: vi.fn((...args: unknown[]) => ({ kind: 'where', args })),
   };
 });
@@ -44,7 +53,9 @@ vi.mock('firebase/firestore', () => ({
   getDoc: mockGetDoc,
   getDocs: mockGetDocs,
   query: mockQuery,
+  serverTimestamp: mockServerTimestamp,
   setDoc: mockSetDoc,
+  Timestamp: MockTimestamp,
   where: mockWhere,
 }));
 
@@ -84,8 +95,15 @@ function createWorkspace(overrides: Partial<SavedWorkspace> = {}): SavedWorkspac
     teams: [],
     unassignedPlayers: [player],
     stats: undefined,
+    execRatingHistory: {},
+    savedConfigs: [],
+    teamIterations: [],
+    activeTeamIterationId: null,
+    leagueMemory: [],
+    pendingWarnings: [],
     createdAt: '2026-03-18T10:00:00.000Z',
     updatedAt: '2026-03-18T10:00:00.000Z',
+    revision: 0,
     version: 1,
     ...overrides,
   };
@@ -162,7 +180,7 @@ describe('WorkspaceService', () => {
         unassignedPlayers: existingWorkspace.unassignedPlayers,
         version: 1,
       },
-      existingWorkspace.id
+      { id: existingWorkspace.id, expectedRevision: existingWorkspace.revision }
     );
 
     expect(result).toEqual(
@@ -199,7 +217,7 @@ describe('WorkspaceService', () => {
         unassignedPlayers: [player],
         version: 1,
       },
-      'offline-workspace'
+      { id: 'offline-workspace' }
     );
 
     expect(result).toEqual(
@@ -217,6 +235,78 @@ describe('WorkspaceService', () => {
     ]);
   });
 
+  it('still saves to cloud when local workspace cache write fails', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError');
+    });
+
+    const result = await WorkspaceService.saveWorkspace(
+      {
+        userId: 'user-123',
+        name: 'Cloud First Project',
+        description: 'Cloud save should still succeed',
+        players: [player],
+        playerGroups: [],
+        config,
+        teams: [],
+        unassignedPlayers: [player],
+        version: 1,
+      },
+      { id: 'cloud-first-project' }
+    );
+
+    expect(result).toEqual(expect.objectContaining({
+      id: 'cloud-first-project',
+      type: 'cloud',
+      local: expect.objectContaining({
+        saved: false,
+      }),
+      cloud: expect.objectContaining({
+        saved: true,
+      }),
+    }));
+
+    setItemSpy.mockRestore();
+  });
+
+  it('detects a revision conflict before overwriting a newer saved project', async () => {
+    const newerWorkspace = createWorkspace({
+      id: 'workspace-conflict',
+      name: 'Newer Project',
+      revision: 3,
+      updatedAt: '2026-03-18T12:00:00.000Z',
+    });
+    localStorage.setItem('local_saved_workspaces:user-123', JSON.stringify([newerWorkspace]));
+
+    const result = await WorkspaceService.saveWorkspace(
+      {
+        userId: 'user-123',
+        name: 'Older Editor Save',
+        description: 'Should not overwrite',
+        players: newerWorkspace.players,
+        playerGroups: newerWorkspace.playerGroups,
+        config: newerWorkspace.config,
+        teams: newerWorkspace.teams,
+        unassignedPlayers: newerWorkspace.unassignedPlayers,
+        version: 1,
+      },
+      {
+        id: newerWorkspace.id,
+        expectedRevision: 2,
+      }
+    );
+
+    expect(result).toEqual(expect.objectContaining({
+      id: 'workspace-conflict',
+      type: 'conflict',
+      conflict: expect.objectContaining({
+        expectedRevision: 2,
+        actualRevision: 3,
+      }),
+    }));
+    expect(mockSetDoc).not.toHaveBeenCalled();
+  });
+
   it('preserves new-player review flags in cloud project saves', async () => {
     const result = await WorkspaceService.saveWorkspace(
       {
@@ -230,7 +320,7 @@ describe('WorkspaceService', () => {
         unassignedPlayers: [player],
         version: 1,
       },
-      'workspace-new-player-state'
+      { id: 'workspace-new-player-state' }
     );
 
     expect(result).toEqual(
@@ -302,7 +392,7 @@ describe('WorkspaceService', () => {
         unassignedPlayers: [],
         version: 1,
       },
-      'workspace-full-field-state'
+      { id: 'workspace-full-field-state' }
     );
 
     expect(mockSetDoc).toHaveBeenCalledWith(
@@ -354,7 +444,12 @@ describe('WorkspaceService', () => {
 
     const loadedWorkspace = await WorkspaceService.getWorkspace('offline-workspace', 'user-123');
 
-    expect(loadedWorkspace).toEqual(offlineWorkspace);
+    expect(loadedWorkspace).toEqual(expect.objectContaining({
+      id: offlineWorkspace.id,
+      name: offlineWorkspace.name,
+      updatedAt: offlineWorkspace.updatedAt,
+      revision: offlineWorkspace.revision,
+    }));
   });
 
   it.each([
@@ -482,5 +577,64 @@ describe('WorkspaceService', () => {
 
     expect(userOneLoaded?.name).toBe('User One Project');
     expect(userTwoLoaded?.name).toBe('User Two Project');
+  });
+
+  it('redacts sensitive player fields in the local workspace cache', async () => {
+    const sensitivePlayer: Player = {
+      ...player,
+      id: 'player-sensitive',
+      email: 'private@example.com',
+      profile: {
+        age: 27,
+        registrationInfo: 'Sensitive notes',
+      },
+    };
+
+    await WorkspaceService.saveWorkspace({
+      userId: 'user-123',
+      name: 'Sanitized Local Cache',
+      description: 'Should remove sensitive fields locally',
+      players: [sensitivePlayer],
+      playerGroups: [],
+      config,
+      teams: [],
+      unassignedPlayers: [sensitivePlayer],
+      version: 1,
+    }, { id: 'workspace-sanitized' });
+
+    const [savedWorkspace] = readLocalWorkspaces();
+    expect(savedWorkspace?.players[0]).toEqual(expect.objectContaining({
+      id: 'player-sensitive',
+      profile: { age: 27 },
+    }));
+    expect(savedWorkspace?.players[0]).not.toHaveProperty('email');
+    expect(savedWorkspace?.players[0]).not.toHaveProperty('registrationInfo');
+  });
+
+  it('prefers cloud ordering based on server timestamps when available', async () => {
+    mockGetDocs.mockResolvedValueOnce({
+      docs: [
+        {
+          data: () => createWorkspace({
+            id: 'workspace-old',
+            name: 'Older by client time',
+            updatedAt: '2026-03-18T14:00:00.000Z',
+            updatedAtServer: new MockTimestamp('2026-03-18T13:00:00.000Z') as unknown as string,
+          }),
+        },
+        {
+          data: () => createWorkspace({
+            id: 'workspace-new',
+            name: 'Newer by server time',
+            updatedAt: '2026-03-18T12:00:00.000Z',
+            updatedAtServer: new MockTimestamp('2026-03-18T15:00:00.000Z') as unknown as string,
+          }),
+        },
+      ],
+    });
+
+    const workspaces = await WorkspaceService.getUserWorkspaces('user-123');
+
+    expect(workspaces.map(workspace => workspace.id)).toEqual(['workspace-new', 'workspace-old']);
   });
 });

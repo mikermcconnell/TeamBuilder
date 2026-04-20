@@ -1,0 +1,3570 @@
+{
+  "teams": [],
+  "version": 1,
+  "description": "",
+  "id": "ebv8RBzdv2HYa4ox5NbU",
+  "activeTeamIterationId": null,
+  "playerGroups": [
+    {
+      "id": "group-0",
+      "players": [
+        {
+          "profile": {
+            "registrationInfo": "andy and I once played with dinosaurs\n\nsteve schwarz is a new player that would like to play with us",
+            "age": 53
+          },
+          "skillRating": 6,
+          "unfulfilledRequests": [],
+          "id": "kristy-robinson-fq6g2",
+          "avoidRequests": [],
+          "name": "Kristy Robinson",
+          "teammateRequests": [
+            "Andy Beecroft"
+          ],
+          "gender": "F",
+          "groupId": "group-0",
+          "execSkillRating": 6.7
+        },
+        {
+          "name": "Andy Beecroft",
+          "teammateRequests": [
+            "Kristy Robinson"
+          ],
+          "gender": "M",
+          "groupId": "group-0",
+          "execSkillRating": 3.8,
+          "profile": {
+            "registrationInfo": "i once played with a wooden frisbee back in the day\n\nif able steve schwarz would like to play with u",
+            "age": 54
+          },
+          "skillRating": 6,
+          "unfulfilledRequests": [],
+          "id": "andy-beecroft-hy0h3",
+          "avoidRequests": []
+        }
+      ],
+      "label": "A",
+      "color": "#3B82F6",
+      "playerIds": [
+        "kristy-robinson-fq6g2",
+        "andy-beecroft-hy0h3"
+      ]
+    },
+    {
+      "color": "#EF4444",
+      "playerIds": [
+        "caitlind-lusty-wwamb",
+        "matthew-lynar-lu2cy"
+      ],
+      "id": "group-1",
+      "players": [
+        {
+          "unfulfilledRequests": [],
+          "id": "caitlind-lusty-wwamb",
+          "profile": {
+            "registrationInfo": "Too many to mention. Team Canada highest levels\n\nMay miss a couple of games on the front half of the",
+            "age": 35
+          },
+          "skillRating": 9.6,
+          "avoidRequests": [],
+          "gender": "F",
+          "groupId": "group-1",
+          "name": "Caitlind Lusty",
+          "teammateRequests": [
+            "Matthew Lynar"
+          ],
+          "execSkillRating": 9.6
+        },
+        {
+          "execSkillRating": 6.8,
+          "name": "Matthew Lynar",
+          "teammateRequests": [
+            "Caitlind Lusty"
+          ],
+          "gender": "M",
+          "groupId": "group-1",
+          "avoidRequests": [],
+          "profile": {
+            "registrationInfo": "Rec league",
+            "age": 35
+          },
+          "skillRating": 6,
+          "id": "matthew-lynar-lu2cy",
+          "unfulfilledRequests": []
+        }
+      ],
+      "label": "B"
+    },
+    {
+      "playerIds": [
+        "nolan-hickling-5w80i",
+        "pascale-clements-246gy"
+      ],
+      "color": "#10B981",
+      "label": "C",
+      "players": [
+        {
+          "name": "Nolan Hickling",
+          "teammateRequests": [
+            "Pascale Clements"
+          ],
+          "gender": "M",
+          "groupId": "group-2",
+          "execSkillRating": 8.8,
+          "profile": {
+            "registrationInfo": "High School, University.\n\nSigning up with my girlfriend. Used to play very high level but haven't pl",
+            "age": 32
+          },
+          "skillRating": 8.8,
+          "unfulfilledRequests": [],
+          "id": "nolan-hickling-5w80i",
+          "avoidRequests": []
+        },
+        {
+          "id": "pascale-clements-246gy",
+          "unfulfilledRequests": [],
+          "skillRating": 3.2,
+          "profile": {
+            "registrationInfo": "none",
+            "age": 25
+          },
+          "avoidRequests": [],
+          "groupId": "group-2",
+          "gender": "F",
+          "name": "Pascale Clements",
+          "teammateRequests": [
+            "Nolan Hickling"
+          ],
+          "execSkillRating": 3.2
+        }
+      ],
+      "id": "group-2"
+    },
+    {
+      "id": "group-3",
+      "players": [
+        {
+          "gender": "M",
+          "groupId": "group-3",
+          "name": "Matt Hofing",
+          "teammateRequests": [
+            "Tyler Sadler"
+          ],
+          "execSkillRating": 8.8,
+          "unfulfilledRequests": [],
+          "id": "matt-hofing-rqe6t",
+          "profile": {
+            "registrationInfo": "Been playing for a long time.\n\nWould really love to play with all of my best friends!",
+            "age": 38
+          },
+          "skillRating": 8,
+          "avoidRequests": []
+        },
+        {
+          "execSkillRating": 10,
+          "teammateRequests": [
+            "Matt Hofing"
+          ],
+          "name": "Tyler Sadler",
+          "gender": "M",
+          "groupId": "group-3",
+          "avoidRequests": [],
+          "profile": {
+            "registrationInfo": "Houndd/team canada/goat/phoenix\n\nno",
+            "age": 28
+          },
+          "skillRating": 10,
+          "unfulfilledRequests": [],
+          "id": "tyler-sadler-8jgm7"
+        }
+      ],
+      "label": "D",
+      "color": "#F59E0B",
+      "playerIds": [
+        "matt-hofing-rqe6t",
+        "tyler-sadler-8jgm7"
+      ]
+    },
+    {
+      "label": "E",
+      "players": [
+        {
+          "avoidRequests": [],
+          "id": "aaron-kucherawy-zryju",
+          "unfulfilledRequests": [],
+          "skillRating": 10,
+          "profile": {
+            "registrationInfo": "National and Team Canada level player",
+            "age": 39
+          },
+          "execSkillRating": 10,
+          "groupId": "group-4",
+          "gender": "M",
+          "teammateRequests": [
+            "Stephanie Vecchiarelli"
+          ],
+          "name": "Aaron Kucherawy"
+        },
+        {
+          "skillRating": 8.4,
+          "profile": {
+            "registrationInfo": "National level",
+            "age": 32
+          },
+          "unfulfilledRequests": [],
+          "id": "stephanie-vecchiarelli-5fknk",
+          "avoidRequests": [],
+          "teammateRequests": [
+            "Aaron Kucherawy"
+          ],
+          "name": "Stephanie Vecchiarelli",
+          "groupId": "group-4",
+          "gender": "F",
+          "execSkillRating": 8.3
+        }
+      ],
+      "id": "group-4",
+      "playerIds": [
+        "aaron-kucherawy-zryju",
+        "stephanie-vecchiarelli-5fknk"
+      ],
+      "color": "#8B5CF6"
+    },
+    {
+      "color": "#F97316",
+      "playerIds": [
+        "bryan-spekkers-b99l9",
+        "alison-spekkers-cvtpz"
+      ],
+      "id": "group-5",
+      "label": "F",
+      "players": [
+        {
+          "teammateRequests": [
+            "Alison Spekkers"
+          ],
+          "name": "Bryan Spekkers",
+          "gender": "M",
+          "groupId": "group-5",
+          "execSkillRating": 9.9,
+          "profile": {
+            "registrationInfo": "Played at all levels for 20+ years",
+            "age": 36
+          },
+          "skillRating": 9.6,
+          "unfulfilledRequests": [],
+          "id": "bryan-spekkers-b99l9",
+          "avoidRequests": []
+        },
+        {
+          "execSkillRating": 6.9,
+          "gender": "F",
+          "groupId": "group-5",
+          "teammateRequests": [
+            "Bryan Spekkers"
+          ],
+          "name": "Alison Spekkers",
+          "avoidRequests": [],
+          "unfulfilledRequests": [],
+          "id": "alison-spekkers-cvtpz",
+          "profile": {
+            "registrationInfo": "Club level",
+            "age": 32
+          },
+          "skillRating": 6
+        }
+      ]
+    },
+    {
+      "label": "G",
+      "players": [
+        {
+          "avoidRequests": [],
+          "id": "carly-munce-8za4e",
+          "unfulfilledRequests": [],
+          "skillRating": 10,
+          "profile": {
+            "registrationInfo": "N/a",
+            "age": 31
+          },
+          "execSkillRating": 9.1,
+          "groupId": "group-6",
+          "gender": "F",
+          "teammateRequests": [
+            "Thomas Black"
+          ],
+          "name": "Carly Munce"
+        },
+        {
+          "unfulfilledRequests": [],
+          "id": "thomas-black-a8cai",
+          "profile": {
+            "registrationInfo": "National",
+            "age": 36
+          },
+          "skillRating": 10,
+          "avoidRequests": [],
+          "gender": "M",
+          "groupId": "group-6",
+          "name": "Thomas Black",
+          "teammateRequests": [
+            "Carly Munce"
+          ],
+          "execSkillRating": 10
+        }
+      ],
+      "id": "group-6",
+      "playerIds": [
+        "carly-munce-8za4e",
+        "thomas-black-a8cai"
+      ],
+      "color": "#06B6D4"
+    },
+    {
+      "playerIds": [
+        "james-callow-634zs",
+        "cale-holmes-2wu95"
+      ],
+      "color": "#84CC16",
+      "players": [
+        {
+          "avoidRequests": [],
+          "unfulfilledRequests": [],
+          "id": "james-callow-634zs",
+          "profile": {
+            "registrationInfo": "Barrie Ultimate 20 years",
+            "age": 50
+          },
+          "skillRating": 8.4,
+          "execSkillRating": 8.1,
+          "gender": "M",
+          "groupId": "group-7",
+          "name": "James Callow",
+          "teammateRequests": [
+            "Cale Holmes"
+          ]
+        },
+        {
+          "skillRating": 7.2,
+          "profile": {
+            "registrationInfo": "Club",
+            "age": 24
+          },
+          "unfulfilledRequests": [],
+          "id": "cale-holmes-2wu95",
+          "avoidRequests": [],
+          "teammateRequests": [
+            "James Callow"
+          ],
+          "name": "Cale Holmes",
+          "groupId": "group-7",
+          "gender": "M",
+          "execSkillRating": 7.8
+        }
+      ],
+      "label": "H",
+      "id": "group-7"
+    },
+    {
+      "id": "group-8",
+      "label": "I",
+      "players": [
+        {
+          "skillRating": 6.4,
+          "profile": {
+            "registrationInfo": "NA",
+            "age": 40
+          },
+          "unfulfilledRequests": [],
+          "id": "shannon-wolochatiuk-9o94d",
+          "avoidRequests": [],
+          "teammateRequests": [
+            "Scott Patrick"
+          ],
+          "name": "Shannon Wolochatiuk",
+          "groupId": "group-8",
+          "gender": "F",
+          "execSkillRating": 6.4
+        },
+        {
+          "execSkillRating": 6.2,
+          "name": "Scott Patrick",
+          "teammateRequests": [
+            "Shannon Wolochatiuk"
+          ],
+          "gender": "M",
+          "groupId": "group-8",
+          "avoidRequests": [],
+          "profile": {
+            "registrationInfo": "N/A\n\nNo",
+            "age": 40
+          },
+          "skillRating": 6.8,
+          "id": "scott-patrick-5dhgu",
+          "unfulfilledRequests": []
+        }
+      ],
+      "color": "#EC4899",
+      "playerIds": [
+        "shannon-wolochatiuk-9o94d",
+        "scott-patrick-5dhgu"
+      ]
+    },
+    {
+      "color": "#6B7280",
+      "playerIds": [
+        "darren-brazier-g784m",
+        "maisy-brazier-7dpo3"
+      ],
+      "id": "group-9",
+      "players": [
+        {
+          "avoidRequests": [],
+          "profile": {
+            "registrationInfo": "Played club years ago\n\nComing back after many years and injuries including Achilles and back",
+            "age": 53
+          },
+          "skillRating": 4.4,
+          "id": "darren-brazier-g784m",
+          "unfulfilledRequests": [],
+          "execSkillRating": 4.4,
+          "name": "Darren Brazier",
+          "teammateRequests": [
+            "Maisy Brazier"
+          ],
+          "gender": "M",
+          "groupId": "group-9"
+        },
+        {
+          "teammateRequests": [
+            "Darren Brazier"
+          ],
+          "name": "Maisy Brazier",
+          "groupId": "group-9",
+          "gender": "F",
+          "execSkillRating": 6.4,
+          "skillRating": 6.4,
+          "profile": {
+            "registrationInfo": "I played in high school and for my current university team.\n\nI would love to play with my dad, Darre",
+            "age": 19
+          },
+          "unfulfilledRequests": [],
+          "id": "maisy-brazier-7dpo3",
+          "avoidRequests": []
+        }
+      ],
+      "label": "J"
+    },
+    {
+      "playerIds": [
+        "gary-pluim-k92ik",
+        "kaia-pluim-simon-r8z62"
+      ],
+      "color": "#14B8A6",
+      "players": [
+        {
+          "groupId": "group-10",
+          "gender": "M",
+          "name": "Gary Pluim",
+          "teammateRequests": [
+            "Kaia Pluim-Simon"
+          ],
+          "execSkillRating": 6.1,
+          "unfulfilledRequests": [],
+          "id": "gary-pluim-k92ik",
+          "skillRating": 6.4,
+          "profile": {
+            "registrationInfo": "Been playing recreationally for 40 years.\n\nDefinitely would like to be on the team with my daughter",
+            "age": 55
+          },
+          "avoidRequests": []
+        },
+        {
+          "teammateRequests": [
+            "Gary Pluim"
+          ],
+          "name": "Kaia Pluim-Simon",
+          "gender": "F",
+          "groupId": "group-10",
+          "execSkillRating": 4.8,
+          "profile": {
+            "registrationInfo": "Currently in high school, learning the game.\n\nRegistering with dad....",
+            "age": 17
+          },
+          "skillRating": 4.8,
+          "id": "kaia-pluim-simon-r8z62",
+          "unfulfilledRequests": [],
+          "avoidRequests": []
+        }
+      ],
+      "label": "K",
+      "id": "group-10"
+    },
+    {
+      "color": "#F43F5E",
+      "playerIds": [
+        "stephen-hawley-7hfds",
+        "curtis-reason-lx8g8"
+      ],
+      "id": "group-11",
+      "label": "L",
+      "players": [
+        {
+          "gender": "M",
+          "groupId": "group-11",
+          "teammateRequests": [
+            "Curtis Reason"
+          ],
+          "name": "Stephen Hawley",
+          "execSkillRating": 5.7,
+          "unfulfilledRequests": [],
+          "id": "stephen-hawley-7hfds",
+          "profile": {
+            "registrationInfo": "Several seasons with BUL\n\nNA",
+            "age": 34
+          },
+          "skillRating": 7.6,
+          "avoidRequests": []
+        },
+        {
+          "groupId": "group-11",
+          "gender": "M",
+          "teammateRequests": [
+            "Stephen Hawley"
+          ],
+          "name": "Curtis Reason",
+          "execSkillRating": 6.5,
+          "id": "curtis-reason-lx8g8",
+          "unfulfilledRequests": [],
+          "skillRating": 8,
+          "profile": {
+            "registrationInfo": "Have played club and university competively",
+            "age": 35
+          },
+          "avoidRequests": []
+        }
+      ]
+    },
+    {
+      "playerIds": [
+        "jim-columbus-ns4sl",
+        "ben-carvin-82jfs"
+      ],
+      "color": "#3B82F6",
+      "players": [
+        {
+          "name": "Jim Columbus",
+          "teammateRequests": [
+            "Ben Carvin"
+          ],
+          "gender": "M",
+          "groupId": "group-12",
+          "execSkillRating": 4.8,
+          "profile": {
+            "registrationInfo": "2",
+            "age": 36
+          },
+          "skillRating": 4,
+          "unfulfilledRequests": [],
+          "id": "jim-columbus-ns4sl",
+          "avoidRequests": []
+        },
+        {
+          "execSkillRating": 5.6,
+          "name": "Ben Carvin",
+          "teammateRequests": [
+            "Jim Columbus"
+          ],
+          "gender": "M",
+          "groupId": "group-12",
+          "avoidRequests": [],
+          "profile": {
+            "registrationInfo": "Played indoor seasons with BUL\n\nOnly ever played indoor so this will be my first experience of outdo",
+            "age": 33
+          },
+          "skillRating": 5.6,
+          "unfulfilledRequests": [],
+          "id": "ben-carvin-82jfs"
+        }
+      ],
+      "label": "M",
+      "id": "group-12"
+    },
+    {
+      "playerIds": [
+        "tracy-penley-5yctr",
+        "matt-tribe-la0bk"
+      ],
+      "color": "#EF4444",
+      "players": [
+        {
+          "execSkillRating": 5.4,
+          "gender": "F",
+          "groupId": "group-13",
+          "name": "Tracy Penley",
+          "teammateRequests": [
+            "Matt Tribe"
+          ],
+          "avoidRequests": [],
+          "id": "tracy-penley-5yctr",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "No",
+            "age": 41
+          },
+          "skillRating": 6
+        },
+        {
+          "avoidRequests": [],
+          "unfulfilledRequests": [],
+          "id": "matt-tribe-la0bk",
+          "profile": {
+            "registrationInfo": "Husslin’ BUL for years\n\nLooking forward to a new format this summer",
+            "age": 39
+          },
+          "skillRating": 8.4,
+          "execSkillRating": 7.4,
+          "gender": "M",
+          "groupId": "group-13",
+          "teammateRequests": [
+            "Tracy Penley"
+          ],
+          "name": "Matt Tribe"
+        }
+      ],
+      "label": "N",
+      "id": "group-13"
+    },
+    {
+      "color": "#10B981",
+      "playerIds": [
+        "kate-bromenshenkel-53n96",
+        "courtney-hough-b4f00"
+      ],
+      "id": "group-14",
+      "label": "O",
+      "players": [
+        {
+          "name": "Kate Bromenshenkel",
+          "teammateRequests": [
+            "Courtney Hough"
+          ],
+          "gender": "F",
+          "groupId": "group-14",
+          "execSkillRating": 6,
+          "profile": {
+            "registrationInfo": "Barrie Ultimate Rec League (7/8 years)",
+            "age": 41
+          },
+          "skillRating": 6,
+          "unfulfilledRequests": [],
+          "id": "kate-bromenshenkel-53n96",
+          "avoidRequests": []
+        },
+        {
+          "avoidRequests": [],
+          "unfulfilledRequests": [],
+          "id": "courtney-hough-b4f00",
+          "skillRating": 8,
+          "profile": {
+            "registrationInfo": "Played in league for a while\n\nNA",
+            "age": 43
+          },
+          "execSkillRating": 7,
+          "groupId": "group-14",
+          "gender": "F",
+          "teammateRequests": [
+            "Kate Bromenshenkel"
+          ],
+          "name": "Courtney Hough"
+        }
+      ]
+    },
+    {
+      "players": [
+        {
+          "avoidRequests": [],
+          "id": "brianna-hall-rq8lo",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "Played in high school",
+            "age": 29
+          },
+          "skillRating": 7.6,
+          "execSkillRating": 7.1,
+          "gender": "F",
+          "groupId": "group-15",
+          "name": "Brianna Hall",
+          "teammateRequests": [
+            "Michael McConnell"
+          ]
+        },
+        {
+          "skillRating": 8,
+          "profile": {
+            "registrationInfo": "n/a",
+            "age": 34
+          },
+          "unfulfilledRequests": [],
+          "id": "michael-mcconnell-wdvdo",
+          "avoidRequests": [],
+          "teammateRequests": [
+            "Brianna Hall"
+          ],
+          "name": "Michael McConnell",
+          "groupId": "group-15",
+          "gender": "M",
+          "execSkillRating": 8.8
+        }
+      ],
+      "label": "P",
+      "id": "group-15",
+      "playerIds": [
+        "brianna-hall-rq8lo",
+        "michael-mcconnell-wdvdo"
+      ],
+      "color": "#F59E0B"
+    },
+    {
+      "label": "Q",
+      "players": [
+        {
+          "id": "parker-munce-ti8q1",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "Touring",
+            "age": 28
+          },
+          "skillRating": 6,
+          "avoidRequests": [],
+          "gender": "F",
+          "groupId": "group-16",
+          "teammateRequests": [
+            "William Maher"
+          ],
+          "name": "parker munce",
+          "execSkillRating": 7.6
+        },
+        {
+          "execSkillRating": 9.3,
+          "groupId": "group-16",
+          "gender": "M",
+          "teammateRequests": [
+            "parker munce"
+          ],
+          "name": "William Maher",
+          "avoidRequests": [],
+          "id": "william-maher-7li01",
+          "unfulfilledRequests": [],
+          "skillRating": 10,
+          "profile": {
+            "registrationInfo": "Club",
+            "age": 24
+          }
+        }
+      ],
+      "id": "group-16",
+      "playerIds": [
+        "parker-munce-ti8q1",
+        "william-maher-7li01"
+      ],
+      "color": "#8B5CF6"
+    },
+    {
+      "id": "group-17",
+      "label": "R",
+      "players": [
+        {
+          "avoidRequests": [],
+          "unfulfilledRequests": [],
+          "id": "kurtis-thomas-ma29u",
+          "profile": {
+            "registrationInfo": "Played in high school, played in BUL for 10 years, played Mixed Barries for two.\n\nI want to be on a",
+            "age": 24
+          },
+          "skillRating": 9.2,
+          "execSkillRating": 7.6,
+          "gender": "M",
+          "groupId": "group-17",
+          "teammateRequests": [
+            "Sara Shakib"
+          ],
+          "name": "Kurtis Thomas"
+        },
+        {
+          "avoidRequests": [],
+          "skillRating": 4,
+          "profile": {
+            "registrationInfo": "N/A\n\nI would like to play with Kurtis Thomas-Belisle, Richmond Hogg and Molly Douglas",
+            "age": 23
+          },
+          "unfulfilledRequests": [],
+          "id": "sara-shakib-j0bia",
+          "execSkillRating": 4,
+          "teammateRequests": [
+            "Kurtis Thomas"
+          ],
+          "name": "Sara Shakib",
+          "groupId": "group-17",
+          "gender": "F"
+        }
+      ],
+      "color": "#F97316",
+      "playerIds": [
+        "kurtis-thomas-ma29u",
+        "sara-shakib-j0bia"
+      ]
+    },
+    {
+      "color": "#06B6D4",
+      "playerIds": [
+        "john-nigh-d5gt0",
+        "matt-simon-u5qt9"
+      ],
+      "id": "group-18",
+      "label": "S",
+      "players": [
+        {
+          "avoidRequests": [],
+          "skillRating": 6,
+          "profile": {
+            "registrationInfo": "Played high school and in the league for 3 years",
+            "age": 28
+          },
+          "unfulfilledRequests": [],
+          "id": "john-nigh-d5gt0",
+          "execSkillRating": 5.3,
+          "name": "John Nigh",
+          "teammateRequests": [
+            "Matt Simon"
+          ],
+          "groupId": "group-18",
+          "gender": "M"
+        },
+        {
+          "gender": "M",
+          "groupId": "group-18",
+          "name": "Matt Simon",
+          "teammateRequests": [
+            "John Nigh"
+          ],
+          "execSkillRating": 6.8,
+          "unfulfilledRequests": [],
+          "id": "matt-simon-u5qt9",
+          "profile": {
+            "registrationInfo": "Highschool and rec leagues",
+            "age": 21
+          },
+          "skillRating": 6.8,
+          "avoidRequests": []
+        }
+      ]
+    },
+    {
+      "players": [
+        {
+          "avoidRequests": [],
+          "id": "richmand-hogg-xwvbw",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "Barrie Ultimate League\n\nWAAAZZZZAAPPPPPPP",
+            "age": 25
+          },
+          "skillRating": 8.4,
+          "execSkillRating": 8.9,
+          "gender": "M",
+          "groupId": "group-19",
+          "teammateRequests": [
+            "Molly Douglas"
+          ],
+          "name": "Richmand Hogg"
+        },
+        {
+          "execSkillRating": 7.9,
+          "gender": "F",
+          "groupId": "group-19",
+          "name": "Molly Douglas",
+          "teammateRequests": [
+            "Richmand Hogg"
+          ],
+          "avoidRequests": [],
+          "id": "molly-douglas-uqz6w",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "MB babyyyyy\n\nThank you :)",
+            "age": 30
+          },
+          "skillRating": 6.8
+        }
+      ],
+      "label": "T",
+      "id": "group-19",
+      "playerIds": [
+        "richmand-hogg-xwvbw",
+        "molly-douglas-uqz6w"
+      ],
+      "color": "#84CC16"
+    },
+    {
+      "id": "group-20",
+      "label": "U",
+      "players": [
+        {
+          "execSkillRating": 7.7,
+          "gender": "F",
+          "groupId": "group-20",
+          "teammateRequests": [
+            "Cole Leslie"
+          ],
+          "name": "Kyra Frisina",
+          "avoidRequests": [],
+          "id": "kyra-frisina-yjkdj",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "high school, club",
+            "age": 23
+          },
+          "skillRating": 7.6
+        },
+        {
+          "skillRating": 4,
+          "profile": {
+            "registrationInfo": "1 season in highschool\n\nnew to the league",
+            "age": 22
+          },
+          "id": "cole-leslie-lbiak",
+          "unfulfilledRequests": [],
+          "avoidRequests": [],
+          "teammateRequests": [
+            "Kyra Frisina"
+          ],
+          "name": "Cole Leslie",
+          "groupId": "group-20",
+          "gender": "M",
+          "execSkillRating": 4
+        }
+      ],
+      "color": "#EC4899",
+      "playerIds": [
+        "kyra-frisina-yjkdj",
+        "cole-leslie-lbiak"
+      ]
+    },
+    {
+      "players": [
+        {
+          "avoidRequests": [],
+          "unfulfilledRequests": [],
+          "id": "christy-doolittle-iiesy",
+          "profile": {
+            "registrationInfo": "Touring with seniors + masters teams\n\nHave never played with spekkers and would love the opportunity",
+            "age": 30
+          },
+          "skillRating": 6.8,
+          "execSkillRating": 7.9,
+          "gender": "F",
+          "groupId": "group-21",
+          "name": "Christy Doolittle",
+          "teammateRequests": [
+            "Rebecca Robitaille"
+          ]
+        },
+        {
+          "execSkillRating": 8.6,
+          "gender": "F",
+          "groupId": "group-21",
+          "name": "Rebecca Robitaille",
+          "teammateRequests": [
+            "Christy Doolittle"
+          ],
+          "avoidRequests": [],
+          "id": "rebecca-robitaille-ptl73",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "touring\n\nWould love to play with Brad Mayer (dad) and Carden Vickers (coworker, new to league)",
+            "age": 36
+          },
+          "skillRating": 8
+        }
+      ],
+      "label": "V",
+      "id": "group-21",
+      "playerIds": [
+        "christy-doolittle-iiesy",
+        "rebecca-robitaille-ptl73"
+      ],
+      "color": "#6B7280"
+    },
+    {
+      "players": [
+        {
+          "unfulfilledRequests": [],
+          "id": "brad-dempsey-ijgti",
+          "skillRating": 6,
+          "profile": {
+            "registrationInfo": "Mainly just BUL",
+            "age": 35
+          },
+          "avoidRequests": [],
+          "groupId": "group-22",
+          "gender": "M",
+          "name": "Brad Dempsey",
+          "teammateRequests": [
+            "Ashish Mehra"
+          ],
+          "execSkillRating": 6
+        },
+        {
+          "execSkillRating": 6.8,
+          "name": "Ashish Mehra",
+          "teammateRequests": [
+            "Brad Dempsey"
+          ],
+          "gender": "M",
+          "groupId": "group-22",
+          "avoidRequests": [],
+          "profile": {
+            "registrationInfo": "BUL &amp;amp; Mixed Barrie’s\n\nNo",
+            "age": 35
+          },
+          "skillRating": 6,
+          "id": "ashish-mehra-qebes",
+          "unfulfilledRequests": []
+        }
+      ],
+      "label": "W",
+      "id": "group-22",
+      "playerIds": [
+        "brad-dempsey-ijgti",
+        "ashish-mehra-qebes"
+      ],
+      "color": "#14B8A6"
+    },
+    {
+      "players": [
+        {
+          "groupId": "group-23",
+          "gender": "F",
+          "teammateRequests": [
+            "Ben Brittain"
+          ],
+          "name": "Sydney Mussgnug",
+          "execSkillRating": 7.7,
+          "unfulfilledRequests": [],
+          "id": "sydney-mussgnug-cz1sj",
+          "skillRating": 8,
+          "profile": {
+            "registrationInfo": "mixed barries",
+            "age": 26
+          },
+          "avoidRequests": []
+        },
+        {
+          "execSkillRating": 6.9,
+          "gender": "M",
+          "groupId": "group-23",
+          "name": "Ben Brittain",
+          "teammateRequests": [
+            "Sydney Mussgnug"
+          ],
+          "avoidRequests": [],
+          "id": "ben-brittain-9hhxu",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "Played in highschool",
+            "age": 17
+          },
+          "skillRating": 6.4
+        }
+      ],
+      "label": "X",
+      "id": "group-23",
+      "playerIds": [
+        "sydney-mussgnug-cz1sj",
+        "ben-brittain-9hhxu"
+      ],
+      "color": "#F43F5E"
+    },
+    {
+      "playerIds": [
+        "emma-hanney-ik8nm",
+        "lauren-gostick-2e7gd"
+      ],
+      "color": "#3B82F6",
+      "label": "Y",
+      "players": [
+        {
+          "name": "Emma Hanney",
+          "teammateRequests": [
+            "Lauren Gostick"
+          ],
+          "groupId": "group-24",
+          "gender": "F",
+          "execSkillRating": 6.2,
+          "skillRating": 8,
+          "profile": {
+            "registrationInfo": "Club, university",
+            "age": 23
+          },
+          "id": "emma-hanney-ik8nm",
+          "unfulfilledRequests": [],
+          "avoidRequests": []
+        },
+        {
+          "teammateRequests": [
+            "Emma Hanney"
+          ],
+          "name": "Lauren Gostick",
+          "groupId": "group-24",
+          "gender": "F",
+          "execSkillRating": 5.6,
+          "skillRating": 5.6,
+          "profile": {
+            "registrationInfo": "I have been playing in BUL for 2 years now",
+            "age": 26
+          },
+          "unfulfilledRequests": [],
+          "id": "lauren-gostick-2e7gd",
+          "avoidRequests": []
+        }
+      ],
+      "id": "group-24"
+    },
+    {
+      "color": "#EF4444",
+      "playerIds": [
+        "adam-soos-d5fxh",
+        "amber-soos-s1fer"
+      ],
+      "id": "group-25",
+      "players": [
+        {
+          "id": "adam-soos-d5fxh",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "Club\n\nI would also like to play with Niko Hoogeveen. We drive together. Playing with him would make",
+            "age": 25
+          },
+          "skillRating": 6.4,
+          "avoidRequests": [],
+          "gender": "M",
+          "groupId": "group-25",
+          "teammateRequests": [
+            "Amber Soos"
+          ],
+          "name": "Adam Soos",
+          "execSkillRating": 7.6
+        },
+        {
+          "avoidRequests": [],
+          "unfulfilledRequests": [],
+          "id": "amber-soos-s1fer",
+          "skillRating": 6,
+          "profile": {
+            "registrationInfo": "Club\n\nI would also like to play with Niko Hoogeveen. We drive together. Playing with him would make",
+            "age": 19
+          },
+          "execSkillRating": 6,
+          "groupId": "group-25",
+          "gender": "F",
+          "teammateRequests": [
+            "Adam Soos"
+          ],
+          "name": "Amber Soos"
+        }
+      ],
+      "label": "Z"
+    },
+    {
+      "color": "#10B981",
+      "playerIds": [
+        "finn-montgomery-vvq5y",
+        "tate-montgomery-j0wv0"
+      ],
+      "id": "group-26",
+      "players": [
+        {
+          "name": "Finn Montgomery",
+          "teammateRequests": [
+            "Tate Montgomery"
+          ],
+          "gender": "M",
+          "groupId": "group-26",
+          "execSkillRating": 8.4,
+          "profile": {
+            "registrationInfo": "touring junior Barrie team\n\nMight miss the first game or two - traveling in Asia",
+            "age": 20
+          },
+          "skillRating": 8.4,
+          "id": "finn-montgomery-vvq5y",
+          "unfulfilledRequests": [],
+          "avoidRequests": []
+        },
+        {
+          "execSkillRating": 8,
+          "name": "Tate Montgomery",
+          "teammateRequests": [
+            "Finn Montgomery"
+          ],
+          "groupId": "group-26",
+          "gender": "M",
+          "avoidRequests": [],
+          "skillRating": 8,
+          "profile": {
+            "registrationInfo": "Touring Junior Barrie\n\nMight miss the first game or 2 - travelling in asia",
+            "age": 19
+          },
+          "id": "tate-montgomery-j0wv0",
+          "unfulfilledRequests": []
+        }
+      ],
+      "label": "["
+    },
+    {
+      "label": "\\",
+      "players": [
+        {
+          "gender": "M",
+          "groupId": "group-27",
+          "teammateRequests": [
+            "Kaitlyn Pechkovsky"
+          ],
+          "name": "Tom Pechkovsky",
+          "execSkillRating": 5.5,
+          "id": "tom-pechkovsky-vhv2x",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "Played for about 10-15 years in 20's and 30's and then didn't play for while raising kids.  Played o",
+            "age": 56
+          },
+          "skillRating": 6.8,
+          "avoidRequests": []
+        },
+        {
+          "execSkillRating": 5.2,
+          "gender": "F",
+          "groupId": "group-27",
+          "teammateRequests": [
+            "Tom Pechkovsky"
+          ],
+          "name": "Kaitlyn Pechkovsky",
+          "avoidRequests": [],
+          "unfulfilledRequests": [],
+          "id": "kaitlyn-pechkovsky-rd0o9",
+          "profile": {
+            "registrationInfo": "Played in High school but haven't played much in 4 years.\n\nRegistering entire family and would love",
+            "age": 22
+          },
+          "skillRating": 5.2
+        }
+      ],
+      "id": "group-27",
+      "playerIds": [
+        "tom-pechkovsky-vhv2x",
+        "kaitlyn-pechkovsky-rd0o9"
+      ],
+      "color": "#F59E0B"
+    },
+    {
+      "playerIds": [
+        "robin-mennie-j5t02",
+        "cody-sinkinson-9fucn"
+      ],
+      "color": "#8B5CF6",
+      "players": [
+        {
+          "execSkillRating": 4,
+          "name": "Robin Mennie",
+          "teammateRequests": [
+            "Cody Sinkinson"
+          ],
+          "groupId": "group-28",
+          "gender": "F",
+          "avoidRequests": [],
+          "skillRating": 4,
+          "profile": {
+            "registrationInfo": "Bul",
+            "age": 27
+          },
+          "unfulfilledRequests": [],
+          "id": "robin-mennie-j5t02"
+        },
+        {
+          "avoidRequests": [],
+          "skillRating": 6,
+          "profile": {
+            "registrationInfo": "Na",
+            "age": 29
+          },
+          "unfulfilledRequests": [],
+          "id": "cody-sinkinson-9fucn",
+          "execSkillRating": 4.5,
+          "name": "Cody Sinkinson",
+          "teammateRequests": [
+            "Robin Mennie"
+          ],
+          "groupId": "group-28",
+          "gender": "M"
+        }
+      ],
+      "label": "]",
+      "id": "group-28"
+    },
+    {
+      "label": "^",
+      "players": [
+        {
+          "gender": "F",
+          "groupId": "group-29",
+          "name": "Cali Gurr",
+          "teammateRequests": [
+            "Luke Mackey"
+          ],
+          "execSkillRating": 6,
+          "id": "cali-gurr-m2iao",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "Played BUL before/ played in high school",
+            "age": 28
+          },
+          "skillRating": 6,
+          "avoidRequests": []
+        },
+        {
+          "profile": {
+            "registrationInfo": "I have played frisbee for 2 years",
+            "age": 26
+          },
+          "skillRating": 6.4,
+          "unfulfilledRequests": [],
+          "id": "luke-mackey-fsa11",
+          "avoidRequests": [],
+          "name": "Luke Mackey",
+          "teammateRequests": [
+            "Cali Gurr"
+          ],
+          "gender": "M",
+          "groupId": "group-29",
+          "execSkillRating": 7.6
+        }
+      ],
+      "id": "group-29",
+      "playerIds": [
+        "cali-gurr-m2iao",
+        "luke-mackey-fsa11"
+      ],
+      "color": "#F97316"
+    },
+    {
+      "playerIds": [
+        "christian-mueller-o2jvl",
+        "emilie-brown-7d5ct"
+      ],
+      "color": "#06B6D4",
+      "label": "_",
+      "players": [
+        {
+          "execSkillRating": 4.8,
+          "teammateRequests": [
+            "Emilie Brown"
+          ],
+          "name": "Christian Mueller",
+          "groupId": "group-30",
+          "gender": "M",
+          "avoidRequests": [],
+          "skillRating": 4.8,
+          "profile": {
+            "registrationInfo": "N/A",
+            "age": 27
+          },
+          "id": "christian-mueller-o2jvl",
+          "unfulfilledRequests": []
+        },
+        {
+          "execSkillRating": 3.2,
+          "gender": "F",
+          "groupId": "group-30",
+          "name": "Emilie Brown",
+          "teammateRequests": [
+            "Christian Mueller"
+          ],
+          "avoidRequests": [],
+          "id": "emilie-brown-7d5ct",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "N/A",
+            "age": 27
+          },
+          "skillRating": 3.2
+        }
+      ],
+      "id": "group-30"
+    },
+    {
+      "id": "group-31",
+      "label": "`",
+      "players": [
+        {
+          "avoidRequests": [],
+          "id": "lauren-grasse-0crpf",
+          "unfulfilledRequests": [],
+          "profile": {
+            "registrationInfo": "Played in highschool, rec league in past, mixed Barrie’s",
+            "age": 20
+          },
+          "skillRating": 8.4,
+          "execSkillRating": 6.3,
+          "gender": "F",
+          "groupId": "group-31",
+          "name": "Lauren Grasse",
+          "teammateRequests": [
+            "Liam Crawford"
+          ]
+        },
+        {
+          "avoidRequests": [],
+          "unfulfilledRequests": [],
+          "id": "liam-crawford-imfnw",
+          "profile": {
+            "registrationInfo": "High School",
+            "age": 18
+          },
+          "skillRating": 6,
+          "execSkillRating": 6,
+          "gender": "M",
+          "groupId": "group-31",
+          "name": "Liam Crawford",
+          "teammateRequests": [
+            "Lauren Grasse"
+          ]
+        }
+      ],
+      "color": "#84CC16",
+      "playerIds": [
+        "lauren-grasse-0crpf",
+        "liam-crawford-imfnw"
+      ]
+    },
+    {
+      "color": "#EC4899",
+      "playerIds": [
+        "leah-potje-deajp",
+        "lilyanna-padoin-lee-k05zp"
+      ],
+      "id": "group-32",
+      "label": "a",
+      "players": [
+        {
+          "teammateRequests": [
+            "Lilyanna Padoin Lee"
+          ],
+          "name": "Leah Potje",
+          "groupId": "group-32",
+          "gender": "F",
+          "execSkillRating": 5.2,
+          "skillRating": 5.2,
+          "profile": {
+            "registrationInfo": "Played one high school season at ISS and one intramural university season at Carleton",
+            "age": 18
+          },
+          "unfulfilledRequests": [],
+          "id": "leah-potje-deajp",
+          "avoidRequests": []
+        },
+        {
+          "execSkillRating": 8,
+          "teammateRequests": [
+            "Leah Potje"
+          ],
+          "name": "Lilyanna Padoin Lee",
+          "gender": "F",
+          "groupId": "group-32",
+          "avoidRequests": [],
+          "profile": {
+            "registrationInfo": "Played in high school",
+            "age": 19
+          },
+          "skillRating": 8,
+          "unfulfilledRequests": [],
+          "id": "lilyanna-padoin-lee-k05zp"
+        }
+      ]
+    },
+    {
+      "color": "#6B7280",
+      "playerIds": [
+        "chris-tillmanns-lv4ej",
+        "julie-tillmanns-e0n34"
+      ],
+      "id": "group-1776625164409-0-wq1lvc",
+      "label": "G34",
+      "players": [
+        {
+          "avoidRequests": [],
+          "unfulfilledRequests": [
+            {
+              "reason": "non-reciprocal",
+              "name": "Carly Munce",
+              "playerId": "carly-munce-8za4e"
+            }
+          ],
+          "id": "chris-tillmanns-lv4ej",
+          "profile": {
+            "registrationInfo": "Barrie Ultimate\n\nFamily - Charlee's first season and Julie",
+            "age": 46
+          },
+          "skillRating": 5.6,
+          "execSkillRating": 6.7,
+          "gender": "M",
+          "groupId": "group-1776625164409-0-wq1lvc",
+          "teammateRequests": [
+            "Julie Tillmanns"
+          ],
+          "name": "Chris Tillmanns"
+        },
+        {
+          "unfulfilledRequests": [
+            {
+              "reason": "non-reciprocal",
+              "name": "Charlee Tillmanns",
+              "playerId": "charlee-tillmanns-emdrk"
+            }
+          ],
+          "id": "julie-tillmanns-e0n34",
+          "profile": {
+            "registrationInfo": "Barrie Ultimate...\n\nFamily Affair - Charlee's first season and Chris",
+            "age": 47
+          },
+          "skillRating": 5.6,
+          "avoidRequests": [],
+          "gender": "F",
+          "groupId": "group-1776625164409-0-wq1lvc",
+          "teammateRequests": [
+            "Chris Tillmanns"
+          ],
+          "name": "Julie Tillmanns",
+          "execSkillRating": 5.5
+        }
+      ]
+    }
+  ],
+  "players": [
+    {
+      "unfulfilledRequests": [],
+      "id": "kristy-robinson-fq6g2",
+      "profile": {
+        "registrationInfo": "andy and I once played with dinosaurs\n\nsteve schwarz is a new player that would like to play with us",
+        "age": 53
+      },
+      "skillRating": 6,
+      "avoidRequests": [],
+      "gender": "F",
+      "groupId": "group-0",
+      "teammateRequests": [
+        "Andy Beecroft"
+      ],
+      "name": "Kristy Robinson",
+      "execSkillRating": 6.7
+    },
+    {
+      "execSkillRating": 9.6,
+      "teammateRequests": [
+        "Matthew Lynar"
+      ],
+      "name": "Caitlind Lusty",
+      "groupId": "group-1",
+      "gender": "F",
+      "avoidRequests": [],
+      "skillRating": 9.6,
+      "profile": {
+        "registrationInfo": "Too many to mention. Team Canada highest levels\n\nMay miss a couple of games on the front half of the",
+        "age": 35
+      },
+      "unfulfilledRequests": [],
+      "id": "caitlind-lusty-wwamb"
+    },
+    {
+      "execSkillRating": 3.8,
+      "name": "Andy Beecroft",
+      "teammateRequests": [
+        "Kristy Robinson"
+      ],
+      "groupId": "group-0",
+      "gender": "M",
+      "avoidRequests": [],
+      "skillRating": 6,
+      "profile": {
+        "registrationInfo": "i once played with a wooden frisbee back in the day\n\nif able steve schwarz would like to play with u",
+        "age": 54
+      },
+      "unfulfilledRequests": [],
+      "id": "andy-beecroft-hy0h3"
+    },
+    {
+      "teammateRequests": [],
+      "name": "Sunayna Gupta",
+      "gender": "F",
+      "execSkillRating": 5.6,
+      "profile": {
+        "registrationInfo": "Toured a long long time ago\n\nI am only available for 4 of the sessions. (June 29, 8, 1, may 4), if t",
+        "age": 37
+      },
+      "skillRating": 5.6,
+      "id": "sunayna-gupta-5a56m",
+      "unfulfilledRequests": [],
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "id": "nolan-hickling-5w80i",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "High School, University.\n\nSigning up with my girlfriend. Used to play very high level but haven't pl",
+        "age": 32
+      },
+      "skillRating": 8.8,
+      "execSkillRating": 8.8,
+      "gender": "M",
+      "groupId": "group-2",
+      "teammateRequests": [
+        "Pascale Clements"
+      ],
+      "name": "Nolan Hickling"
+    },
+    {
+      "id": "matt-hofing-rqe6t",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "Been playing for a long time.\n\nWould really love to play with all of my best friends!",
+        "age": 38
+      },
+      "skillRating": 8,
+      "avoidRequests": [],
+      "gender": "M",
+      "groupId": "group-3",
+      "teammateRequests": [
+        "Tyler Sadler"
+      ],
+      "name": "Matt Hofing",
+      "execSkillRating": 8.8
+    },
+    {
+      "name": "Taylor Stanojev",
+      "teammateRequests": [],
+      "gender": "F",
+      "execSkillRating": 6.7,
+      "skillRating": 6.4,
+      "profile": {
+        "registrationInfo": "Club, university",
+        "age": 32
+      },
+      "unfulfilledRequests": [],
+      "id": "taylor-stanojev-ahgoi",
+      "avoidRequests": []
+    },
+    {
+      "profile": {
+        "registrationInfo": "National and Team Canada level player",
+        "age": 39
+      },
+      "skillRating": 10,
+      "id": "aaron-kucherawy-zryju",
+      "unfulfilledRequests": [],
+      "avoidRequests": [],
+      "name": "Aaron Kucherawy",
+      "teammateRequests": [
+        "Stephanie Vecchiarelli"
+      ],
+      "gender": "M",
+      "groupId": "group-4",
+      "execSkillRating": 10
+    },
+    {
+      "execSkillRating": 9.9,
+      "teammateRequests": [
+        "Alison Spekkers"
+      ],
+      "name": "Bryan Spekkers",
+      "gender": "M",
+      "groupId": "group-5",
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "Played at all levels for 20+ years",
+        "age": 36
+      },
+      "skillRating": 9.6,
+      "id": "bryan-spekkers-b99l9",
+      "unfulfilledRequests": []
+    },
+    {
+      "execSkillRating": 10,
+      "name": "Tyler Sadler",
+      "teammateRequests": [
+        "Matt Hofing"
+      ],
+      "groupId": "group-3",
+      "gender": "M",
+      "avoidRequests": [],
+      "skillRating": 10,
+      "profile": {
+        "registrationInfo": "Houndd/team canada/goat/phoenix\n\nno",
+        "age": 28
+      },
+      "id": "tyler-sadler-8jgm7",
+      "unfulfilledRequests": []
+    },
+    {
+      "gender": "F",
+      "groupId": "group-6",
+      "teammateRequests": [
+        "Thomas Black"
+      ],
+      "name": "Carly Munce",
+      "execSkillRating": 9.1,
+      "unfulfilledRequests": [],
+      "id": "carly-munce-8za4e",
+      "profile": {
+        "registrationInfo": "N/a",
+        "age": 31
+      },
+      "skillRating": 10,
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "id": "james-callow-634zs",
+      "unfulfilledRequests": [],
+      "skillRating": 8.4,
+      "profile": {
+        "registrationInfo": "Barrie Ultimate 20 years",
+        "age": 50
+      },
+      "execSkillRating": 8.1,
+      "groupId": "group-7",
+      "gender": "M",
+      "name": "James Callow",
+      "teammateRequests": [
+        "Cale Holmes"
+      ]
+    },
+    {
+      "execSkillRating": 10,
+      "name": "Thomas Black",
+      "teammateRequests": [
+        "Carly Munce"
+      ],
+      "groupId": "group-6",
+      "gender": "M",
+      "avoidRequests": [],
+      "skillRating": 10,
+      "profile": {
+        "registrationInfo": "National",
+        "age": 36
+      },
+      "unfulfilledRequests": [],
+      "id": "thomas-black-a8cai"
+    },
+    {
+      "unfulfilledRequests": [],
+      "id": "eric-bouchard-xoqf2",
+      "profile": {
+        "registrationInfo": "25 years with Barrie Ultimate",
+        "age": 46
+      },
+      "skillRating": 7.2,
+      "avoidRequests": [],
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Eric Bouchard",
+      "execSkillRating": 7.1
+    },
+    {
+      "execSkillRating": 8.3,
+      "teammateRequests": [
+        "Aaron Kucherawy"
+      ],
+      "name": "Stephanie Vecchiarelli",
+      "gender": "F",
+      "groupId": "group-4",
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "National level",
+        "age": 32
+      },
+      "skillRating": 8.4,
+      "unfulfilledRequests": [],
+      "id": "stephanie-vecchiarelli-5fknk"
+    },
+    {
+      "groupId": "group-1776625164409-0-wq1lvc",
+      "gender": "M",
+      "name": "Chris Tillmanns",
+      "teammateRequests": [
+        "Julie Tillmanns"
+      ],
+      "execSkillRating": 6.7,
+      "id": "chris-tillmanns-lv4ej",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Carly Munce",
+          "playerId": "carly-munce-8za4e"
+        }
+      ],
+      "skillRating": 5.6,
+      "profile": {
+        "registrationInfo": "Barrie Ultimate\n\nFamily - Charlee's first season and Julie",
+        "age": 46
+      },
+      "avoidRequests": []
+    },
+    {
+      "execSkillRating": 8.7,
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "David Tran",
+      "avoidRequests": [],
+      "id": "david-tran-w7xy4",
+      "unfulfilledRequests": [],
+      "skillRating": 7.6,
+      "profile": {
+        "registrationInfo": "Mixed club ultimate\n\nI'm slow now. I'm older, I've gained weight, I don't do cardio anymore. I can s",
+        "age": 33
+      }
+    },
+    {
+      "teammateRequests": [],
+      "name": "Rick McFadden",
+      "gender": "M",
+      "execSkillRating": 4.1,
+      "skillRating": 7.2,
+      "profile": {
+        "registrationInfo": "Just the BUL for years\n\nNone",
+        "age": 59
+      },
+      "id": "rick-mcfadden-957l8",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Andy Beecroft",
+          "playerId": "andy-beecroft-hy0h3"
+        }
+      ],
+      "avoidRequests": []
+    },
+    {
+      "execSkillRating": 6.4,
+      "name": "Shannon Wolochatiuk",
+      "teammateRequests": [
+        "Scott Patrick"
+      ],
+      "gender": "F",
+      "groupId": "group-8",
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "NA",
+        "age": 40
+      },
+      "skillRating": 6.4,
+      "id": "shannon-wolochatiuk-9o94d",
+      "unfulfilledRequests": []
+    },
+    {
+      "skillRating": 6,
+      "profile": {
+        "registrationInfo": "In a past life I was okay.",
+        "age": 39
+      },
+      "id": "jamie-bonany-njvlg",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Scott Patrick",
+          "playerId": "scott-patrick-5dhgu"
+        }
+      ],
+      "avoidRequests": [],
+      "teammateRequests": [],
+      "name": "Jamie Bonany",
+      "gender": "M",
+      "execSkillRating": 6.8
+    },
+    {
+      "teammateRequests": [],
+      "name": "Jaclyn Kane",
+      "gender": "F",
+      "execSkillRating": 6,
+      "skillRating": 6,
+      "profile": {
+        "registrationInfo": "Played a lot for a number of years - haven’t played in several years",
+        "age": 43
+      },
+      "unfulfilledRequests": [],
+      "id": "jaclyn-kane-3no7j",
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "Barrie Ultimate...\n\nFamily Affair - Charlee's first season and Chris",
+        "age": 47
+      },
+      "skillRating": 5.6,
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Charlee Tillmanns",
+          "playerId": "charlee-tillmanns-emdrk"
+        }
+      ],
+      "id": "julie-tillmanns-e0n34",
+      "execSkillRating": 5.5,
+      "teammateRequests": [
+        "Chris Tillmanns"
+      ],
+      "name": "Julie Tillmanns",
+      "gender": "F",
+      "groupId": "group-1776625164409-0-wq1lvc"
+    },
+    {
+      "execSkillRating": 5.7,
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Brad Mayer",
+      "avoidRequests": [],
+      "id": "brad-mayer-gv1bz",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Rebecca Robitaille",
+          "playerId": "rebecca-robitaille-ptl73"
+        }
+      ],
+      "profile": {
+        "registrationInfo": "Played on various competitive open and co-ed touring teams",
+        "age": 54
+      },
+      "skillRating": 7.6
+    },
+    {
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Kyle Jones",
+      "execSkillRating": 5.8,
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Liam Crawford",
+          "playerId": "liam-crawford-imfnw"
+        }
+      ],
+      "id": "kyle-jones-or78d",
+      "skillRating": 5.2,
+      "profile": {
+        "registrationInfo": "Played in a recreational frisbee league an hour north of Toronto\n\nNah",
+        "age": 37
+      },
+      "avoidRequests": []
+    },
+    {
+      "gender": "M",
+      "name": "Thomas Barnes",
+      "teammateRequests": [],
+      "execSkillRating": 2.8,
+      "id": "thomas-barnes-o6zs6",
+      "unfulfilledRequests": [],
+      "skillRating": 5.2,
+      "profile": {
+        "registrationInfo": "Have played barrie ultimate for 20 years\n\nOld and slow.  First time playing outdoor in 6 years",
+        "age": 46
+      },
+      "avoidRequests": []
+    },
+    {
+      "gender": "M",
+      "groupId": "group-9",
+      "teammateRequests": [
+        "Maisy Brazier"
+      ],
+      "name": "Darren Brazier",
+      "execSkillRating": 4.4,
+      "unfulfilledRequests": [],
+      "id": "darren-brazier-g784m",
+      "profile": {
+        "registrationInfo": "Played club years ago\n\nComing back after many years and injuries including Achilles and back",
+        "age": 53
+      },
+      "skillRating": 4.4,
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "id": "ian-brown-7jkg1",
+      "unfulfilledRequests": [],
+      "skillRating": 6.4,
+      "profile": {
+        "registrationInfo": "20+ years rec league",
+        "age": 50
+      },
+      "execSkillRating": 6.5,
+      "gender": "M",
+      "name": "Ian Brown",
+      "teammateRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "N/A\n\nNo",
+        "age": 40
+      },
+      "skillRating": 6.8,
+      "unfulfilledRequests": [],
+      "id": "scott-patrick-5dhgu",
+      "execSkillRating": 6.2,
+      "name": "Scott Patrick",
+      "teammateRequests": [
+        "Shannon Wolochatiuk"
+      ],
+      "gender": "M",
+      "groupId": "group-8"
+    },
+    {
+      "unfulfilledRequests": [],
+      "id": "gary-pluim-k92ik",
+      "profile": {
+        "registrationInfo": "Been playing recreationally for 40 years.\n\nDefinitely would like to be on the team with my daughter",
+        "age": 55
+      },
+      "skillRating": 6.4,
+      "avoidRequests": [],
+      "gender": "M",
+      "groupId": "group-10",
+      "teammateRequests": [
+        "Kaia Pluim-Simon"
+      ],
+      "name": "Gary Pluim",
+      "execSkillRating": 6.1
+    },
+    {
+      "execSkillRating": 5.7,
+      "teammateRequests": [
+        "Curtis Reason"
+      ],
+      "name": "Stephen Hawley",
+      "gender": "M",
+      "groupId": "group-11",
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "Several seasons with BUL\n\nNA",
+        "age": 34
+      },
+      "skillRating": 7.6,
+      "unfulfilledRequests": [],
+      "id": "stephen-hawley-7hfds"
+    },
+    {
+      "execSkillRating": 6,
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Andrew \"Sundance\" Black",
+      "avoidRequests": [],
+      "id": "andrew--sundance--black-2jc97",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "N/a",
+        "age": 38
+      },
+      "skillRating": 6
+    },
+    {
+      "execSkillRating": 8.8,
+      "gender": "M",
+      "name": "Patrick Kirkwood",
+      "teammateRequests": [],
+      "avoidRequests": [],
+      "id": "patrick-kirkwood-kvct7",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "Played toronto mixed touring",
+        "age": 33
+      },
+      "skillRating": 8.8
+    },
+    {
+      "profile": {
+        "registrationInfo": "N/A",
+        "age": 62
+      },
+      "skillRating": 7.6,
+      "unfulfilledRequests": [],
+      "id": "julianna-lerch-oa9uz",
+      "avoidRequests": [],
+      "teammateRequests": [],
+      "name": "Julianna Lerch",
+      "gender": "F",
+      "execSkillRating": 5.8
+    },
+    {
+      "execSkillRating": 4.8,
+      "teammateRequests": [
+        "Ben Carvin"
+      ],
+      "name": "Jim Columbus",
+      "groupId": "group-12",
+      "gender": "M",
+      "avoidRequests": [],
+      "skillRating": 4,
+      "profile": {
+        "registrationInfo": "2",
+        "age": 36
+      },
+      "id": "jim-columbus-ns4sl",
+      "unfulfilledRequests": []
+    },
+    {
+      "execSkillRating": 5.4,
+      "teammateRequests": [
+        "Matt Tribe"
+      ],
+      "name": "Tracy Penley",
+      "gender": "F",
+      "groupId": "group-13",
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "No",
+        "age": 41
+      },
+      "skillRating": 6,
+      "id": "tracy-penley-5yctr",
+      "unfulfilledRequests": []
+    },
+    {
+      "gender": "F",
+      "groupId": "group-14",
+      "teammateRequests": [
+        "Courtney Hough"
+      ],
+      "name": "Kate Bromenshenkel",
+      "execSkillRating": 6,
+      "unfulfilledRequests": [],
+      "id": "kate-bromenshenkel-53n96",
+      "profile": {
+        "registrationInfo": "Barrie Ultimate Rec League (7/8 years)",
+        "age": 41
+      },
+      "skillRating": 6,
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "courtney-hough-b4f00",
+      "skillRating": 8,
+      "profile": {
+        "registrationInfo": "Played in league for a while\n\nNA",
+        "age": 43
+      },
+      "execSkillRating": 7,
+      "groupId": "group-14",
+      "gender": "F",
+      "teammateRequests": [
+        "Kate Bromenshenkel"
+      ],
+      "name": "Courtney Hough"
+    },
+    {
+      "gender": "F",
+      "groupId": "group-15",
+      "name": "Brianna Hall",
+      "teammateRequests": [
+        "Michael McConnell"
+      ],
+      "execSkillRating": 7.1,
+      "unfulfilledRequests": [],
+      "id": "brianna-hall-rq8lo",
+      "profile": {
+        "registrationInfo": "Played in high school",
+        "age": 29
+      },
+      "skillRating": 7.6,
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "Husslin’ BUL for years\n\nLooking forward to a new format this summer",
+        "age": 39
+      },
+      "skillRating": 8.4,
+      "unfulfilledRequests": [],
+      "id": "matt-tribe-la0bk",
+      "execSkillRating": 7.4,
+      "name": "Matt Tribe",
+      "teammateRequests": [
+        "Tracy Penley"
+      ],
+      "gender": "M",
+      "groupId": "group-13"
+    },
+    {
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "ryan-sagermann-8lfgm",
+      "skillRating": 7.2,
+      "profile": {
+        "registrationInfo": "University",
+        "age": 30
+      },
+      "execSkillRating": 7.8,
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Ryan Sagermann"
+    },
+    {
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "Na",
+        "age": 44
+      },
+      "skillRating": 5.2,
+      "unfulfilledRequests": [],
+      "id": "david-humphrys-0fl2n",
+      "execSkillRating": 5.2,
+      "name": "David Humphrys",
+      "teammateRequests": [],
+      "gender": "M"
+    },
+    {
+      "gender": "M",
+      "name": "Cameron Knox",
+      "teammateRequests": [
+        "Jake Letheren"
+      ],
+      "execSkillRating": 9.9,
+      "id": "cameron-knox-g54xj",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Jake Letheren",
+          "playerId": "jake-letheren-ul5ah"
+        }
+      ],
+      "profile": {
+        "registrationInfo": "played a bit\n\nNA",
+        "age": 26
+      },
+      "skillRating": 9.6,
+      "avoidRequests": []
+    },
+    {
+      "profile": {
+        "registrationInfo": "Touring",
+        "age": 28
+      },
+      "skillRating": 6,
+      "id": "parker-munce-ti8q1",
+      "unfulfilledRequests": [],
+      "avoidRequests": [],
+      "teammateRequests": [
+        "William Maher"
+      ],
+      "name": "parker munce",
+      "gender": "F",
+      "groupId": "group-16",
+      "execSkillRating": 7.6
+    },
+    {
+      "profile": {
+        "registrationInfo": "Brand New",
+        "age": 27
+      },
+      "skillRating": 8,
+      "id": "jake-letheren-ul5ah",
+      "unfulfilledRequests": [],
+      "avoidRequests": [],
+      "teammateRequests": [],
+      "name": "Jake Letheren",
+      "gender": "M",
+      "execSkillRating": 9.5
+    },
+    {
+      "unfulfilledRequests": [],
+      "id": "kurtis-thomas-ma29u",
+      "skillRating": 9.2,
+      "profile": {
+        "registrationInfo": "Played in high school, played in BUL for 10 years, played Mixed Barries for two.\n\nI want to be on a",
+        "age": 24
+      },
+      "avoidRequests": [],
+      "groupId": "group-17",
+      "gender": "M",
+      "teammateRequests": [
+        "Sara Shakib"
+      ],
+      "name": "Kurtis Thomas",
+      "execSkillRating": 7.6
+    },
+    {
+      "profile": {
+        "registrationInfo": "Played high school and in the league for 3 years",
+        "age": 28
+      },
+      "skillRating": 6,
+      "id": "john-nigh-d5gt0",
+      "unfulfilledRequests": [],
+      "avoidRequests": [],
+      "teammateRequests": [
+        "Matt Simon"
+      ],
+      "name": "John Nigh",
+      "gender": "M",
+      "groupId": "group-18",
+      "execSkillRating": 5.3
+    },
+    {
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "richmand-hogg-xwvbw",
+      "skillRating": 8.4,
+      "profile": {
+        "registrationInfo": "Barrie Ultimate League\n\nWAAAZZZZAAPPPPPPP",
+        "age": 25
+      },
+      "execSkillRating": 8.9,
+      "groupId": "group-19",
+      "gender": "M",
+      "name": "Richmand Hogg",
+      "teammateRequests": [
+        "Molly Douglas"
+      ]
+    },
+    {
+      "gender": "F",
+      "name": "Marianne Auger",
+      "teammateRequests": [],
+      "execSkillRating": 3.7,
+      "unfulfilledRequests": [],
+      "id": "marianne-auger-a1pcj",
+      "skillRating": 3.6,
+      "profile": {
+        "registrationInfo": "None except bull\n\nHave severe chronic lung disease… sometimes I struggle",
+        "age": 45
+      },
+      "avoidRequests": []
+    },
+    {
+      "skillRating": 8,
+      "profile": {
+        "registrationInfo": "n/a",
+        "age": 34
+      },
+      "unfulfilledRequests": [],
+      "id": "michael-mcconnell-wdvdo",
+      "avoidRequests": [],
+      "name": "Michael McConnell",
+      "teammateRequests": [
+        "Brianna Hall"
+      ],
+      "groupId": "group-15",
+      "gender": "M",
+      "execSkillRating": 8.8
+    },
+    {
+      "execSkillRating": 6,
+      "gender": "M",
+      "name": "Ryan Bridge",
+      "teammateRequests": [],
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "ryan-bridge-azvgd",
+      "skillRating": 6,
+      "profile": {
+        "registrationInfo": "N/A",
+        "age": 38
+      }
+    },
+    {
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Niko Hoogeveen",
+      "execSkillRating": 8,
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Adam Soos",
+          "playerId": "adam-soos-d5fxh"
+        }
+      ],
+      "id": "niko-hoogeveen-k42md",
+      "skillRating": 6.4,
+      "profile": {
+        "registrationInfo": "Mixed Barrie’s\n\nI’d really like to play with Adam Soos and his sister Amber Soss",
+        "age": 24
+      },
+      "avoidRequests": []
+    },
+    {
+      "execSkillRating": 5.3,
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Billy Miller",
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "billy-miller-g39gp",
+      "profile": {
+        "registrationInfo": "played in the league several years",
+        "age": 36
+      },
+      "skillRating": 6
+    },
+    {
+      "execSkillRating": 9.3,
+      "gender": "M",
+      "groupId": "group-16",
+      "teammateRequests": [
+        "parker munce"
+      ],
+      "name": "William Maher",
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "william-maher-7li01",
+      "profile": {
+        "registrationInfo": "Club",
+        "age": 24
+      },
+      "skillRating": 10
+    },
+    {
+      "execSkillRating": 7.9,
+      "name": "Molly Douglas",
+      "teammateRequests": [
+        "Richmand Hogg"
+      ],
+      "groupId": "group-19",
+      "gender": "F",
+      "avoidRequests": [],
+      "skillRating": 6.8,
+      "profile": {
+        "registrationInfo": "MB babyyyyy\n\nThank you :)",
+        "age": 30
+      },
+      "unfulfilledRequests": [],
+      "id": "molly-douglas-uqz6w"
+    },
+    {
+      "groupId": "group-12",
+      "gender": "M",
+      "teammateRequests": [
+        "Jim Columbus"
+      ],
+      "name": "Ben Carvin",
+      "execSkillRating": 5.6,
+      "unfulfilledRequests": [],
+      "id": "ben-carvin-82jfs",
+      "skillRating": 5.6,
+      "profile": {
+        "registrationInfo": "Played indoor seasons with BUL\n\nOnly ever played indoor so this will be my first experience of outdo",
+        "age": 33
+      },
+      "avoidRequests": []
+    },
+    {
+      "profile": {
+        "registrationInfo": "Previous seasons\n\nNone",
+        "age": 34
+      },
+      "skillRating": 6,
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Jesse Sulmona",
+          "playerId": "jesse-sulmona-q7oom"
+        }
+      ],
+      "id": "shane-comella-8ocd4",
+      "avoidRequests": [],
+      "name": "Shane Comella",
+      "teammateRequests": [],
+      "gender": "M",
+      "execSkillRating": 5.3
+    },
+    {
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "kyra-frisina-yjkdj",
+      "profile": {
+        "registrationInfo": "high school, club",
+        "age": 23
+      },
+      "skillRating": 7.6,
+      "execSkillRating": 7.7,
+      "gender": "F",
+      "groupId": "group-20",
+      "name": "Kyra Frisina",
+      "teammateRequests": [
+        "Cole Leslie"
+      ]
+    },
+    {
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "Touring with seniors + masters teams\n\nHave never played with spekkers and would love the opportunity",
+        "age": 30
+      },
+      "skillRating": 6.8,
+      "id": "christy-doolittle-iiesy",
+      "unfulfilledRequests": [],
+      "execSkillRating": 7.9,
+      "name": "Christy Doolittle",
+      "teammateRequests": [
+        "Rebecca Robitaille"
+      ],
+      "gender": "F",
+      "groupId": "group-21"
+    },
+    {
+      "avoidRequests": [],
+      "id": "steve-schwarz-rhfn9",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Andy Beecroft",
+          "playerId": "andy-beecroft-hy0h3"
+        }
+      ],
+      "profile": {
+        "registrationInfo": "Played two indoor sessions a few years ago.\n\nI live very close to Andy and Kristy and would be ideal",
+        "age": 55
+      },
+      "skillRating": 5.2,
+      "execSkillRating": 5.2,
+      "gender": "M",
+      "name": "Steve Schwarz",
+      "teammateRequests": []
+    },
+    {
+      "execSkillRating": 6,
+      "gender": "M",
+      "groupId": "group-22",
+      "teammateRequests": [
+        "Ashish Mehra"
+      ],
+      "name": "Brad Dempsey",
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "brad-dempsey-ijgti",
+      "profile": {
+        "registrationInfo": "Mainly just BUL",
+        "age": 35
+      },
+      "skillRating": 6
+    },
+    {
+      "teammateRequests": [
+        "Brad Dempsey"
+      ],
+      "name": "Ashish Mehra",
+      "gender": "M",
+      "groupId": "group-22",
+      "execSkillRating": 6.8,
+      "profile": {
+        "registrationInfo": "BUL &amp;amp; Mixed Barrie’s\n\nNo",
+        "age": 35
+      },
+      "skillRating": 6,
+      "id": "ashish-mehra-qebes",
+      "unfulfilledRequests": [],
+      "avoidRequests": []
+    },
+    {
+      "execSkillRating": 6.8,
+      "name": "Matthew Lynar",
+      "teammateRequests": [
+        "Caitlind Lusty"
+      ],
+      "groupId": "group-1",
+      "gender": "M",
+      "avoidRequests": [],
+      "skillRating": 6,
+      "profile": {
+        "registrationInfo": "Rec league",
+        "age": 35
+      },
+      "unfulfilledRequests": [],
+      "id": "matthew-lynar-lu2cy"
+    },
+    {
+      "gender": "M",
+      "groupId": "group-7",
+      "teammateRequests": [
+        "James Callow"
+      ],
+      "name": "Cale Holmes",
+      "execSkillRating": 7.8,
+      "id": "cale-holmes-2wu95",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "Club",
+        "age": 24
+      },
+      "skillRating": 7.2,
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "skillRating": 8,
+      "profile": {
+        "registrationInfo": "Have played club and university competively",
+        "age": 35
+      },
+      "id": "curtis-reason-lx8g8",
+      "unfulfilledRequests": [],
+      "execSkillRating": 6.5,
+      "name": "Curtis Reason",
+      "teammateRequests": [
+        "Stephen Hawley"
+      ],
+      "groupId": "group-11",
+      "gender": "M"
+    },
+    {
+      "unfulfilledRequests": [],
+      "id": "pierce-munce-1lqqw",
+      "skillRating": 8.4,
+      "profile": {
+        "registrationInfo": "Club\n\nReturning from a groin injury",
+        "age": 32
+      },
+      "avoidRequests": [],
+      "gender": "M",
+      "name": "Pierce Munce",
+      "teammateRequests": [],
+      "execSkillRating": 8.1
+    },
+    {
+      "avoidRequests": [],
+      "id": "sydney-mussgnug-cz1sj",
+      "unfulfilledRequests": [],
+      "skillRating": 8,
+      "profile": {
+        "registrationInfo": "mixed barries",
+        "age": 26
+      },
+      "execSkillRating": 7.7,
+      "groupId": "group-23",
+      "gender": "F",
+      "name": "Sydney Mussgnug",
+      "teammateRequests": [
+        "Ben Brittain"
+      ]
+    },
+    {
+      "execSkillRating": 6.2,
+      "gender": "F",
+      "groupId": "group-24",
+      "name": "Emma Hanney",
+      "teammateRequests": [
+        "Lauren Gostick"
+      ],
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "emma-hanney-ik8nm",
+      "profile": {
+        "registrationInfo": "Club, university",
+        "age": 23
+      },
+      "skillRating": 8
+    },
+    {
+      "id": "charlie-tardif-ajcnh",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "I've played in the Barrie League since 2022",
+        "age": 35
+      },
+      "skillRating": 4.8,
+      "avoidRequests": [],
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Charlie Tardif",
+      "execSkillRating": 2
+    },
+    {
+      "name": "Paul Marjin",
+      "teammateRequests": [],
+      "gender": "M",
+      "execSkillRating": 5.3,
+      "profile": {
+        "registrationInfo": "Played in the league",
+        "age": 29
+      },
+      "skillRating": 6,
+      "unfulfilledRequests": [],
+      "id": "paul-marjin-ntgqt",
+      "avoidRequests": []
+    },
+    {
+      "execSkillRating": 6.9,
+      "groupId": "group-5",
+      "gender": "F",
+      "name": "Alison Spekkers",
+      "teammateRequests": [
+        "Bryan Spekkers"
+      ],
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "alison-spekkers-cvtpz",
+      "skillRating": 6,
+      "profile": {
+        "registrationInfo": "Club level",
+        "age": 32
+      }
+    },
+    {
+      "avoidRequests": [],
+      "id": "maisy-brazier-7dpo3",
+      "unfulfilledRequests": [],
+      "skillRating": 6.4,
+      "profile": {
+        "registrationInfo": "I played in high school and for my current university team.\n\nI would love to play with my dad, Darre",
+        "age": 19
+      },
+      "execSkillRating": 6.4,
+      "groupId": "group-9",
+      "gender": "F",
+      "name": "Maisy Brazier",
+      "teammateRequests": [
+        "Darren Brazier"
+      ]
+    },
+    {
+      "skillRating": 6.8,
+      "profile": {
+        "registrationInfo": "Highschool and rec leagues",
+        "age": 21
+      },
+      "unfulfilledRequests": [],
+      "id": "matt-simon-u5qt9",
+      "avoidRequests": [],
+      "teammateRequests": [
+        "John Nigh"
+      ],
+      "name": "Matt Simon",
+      "groupId": "group-18",
+      "gender": "M",
+      "execSkillRating": 6.8
+    },
+    {
+      "teammateRequests": [
+        "Chris Tillmanns"
+      ],
+      "name": "Charlee Tillmanns",
+      "gender": "F",
+      "execSkillRating": 2.4,
+      "skillRating": 2.4,
+      "profile": {
+        "registrationInfo": "Newbie\n\nFamily - Julie and Chris Tillmanns",
+        "age": 18
+      },
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Chris Tillmanns",
+          "playerId": "chris-tillmanns-lv4ej"
+        }
+      ],
+      "id": "charlee-tillmanns-emdrk",
+      "avoidRequests": []
+    },
+    {
+      "teammateRequests": [],
+      "name": "Xena Cochi",
+      "gender": "F",
+      "execSkillRating": 6.2,
+      "skillRating": 7.2,
+      "profile": {
+        "registrationInfo": "Played in high school years ago and on this league",
+        "age": 23
+      },
+      "id": "xena-cochi-gr7jp",
+      "unfulfilledRequests": [],
+      "avoidRequests": []
+    },
+    {
+      "skillRating": 6,
+      "profile": {
+        "registrationInfo": "I've played recreationally for about 10 years",
+        "age": 34
+      },
+      "unfulfilledRequests": [],
+      "id": "joseph-dunlop-pjwec",
+      "avoidRequests": [],
+      "name": "Joseph Dunlop",
+      "teammateRequests": [],
+      "gender": "M",
+      "execSkillRating": 6
+    },
+    {
+      "gender": "M",
+      "name": "Tristan Callow",
+      "teammateRequests": [],
+      "execSkillRating": 5.5,
+      "id": "tristan-callow-6w1fu",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "James Callow",
+          "playerId": "james-callow-634zs"
+        }
+      ],
+      "profile": {
+        "registrationInfo": "High school, BUL",
+        "age": 18
+      },
+      "skillRating": 6.8,
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "Played in highschool",
+        "age": 17
+      },
+      "skillRating": 6.4,
+      "id": "ben-brittain-9hhxu",
+      "unfulfilledRequests": [],
+      "execSkillRating": 6.9,
+      "name": "Ben Brittain",
+      "teammateRequests": [
+        "Sydney Mussgnug"
+      ],
+      "gender": "M",
+      "groupId": "group-23"
+    },
+    {
+      "avoidRequests": [],
+      "skillRating": 7.6,
+      "profile": {
+        "registrationInfo": "High school",
+        "age": 21
+      },
+      "id": "eric-good-wkwe0",
+      "unfulfilledRequests": [],
+      "execSkillRating": 6.4,
+      "teammateRequests": [],
+      "name": "Eric Good",
+      "gender": "M"
+    },
+    {
+      "avoidRequests": [],
+      "skillRating": 6.4,
+      "profile": {
+        "registrationInfo": "Club\n\nI would also like to play with Niko Hoogeveen. We drive together. Playing with him would make",
+        "age": 25
+      },
+      "id": "adam-soos-d5fxh",
+      "unfulfilledRequests": [],
+      "execSkillRating": 7.6,
+      "teammateRequests": [
+        "Amber Soos"
+      ],
+      "name": "Adam Soos",
+      "groupId": "group-25",
+      "gender": "M"
+    },
+    {
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "amber-soos-s1fer",
+      "profile": {
+        "registrationInfo": "Club\n\nI would also like to play with Niko Hoogeveen. We drive together. Playing with him would make",
+        "age": 19
+      },
+      "skillRating": 6,
+      "execSkillRating": 6,
+      "gender": "F",
+      "groupId": "group-25",
+      "name": "Amber Soos",
+      "teammateRequests": [
+        "Adam Soos"
+      ]
+    },
+    {
+      "gender": "M",
+      "groupId": "group-26",
+      "teammateRequests": [
+        "Tate Montgomery"
+      ],
+      "name": "Finn Montgomery",
+      "execSkillRating": 8.4,
+      "id": "finn-montgomery-vvq5y",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "touring junior Barrie team\n\nMight miss the first game or two - traveling in Asia",
+        "age": 20
+      },
+      "skillRating": 8.4,
+      "avoidRequests": []
+    },
+    {
+      "execSkillRating": 5.7,
+      "gender": "M",
+      "name": "Joseph Doran",
+      "teammateRequests": [],
+      "avoidRequests": [],
+      "id": "joseph-doran-pi8eo",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "Played at university and in toronto rec league",
+        "age": 40
+      },
+      "skillRating": 7.6
+    },
+    {
+      "teammateRequests": [],
+      "name": "Myles Odlozinski",
+      "gender": "M",
+      "execSkillRating": 6,
+      "profile": {
+        "registrationInfo": "High School, Barrie youth touring team, spring league last year",
+        "age": 19
+      },
+      "skillRating": 6,
+      "id": "myles-odlozinski-fkiri",
+      "unfulfilledRequests": [],
+      "avoidRequests": []
+    },
+    {
+      "groupId": "group-26",
+      "gender": "M",
+      "name": "Tate Montgomery",
+      "teammateRequests": [
+        "Finn Montgomery"
+      ],
+      "execSkillRating": 8,
+      "id": "tate-montgomery-j0wv0",
+      "unfulfilledRequests": [],
+      "skillRating": 8,
+      "profile": {
+        "registrationInfo": "Touring Junior Barrie\n\nMight miss the first game or 2 - travelling in asia",
+        "age": 19
+      },
+      "avoidRequests": []
+    },
+    {
+      "unfulfilledRequests": [],
+      "id": "daniel-pacitto-ul9st",
+      "profile": {
+        "registrationInfo": "High school",
+        "age": 26
+      },
+      "skillRating": 7.2,
+      "avoidRequests": [],
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Daniel Pacitto",
+      "execSkillRating": 7.8
+    },
+    {
+      "name": "Kristin Dibble Pechkovsky",
+      "teammateRequests": [],
+      "gender": "F",
+      "execSkillRating": 5.6,
+      "skillRating": 5.6,
+      "profile": {
+        "registrationInfo": "Played Ultimate since my 20's...consistently for about 10-15 years and then stopped while having kid",
+        "age": 56
+      },
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Nathan Pechkovsky",
+          "playerId": "nathan-pechkovsky-pdful"
+        }
+      ],
+      "id": "kristin-dibble-pechkovsky-j26nn",
+      "avoidRequests": []
+    },
+    {
+      "execSkillRating": 8.4,
+      "gender": "M",
+      "teammateRequests": [
+        "Kristin Dibble Pechkovsky"
+      ],
+      "name": "Nathan Pechkovsky",
+      "avoidRequests": [],
+      "id": "nathan-pechkovsky-pdful",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Kristy Robinson",
+          "playerId": "kristy-robinson-fq6g2"
+        }
+      ],
+      "profile": {
+        "registrationInfo": "Played in highschool and has played in the league a few times.\n\nRegistering with sister (Kailtyn Pec",
+        "age": 19
+      },
+      "skillRating": 8.4
+    },
+    {
+      "execSkillRating": 5.5,
+      "groupId": "group-27",
+      "gender": "M",
+      "teammateRequests": [
+        "Kaitlyn Pechkovsky"
+      ],
+      "name": "Tom Pechkovsky",
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "tom-pechkovsky-vhv2x",
+      "skillRating": 6.8,
+      "profile": {
+        "registrationInfo": "Played for about 10-15 years in 20's and 30's and then didn't play for while raising kids.  Played o",
+        "age": 56
+      }
+    },
+    {
+      "teammateRequests": [
+        "Christy Doolittle"
+      ],
+      "name": "Rebecca Robitaille",
+      "gender": "F",
+      "groupId": "group-21",
+      "execSkillRating": 8.6,
+      "profile": {
+        "registrationInfo": "touring\n\nWould love to play with Brad Mayer (dad) and Carden Vickers (coworker, new to league)",
+        "age": 36
+      },
+      "skillRating": 8,
+      "unfulfilledRequests": [],
+      "id": "rebecca-robitaille-ptl73",
+      "avoidRequests": []
+    },
+    {
+      "profile": {
+        "registrationInfo": "Bul",
+        "age": 27
+      },
+      "skillRating": 4,
+      "unfulfilledRequests": [],
+      "id": "robin-mennie-j5t02",
+      "avoidRequests": [],
+      "teammateRequests": [
+        "Cody Sinkinson"
+      ],
+      "name": "Robin Mennie",
+      "gender": "F",
+      "groupId": "group-28",
+      "execSkillRating": 4
+    },
+    {
+      "execSkillRating": 4.5,
+      "groupId": "group-28",
+      "gender": "M",
+      "teammateRequests": [
+        "Robin Mennie"
+      ],
+      "name": "Cody Sinkinson",
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "cody-sinkinson-9fucn",
+      "skillRating": 6,
+      "profile": {
+        "registrationInfo": "Na",
+        "age": 29
+      }
+    },
+    {
+      "avoidRequests": [],
+      "id": "cali-gurr-m2iao",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "Played BUL before/ played in high school",
+        "age": 28
+      },
+      "skillRating": 6,
+      "execSkillRating": 6,
+      "gender": "F",
+      "groupId": "group-29",
+      "name": "Cali Gurr",
+      "teammateRequests": [
+        "Luke Mackey"
+      ]
+    },
+    {
+      "id": "luke-mackey-fsa11",
+      "unfulfilledRequests": [],
+      "skillRating": 6.4,
+      "profile": {
+        "registrationInfo": "I have played frisbee for 2 years",
+        "age": 26
+      },
+      "avoidRequests": [],
+      "groupId": "group-29",
+      "gender": "M",
+      "name": "Luke Mackey",
+      "teammateRequests": [
+        "Cali Gurr"
+      ],
+      "execSkillRating": 7.6
+    },
+    {
+      "execSkillRating": 5.6,
+      "gender": "M",
+      "name": "Neil Bond",
+      "teammateRequests": [],
+      "avoidRequests": [],
+      "id": "neil-bond-7x6uj",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "High School",
+        "age": 29
+      },
+      "skillRating": 5.6
+    },
+    {
+      "avoidRequests": [],
+      "id": "lauren-gostick-2e7gd",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "I have been playing in BUL for 2 years now",
+        "age": 26
+      },
+      "skillRating": 5.6,
+      "execSkillRating": 5.6,
+      "gender": "F",
+      "groupId": "group-24",
+      "name": "Lauren Gostick",
+      "teammateRequests": [
+        "Emma Hanney"
+      ]
+    },
+    {
+      "id": "kaitlyn-pechkovsky-rd0o9",
+      "unfulfilledRequests": [],
+      "skillRating": 5.2,
+      "profile": {
+        "registrationInfo": "Played in High school but haven't played much in 4 years.\n\nRegistering entire family and would love",
+        "age": 22
+      },
+      "avoidRequests": [],
+      "groupId": "group-27",
+      "gender": "F",
+      "teammateRequests": [
+        "Tom Pechkovsky"
+      ],
+      "name": "Kaitlyn Pechkovsky",
+      "execSkillRating": 5.2
+    },
+    {
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Brett Ormsby",
+      "execSkillRating": 8,
+      "unfulfilledRequests": [],
+      "id": "brett-ormsby-594uo",
+      "profile": {
+        "registrationInfo": "University Ultimate",
+        "age": 20
+      },
+      "skillRating": 8,
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "N/A",
+        "age": 27
+      },
+      "skillRating": 4.8,
+      "id": "christian-mueller-o2jvl",
+      "unfulfilledRequests": [],
+      "execSkillRating": 4.8,
+      "name": "Christian Mueller",
+      "teammateRequests": [
+        "Emilie Brown"
+      ],
+      "gender": "M",
+      "groupId": "group-30"
+    },
+    {
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "N/A",
+        "age": 27
+      },
+      "skillRating": 3.2,
+      "unfulfilledRequests": [],
+      "id": "emilie-brown-7d5ct",
+      "execSkillRating": 3.2,
+      "name": "Emilie Brown",
+      "teammateRequests": [
+        "Christian Mueller"
+      ],
+      "gender": "F",
+      "groupId": "group-30"
+    },
+    {
+      "gender": "M",
+      "name": "Jeffery Hoover",
+      "teammateRequests": [],
+      "execSkillRating": 5.2,
+      "unfulfilledRequests": [],
+      "id": "jeffery-hoover-11rsi",
+      "skillRating": 5.2,
+      "profile": {
+        "registrationInfo": "Played recreationally in TUC previously",
+        "age": 44
+      },
+      "avoidRequests": []
+    },
+    {
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Amber Soos",
+          "playerId": "amber-soos-s1fer"
+        }
+      ],
+      "id": "carden-vickers-wyp2g",
+      "skillRating": 5.2,
+      "profile": {
+        "registrationInfo": "Played last summer",
+        "age": 27
+      },
+      "avoidRequests": [],
+      "gender": "M",
+      "name": "Carden Vickers",
+      "teammateRequests": [],
+      "execSkillRating": 5.2
+    },
+    {
+      "execSkillRating": 6.3,
+      "groupId": "group-31",
+      "gender": "F",
+      "teammateRequests": [
+        "Liam Crawford"
+      ],
+      "name": "Lauren Grasse",
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "lauren-grasse-0crpf",
+      "skillRating": 8.4,
+      "profile": {
+        "registrationInfo": "Played in highschool, rec league in past, mixed Barrie’s",
+        "age": 20
+      }
+    },
+    {
+      "groupId": "group-31",
+      "gender": "M",
+      "name": "Liam Crawford",
+      "teammateRequests": [
+        "Lauren Grasse"
+      ],
+      "execSkillRating": 6,
+      "id": "liam-crawford-imfnw",
+      "unfulfilledRequests": [],
+      "skillRating": 6,
+      "profile": {
+        "registrationInfo": "High School",
+        "age": 18
+      },
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "nate-smith-osxay",
+      "skillRating": 9.2,
+      "profile": {
+        "registrationInfo": "Played on high school team, BUL summer session 2025, and university recreational league\n\nI would lik",
+        "age": 20
+      },
+      "execSkillRating": 9.2,
+      "gender": "M",
+      "name": "Nate Smith",
+      "teammateRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "skillRating": 4.4,
+      "profile": {
+        "registrationInfo": "Have played some pickup. Played in BUL summer session in 2025\n\nI would like to play with my son Nath",
+        "age": 67
+      },
+      "unfulfilledRequests": [],
+      "id": "frank-smith-jyt61",
+      "execSkillRating": 4.4,
+      "name": "Frank Smith",
+      "teammateRequests": [],
+      "gender": "M"
+    },
+    {
+      "teammateRequests": [],
+      "name": "Olivia Evans",
+      "gender": "F",
+      "execSkillRating": 5.6,
+      "profile": {
+        "registrationInfo": "Two seasons with BUL",
+        "age": 24
+      },
+      "skillRating": 6,
+      "id": "olivia-evans-8nc6y",
+      "unfulfilledRequests": [],
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "skillRating": 5.2,
+      "profile": {
+        "registrationInfo": "Played in Highschool, University, and the 2026 indoor winter league",
+        "age": 29
+      },
+      "unfulfilledRequests": [],
+      "id": "stephen-fisher-8js7a",
+      "execSkillRating": 5.2,
+      "teammateRequests": [],
+      "name": "Stephen Fisher",
+      "gender": "M"
+    },
+    {
+      "execSkillRating": 4.8,
+      "teammateRequests": [
+        "Gary Pluim"
+      ],
+      "name": "Kaia Pluim-Simon",
+      "groupId": "group-10",
+      "gender": "F",
+      "avoidRequests": [],
+      "skillRating": 4.8,
+      "profile": {
+        "registrationInfo": "Currently in high school, learning the game.\n\nRegistering with dad....",
+        "age": 17
+      },
+      "id": "kaia-pluim-simon-r8z62",
+      "unfulfilledRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "profile": {
+        "registrationInfo": "Played one high school season at ISS and one intramural university season at Carleton",
+        "age": 18
+      },
+      "skillRating": 5.2,
+      "unfulfilledRequests": [],
+      "id": "leah-potje-deajp",
+      "execSkillRating": 5.2,
+      "name": "Leah Potje",
+      "teammateRequests": [
+        "Lilyanna Padoin Lee"
+      ],
+      "gender": "F",
+      "groupId": "group-32"
+    },
+    {
+      "avoidRequests": [],
+      "id": "lilyanna-padoin-lee-k05zp",
+      "unfulfilledRequests": [],
+      "skillRating": 8,
+      "profile": {
+        "registrationInfo": "Played in high school",
+        "age": 19
+      },
+      "execSkillRating": 8,
+      "groupId": "group-32",
+      "gender": "F",
+      "teammateRequests": [
+        "Leah Potje"
+      ],
+      "name": "Lilyanna Padoin Lee"
+    },
+    {
+      "execSkillRating": 2.4,
+      "gender": "F",
+      "name": "Annie-Pier Dubé",
+      "teammateRequests": [],
+      "avoidRequests": [],
+      "id": "annie-pier-dub--a1n1f",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Carden Vickers",
+          "playerId": "carden-vickers-wyp2g"
+        }
+      ],
+      "profile": {
+        "registrationInfo": "None",
+        "age": 28
+      },
+      "skillRating": 2.4
+    },
+    {
+      "execSkillRating": 3.6,
+      "gender": "M",
+      "teammateRequests": [],
+      "name": "Jesse Sulmona",
+      "avoidRequests": [],
+      "id": "jesse-sulmona-q7oom",
+      "unfulfilledRequests": [],
+      "skillRating": 3.6,
+      "profile": {
+        "registrationInfo": "None.",
+        "age": 41
+      }
+    },
+    {
+      "teammateRequests": [],
+      "name": "Matthew Loney",
+      "gender": "M",
+      "execSkillRating": 6,
+      "profile": {
+        "registrationInfo": "No ultimate background.",
+        "age": 26
+      },
+      "skillRating": 6,
+      "unfulfilledRequests": [],
+      "id": "matthew-loney-hue3m",
+      "avoidRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "mark-d-cunha-k6r1c",
+      "skillRating": 2.8,
+      "profile": {
+        "registrationInfo": "zero",
+        "age": 22
+      },
+      "execSkillRating": 2.8,
+      "gender": "M",
+      "name": "Mark D'Cunha",
+      "teammateRequests": []
+    },
+    {
+      "id": "cole-leslie-lbiak",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "1 season in highschool\n\nnew to the league",
+        "age": 22
+      },
+      "skillRating": 4,
+      "avoidRequests": [],
+      "gender": "M",
+      "groupId": "group-20",
+      "name": "Cole Leslie",
+      "teammateRequests": [
+        "Kyra Frisina"
+      ],
+      "execSkillRating": 4
+    },
+    {
+      "id": "pascale-clements-246gy",
+      "unfulfilledRequests": [],
+      "profile": {
+        "registrationInfo": "none",
+        "age": 25
+      },
+      "skillRating": 3.2,
+      "avoidRequests": [],
+      "gender": "F",
+      "groupId": "group-2",
+      "name": "Pascale Clements",
+      "teammateRequests": [
+        "Nolan Hickling"
+      ],
+      "execSkillRating": 3.2
+    },
+    {
+      "unfulfilledRequests": [],
+      "id": "sara-shakib-j0bia",
+      "skillRating": 4,
+      "profile": {
+        "registrationInfo": "N/A\n\nI would like to play with Kurtis Thomas-Belisle, Richmond Hogg and Molly Douglas",
+        "age": 23
+      },
+      "avoidRequests": [],
+      "groupId": "group-17",
+      "gender": "F",
+      "teammateRequests": [
+        "Kurtis Thomas"
+      ],
+      "name": "Sara Shakib",
+      "execSkillRating": 4
+    },
+    {
+      "avoidRequests": [],
+      "unfulfilledRequests": [],
+      "id": "cole-fairbarn-gjybb",
+      "profile": {
+        "registrationInfo": "High-school",
+        "age": 19
+      },
+      "skillRating": 7.2,
+      "execSkillRating": 7.2,
+      "gender": "M",
+      "name": "Cole Fairbarn",
+      "teammateRequests": []
+    },
+    {
+      "avoidRequests": [],
+      "skillRating": 7.6,
+      "profile": {
+        "registrationInfo": "Played in high school\n\nI would love to be on the same team as my best friend Lauren Grassy. We both",
+        "age": 19
+      },
+      "id": "elly-switzer-vvie5",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Lauren Grasse",
+          "playerId": "lauren-grasse-0crpf"
+        }
+      ],
+      "execSkillRating": 7.6,
+      "teammateRequests": [],
+      "name": "Elly Switzer",
+      "gender": "F"
+    },
+    {
+      "gender": "F",
+      "name": "Ellen Field",
+      "teammateRequests": [
+        "Gary Pluim"
+      ],
+      "execSkillRating": 6.8,
+      "id": "ellen-field-og34s",
+      "unfulfilledRequests": [
+        {
+          "reason": "non-reciprocal",
+          "name": "Gary Pluim",
+          "playerId": "gary-pluim-k92ik"
+        }
+      ],
+      "profile": {
+        "registrationInfo": "played in university, Toronto Ultimate League, touring team in Australia",
+        "age": 46
+      },
+      "skillRating": 6.8,
+      "avoidRequests": []
+    }
+  ],
+  "unassignedPlayers": [],
+  "name": "Spring Outdoor 2026",
+  "updatedAt": "2026-04-19T19:12:28.215Z",
+  "leagueMemory": [],
+  "createdAt": "2026-04-19T19:04:01.863Z",
+  "userId": "81MVUsmm6mYkyHUwA6bvL0b4opU2",
+  "config": {
+    "minMales": 8,
+    "minFemales": 6,
+    "allowMixedGender": true,
+    "targetTeams": 10,
+    "restrictToEvenTeams": true,
+    "name": "Summer League",
+    "maxTeamSize": 14,
+    "id": "preset-summer-league"
+  },
+  "teamIterations": []
+}

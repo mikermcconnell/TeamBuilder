@@ -160,6 +160,32 @@ export function useTeamBuilderActions({
   setCurrentWorkspaceInfo,
 }: UseTeamBuilderActionsOptions) {
   const syncActiveIteration = useCallback((state: AppState) => syncActiveTeamIterationToState(state), []);
+  const pendingImmediateStateRef = useRef<AppState | null>(null);
+  const immediatePersistScheduledRef = useRef(false);
+
+  const queueImmediatePersistence = useCallback((state: AppState) => {
+    if (!persistAppStateImmediately) {
+      return;
+    }
+
+    pendingImmediateStateRef.current = state;
+
+    if (immediatePersistScheduledRef.current) {
+      return;
+    }
+
+    immediatePersistScheduledRef.current = true;
+
+    Promise.resolve().then(() => {
+      immediatePersistScheduledRef.current = false;
+      const pendingState = pendingImmediateStateRef.current;
+      pendingImmediateStateRef.current = null;
+
+      if (pendingState) {
+        void persistAppStateImmediately(pendingState);
+      }
+    });
+  }, [persistAppStateImmediately]);
 
   const syncTargetTeamCount = (config: LeagueConfig, teamCount: number): LeagueConfig => {
     const nextTargetTeams = teamCount > 0 ? teamCount : undefined;
@@ -481,13 +507,13 @@ export function useTeamBuilderActions({
       });
 
       if (nextState) {
-        void persistAppStateImmediately?.(nextState);
+        queueImmediatePersistence(nextState);
       }
       return;
     }
 
     setAppState(prev => buildUpdatedPlayerState(prev, updatedPlayer));
-  }, [buildUpdatedPlayerState, persistAppStateImmediately, setAppState, snapshotCurrentState]);
+  }, [buildUpdatedPlayerState, queueImmediatePersistence, setAppState, snapshotCurrentState]);
 
   const handlePlayerAdd = useCallback((newPlayer: Player) => {
     snapshotCurrentState();
@@ -640,66 +666,78 @@ export function useTeamBuilderActions({
 
   const handlePlayerMove = useCallback((playerId: string, targetTeamId: string | null) => {
     snapshotCurrentState();
+    let nextState: AppState | undefined;
 
-    setAppState(prev => {
-      const updatedTeams = prev.teams.map(team => ({
-        ...team,
-        players: team.players.filter(p => p.id !== playerId)
-      }));
+    flushSync(() => {
+      setAppState(prev => {
+        const updatedTeams = prev.teams.map(team => ({
+          ...team,
+          players: team.players.filter(p => p.id !== playerId)
+        }));
 
-      let updatedUnassigned = [...prev.unassignedPlayers];
-      const player = prev.players.find(p => p.id === playerId);
+        let updatedUnassigned = [...prev.unassignedPlayers];
+        const player = prev.players.find(p => p.id === playerId);
 
-      if (!player) return prev;
-
-      const updatedPlayer = { ...player, teamId: targetTeamId || undefined };
-
-      if (targetTeamId) {
-        const targetTeam = updatedTeams.find(t => t.id === targetTeamId);
-        if (targetTeam) {
-          targetTeam.players.push(updatedPlayer);
-          updatedUnassigned = updatedUnassigned.filter(p => p.id !== playerId);
+        if (!player) {
+          nextState = prev;
+          return prev;
         }
-      } else if (!updatedUnassigned.find(p => p.id === playerId)) {
-        updatedUnassigned.push(updatedPlayer);
-      }
 
-      const updatedPlayers = prev.players.map(p =>
-        p.id === playerId ? updatedPlayer : p
-      );
+        const updatedPlayer = { ...player, teamId: targetTeamId || undefined };
 
-      updatedTeams.forEach(team => {
-        const totalSkill = team.players.reduce((sum, p) => {
-          const skill = (p.execSkillRating !== null && p.execSkillRating !== undefined)
-            ? p.execSkillRating
-            : p.skillRating;
-          return sum + skill;
-        }, 0);
-        team.averageSkill = team.players.length > 0 ? totalSkill / team.players.length : 0;
-        team.genderBreakdown = { M: 0, F: 0, Other: 0 };
-        team.players.forEach(p => {
-          team.genderBreakdown[p.gender]++;
+        if (targetTeamId) {
+          const targetTeam = updatedTeams.find(t => t.id === targetTeamId);
+          if (targetTeam) {
+            targetTeam.players.push(updatedPlayer);
+            updatedUnassigned = updatedUnassigned.filter(p => p.id !== playerId);
+          }
+        } else if (!updatedUnassigned.find(p => p.id === playerId)) {
+          updatedUnassigned.push(updatedPlayer);
+        }
+
+        const updatedPlayers = prev.players.map(p =>
+          p.id === playerId ? updatedPlayer : p
+        );
+
+        updatedTeams.forEach(team => {
+          const totalSkill = team.players.reduce((sum, p) => {
+            const skill = (p.execSkillRating !== null && p.execSkillRating !== undefined)
+              ? p.execSkillRating
+              : p.skillRating;
+            return sum + skill;
+          }, 0);
+          team.averageSkill = team.players.length > 0 ? totalSkill / team.players.length : 0;
+          team.genderBreakdown = { M: 0, F: 0, Other: 0 };
+          team.players.forEach(p => {
+            team.genderBreakdown[p.gender]++;
+          });
         });
-      });
 
-      const reconciledState = reconcileTeamState(
-        updatedPlayers,
-        updatedTeams,
-        updatedUnassigned,
-        prev.playerGroups,
-        prev.config,
-        prev.stats,
-      );
+        const reconciledState = reconcileTeamState(
+          updatedPlayers,
+          updatedTeams,
+          updatedUnassigned,
+          prev.playerGroups,
+          prev.config,
+          prev.stats,
+        );
 
-      return syncActiveIteration({
-        ...prev,
-        players: reconciledState.players,
-        teams: reconciledState.teams,
-        unassignedPlayers: reconciledState.unassignedPlayers,
-        stats: reconciledState.stats,
+        nextState = syncActiveIteration({
+          ...prev,
+          players: reconciledState.players,
+          teams: reconciledState.teams,
+          unassignedPlayers: reconciledState.unassignedPlayers,
+          stats: reconciledState.stats,
+        });
+
+        return nextState;
       });
     });
-  }, [setAppState, snapshotCurrentState, syncActiveIteration]);
+
+    if (nextState) {
+      queueImmediatePersistence(nextState);
+    }
+  }, [queueImmediatePersistence, setAppState, snapshotCurrentState, syncActiveIteration]);
 
   const handleClearExecRankings = useCallback(() => {
     const execRankingsCount = appState.players.filter(player => player.execSkillRating !== null).length;
@@ -756,18 +794,26 @@ export function useTeamBuilderActions({
 
   const debouncedTeamNameChangeRef = useRef(
     debounce((teamId: string, newName: string) => {
-      setAppState(prev => syncActiveIteration({
-        ...prev,
-        teams: ensureUniqueTeamNames(prev.teams.map(team =>
-          team.id === teamId
-            ? {
-              ...team,
-              name: validateTeamName(newName),
-              isNameManuallySet: true
-            }
-            : team
-        ))
-      }));
+      let nextState: AppState | undefined;
+      setAppState(prev => {
+        nextState = syncActiveIteration({
+          ...prev,
+          teams: ensureUniqueTeamNames(prev.teams.map(team =>
+            team.id === teamId
+              ? {
+                ...team,
+                name: validateTeamName(newName),
+                isNameManuallySet: true
+              }
+              : team
+          ))
+        });
+        return nextState;
+      });
+
+      if (nextState) {
+        queueImmediatePersistence(nextState);
+      }
     }, 300)
   );
 
@@ -776,6 +822,7 @@ export function useTeamBuilderActions({
   }, []);
 
   const handleTeamBrandingChange = useCallback((teamId: string, updates: TeamBrandingChange) => {
+    let nextState: AppState | undefined;
     setAppState(prev => {
       const teamIndex = prev.teams.findIndex(team => team.id === teamId);
       if (teamIndex < 0) {
@@ -814,15 +861,20 @@ export function useTeamBuilderActions({
         return nextTeam;
       });
 
-      return syncActiveIteration({
+      nextState = syncActiveIteration({
         ...prev,
         teams: ensureUniqueTeamNames(applyTeamBranding(updatedTeams, prev.playerGroups, prev.config, {
           forceRename: updates.resetName,
           forceColor: updates.resetColor,
         }))
       });
+      return nextState;
     });
-  }, [setAppState, syncActiveIteration]);
+
+    if (nextState) {
+      queueImmediatePersistence(nextState);
+    }
+  }, [queueImmediatePersistence, setAppState, syncActiveIteration]);
 
   const handleRefreshTeamBranding = useCallback(() => {
     setAppState(prev => syncActiveIteration({

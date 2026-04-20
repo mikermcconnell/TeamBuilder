@@ -103,6 +103,12 @@ function renderActions(initialState: AppState) {
   };
 }
 
+async function flushMicrotasks() {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
 describe('useTeamBuilderActions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -310,7 +316,7 @@ describe('useTeamBuilderActions', () => {
     expect(result.current.appState.playerGroups[0]?.playerIds).toEqual(['grouped-player']);
   });
 
-  it('persists immediately when requested for a player review toggle', () => {
+  it('persists immediately when requested for a player review toggle', async () => {
     const reviewedPlayer = createPlayer({
       id: 'review-player',
       name: 'Review Player',
@@ -329,12 +335,55 @@ describe('useTeamBuilderActions', () => {
       }, { persistImmediately: true });
     });
 
+    await flushMicrotasks();
+
     expect(result.current.appState.players[0]?.isNewPlayer).toBe(false);
     expect(persistAppStateImmediately).toHaveBeenCalledWith(expect.objectContaining({
       players: [
         expect.objectContaining({
           id: 'review-player',
           isNewPlayer: false,
+        }),
+      ],
+    }));
+  });
+
+  it('flushes a moved player state immediately for persistence', async () => {
+    const movedPlayer = createPlayer({
+      id: 'move-player',
+      name: 'Move Player',
+      teamId: 'team-1',
+    });
+
+    const { result, persistAppStateImmediately } = renderActions(createAppState({
+      players: [movedPlayer],
+      teams: [
+        createTeam({
+          id: 'team-1',
+          players: [movedPlayer],
+          averageSkill: 7,
+          genderBreakdown: { M: 1, F: 0, Other: 0 },
+        }),
+      ],
+      unassignedPlayers: [],
+    }));
+
+    act(() => {
+      result.current.handlePlayerMove('move-player', null);
+    });
+
+    await flushMicrotasks();
+
+    expect(persistAppStateImmediately).toHaveBeenCalledWith(expect.objectContaining({
+      players: [
+        expect.objectContaining({
+          id: 'move-player',
+          teamId: undefined,
+        }),
+      ],
+      unassignedPlayers: [
+        expect.objectContaining({
+          id: 'move-player',
         }),
       ],
     }));

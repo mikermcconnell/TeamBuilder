@@ -59,7 +59,6 @@ export function WorkspaceManager({
         workspaceName: contextWorkspaceName,
         workspaceDescription: contextWorkspaceDescription,
         currentWorkspaceId: contextWorkspaceId,
-        setCurrentWorkspaceInfo,
         isSaving
     } = useWorkspace();
 
@@ -94,7 +93,7 @@ export function WorkspaceManager({
         }
 
         try {
-            await saveWorkspace(
+            const result = await saveWorkspace(
                 {
                     players,
                     playerGroups,
@@ -109,8 +108,9 @@ export function WorkspaceManager({
                     description: saveDescription.trim()
                 }
             );
-            setCurrentWorkspaceInfo(currentId || null, saveName.trim(), saveDescription.trim());
-            setIsSaveDialogOpen(false);
+            if (result && result.type !== 'conflict' && result.type !== 'error') {
+                setIsSaveDialogOpen(false);
+            }
         } catch (error: unknown) {
             console.error('Failed to save project:', error);
             const message = error instanceof Error ? error.message : 'Unknown error';
@@ -135,7 +135,7 @@ export function WorkspaceManager({
         }
 
         try {
-            await saveWorkspace(
+            const result = await saveWorkspace(
                 {
                     players,
                     playerGroups,
@@ -150,7 +150,9 @@ export function WorkspaceManager({
                     description: effectiveDescription
                 }
             );
-            setCurrentWorkspaceInfo(currentId || null, effectiveName, effectiveDescription);
+            if (result && result.type !== 'conflict' && result.type !== 'error') {
+                // Context already updates the current workspace metadata and revision on save.
+            }
         } catch (error: unknown) {
             console.error('Failed to quick save project:', error);
             const message = error instanceof Error ? error.message : 'Unknown error';

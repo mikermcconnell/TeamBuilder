@@ -1,9 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockDoc, mockGetDoc, mockSetDoc } = vi.hoisted(() => ({
+const { mockDoc, mockGetDoc, mockSetDoc, mockServerTimestamp, MockTimestamp } = vi.hoisted(() => ({
   mockDoc: vi.fn((...segments: unknown[]) => ({ path: segments.slice(1).join('/') })),
   mockGetDoc: vi.fn(),
   mockSetDoc: vi.fn(),
+  mockServerTimestamp: vi.fn(() => ({ kind: 'server-timestamp' })),
+  MockTimestamp: class MockTimestamp {
+    constructor(private readonly iso: string) {}
+    toDate() {
+      return new Date(this.iso);
+    }
+  },
 }));
 
 vi.mock('@/config/firebase', () => ({
@@ -13,7 +20,9 @@ vi.mock('@/config/firebase', () => ({
 vi.mock('firebase/firestore', () => ({
   doc: mockDoc,
   getDoc: mockGetDoc,
+  serverTimestamp: mockServerTimestamp,
   setDoc: mockSetDoc,
+  Timestamp: MockTimestamp,
 }));
 
 import { dataStorageService } from '@/services/dataStorageService';
@@ -91,6 +100,7 @@ describe('DataStorageService', () => {
             isNewPlayer: true,
           }),
         ],
+        updatedAtServer: expect.objectContaining({ kind: 'server-timestamp' }),
       })
     );
   });
@@ -189,5 +199,34 @@ describe('DataStorageService', () => {
 
     expect(loaded).toBeNull();
     expect(mockSetDoc).not.toHaveBeenCalled();
+  });
+
+  it('redacts sensitive player fields from the local recovery cache', async () => {
+    const sensitivePlayer: Player = {
+      ...player,
+      id: 'player-sensitive',
+      email: 'sensitive@example.com',
+      profile: {
+        age: 33,
+        registrationInfo: 'Private notes',
+      },
+    };
+
+    await dataStorageService.save({
+      ...appState,
+      players: [sensitivePlayer],
+      unassignedPlayers: [sensitivePlayer],
+    });
+
+    const savedSnapshot = JSON.parse(localStorage.getItem('teamBuilderState:anonymous') || '{}') as {
+      data?: AppState;
+    };
+
+    expect(savedSnapshot.data?.players[0]).toEqual(expect.objectContaining({
+      id: 'player-sensitive',
+      profile: { age: 33 },
+    }));
+    expect(savedSnapshot.data?.players[0]).not.toHaveProperty('email');
+    expect(savedSnapshot.data?.players[0]).not.toHaveProperty('registrationInfo');
   });
 });

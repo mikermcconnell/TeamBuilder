@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Helper Functions ---
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Checks if the user is owner of the resource being requested (existing data)
+    // Works for get, update, delete operations on single documents
+    function isResourceOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Checks if the user is claiming ownership in the new data (incoming data)
+    function isClaimingOwnership() {
+      return isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+
+    // --- Collection Rules ---
+
+    // Users - users can only read/write their own data
+    match /users/{userId}/data/{document} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Rosters
+    match /rosters/{document} {
+      allow read: if isResourceOwner();
+      // Update/Delete: Owner of existing resource
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
+      // Create: Check incoming data ownership
+      allow create: if isClaimingOwnership();
+    }
+    
+    // Roster versions
+    match /rosterVersions/{document} {
+      allow read: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
+    }
+    
+    // Saved Rosters (CSV storage via rosterStorage.ts)
+    match /savedRosters/{document} {
+      allow read: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
+    }
+    
+    // Roster templates
+    match /rosterTemplates/{document} {
+      allow read: if true;
+      // Update/Delete: Creator of existing
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.createdBy;
+      // Create: Creator in incoming data
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.createdBy;
+    }
+    
+    // Teams
+    match /teams/{document} {
+      allow read: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
+    }
+
+    // Workspaces
+    match /workspaces/{document} {
+      allow read: if isResourceOwner();
+      // Update: Must own existing doc AND claim ownership in new data
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
+    }
+
+    // Sessions
+    match /sessions/{document} {
+      allow read: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
+    }
+
+    // Config Presets
+    match /configPresets/{document} {
+      allow read: if isResourceOwner();
+      allow update: if isResourceOwner() && isClaimingOwnership();
+      allow delete: if isResourceOwner();
+      allow create: if isClaimingOwnership();
+    }
+  }
+}

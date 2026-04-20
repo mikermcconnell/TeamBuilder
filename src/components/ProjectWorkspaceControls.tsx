@@ -5,6 +5,7 @@ import { Download, FolderOpen, Save, Trash2, Upload, UserCheck, Users } from 'lu
 import { SavedWorkspace } from '@/types';
 import { PersistenceStatusBadge } from '@/components/PersistenceStatusBadge';
 import { PersistenceStatusModel } from '@/hooks/useAppPersistence';
+import type { WorkspaceSaveResult } from '@/services/persistence/saveTypes';
 import { AuthDialog } from '@/components/AuthDialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -33,6 +34,11 @@ interface ProjectWorkspaceControlsProps {
   setCurrentWorkspaceInfo: (id: string | null, name: string, description: string) => void;
   isSavingWorkspace: boolean;
   onSaveWorkspace: () => Promise<void>;
+  workspaceConflict: WorkspaceSaveResult | null;
+  onReloadWorkspaceAfterConflict: () => Promise<void>;
+  onMergeWorkspaceAfterConflict: () => Promise<void>;
+  onSaveWorkspaceAsCopy: () => Promise<void>;
+  onDismissWorkspaceConflict: () => void;
   workspaceSearchTerm: string;
   onWorkspaceSearchTermChange: Dispatch<SetStateAction<string>>;
   isFetchingWorkspaces: boolean;
@@ -64,6 +70,11 @@ export function ProjectWorkspaceControls({
   setCurrentWorkspaceInfo,
   isSavingWorkspace,
   onSaveWorkspace,
+  workspaceConflict,
+  onReloadWorkspaceAfterConflict,
+  onMergeWorkspaceAfterConflict,
+  onSaveWorkspaceAsCopy,
+  onDismissWorkspaceConflict,
   workspaceSearchTerm,
   onWorkspaceSearchTermChange,
   isFetchingWorkspaces,
@@ -108,6 +119,16 @@ export function ProjectWorkspaceControls({
           <div className="flex w-full flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-2 shadow-sm lg:w-auto lg:flex-nowrap">
             <div className="flex min-w-0 items-center gap-2">
               <PersistenceStatusBadge status={persistenceStatus} />
+
+              {workspaceConflict?.type === 'conflict' && (
+                <Button
+                  onClick={onOpenSaveWorkspaceDialog}
+                  variant="outline"
+                  className="h-10 rounded-xl border-amber-200 bg-amber-50 px-3 text-sm font-bold text-amber-900 hover:bg-amber-100"
+                >
+                  Resolve Conflict
+                </Button>
+              )}
 
               {!user ? (
                 <Button
@@ -192,6 +213,49 @@ export function ProjectWorkspaceControls({
             <DialogDescription>Save your entire workspace (players, teams, and settings) to the cloud.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {workspaceConflict?.type === 'conflict' && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                <div className="font-bold">This project changed somewhere else.</div>
+                <div className="mt-1 text-xs text-amber-900/80">
+                  Current saved revision: {workspaceConflict.conflict?.actualRevision ?? 'unknown'}.
+                  Your editor tried to save revision {workspaceConflict.conflict?.expectedRevision ?? 'unknown'}.
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+                    onClick={() => void onReloadWorkspaceAfterConflict()}
+                  >
+                    Reload Latest
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+                    onClick={() => void onMergeWorkspaceAfterConflict()}
+                  >
+                    Merge + Save
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+                    onClick={() => void onSaveWorkspaceAsCopy()}
+                  >
+                    Save as Copy
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-amber-900 hover:bg-amber-100"
+                    onClick={onDismissWorkspaceConflict}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="ws-name" className="font-bold text-slate-700">Project Name</Label>
               <Input

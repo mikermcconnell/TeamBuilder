@@ -14,8 +14,6 @@ const toastMocks = vi.hoisted(() => ({
 
 const saveWorkspaceMock = vi.hoisted(() => vi.fn());
 const deleteWorkspaceMock = vi.hoisted(() => vi.fn());
-const setCurrentWorkspaceInfoMock = vi.hoisted(() => vi.fn());
-
 vi.mock('sonner', () => ({
   toast: toastMocks,
 }));
@@ -34,7 +32,6 @@ vi.mock('@/contexts/WorkspaceContext', () => ({
     workspaceName: 'Autosave Smoke Test 2026-04-19',
     workspaceDescription: 'Live Firebase autosave verification',
     currentWorkspaceId: 'workspace-1',
-    setCurrentWorkspaceInfo: setCurrentWorkspaceInfoMock,
     isSaving: false,
   }),
 }));
@@ -93,11 +90,5 @@ describe('WorkspaceManager', () => {
         description: 'Live Firebase autosave verification',
       }));
     });
-
-    expect(setCurrentWorkspaceInfoMock).toHaveBeenCalledWith(
-      'workspace-1',
-      'Autosave Smoke Test 2026-04-19',
-      'Live Firebase autosave verification'
-    );
   });
 });

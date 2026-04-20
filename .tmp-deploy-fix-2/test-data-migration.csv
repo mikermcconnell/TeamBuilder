@@ -1,0 +1,11 @@
+Name,Gender,Skill Rating,Exec Skill Rating,Teammate Requests,Avoid Requests
+Alice Legacy,F,8,,Bob Legacy,
+Bob Legacy,M,7,,Alice Legacy,
+Carol Modern,F,6,9,,Dave Modern
+Dave Modern,M,5,8,,Carol Modern
+Eve Mixed,F,9,N/A,,
+Frank Mixed,M,4,7,,
+Grace Old,F,8,,Eve Mixed,
+Henry Old,M,6,,Frank Mixed,
+Ivy New,F,7,5,,
+Jack New,M,8,9,,

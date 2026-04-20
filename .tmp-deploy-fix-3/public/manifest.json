@@ -1,0 +1,62 @@
+{
+  "name": "TeamBuilder - Sports Team Generator",
+  "short_name": "TeamBuilder",
+  "description": "Build balanced sports teams with roster uploads, drag-and-drop editing, saved workspaces, and export tools",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#22C55E",
+  "theme_color": "#22C55E",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/logo-new.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/project-logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/project-logo.jpeg",
+      "sizes": "180x180",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/logo-new.jpg",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/jpeg"
+    }
+  ],
+  "categories": [
+    "sports",
+    "productivity",
+    "utilities"
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "features": [
+    "CSV roster upload",
+    "Team balancing",
+    "Player preferences",
+    "Text reports",
+    "Saved workspaces"
+  ]
+}

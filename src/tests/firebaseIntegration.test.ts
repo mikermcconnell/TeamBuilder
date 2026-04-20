@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const firestoreMocks = vi.hoisted(() => ({
   doc: vi.fn((...segments: unknown[]) => ({ path: segments.slice(1).join('/') })),
   getDoc: vi.fn(),
+  serverTimestamp: vi.fn(() => ({ kind: 'server-timestamp' })),
   setDoc: vi.fn(),
+  Timestamp: class MockTimestamp {
+    constructor(private readonly iso: string) {}
+    toDate() {
+      return new Date(this.iso);
+    }
+  },
 }));
 
 vi.mock('@/config/firebase', () => ({
@@ -13,7 +20,9 @@ vi.mock('@/config/firebase', () => ({
 vi.mock('firebase/firestore', () => ({
   doc: firestoreMocks.doc,
   getDoc: firestoreMocks.getDoc,
+  serverTimestamp: firestoreMocks.serverTimestamp,
   setDoc: firestoreMocks.setDoc,
+  Timestamp: firestoreMocks.Timestamp,
 }));
 
 import { dataStorageService } from '@/services/dataStorageService';
@@ -91,6 +100,7 @@ describe('Firebase-style app state persistence', () => {
       data: () => ({
         ...cloudState,
         lastUpdated: '2026-04-10T12:00:00.000Z',
+        updatedAtServer: new firestoreMocks.Timestamp('2026-04-10T12:00:00.000Z'),
       }),
     });
 

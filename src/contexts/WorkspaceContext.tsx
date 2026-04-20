@@ -4,7 +4,7 @@ import { SavedWorkspace, AppState, LeagueConfig } from '@/types';
 import { WorkspaceService } from '@/services/workspaceService';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
-import type { WorkspaceSaveResult } from '@/hooks/useAppPersistence';
+import type { WorkspaceSaveResult } from '@/services/persistence/saveTypes';
 
 interface WorkspaceContextType {
     currentWorkspaceId: string | null;
@@ -13,6 +13,7 @@ interface WorkspaceContextType {
     savedWorkspaces: SavedWorkspace[];
     isLoading: boolean;
     isSaving: boolean;
+    lastWorkspaceConflict: WorkspaceSaveResult | null;
 
     // Actions
     loadWorkspaces: () => Promise<void>;
@@ -24,12 +25,16 @@ interface WorkspaceContextType {
             description?: string;
             silent?: boolean;
             refreshList?: boolean;
+            expectedRevision?: number | null;
+            force?: boolean;
         }
     ) => Promise<WorkspaceSaveResult | undefined>;
     loadWorkspace: (id: string) => Promise<SavedWorkspace | null>;
+    getWorkspaceSnapshot: (id: string) => Promise<SavedWorkspace | null>;
     deleteWorkspace: (id: string) => Promise<void>;
     setCurrentWorkspaceInfo: (id: string | null, name: string, description: string) => void;
     createNewWorkspace: () => void;
+    clearWorkspaceConflict: () => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -39,9 +44,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
     // Workspace State
     const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
+    const [currentWorkspaceRevision, setCurrentWorkspaceRevision] = useState<number | null>(null);
     const [workspaceName, setWorkspaceName] = useState('');
     const [workspaceDescription, setWorkspaceDescription] = useState('');
     const [savedWorkspaces, setSavedWorkspaces] = useState<SavedWorkspace[]>([]);
+    const [lastWorkspaceConflict, setLastWorkspaceConflict] = useState<WorkspaceSaveResult | null>(null);
 
     // Loading States
     const [isLoading, setIsLoading] = useState(false);
@@ -65,9 +72,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!user) {
             setCurrentWorkspaceId(null);
+            setCurrentWorkspaceRevision(null);
             setWorkspaceName('');
             setWorkspaceDescription('');
             setSavedWorkspaces([]);
+            setLastWorkspaceConflict(null);
         } else {
             void loadWorkspaces();
         }
@@ -81,6 +90,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             description?: string;
             silent?: boolean;
             refreshList?: boolean;
+            expectedRevision?: number | null;
+            force?: boolean;
         }
     ) => {
         if (!user) {
@@ -103,7 +114,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
         setIsSaving(true);
         try {
-            const payload: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt'> = {
+            const payload: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt' | 'revision'> = {
                 userId: user.uid,
                 name: trimmedName,
                 description: trimmedDescription,
@@ -113,34 +124,60 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
                 teams: appState.teams || [],
                 unassignedPlayers: appState.unassignedPlayers || [],
                 stats: appState.stats,
+                execRatingHistory: appState.execRatingHistory || {},
+                savedConfigs: appState.savedConfigs || [],
                 teamIterations: appState.teamIterations || [],
                 activeTeamIterationId: appState.activeTeamIterationId ?? null,
                 leagueMemory: appState.leagueMemory || [],
+                pendingWarnings: appState.pendingWarnings || [],
                 version: 1,
             };
 
-            const result = await WorkspaceService.saveWorkspace(payload, effectiveId || undefined);
+            const result = await WorkspaceService.saveWorkspace(payload, {
+                id: effectiveId || undefined,
+                expectedRevision: options?.expectedRevision ?? (effectiveId ? currentWorkspaceRevision : undefined),
+                force: options?.force,
+            });
 
-            // Handle result (check if string or object, though we updated service to return object)
-            // Ideally we update the interface to match, but JS runtime will return the object
-            const id = typeof result === 'string' ? result : result.id;
+            const id = result.id;
 
-            setCurrentWorkspaceId(id);
-            setWorkspaceName(trimmedName);
-            setWorkspaceDescription(trimmedDescription);
+            if (result.type !== 'conflict' && result.type !== 'error') {
+                setLastWorkspaceConflict(null);
+                setCurrentWorkspaceId(id);
+                setCurrentWorkspaceRevision(result.revision ?? currentWorkspaceRevision ?? 0);
+                setWorkspaceName(trimmedName);
+                setWorkspaceDescription(trimmedDescription);
+            }
 
             // Update the list smoothly without full reload if possible, but fetching is safer
-            if (options?.refreshList !== false) {
+            if (options?.refreshList !== false && result.type !== 'error') {
                 await loadWorkspaces();
             }
 
-            // Show appropriate feedback
-            if (typeof result !== 'string' && result.type === 'local') {
-                // Log the actual error that caused fallback
-                console.error('Cloud save failed, error details:', result.error);
+            if (result.type === 'conflict') {
+                setLastWorkspaceConflict(result);
                 if (!options?.silent) {
-                    const errorCode = result.error?.code || 'unknown';
-                    const errorMsg = result.error?.message || 'Check your ad blocker';
+                    toast.warning('This project changed somewhere else. Reload it or save as a new project.', {
+                        duration: 8000,
+                    });
+                }
+                return result;
+            }
+
+            if (result.type === 'error') {
+                if (!options?.silent) {
+                    const errorMsg = result.error instanceof Error ? result.error.message : 'Please try again.';
+                    toast.error(`Project save failed. ${errorMsg}`);
+                }
+                return result;
+            }
+
+            // Show appropriate feedback
+            if (result.type === 'local') {
+                console.error('Cloud save failed, error details:', result.cloud.error);
+                if (!options?.silent) {
+                    const errorCode = result.cloud.error?.code || 'unknown';
+                    const errorMsg = result.cloud.error?.message || 'Check your network or any blocking extensions.';
                     toast.warning(`Cloud save blocked (${errorCode}). Saved locally.`, {
                         description: errorMsg.substring(0, 100),
                         duration: 8000,
@@ -150,9 +187,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
                 toast.success('Project saved to cloud');
             }
 
-            return typeof result === 'string'
-                ? { id, type: 'cloud' }
-                : { id, type: result.type, error: result.error };
+            return result;
         } catch (error) {
             console.error('Failed to save project:', error);
             if (!options?.silent) {
@@ -162,7 +197,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setIsSaving(false);
         }
-    }, [user, workspaceName, workspaceDescription, currentWorkspaceId, loadWorkspaces]);
+    }, [user, workspaceName, workspaceDescription, currentWorkspaceId, currentWorkspaceRevision, loadWorkspaces]);
 
     const loadWorkspace = useCallback(async (id: string) => {
         if (!user) return null;
@@ -171,8 +206,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             const workspace = await WorkspaceService.getWorkspace(id, user.uid);
             if (workspace) {
                 setCurrentWorkspaceId(workspace.id);
+                setCurrentWorkspaceRevision(workspace.revision ?? 0);
                 setWorkspaceName(workspace.name);
                 setWorkspaceDescription(workspace.description || '');
+                setLastWorkspaceConflict(null);
                 return workspace;
             }
             return null;
@@ -185,6 +222,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user]);
 
+    const getWorkspaceSnapshot = useCallback(async (id: string) => {
+        if (!user) return null;
+
+        try {
+            return await WorkspaceService.getWorkspace(id, user.uid);
+        } catch (error) {
+            console.error('Failed to fetch project snapshot:', error);
+            toast.error('Failed to fetch latest project state');
+            return null;
+        }
+    }, [user]);
+
     const deleteWorkspace = useCallback(async (id: string) => {
         if (!user) return;
         try {
@@ -193,6 +242,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
             if (currentWorkspaceId === id) {
                 setCurrentWorkspaceId(null);
+                setCurrentWorkspaceRevision(null);
                 setWorkspaceName('');
                 setWorkspaceDescription('');
             }
@@ -205,15 +255,26 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }, [user, currentWorkspaceId, loadWorkspaces]);
 
     const setCurrentWorkspaceInfo = useCallback((id: string | null, name: string, description: string) => {
-        if (id !== undefined) setCurrentWorkspaceId(id);
+        if (id !== undefined) {
+            setCurrentWorkspaceId(id);
+            if (id === null || id !== currentWorkspaceId) {
+                setCurrentWorkspaceRevision(null);
+            }
+        }
         setWorkspaceName(name);
         setWorkspaceDescription(description);
-    }, []);
+    }, [currentWorkspaceId]);
 
     const createNewWorkspace = useCallback(() => {
         setCurrentWorkspaceId(null);
+        setCurrentWorkspaceRevision(null);
         setWorkspaceName('Project ' + new Date().toLocaleDateString());
         setWorkspaceDescription('');
+        setLastWorkspaceConflict(null);
+    }, []);
+
+    const clearWorkspaceConflict = useCallback(() => {
+        setLastWorkspaceConflict(null);
     }, []);
 
     return (
@@ -224,12 +285,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             savedWorkspaces,
             isLoading,
             isSaving,
+            lastWorkspaceConflict,
             loadWorkspaces,
             saveWorkspace,
             loadWorkspace,
+            getWorkspaceSnapshot,
             deleteWorkspace,
             setCurrentWorkspaceInfo,
-            createNewWorkspace
+            createNewWorkspace,
+            clearWorkspaceConflict,
         }}>
             {children}
         </WorkspaceContext.Provider>

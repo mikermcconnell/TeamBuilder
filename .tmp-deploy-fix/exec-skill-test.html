@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exec Skill Rating Migration Test</title>
+</head>
+<body>
+    <h1>Exec Skill Rating Data Migration Test</h1>
+    <div id="results"></div>
+
+<script>
+// Critical test: What happens with legacy data that doesn't have execSkillRating?
+function testDataMigrationEdgeCase() {
+    const results = [];
+
+    // Test 1: Player with undefined execSkillRating (legacy data)
+    const legacyPlayer = {
+        id: '1',
+        name: 'Legacy Player',
+        skillRating: 8,
+        // execSkillRating is missing entirely (undefined)
+        gender: 'M',
+        teammateRequests: [],
+        avoidRequests: []
+    };
+
+    // Test 2: Player with null execSkillRating (new data)
+    const newPlayer = {
+        id: '2',
+        name: 'New Player',
+        skillRating: 7,
+        execSkillRating: null,
+        gender: 'F',
+        teammateRequests: [],
+        avoidRequests: []
+    };
+
+    // Test 3: Player with actual execSkillRating
+    const execPlayer = {
+        id: '3',
+        name: 'Exec Player',
+        skillRating: 6,
+        execSkillRating: 9,
+        gender: 'M',
+        teammateRequests: [],
+        avoidRequests: []
+    };
+
+    // Simulate the algorithm's skill calculation logic
+    function getEffectiveSkill(player) {
+        return player.execSkillRating !== null ? player.execSkillRating : player.skillRating;
+    }
+
+    // Test the logic
+    results.push({
+        test: "Legacy Player (undefined execSkillRating)",
+        player: legacyPlayer.name,
+        execSkillRating: legacyPlayer.execSkillRating,
+        skillRating: legacyPlayer.skillRating,
+        effectiveSkill: getEffectiveSkill(legacyPlayer),
+        isUndefined: legacyPlayer.execSkillRating === undefined,
+        isNull: legacyPlayer.execSkillRating === null,
+        notNullCheck: legacyPlayer.execSkillRating !== null
+    });
+
+    results.push({
+        test: "New Player (null execSkillRating)",
+        player: newPlayer.name,
+        execSkillRating: newPlayer.execSkillRating,
+        skillRating: newPlayer.skillRating,
+        effectiveSkill: getEffectiveSkill(newPlayer),
+        isUndefined: newPlayer.execSkillRating === undefined,
+        isNull: newPlayer.execSkillRating === null,
+        notNullCheck: newPlayer.execSkillRating !== null
+    });
+
+    results.push({
+        test: "Exec Player (has execSkillRating)",
+        player: execPlayer.name,
+        execSkillRating: execPlayer.execSkillRating,
+        skillRating: execPlayer.skillRating,
+        effectiveSkill: getEffectiveSkill(execPlayer),
+        isUndefined: execPlayer.execSkillRating === undefined,
+        isNull: execPlayer.execSkillRating === null,
+        notNullCheck: execPlayer.execSkillRating !== null
+    });
+
+    // Critical finding check
+    const legacyResult = results[0];
+    const hasCriticalBug = legacyResult.notNullCheck === true && legacyResult.effectiveSkill === undefined;
+
+    results.push({
+        test: "CRITICAL BUG CHECK",
+        description: "Does undefined execSkillRating cause algorithm to use undefined as skill?",
+        hasBug: hasCriticalBug,
+        explanation: hasCriticalBug ? "BUG: undefined !== null is true, so algorithm tries to use undefined skill rating!" : "SAFE: Algorithm correctly falls back to skillRating"
+    });
+
+    return results;
+}
+
+// Test team generation with mixed data
+function testTeamGenerationWithMixedData() {
+    const players = [
+        // Legacy player (no execSkillRating property)
+        { id: '1', name: 'Alice Legacy', skillRating: 8, gender: 'F', teammateRequests: [], avoidRequests: [] },
+        // New player (execSkillRating: null)
+        { id: '2', name: 'Bob New', skillRating: 7, execSkillRating: null, gender: 'M', teammateRequests: [], avoidRequests: [] },
+        // Exec player (has execSkillRating)
+        { id: '3', name: 'Carol Exec', skillRating: 6, execSkillRating: 9, gender: 'F', teammateRequests: [], avoidRequests: [] },
+    ];
+
+    // Test the skill calculation for team balancing
+    const teamBalanceTest = players.map(p => {
+        const effectiveSkill = p.execSkillRating !== null ? p.execSkillRating : p.skillRating;
+        return {
+            name: p.name,
+            skillRating: p.skillRating,
+            execSkillRating: p.execSkillRating,
+            effectiveSkill: effectiveSkill,
+            isNaN: isNaN(effectiveSkill),
+            isValidNumber: typeof effectiveSkill === 'number' && !isNaN(effectiveSkill)
+        };
+    });
+
+    return teamBalanceTest;
+}
+
+// Run tests and display results
+const migrationResults = testDataMigrationEdgeCase();
+const teamGenResults = testTeamGenerationWithMixedData();
+
+const resultsDiv = document.getElementById('results');
+resultsDiv.innerHTML = `
+    <h2>Data Migration Test Results</h2>
+    <pre>${JSON.stringify(migrationResults, null, 2)}</pre>
+
+    <h2>Team Generation Test Results</h2>
+    <pre>${JSON.stringify(teamGenResults, null, 2)}</pre>
+
+    <h2>Summary</h2>
+    <div style="background: ${migrationResults[3].hasBug ? '#ffcccc' : '#ccffcc'}; padding: 10px; margin: 10px 0;">
+        <strong>${migrationResults[3].hasBug ? '🚨 CRITICAL BUG DETECTED' : '✅ NO CRITICAL BUG DETECTED'}</strong><br>
+        ${migrationResults[3].explanation}
+    </div>
+`;
+
+console.log('Migration Test Results:', migrationResults);
+console.log('Team Generation Test Results:', teamGenResults);
+</script>
+</body>
+</html>
