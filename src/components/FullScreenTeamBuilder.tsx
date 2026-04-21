@@ -21,7 +21,7 @@ import { TeamBoard } from './TeamBoard';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
 import { TeamIterationTabs } from './TeamIterationTabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react';
+import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Copy, SquarePen } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { WorkspaceManager } from './WorkspaceManager';
@@ -32,6 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { buildIterationInsights, buildManualMoveRecommendations } from '@/utils/teamInsights';
 import { ManualEditAssist } from './teams/ManualEditAssist';
 
@@ -66,6 +69,7 @@ interface FullScreenTeamBuilderProps {
   activeIterationId: string | null;
   onSelectIteration: (iterationId: string) => void;
   onCopyIteration: (iterationId: string) => void;
+  onRenameIteration: (iterationId: string, nextName: string) => void;
   onAddManualIteration: () => void;
   onStartOver?: () => void;
   activeIterationStatus?: TeamIterationStatus;
@@ -97,6 +101,7 @@ export function FullScreenTeamBuilder({
   activeIterationId,
   onSelectIteration,
   onCopyIteration,
+  onRenameIteration,
   onAddManualIteration,
   onStartOver,
   activeIterationStatus = 'ready',
@@ -124,10 +129,13 @@ export function FullScreenTeamBuilder({
 
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isRenameDraftDialogOpen, setIsRenameDraftDialogOpen] = useState(false);
+  const [draftNameInput, setDraftNameInput] = useState('');
+  const activeIteration = iterations.find(iteration => iteration.id === activeIterationId) ?? null;
 
   const currentInsights = buildIterationInsights({
     id: activeIterationId ?? 'current',
-    name: iterations.find(iteration => iteration.id === activeIterationId)?.name || 'Current draft',
+    name: activeIteration?.name || 'Current draft',
     teams,
     unassignedPlayers,
     stats,
@@ -253,6 +261,24 @@ export function FullScreenTeamBuilder({
         },
       },
     }),
+  };
+
+  const handleOpenRenameDraftDialog = () => {
+    if (!activeIteration) {
+      return;
+    }
+
+    setDraftNameInput(activeIteration.name);
+    setIsRenameDraftDialogOpen(true);
+  };
+
+  const handleConfirmRenameDraft = () => {
+    if (!activeIteration) {
+      return;
+    }
+
+    onRenameIteration(activeIteration.id, draftNameInput);
+    setIsRenameDraftDialogOpen(false);
   };
 
   return (
@@ -381,14 +407,40 @@ export function FullScreenTeamBuilder({
         </div>
 
         {iterations.length > 0 && (
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <TeamIterationTabs
               iterations={iterations}
               activeIterationId={activeIterationId}
               onSelectIteration={onSelectIteration}
               onCopyIteration={onCopyIteration}
               onAddManualIteration={onAddManualIteration}
+              className="flex-1"
             />
+            {activeIteration && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  onClick={handleOpenRenameDraftDialog}
+                >
+                  <SquarePen className="h-4 w-4" />
+                  Rename Draft
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  onClick={() => onCopyIteration(activeIteration.id)}
+                  disabled={activeIteration.status !== 'ready'}
+                >
+                  <Copy className="h-4 w-4" />
+                  Duplicate Draft
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -484,6 +536,35 @@ export function FullScreenTeamBuilder({
         }
         </DndContext >
       )}
+
+      <Dialog open={isRenameDraftDialogOpen} onOpenChange={setIsRenameDraftDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Rename Draft</DialogTitle>
+            <DialogDescription>
+              Give this draft a clear name so it is easy to compare and revisit later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-4">
+            <Label htmlFor="draft-name">Draft name</Label>
+            <Input
+              id="draft-name"
+              value={draftNameInput}
+              onChange={(event) => setDraftNameInput(event.target.value)}
+              placeholder="e.g., Reviewed Draft A"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsRenameDraftDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmRenameDraft}>
+              Save Name
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div >
   );
 }

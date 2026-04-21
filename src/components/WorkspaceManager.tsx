@@ -15,13 +15,15 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+    Copy,
     Save,
     FolderOpen,
     Trash2,
     Users,
     CheckCircle,
     AlertCircle,
-    Clock
+    Clock,
+    SquarePen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -71,6 +73,8 @@ export function WorkspaceManager({
     // Local state for the save dialog form
     const [saveName, setSaveName] = useState('');
     const [saveDescription, setSaveDescription] = useState('');
+    const effectiveWorkspaceName = (contextWorkspaceName || '').trim() || 'Untitled Draft';
+    const effectiveWorkspaceDescription = (contextWorkspaceDescription || '').trim();
 
     // Check if we are editing an existing workspace or creating new
     // When dialog opens, we want to sync with context
@@ -160,6 +164,38 @@ export function WorkspaceManager({
         }
     };
 
+    const handleDuplicateProject = async () => {
+        if (!user) {
+            toast.error('Please sign in to save projects');
+            return;
+        }
+
+        const baseName = effectiveWorkspaceName || 'Recovered Project';
+        const copyName = /\(copy\)$/i.test(baseName) ? baseName : `${baseName} (copy)`;
+
+        try {
+            await saveWorkspace(
+                {
+                    players,
+                    playerGroups,
+                    teams,
+                    unassignedPlayers,
+                    config,
+                    stats
+                },
+                {
+                    id: null,
+                    name: copyName,
+                    description: effectiveWorkspaceDescription
+                }
+            );
+        } catch (error: unknown) {
+            console.error('Failed to duplicate project:', error);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            toast.error(`Duplicate failed: ${message}`);
+        }
+    };
+
     const handleLoadClick = (id: string) => {
         onLoadWorkspace(id);
         setIsLoadDialogOpen(false);
@@ -176,8 +212,8 @@ export function WorkspaceManager({
         <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
             <DialogTrigger asChild>
                 <Button variant="default" className="gap-2">
-                    <Save className="h-4 w-4" />
-                    {currentId ? 'Save Project' : 'Save New Project'}
+                    <SquarePen className="h-4 w-4" />
+                    {currentId ? 'Edit Project' : 'Name Project'}
                 </Button>
             </DialogTrigger>
             <DialogContent>
@@ -326,8 +362,18 @@ export function WorkspaceManager({
 
     if (mode === 'toolbar') {
         return (
-            <div className="flex items-center gap-3 px-1">
-                <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">Projects</span>
+            <div className="flex flex-wrap items-center gap-3 px-1">
+                <div className="min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Current Project
+                    </div>
+                    <div className="max-w-[260px] truncate text-sm font-bold text-slate-800">
+                        {effectiveWorkspaceName}
+                    </div>
+                    <div className="max-w-[260px] truncate text-xs text-slate-500">
+                        {effectiveWorkspaceDescription || (currentId ? 'Saved project' : 'Not saved to cloud yet')}
+                    </div>
+                </div>
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
@@ -339,6 +385,15 @@ export function WorkspaceManager({
                         {isSaving ? 'Saving...' : 'Save Now'}
                     </Button>
                     {saveDialog}
+                    <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() => void handleDuplicateProject()}
+                        disabled={isSaving}
+                    >
+                        <Copy className="h-4 w-4" />
+                        Duplicate
+                    </Button>
                     {loadDialog}
                 </div>
                 {/* Autosave Indicator */}

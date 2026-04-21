@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { AppState, TeamIteration } from '@/types';
 import { getDefaultConfig } from '@/utils/configManager';
-import { createCopiedTeamIteration, ensureTeamIterations } from '@/utils/teamIterations';
+import { createCopiedTeamIteration, ensureTeamIterations, getUniqueIterationName } from '@/utils/teamIterations';
 
 describe('team iteration normalization', () => {
   it('handles legacy iterations with missing arrays', () => {
@@ -126,6 +126,32 @@ describe('team iteration normalization', () => {
     const result = createCopiedTeamIteration(copiedIteration, [copiedIteration]);
 
     expect(result.name).toBe('Manual 1 Copy 2');
+  });
+
+  it('creates a unique renamed iteration name when the requested name is already used', () => {
+    const iterations: TeamIteration[] = [
+      {
+        id: 'manual-1',
+        name: 'Reviewed Draft',
+        type: 'manual',
+        status: 'ready',
+        createdAt: '2026-03-18T00:00:00.000Z',
+        teams: [],
+        unassignedPlayers: [],
+      },
+      {
+        id: 'manual-2',
+        name: 'Playoff Draft',
+        type: 'manual',
+        status: 'ready',
+        createdAt: '2026-03-18T00:00:00.000Z',
+        teams: [],
+        unassignedPlayers: [],
+      },
+    ];
+
+    expect(getUniqueIterationName('Playoff Draft', iterations, 'manual-1')).toBe('Playoff Draft 2');
+    expect(getUniqueIterationName('   ', iterations, 'manual-1')).toBe('Untitled Draft');
   });
 
   it('copies iterations safely when older tabs are missing teams arrays', () => {

@@ -91,4 +91,34 @@ describe('WorkspaceManager', () => {
       }));
     });
   });
+
+  it('shows the active project name in toolbar mode and duplicates the project', async () => {
+    render(
+      <WorkspaceManager
+        players={[createPlayer({ id: 'player-1', name: 'Alex Example' })]}
+        playerGroups={[]}
+        teams={[]}
+        unassignedPlayers={[]}
+        config={config}
+        onLoadWorkspace={vi.fn()}
+        currentWorkspaceId="workspace-1"
+        mode="toolbar"
+      />
+    );
+
+    expect(screen.getByText('Current Project')).toBeInTheDocument();
+    expect(screen.getByText('Autosave Smoke Test 2026-04-19')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+
+    await waitFor(() => {
+      expect(saveWorkspaceMock).toHaveBeenCalledWith(expect.objectContaining({
+        players: [expect.objectContaining({ id: 'player-1' })],
+      }), expect.objectContaining({
+        id: null,
+        name: 'Autosave Smoke Test 2026-04-19 (copy)',
+        description: 'Live Firebase autosave verification',
+      }));
+    });
+  });
 });

@@ -1,6 +1,6 @@
 import React, { ChangeEvent, RefObject, SetStateAction, Dispatch, useMemo } from 'react';
 import { User } from 'firebase/auth';
-import { Download, FolderOpen, Save, Trash2, Upload, UserCheck, Users } from 'lucide-react';
+import { Copy, Download, FolderOpen, Save, SquarePen, Trash2, Upload, UserCheck, Users } from 'lucide-react';
 
 import { SavedWorkspace } from '@/types';
 import { PersistenceStatusBadge } from '@/components/PersistenceStatusBadge';
@@ -87,6 +87,8 @@ export function ProjectWorkspaceControls({
     () => savedWorkspaces.filter(ws => ws.name.toLowerCase().includes(workspaceSearchTerm.toLowerCase())),
     [savedWorkspaces, workspaceSearchTerm]
   );
+  const effectiveWorkspaceName = workspaceName.trim() || 'Untitled Draft';
+  const trimmedWorkspaceDescription = workspaceDescription.trim();
 
   return (
     <>
@@ -104,6 +106,19 @@ export function ProjectWorkspaceControls({
             <p className="text-sm font-medium text-slate-500">
               Create balanced teams in seconds
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${currentWorkspaceId ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600'}`}>
+                {currentWorkspaceId ? 'Current project' : 'Current draft'}
+              </span>
+              <span className="max-w-[320px] truncate font-bold text-slate-800">
+                {effectiveWorkspaceName}
+              </span>
+              {trimmedWorkspaceDescription && (
+                <span className="max-w-[320px] truncate text-slate-500">
+                  — {trimmedWorkspaceDescription}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -168,6 +183,23 @@ export function ProjectWorkspaceControls({
             <div className="hidden h-6 w-px bg-slate-200 lg:block" aria-hidden="true" />
 
             <div className="flex flex-wrap items-center justify-end gap-2 lg:flex-nowrap">
+              <Button
+                onClick={onOpenSaveWorkspaceDialog}
+                variant="ghost"
+                className="h-10 rounded-xl px-3 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-800"
+              >
+                <SquarePen className="h-4 w-4" />
+                <span>Rename</span>
+              </Button>
+              <Button
+                onClick={() => void onSaveWorkspaceAsCopy()}
+                variant="ghost"
+                className="h-10 rounded-xl px-3 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-800"
+                disabled={!user}
+              >
+                <Copy className="h-4 w-4" />
+                <span>Duplicate</span>
+              </Button>
               <Button
                 onClick={onExportProjectBackup}
                 variant="ghost"

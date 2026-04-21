@@ -11,6 +11,7 @@ import {
   applyTeamIterationToState,
   createCopiedTeamIteration,
   createManualTeamIteration,
+  getUniqueIterationName,
   syncActiveTeamIterationToState,
 } from '@/utils/teamIterations';
 
@@ -580,6 +581,38 @@ function App() {
     }
   }, [snapshotCurrentState, teamIterations]);
 
+  const handleRenameIteration = useCallback((iterationId: string, requestedName: string) => {
+    const trimmedName = requestedName.trim();
+    if (!trimmedName) {
+      toast.error('Enter a draft name first');
+      return;
+    }
+
+    let finalName = trimmedName;
+
+    snapshotCurrentState();
+
+    setAppState(prev => {
+      const targetIteration = (prev.teamIterations ?? []).find(iteration => iteration.id === iterationId);
+      if (!targetIteration) {
+        return prev;
+      }
+
+      finalName = getUniqueIterationName(trimmedName, prev.teamIterations ?? [], iterationId);
+
+      return {
+        ...prev,
+        teamIterations: (prev.teamIterations ?? []).map(iteration => (
+          iteration.id === iterationId
+            ? { ...iteration, name: finalName }
+            : iteration
+        )),
+      };
+    });
+
+    toast.success(finalName === trimmedName ? `Renamed draft to ${finalName}` : `Renamed draft to ${finalName} to avoid a duplicate name`);
+  }, [snapshotCurrentState]);
+
   const handleDeleteAllIterations = useCallback(() => {
     if (!window.confirm('Delete all team tabs and start over?')) {
       return;
@@ -667,6 +700,7 @@ function App() {
         activeIterationId={activeIteration?.id ?? null}
         onSelectIteration={selectIteration}
         onCopyIteration={handleCopyIteration}
+        onRenameIteration={handleRenameIteration}
         onAddManualIteration={handleAddManualIteration}
         onStartOver={handleDeleteAllIterations}
         activeIterationStatus={activeIteration?.status}

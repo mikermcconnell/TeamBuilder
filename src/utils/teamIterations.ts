@@ -61,6 +61,33 @@ function normalizeNameKey(name: string): string {
   return name.trim().toLocaleLowerCase();
 }
 
+export function getUniqueIterationName(
+  desiredName: string,
+  existingIterations: TeamIteration[],
+  excludedIterationId?: string,
+): string {
+  const usedNames = new Set(
+    existingIterations
+      .filter(iteration => iteration.id !== excludedIterationId)
+      .map(iteration => normalizeNameKey(iteration.name))
+  );
+
+  const trimmedName = desiredName.trim() || 'Untitled Draft';
+  if (!usedNames.has(normalizeNameKey(trimmedName))) {
+    return trimmedName;
+  }
+
+  let copyNumber = 2;
+  let candidate = `${trimmedName} ${copyNumber}`;
+
+  while (usedNames.has(normalizeNameKey(candidate))) {
+    copyNumber += 1;
+    candidate = `${trimmedName} ${copyNumber}`;
+  }
+
+  return candidate;
+}
+
 function getUniqueCopiedIterationName(sourceName: string, existingNames: string[]): string {
   const usedNames = new Set(existingNames.map(normalizeNameKey));
   const trimmedSourceName = sourceName.trim() || 'Untitled Tab';
