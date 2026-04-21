@@ -28,11 +28,13 @@ function SummaryMetric({
   } as const;
 
   return (
-    <div className={`rounded-2xl border p-4 ${toneClasses[tone]}`}>
-      <div className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</div>
-      <div className="mt-2 text-3xl font-bold">{formatValue(metric.spread)}</div>
-      <div className="mt-2 text-xs opacity-70">
-        Low {formatValue(metric.lowestAverage)} · High {formatValue(metric.highestAverage)}
+    <div className={`rounded-xl border px-3 py-2 ${toneClasses[tone]}`}>
+      <div className="text-[11px] font-semibold uppercase tracking-wide opacity-70">{label}</div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <div className="text-xl font-bold leading-none">{formatValue(metric.spread)}</div>
+        <div className="text-[11px] opacity-70">
+          Low {formatValue(metric.lowestAverage)} · High {formatValue(metric.highestAverage)}
+        </div>
       </div>
     </div>
   );
@@ -43,23 +45,25 @@ export function TeamBoardSummary({ teams }: TeamBoardSummaryProps) {
 
   return (
     <Card className="border-slate-200 bg-white/90 shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-2xl bg-slate-100 p-2 text-slate-600">
-            <BarChart3 className="h-5 w-5" />
+      <CardContent className="p-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2 lg:min-w-0">
+            <div className="rounded-xl bg-slate-100 p-1.5 text-slate-600">
+            <BarChart3 className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-slate-900">Draft Summary</h2>
+              <p className="text-xs text-slate-500">
+                Skill spread across teams. Lower numbers mean tighter balance.
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-slate-900">Draft Summary</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Skill spread across teams. Lower numbers mean tighter balance.
-            </p>
-          </div>
-        </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <SummaryMetric label="Overall skill spread" metric={summary.overall} tone="slate" />
-          <SummaryMetric label="Male skill spread" metric={summary.male} tone="blue" />
-          <SummaryMetric label="Female skill spread" metric={summary.female} tone="pink" />
+          <div className="grid gap-2 md:grid-cols-3 lg:flex lg:flex-1 lg:justify-end">
+            <SummaryMetric label="Overall skill spread" metric={summary.overall} tone="slate" />
+            <SummaryMetric label="Male skill spread" metric={summary.male} tone="blue" />
+            <SummaryMetric label="Female skill spread" metric={summary.female} tone="pink" />
+          </div>
         </div>
       </CardContent>
     </Card>
