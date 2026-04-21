@@ -1,4 +1,4 @@
-import { Copy, Loader2, Plus, Sparkles, SquarePen } from 'lucide-react';
+import { Copy, Loader2, Plus, SquarePen } from 'lucide-react';
 
 import { TeamIteration } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,6 @@ interface TeamIterationTabsProps {
   onSelectIteration: (iterationId: string) => void;
   onCopyIteration: (iterationId: string) => void;
   onAddManualIteration: () => void;
-  onAddAiIteration: () => void;
   className?: string;
 }
 
@@ -25,11 +24,15 @@ function getIterationIcon(iteration: TeamIteration) {
     return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
   }
 
-  if (iteration.type === 'manual') {
-    return <SquarePen className="h-3.5 w-3.5" />;
+  return <SquarePen className="h-3.5 w-3.5" />;
+}
+
+function getIterationLabel(iteration: TeamIteration) {
+  if (iteration.type === 'ai') {
+    return iteration.name.replace(/^AI\b/i, 'Team');
   }
 
-  return <Sparkles className="h-3.5 w-3.5" />;
+  return iteration.name;
 }
 
 export function TeamIterationTabs({
@@ -38,7 +41,6 @@ export function TeamIterationTabs({
   onSelectIteration,
   onCopyIteration,
   onAddManualIteration,
-  onAddAiIteration,
   className,
 }: TeamIterationTabsProps) {
   if (iterations.length === 0) {
@@ -49,6 +51,7 @@ export function TeamIterationTabs({
     <div className={cn('flex items-center gap-2 overflow-x-auto pb-1', className)}>
       {iterations.map(iteration => {
         const isActive = iteration.id === activeIterationId;
+        const iterationLabel = getIterationLabel(iteration);
 
         return (
           <div key={iteration.id} className="inline-flex items-stretch">
@@ -63,7 +66,7 @@ export function TeamIterationTabs({
               )}
             >
               {getIterationIcon(iteration)}
-              <span>{iteration.name}</span>
+              <span>{iterationLabel}</span>
               {iteration.status === 'failed' && (
                 <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-600">
                   Failed
@@ -74,7 +77,7 @@ export function TeamIterationTabs({
               type="button"
               onClick={() => onCopyIteration(iteration.id)}
               disabled={iteration.status !== 'ready'}
-              title={iteration.status === 'ready' ? `Copy ${iteration.name}` : 'Only ready tabs can be copied'}
+              title={iteration.status === 'ready' ? `Copy ${iterationLabel}` : 'Only ready tabs can be copied'}
               className={cn(
                 'inline-flex items-center justify-center rounded-r-xl border border-b-0 border-l-0 px-3 transition-colors',
                 isActive
@@ -82,7 +85,7 @@ export function TeamIterationTabs({
                   : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-900',
                 iteration.status !== 'ready' && 'cursor-not-allowed opacity-50 hover:bg-inherit hover:text-slate-500'
               )}
-              aria-label={`Copy ${iteration.name}`}
+              aria-label={`Copy ${iterationLabel}`}
             >
               <Copy className="h-3.5 w-3.5" />
             </button>
@@ -105,10 +108,6 @@ export function TeamIterationTabs({
           <DropdownMenuItem onClick={onAddManualIteration}>
             <SquarePen className="h-4 w-4" />
             New Manual Iteration
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onAddAiIteration}>
-            <Sparkles className="h-4 w-4" />
-            New AI Iteration
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

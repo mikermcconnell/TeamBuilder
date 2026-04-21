@@ -21,7 +21,7 @@ import { TeamBoard } from './TeamBoard';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
 import { TeamIterationTabs } from './TeamIterationTabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { WorkspaceManager } from './WorkspaceManager';
@@ -32,12 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Sparkles } from 'lucide-react';
-import { AssistantPanel } from './ai/AssistantPanel';
-import { generateTeamSuggestions } from '@/services/aiService';
-import { TeamSuggestion } from '@/types/ai';
-
-import { SuggestionReviewModal } from './ai/SuggestionReviewModal';
 import { buildIterationInsights, buildManualMoveRecommendations } from '@/utils/teamInsights';
 import { ManualEditAssist } from './teams/ManualEditAssist';
 
@@ -73,7 +67,6 @@ interface FullScreenTeamBuilderProps {
   onSelectIteration: (iterationId: string) => void;
   onCopyIteration: (iterationId: string) => void;
   onAddManualIteration: () => void;
-  onAddAiIteration: () => void;
   onStartOver?: () => void;
   activeIterationStatus?: TeamIterationStatus;
   leagueMemory?: LeagueMemoryEntry[];
@@ -105,7 +98,6 @@ export function FullScreenTeamBuilder({
   onSelectIteration,
   onCopyIteration,
   onAddManualIteration,
-  onAddAiIteration,
   onStartOver,
   activeIterationStatus = 'ready',
   leagueMemory = [],
@@ -133,11 +125,6 @@ export function FullScreenTeamBuilder({
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // AI Assistant State
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<TeamSuggestion[]>([]);
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const currentInsights = buildIterationInsights({
     id: activeIterationId ?? 'current',
     name: iterations.find(iteration => iteration.id === activeIterationId)?.name || 'Current draft',
@@ -148,52 +135,6 @@ export function FullScreenTeamBuilder({
   const moveRecommendations = activePlayer
     ? buildManualMoveRecommendations(activePlayer.id, teams, config, leagueMemory)
     : [];
-  const coachPrompts = [
-    currentInsights.handlerSpread > 1 ? 'Spread handlers more evenly across the teams.' : null,
-    currentInsights.eliteStackedTeams > 0 ? 'Break up any team that is stacking elite 9 or 10 rated players.' : null,
-    currentInsights.lowBandStackedTeams > 0 ? 'Reduce weak-player concentration by spreading out the 1 to 3 rated players.' : null,
-    currentInsights.avoidViolations > 0 ? 'Reduce the avoid conflicts while keeping the teams fair.' : null,
-    currentInsights.repeatedPairings > 0 ? 'Use league memory to break up repeated teammate pairings where possible.' : null,
-    'Make the teams fairer without creating new avoid conflicts.',
-  ].filter((prompt): prompt is string => Boolean(prompt));
-
-  const handleAiPrompt = async (prompt: string) => {
-    setIsAiLoading(true);
-    try {
-      const contextualPrompt = [
-        prompt,
-        leagueMemory.length > 0
-          ? `League memory note: avoid repeated teammate pairings when practical. Current repeat pairings: ${currentInsights.repeatedPairings}.`
-          : null,
-        currentInsights.risks.length > 0
-          ? `Current draft risks: ${currentInsights.risks.join(' ')}`
-          : null,
-      ].filter(Boolean).join('\n\n');
-      const suggestions = await generateTeamSuggestions(contextualPrompt, players, teams, config, playerGroups);
-      setAiSuggestions(suggestions);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to generate suggestions.');
-      console.error(error);
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
-  const handleAcceptSuggestion = (suggestion: TeamSuggestion) => {
-    // Execute all actions in the suggestion
-    suggestion.actions.forEach(action => {
-      const targetId = action.targetTeamId === 'unassigned' ? null : action.targetTeamId;
-      onPlayerMove(action.playerId, targetId);
-    });
-
-    // Remove from list
-    setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
-    toast.success(`Applied: ${suggestion.title}`);
-  };
-
-  const handleDismissSuggestion = (id: string) => {
-    setAiSuggestions(prev => prev.filter(s => s.id !== id));
-  };
 
   // Sort teams
   const sortedTeams = [...teams].sort((a, b) => {
@@ -391,15 +332,6 @@ export function FullScreenTeamBuilder({
                 <span className="hidden sm:inline">Start Over</span>
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className={`gap-2 ${isAssistantOpen ? 'bg-purple-50 border-purple-200 text-purple-700' : ''}`}
-              onClick={() => setIsAssistantOpen(!isAssistantOpen)}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">AI Assistant</span>
-            </Button>
             {onLoadWorkspace && (
               <div className="flex items-center gap-3">
                 <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'name' | 'skill-high' | 'skill-low')}>
@@ -456,7 +388,6 @@ export function FullScreenTeamBuilder({
               onSelectIteration={onSelectIteration}
               onCopyIteration={onCopyIteration}
               onAddManualIteration={onAddManualIteration}
-              onAddAiIteration={onAddAiIteration}
             />
           </div>
         )}
@@ -466,16 +397,16 @@ export function FullScreenTeamBuilder({
       {activeIterationStatus !== 'ready' ? (
         <div className="flex flex-1 items-center justify-center p-8">
           <div className="max-w-md rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-            <div className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full ${activeIterationStatus === 'failed' ? 'bg-red-50 text-red-500' : 'bg-purple-50 text-purple-500'}`}>
-              {activeIterationStatus === 'failed' ? <AlertTriangle className="h-8 w-8" /> : <Sparkles className="h-8 w-8" />}
+            <div className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full ${activeIterationStatus === 'failed' ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}>
+              {activeIterationStatus === 'failed' ? <AlertTriangle className="h-8 w-8" /> : <Loader2 className="h-8 w-8 animate-spin" />}
             </div>
             <h2 className="text-2xl font-bold text-slate-800">
-              {activeIterationStatus === 'failed' ? 'This AI tab could not be built' : 'Building this AI tab'}
+              {activeIterationStatus === 'failed' ? 'This team tab could not be opened' : 'Preparing this team tab'}
             </h2>
             <p className="mt-3 text-slate-500">
               {activeIterationStatus === 'failed'
-                ? 'Create another AI iteration when you are ready.'
-                : 'Your manual tab is still available while this version finishes in the background.'}
+                ? 'Create another manual tab when you are ready.'
+                : 'Your other team tabs are still available while this version finishes loading.'}
             </p>
           </div>
         </div>
@@ -519,39 +450,10 @@ export function FullScreenTeamBuilder({
             )}
           </div>
 
-          {/* AI Assistant - Clippy (Floating) */}
-          {isAssistantOpen && (
-            <AssistantPanel
-              suggestions={aiSuggestions}
-              isLoading={isAiLoading}
-              onSendPrompt={handleAiPrompt}
-              onAcceptSuggestion={handleAcceptSuggestion}
-              onDismissSuggestion={handleDismissSuggestion}
-              onClose={() => setIsAssistantOpen(false)}
-              players={players}
-              teams={teams}
-              onReview={() => setIsReviewModalOpen(true)}
-              coachPrompts={coachPrompts}
-            />
-          )}
-
           <ManualEditAssist
             activePlayer={activePlayer}
             recommendations={moveRecommendations}
             insights={currentInsights}
-          />
-
-          {/* Review Modal */}
-          <SuggestionReviewModal
-            isOpen={isReviewModalOpen}
-            onClose={() => setIsReviewModalOpen(false)}
-            suggestions={aiSuggestions}
-            onConfirm={(suggestion) => {
-              handleAcceptSuggestion(suggestion);
-              setIsReviewModalOpen(false);
-            }}
-            players={players}
-            teams={teams}
           />
 
           {/* Board */}

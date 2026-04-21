@@ -26,8 +26,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { detectRequestConflicts } from '@/utils/playerGrouping';
-import { SuggestedGroupsPanel } from './SuggestedGroupsPanel';
-import { generateGroupSuggestions, SuggestedGroup } from '@/services/groupSuggestionService';
 
 interface PlayerGroupsProps {
   config: LeagueConfig;
@@ -64,10 +62,6 @@ export function PlayerGroups({
   const [isMergingGroup, setIsMergingGroup] = useState(false);
   const [selectedGroupForMerge, setSelectedGroupForMerge] = useState<string | null>(null);
   const [newGroupName, setNewGroupName] = useState('');
-
-  // AI Suggestions state
-  const [suggestions, setSuggestions] = useState<SuggestedGroup[]>([]);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const maxManualGroupSize = config.maxTeamSize;
   const autoGroupCap = Math.min(config.maxAutoGroupSize ?? 4, config.maxTeamSize);
@@ -151,34 +145,6 @@ export function PlayerGroups({
     setSelectedGroupForMerge(null);
     setIsMergingGroup(false);
     toast.success('Groups merged successfully');
-  };
-
-  // AI Suggestions handlers
-  const handleGenerateSuggestions = async () => {
-    setIsLoadingSuggestions(true);
-    const result = await generateGroupSuggestions(players, playerGroups);
-    setIsLoadingSuggestions(false);
-
-    if (result.error) {
-      toast.error(result.error);
-    } else if (result.suggestions.length === 0) {
-      toast.info('No group suggestions found. Try adding teammate requests to players.');
-    } else {
-      setSuggestions(result.suggestions);
-      toast.success(`Found ${result.suggestions.length} group suggestions!`);
-    }
-  };
-
-  const handleAcceptSuggestion = (suggestion: SuggestedGroup) => {
-    // Create a new group from the suggestion
-    onCreateNewGroup(suggestion.playerIds);
-    // Remove from suggestions list
-    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
-    toast.success(`Created group with ${suggestion.playerNames.join(', ')}`);
-  };
-
-  const handleDenySuggestion = (suggestionId: string) => {
-    setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
   };
 
   return (
@@ -516,15 +482,6 @@ export function PlayerGroups({
           </CardContent>
         </Card>
       )}
-
-      {/* AI-Suggested Groups Panel */}
-      <SuggestedGroupsPanel
-        suggestions={suggestions}
-        isLoading={isLoadingSuggestions}
-        onGenerate={handleGenerateSuggestions}
-        onAccept={handleAcceptSuggestion}
-        onDeny={handleDenySuggestion}
-      />
 
       {/* Individual Players */}
       {ungroupedPlayers.length > 0 && (

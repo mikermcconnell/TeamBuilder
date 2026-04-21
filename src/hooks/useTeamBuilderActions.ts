@@ -17,6 +17,7 @@ import { applyWarningResolutionToRequests, isAvoidWarning } from '@/utils/warnin
 import { getGroupLabelFromIndex } from '@/utils/groupLabels';
 
 const normalizeName = (name: string): string => name.trim().toLowerCase();
+type TeamIterationState = NonNullable<AppState['teamIterations']>[number];
 const GROUP_COLORS = [
   '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#F97316',
   '#06B6D4', '#84CC16', '#EC4899', '#6B7280', '#14B8A6', '#F43F5E'
@@ -128,6 +129,42 @@ function rebuildAutoGroups(
   });
 
   return syncPlayersAndGroups(updatedPlayers, [...syncedState.playerGroups, ...remappedGroups]);
+}
+
+function addPlayerToIterationPool(
+  iteration: TeamIterationState,
+  players: Player[],
+  playerGroups: PlayerGroup[],
+  config: LeagueConfig,
+  addedPlayer: Player,
+): TeamIterationState {
+  if (iteration.status !== 'ready') {
+    return iteration;
+  }
+
+  const playerAlreadyPresent = iteration.teams.some(team =>
+    team.players.some(player => player.id === addedPlayer.id)
+  ) || (iteration.unassignedPlayers ?? []).some(player => player.id === addedPlayer.id);
+
+  const nextUnassignedPlayers = playerAlreadyPresent
+    ? iteration.unassignedPlayers ?? []
+    : [...(iteration.unassignedPlayers ?? []), addedPlayer];
+
+  const reconciledState = reconcileTeamState(
+    players,
+    iteration.teams ?? [],
+    nextUnassignedPlayers,
+    playerGroups,
+    config,
+    iteration.stats,
+  );
+
+  return {
+    ...iteration,
+    teams: reconciledState.teams,
+    unassignedPlayers: reconciledState.unassignedPlayers,
+    stats: reconciledState.stats,
+  };
 }
 
 interface TeamBrandingChange {
@@ -523,14 +560,59 @@ export function useTeamBuilderActions({
         updatedHistory[normalizeName(newPlayer.name)] = { rating: newPlayer.execSkillRating, updatedAt: Date.now() };
       }
 
+      const playerToAdd = {
+        ...newPlayer,
+        teamId: undefined,
+      };
+      const syncedGroupState = syncPlayersAndGroups([...prev.players, playerToAdd], prev.playerGroups);
+      const addedPlayer = syncedGroupState.players.find(player => player.id === playerToAdd.id) ?? playerToAdd;
+      const hasVisibleTeamState = prev.teams.length > 0 || prev.unassignedPlayers.length > 0 || Boolean(prev.stats);
+      const hasReadyTeamIterations = (prev.teamIterations ?? []).some(iteration => iteration.status === 'ready');
+
+      if (!hasVisibleTeamState && !hasReadyTeamIterations) {
+        return {
+          ...prev,
+          players: syncedGroupState.players,
+          playerGroups: syncedGroupState.playerGroups,
+          execRatingHistory: updatedHistory
+        };
+      }
+
+      const nextUnassignedPlayers = prev.unassignedPlayers.some(player => player.id === addedPlayer.id)
+        ? prev.unassignedPlayers
+        : [...prev.unassignedPlayers, addedPlayer];
+
+      const reconciledState = reconcileTeamState(
+        syncedGroupState.players,
+        prev.teams,
+        nextUnassignedPlayers,
+        syncedGroupState.playerGroups,
+        prev.config,
+        prev.stats,
+      );
+
+      const updatedIterations = (prev.teamIterations ?? []).map(iteration =>
+        addPlayerToIterationPool(
+          iteration,
+          syncedGroupState.players,
+          syncedGroupState.playerGroups,
+          prev.config,
+          addedPlayer,
+        )
+      );
+
+      const activeIteration = prev.activeTeamIterationId
+        ? updatedIterations.find(iteration => iteration.id === prev.activeTeamIterationId) ?? null
+        : null;
+
       return {
         ...prev,
-        players: [...prev.players, newPlayer],
-        teams: [],
-        unassignedPlayers: [],
-        stats: undefined,
-        teamIterations: [],
-        activeTeamIterationId: null,
+        players: reconciledState.players,
+        teams: activeIteration?.teams ?? reconciledState.teams,
+        unassignedPlayers: activeIteration?.unassignedPlayers ?? reconciledState.unassignedPlayers,
+        stats: activeIteration?.stats ?? reconciledState.stats,
+        playerGroups: syncedGroupState.playerGroups,
+        teamIterations: updatedIterations,
         execRatingHistory: updatedHistory
       };
     });

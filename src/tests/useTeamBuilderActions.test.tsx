@@ -316,6 +316,122 @@ describe('useTeamBuilderActions', () => {
     expect(result.current.appState.playerGroups[0]?.playerIds).toEqual(['grouped-player']);
   });
 
+  it('adds a new player to the pool without resetting existing teams', () => {
+    const assignedPlayer = createPlayer({
+      id: 'assigned-player',
+      name: 'Assigned Player',
+      teamId: 'team-1',
+    });
+    const newPlayer = createPlayer({
+      id: 'new-player',
+      name: 'New Player',
+      gender: 'F',
+      skillRating: 5,
+      teamId: undefined,
+    });
+    const existingTeam = createTeam({
+      id: 'team-1',
+      name: 'Team 1',
+      players: [assignedPlayer],
+      averageSkill: 7,
+      genderBreakdown: { M: 1, F: 0, Other: 0 },
+    });
+
+    const { result, snapshotCurrentState } = renderActions(createAppState({
+      players: [assignedPlayer],
+      teams: [existingTeam],
+      unassignedPlayers: [],
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          teams: [existingTeam],
+          unassignedPlayers: [],
+          createdAt: '2026-04-21T10:00:00.000Z',
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+    }));
+
+    act(() => {
+      result.current.handlePlayerAdd(newPlayer);
+    });
+
+    expect(snapshotCurrentState).toHaveBeenCalledTimes(1);
+    expect(result.current.appState.players.map(player => player.id).sort()).toEqual(['assigned-player', 'new-player']);
+    expect(result.current.appState.teams).toHaveLength(1);
+    expect(result.current.appState.teams[0]?.players.map(player => player.id)).toEqual(['assigned-player']);
+    expect(result.current.appState.unassignedPlayers.map(player => player.id)).toEqual(['new-player']);
+    expect(result.current.appState.activeTeamIterationId).toBe('manual-1');
+    expect(result.current.appState.teamIterations).toHaveLength(1);
+    expect(result.current.appState.teamIterations[0]?.teams[0]?.players.map(player => player.id)).toEqual(['assigned-player']);
+    expect(result.current.appState.teamIterations[0]?.unassignedPlayers.map(player => player.id)).toEqual(['new-player']);
+  });
+
+  it('updates ready team tabs even when a generating tab is active', () => {
+    const assignedPlayer = createPlayer({
+      id: 'assigned-player',
+      name: 'Assigned Player',
+      teamId: 'team-1',
+    });
+    const newPlayer = createPlayer({
+      id: 'new-player',
+      name: 'New Player',
+      gender: 'F',
+      skillRating: 5,
+    });
+    const manualTeam = createTeam({
+      id: 'team-1',
+      name: 'Team 1',
+      players: [assignedPlayer],
+      averageSkill: 7,
+      genderBreakdown: { M: 1, F: 0, Other: 0 },
+    });
+
+    const { result } = renderActions(createAppState({
+      players: [assignedPlayer],
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          teams: [manualTeam],
+          unassignedPlayers: [],
+          createdAt: '2026-04-21T10:00:00.000Z',
+        },
+        {
+          id: 'ai-1',
+          name: 'AI 1',
+          type: 'ai',
+          status: 'generating',
+          teams: [],
+          unassignedPlayers: [],
+          createdAt: '2026-04-21T10:01:00.000Z',
+        },
+      ],
+      activeTeamIterationId: 'ai-1',
+    }));
+
+    act(() => {
+      result.current.handlePlayerAdd(newPlayer);
+    });
+
+    const manualIteration = result.current.appState.teamIterations.find(iteration => iteration.id === 'manual-1');
+    const generatingIteration = result.current.appState.teamIterations.find(iteration => iteration.id === 'ai-1');
+
+    expect(manualIteration?.teams[0]?.players.map(player => player.id)).toEqual(['assigned-player']);
+    expect(manualIteration?.unassignedPlayers.map(player => player.id)).toEqual(['new-player']);
+    expect(generatingIteration?.teams).toEqual([]);
+    expect(generatingIteration?.unassignedPlayers).toEqual([]);
+    expect(result.current.appState.activeTeamIterationId).toBe('ai-1');
+  });
+
   it('persists immediately when requested for a player review toggle', async () => {
     const reviewedPlayer = createPlayer({
       id: 'review-player',

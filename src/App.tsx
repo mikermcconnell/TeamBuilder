@@ -9,10 +9,8 @@ import { serializePlayersToCSV } from '@/utils/csvProcessor';
 import { mergeWorkspaceStateForConflict } from '@/services/persistence/workspaceMerge';
 import {
   applyTeamIterationToState,
-  createAiTeamIteration,
   createCopiedTeamIteration,
   createManualTeamIteration,
-  createPendingTeamIteration,
   syncActiveTeamIterationToState,
 } from '@/utils/teamIterations';
 
@@ -33,7 +31,7 @@ import { PlayerGroups } from '@/components/PlayerGroups';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, BarChart3, Users, LayoutGrid, ArrowRight, FileText, ArrowLeft, AlertTriangle, FolderOpen, Sparkles, SquarePen } from 'lucide-react';
+import { FileSpreadsheet, BarChart3, Users, LayoutGrid, ArrowRight, FileText, ArrowLeft, AlertTriangle, FolderOpen, SquarePen, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
@@ -60,46 +58,6 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
       </div>
     </div>
   );
-}
-
-function getAiIterationBanner(iteration?: AppState['teamIterations'][number] | null) {
-  if (!iteration || iteration.type !== 'ai' || iteration.status !== 'ready') {
-    return null;
-  }
-
-  const responseIds = iteration.aiResponseIds?.length
-    ? iteration.aiResponseIds
-    : iteration.aiResponseId
-      ? [iteration.aiResponseId]
-      : [];
-  const executionDetails = [
-    iteration.aiModel ? `Model used: ${iteration.aiModel}` : null,
-    responseIds.length > 1
-      ? `Response IDs: ${responseIds.join(', ')}`
-      : responseIds[0]
-        ? `Response ID: ${responseIds[0]}`
-        : null,
-  ].filter(Boolean).join('\n');
-
-  if (iteration.generationSource === 'fallback') {
-    return {
-      tone: 'success' as const,
-      title: 'AI draft completed',
-      message: [
-        iteration.errorMessage || 'This draft was finalized with TeamBuilder balancing and is ready to use.',
-        executionDetails,
-      ].filter(Boolean).join('\n\n'),
-    };
-  }
-
-  return {
-    tone: 'success' as const,
-    title: 'This tab was built by AI',
-    message: [
-      iteration.errorMessage || 'The AI finished this draft and handed it back ready to use.',
-      executionDetails,
-    ].filter(Boolean).join('\n\n'),
-  };
 }
 
 function App() {
@@ -474,10 +432,9 @@ function App() {
     [appState.players]
   );
 
-  const getNextIterationName = useCallback((type: 'manual' | 'ai') => {
-    const prefix = type === 'manual' ? 'Manual' : 'AI';
+  const getNextManualIterationName = useCallback(() => {
     const highestNumber = teamIterations.reduce((max, iteration) => {
-      if (iteration.type !== type) {
+      if (iteration.type !== 'manual') {
         return max;
       }
 
@@ -485,7 +442,7 @@ function App() {
       return Math.max(max, match ? Number(match[1]) : 0);
     }, 0);
 
-    return `${prefix} ${highestNumber + 1}`;
+    return `Manual ${highestNumber + 1}`;
   }, [teamIterations]);
 
   const selectIteration = useCallback((iterationId: string) => {
@@ -530,98 +487,6 @@ function App() {
     return true;
   }, [appState.config, appState.playerGroups, appState.players]);
 
-  const buildAiIterationInBackground = useCallback(async (
-    iterationId: string,
-    iterationName: string,
-    variant: 'primary' | 'alternate',
-    snapshot: {
-      players: AppState['players'];
-      config: AppState['config'];
-      playerGroups: AppState['playerGroups'];
-    },
-    successMessage?: string
-  ) => {
-    try {
-      await new Promise(resolve => window.setTimeout(resolve, 150));
-
-      const builtIteration = await createAiTeamIteration(
-        snapshot.players,
-        snapshot.config,
-        snapshot.playerGroups,
-        iterationName,
-        variant
-      );
-
-      let iterationWasUpdated = false;
-      setAppState(prev => {
-        if (!(prev.teamIterations ?? []).some(iteration => iteration.id === iterationId)) {
-          return prev;
-        }
-
-        iterationWasUpdated = true;
-        const updatedIterations = (prev.teamIterations ?? []).map(iteration => (
-          iteration.id === iterationId
-            ? {
-              ...builtIteration,
-              id: iterationId,
-              createdAt: iteration.createdAt,
-            }
-            : iteration
-        ));
-
-        const nextState = {
-          ...prev,
-          teamIterations: updatedIterations,
-        };
-
-        return prev.activeTeamIterationId === iterationId
-          ? applyTeamIterationToState(nextState, iterationId)
-          : nextState;
-      });
-
-      if (iterationWasUpdated) {
-        if (builtIteration.generationSource === 'fallback') {
-          toast.warning(`${iterationName} is ready. The AI draft did not pass validation, so TeamBuilder switched to its built-in balancing method.`);
-        } else if (successMessage) {
-          toast.success(successMessage);
-        }
-      }
-    } catch (error) {
-      console.error('AI iteration generation failed:', error);
-
-      let iterationWasUpdated = false;
-      setAppState(prev => {
-        if (!(prev.teamIterations ?? []).some(iteration => iteration.id === iterationId)) {
-          return prev;
-        }
-
-        iterationWasUpdated = true;
-        const updatedIterations = (prev.teamIterations ?? []).map(iteration => (
-          iteration.id === iterationId
-            ? {
-              ...iteration,
-              status: 'failed',
-              errorMessage: 'Unable to generate this AI option.',
-            }
-            : iteration
-        ));
-
-        const nextState = {
-          ...prev,
-          teamIterations: updatedIterations,
-        };
-
-        return prev.activeTeamIterationId === iterationId
-          ? applyTeamIterationToState(nextState, iterationId)
-          : nextState;
-      });
-
-      if (iterationWasUpdated) {
-        toast.error(`Could not generate ${iterationName}. Please try again.`);
-      }
-    }
-  }, []);
-
   const handleOpenGenerateTeamsDialog = useCallback(() => {
     if (appState.players.length === 0) {
       toast.error('Please upload players first');
@@ -654,65 +519,6 @@ function App() {
     toast.success('Created two manual team tabs');
   }, [appState.config, appState.playerGroups, appState.players, snapshotCurrentState, validateGenerationSetup]);
 
-  const handleCreateAiIterations = useCallback(async () => {
-    if (!(await validateGenerationSetup())) {
-      return;
-    }
-
-    snapshotCurrentState();
-
-    const aiOne = createPendingTeamIteration('AI 1', 'ai');
-    const aiTwo = createPendingTeamIteration('AI 2', 'ai');
-    const snapshot = {
-      players: appState.players,
-      config: appState.config,
-      playerGroups: appState.playerGroups,
-    };
-
-    setAppState(prev => applyTeamIterationToState({
-      ...prev,
-      teamIterations: [aiOne, aiTwo],
-      activeTeamIterationId: aiOne.id,
-    }, aiOne.id));
-
-    setActiveTab('teams');
-    setTeamsView('landing');
-    setIsFullScreenMode(true);
-    setIsGenerateTeamsDialogOpen(false);
-
-    void buildAiIterationInBackground(aiOne.id, aiOne.name, 'primary', snapshot);
-    void buildAiIterationInBackground(aiTwo.id, aiTwo.name, 'alternate', snapshot, 'AI team options are ready');
-  }, [appState.config, appState.playerGroups, appState.players, buildAiIterationInBackground, snapshotCurrentState, validateGenerationSetup]);
-
-  const handleCreateBothIterations = useCallback(async () => {
-    if (!(await validateGenerationSetup())) {
-      return;
-    }
-
-    snapshotCurrentState();
-
-    const manualIteration = createManualTeamIteration(appState.players, appState.config, appState.playerGroups, 'Manual 1');
-    const aiIteration = createPendingTeamIteration('AI 1', 'ai');
-    const snapshot = {
-      players: appState.players,
-      config: appState.config,
-      playerGroups: appState.playerGroups,
-    };
-
-    setAppState(prev => applyTeamIterationToState({
-      ...prev,
-      teamIterations: [manualIteration, aiIteration],
-      activeTeamIterationId: manualIteration.id,
-    }, manualIteration.id));
-
-    setActiveTab('teams');
-    setTeamsView('landing');
-    setIsFullScreenMode(true);
-    setIsGenerateTeamsDialogOpen(false);
-
-    void buildAiIterationInBackground(aiIteration.id, aiIteration.name, 'primary', snapshot, 'Your AI tab is ready');
-  }, [appState.config, appState.playerGroups, appState.players, buildAiIterationInBackground, snapshotCurrentState, validateGenerationSetup]);
-
   const handleAddManualIteration = useCallback(async () => {
     if (!(await validateGenerationSetup())) {
       return;
@@ -720,7 +526,7 @@ function App() {
 
     snapshotCurrentState();
 
-    const iterationName = getNextIterationName('manual');
+    const iterationName = getNextManualIterationName();
     const manualIteration = createManualTeamIteration(appState.players, appState.config, appState.playerGroups, iterationName);
 
     setAppState(prev => applyTeamIterationToState({
@@ -732,40 +538,7 @@ function App() {
     setActiveTab('teams');
     setTeamsView('landing');
     toast.success(`Added ${iterationName}`);
-  }, [appState.config, appState.playerGroups, appState.players, getNextIterationName, snapshotCurrentState, validateGenerationSetup]);
-
-  const handleAddAiIteration = useCallback(async () => {
-    if (!(await validateGenerationSetup())) {
-      return;
-    }
-
-    snapshotCurrentState();
-
-    const iterationName = getNextIterationName('ai');
-    const pendingIteration = createPendingTeamIteration(iterationName, 'ai');
-    const snapshot = {
-      players: appState.players,
-      config: appState.config,
-      playerGroups: appState.playerGroups,
-    };
-
-    setAppState(prev => applyTeamIterationToState({
-      ...prev,
-      teamIterations: [...(prev.teamIterations ?? []), pendingIteration],
-      activeTeamIterationId: pendingIteration.id,
-    }, pendingIteration.id));
-
-    setActiveTab('teams');
-    setTeamsView('landing');
-
-    void buildAiIterationInBackground(
-      pendingIteration.id,
-      pendingIteration.name,
-      'alternate',
-      snapshot,
-      `${pendingIteration.name} is ready`
-    );
-  }, [appState.config, appState.playerGroups, appState.players, buildAiIterationInBackground, getNextIterationName, snapshotCurrentState, validateGenerationSetup]);
+  }, [appState.config, appState.playerGroups, appState.players, getNextManualIterationName, snapshotCurrentState, validateGenerationSetup]);
 
   const handleCopyIteration = useCallback((iterationId: string) => {
     const sourceIteration = teamIterations.find(iteration => iteration.id === iterationId);
@@ -895,7 +668,6 @@ function App() {
         onSelectIteration={selectIteration}
         onCopyIteration={handleCopyIteration}
         onAddManualIteration={handleAddManualIteration}
-        onAddAiIteration={handleAddAiIteration}
         onStartOver={handleDeleteAllIterations}
         activeIterationStatus={activeIteration?.status}
         leagueMemory={leagueMemory}
@@ -1115,10 +887,10 @@ function App() {
                       <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-6">
                         <Users className="h-10 w-10" />
                       </div>
-                      <h3 className="text-xl font-bold text-slate-700 mb-2">No Team Tabs Yet</h3>
-                      <p className="text-slate-500 mb-8 max-w-md mx-auto">
-                        Choose whether you want a manual workspace, AI-built options, or both.
-                      </p>
+                       <h3 className="text-xl font-bold text-slate-700 mb-2">No Team Tabs Yet</h3>
+                       <p className="text-slate-500 mb-8 max-w-md mx-auto">
+                         Create manual team tabs to start building and comparing versions.
+                       </p>
                       <Button
                         onClick={handleOpenGenerateTeamsDialog}
                         size="lg"
@@ -1143,12 +915,12 @@ function App() {
                           Open config
                         </Button>
                       </div>
-                      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                        <div className="text-sm font-bold text-slate-800">3. Generate and compare</div>
-                        <p className="mt-2 text-sm text-slate-500">Create manual tabs, AI tabs, or both, then compare scorecards before publishing.</p>
-                        <Button className="mt-4" onClick={handleOpenGenerateTeamsDialog}>
-                          Generate tabs
-                        </Button>
+                       <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                         <div className="text-sm font-bold text-slate-800">3. Generate and compare</div>
+                         <p className="mt-2 text-sm text-slate-500">Create manual tabs, compare scorecards, then publish the version you want.</p>
+                         <Button className="mt-4" onClick={handleOpenGenerateTeamsDialog}>
+                           Generate tabs
+                         </Button>
                       </div>
                     </div>
                   </div>
@@ -1156,12 +928,12 @@ function App() {
                   <div className="space-y-6">
                     {activeIteration?.status === 'generating' ? (
                       <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                        <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-purple-50 text-purple-500">
-                          <Sparkles className="h-10 w-10" />
+                        <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                          <Loader2 className="h-10 w-10 animate-spin" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-800 mb-2">Building {activeIteration.name}</h3>
                         <p className="text-slate-500 max-w-md mx-auto">
-                          This AI option is being prepared in the background. You can switch tabs or wait here.
+                          This team tab is being prepared in the background. You can switch tabs or wait here.
                         </p>
                       </div>
                     ) : activeIteration?.status === 'failed' ? (
@@ -1169,29 +941,14 @@ function App() {
                         <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-50 text-red-500">
                           <AlertTriangle className="h-10 w-10" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">This AI tab could not be generated</h3>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">This team tab could not be generated</h3>
                         <p className="text-slate-500 max-w-md mx-auto">
-                          {activeIteration.errorMessage || 'Please create a new AI iteration and try again.'}
+                          {activeIteration.errorMessage || 'Please create a new manual iteration and try again.'}
                         </p>
                       </div>
                     ) : teamsView === 'landing' ? (
                         <div className="space-y-8 py-8">
-                          {(() => {
-                            const banner = getAiIterationBanner(activeIteration);
-                            if (!banner) return null;
-
-                            const bannerClasses = banner.tone === 'success'
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                              : 'border-amber-200 bg-amber-50 text-amber-900';
-
-                            return (
-                              <div className={`rounded-2xl border px-5 py-4 text-sm ${bannerClasses}`}>
-                                <div className="font-bold">{banner.title}</div>
-                                <div className="mt-1 whitespace-pre-wrap">{banner.message}</div>
-                              </div>
-                            );
-                          })()}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
                           {/* Team Builder Card */}
                           <div
                             onClick={() => {
@@ -1272,11 +1029,11 @@ function App() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-extrabold text-slate-800">Generate Team Tabs</DialogTitle>
             <DialogDescription>
-              Pick the kind of workspace you want to start with. You can always add more tabs later with the + button.
+              Start with a pair of manual team tabs. You can add more manual tabs later with the + button.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-1">
             <button
               type="button"
               onClick={() => void handleCreateManualIterations()}
@@ -1288,34 +1045,6 @@ function App() {
               <div className="text-lg font-bold text-slate-800">Manual Team</div>
               <p className="mt-2 text-sm leading-6 text-slate-500">
                 Creates two blank team tabs so you can build and compare manual versions side by side.
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => void handleCreateAiIterations()}
-              className="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-200 hover:shadow-md"
-            >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600">
-                <Sparkles className="h-6 w-6" />
-              </div>
-              <div className="text-lg font-bold text-slate-800">AI Team</div>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Builds two separate auto-generated team options in their own tabs.
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => void handleCreateBothIterations()}
-              className="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
-            >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                <LayoutGrid className="h-6 w-6" />
-              </div>
-              <div className="text-lg font-bold text-slate-800">Both</div>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Opens a manual tab right away and prepares an AI tab in the background so the user can keep working.
               </p>
             </button>
           </div>
