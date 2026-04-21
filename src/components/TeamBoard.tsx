@@ -4,6 +4,7 @@ import { DroppableTeamCard } from './DroppableTeamCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Palette, Plus } from 'lucide-react';
+import { TeamBoardSummary } from './teams/TeamBoardSummary';
 
 interface TeamBoardProps {
     teams: Team[];
@@ -49,6 +50,12 @@ export function TeamBoard({ teams, players, config, onPlayerUpdate, onTeamNameCh
                     )}
                 </div>
             </div>
+
+            {teams.length > 0 && (
+                <div className="mb-6">
+                    <TeamBoardSummary teams={teams} />
+                </div>
+            )}
 
             <ScrollArea className="flex-1 -mx-6 px-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-20">

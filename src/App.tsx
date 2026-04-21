@@ -14,6 +14,12 @@ import {
   getUniqueIterationName,
   syncActiveTeamIterationToState,
 } from '@/utils/teamIterations';
+import {
+  applyRedo,
+  applyUndo,
+  createEmptyUndoRedoHistory,
+  pushUndoSnapshot,
+} from '@/utils/undoRedoHistory';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -103,38 +109,45 @@ function App() {
 
 
 
-  // Undo History
-  const [history, setHistory] = useState<AppState[]>([]);
+  // Undo / Redo History
+  const [historyStacks, setHistoryStacks] = useState(() => createEmptyUndoRedoHistory<AppState>());
   const appStateRef = useRef(appState);
-
-  const addToHistory = useCallback((currentState: AppState) => {
-    setHistory(prev => {
-      // Keep last 50 states
-      const newHistory = [...prev, currentState];
-      if (newHistory.length > 50) return newHistory.slice(newHistory.length - 50);
-      return newHistory;
-    });
-  }, []);
 
   useEffect(() => {
     appStateRef.current = appState;
   }, [appState]);
 
   const snapshotCurrentState = useCallback(() => {
-    addToHistory(appStateRef.current);
-  }, [addToHistory]);
+    setHistoryStacks(prev => pushUndoSnapshot(prev, appStateRef.current));
+  }, []);
+
+  const resetHistoryStacks = useCallback(() => {
+    setHistoryStacks(createEmptyUndoRedoHistory<AppState>());
+  }, []);
 
   const handleUndo = useCallback(() => {
-    if (history.length === 0) return;
-    const previousState = history[history.length - 1];
+    const undoResult = applyUndo(historyStacks, appStateRef.current);
+    if (!undoResult) return;
 
-    // Ensure previousState is valid before restoring
-    if (previousState) {
-      setAppState(previousState);
-      setHistory(prev => prev.slice(0, prev.length - 1));
-      toast.success('Undo successful');
-    }
-  }, [history]);
+    setAppState(undoResult.nextState);
+    setHistoryStacks({
+      undoHistory: undoResult.undoHistory,
+      redoHistory: undoResult.redoHistory,
+    });
+    toast.success('Undo successful');
+  }, [historyStacks]);
+
+  const handleRedo = useCallback(() => {
+    const redoResult = applyRedo(historyStacks, appStateRef.current);
+    if (!redoResult) return;
+
+    setAppState(redoResult.nextState);
+    setHistoryStacks({
+      undoHistory: redoResult.undoHistory,
+      redoHistory: redoResult.redoHistory,
+    });
+    toast.success('Redo successful');
+  }, [historyStacks]);
 
   const [teamsView, setTeamsView] = useState<'landing' | 'exports'>('landing'); // UI state for teams tab
 
@@ -215,11 +228,12 @@ function App() {
     const workspace = await loadWorkspace(id);
     if (workspace) {
       applyLoadedWorkspace(workspace);
+      resetHistoryStacks();
       toast.success(`Loaded project "${workspace.name}"`);
       setIsLoadWorkspaceDialogOpen(false);
     }
     setLoadingWorkspaceId(null);
-  }, [applyLoadedWorkspace, loadWorkspace]);
+  }, [applyLoadedWorkspace, loadWorkspace, resetHistoryStacks]);
 
   const handleReloadWorkspaceAfterConflict = useCallback(async () => {
     if (!currentWorkspaceId) {
@@ -351,7 +365,7 @@ function App() {
         backup.project.name || `Recovered ${new Date().toLocaleDateString()}`,
         backup.project.description || ''
       );
-      setHistory([]);
+      resetHistoryStacks();
       setActiveTab(
         (backup.data.teamIterations?.length ?? 0) > 0 || (backup.data.teams?.length ?? 0) > 0
           ? 'teams'
@@ -369,7 +383,7 @@ function App() {
       console.error('Failed to import project backup:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to restore backup');
     }
-  }, [restoreImportedState, setCurrentWorkspaceInfo]);
+  }, [resetHistoryStacks, restoreImportedState, setCurrentWorkspaceInfo]);
 
 
 
@@ -417,9 +431,9 @@ function App() {
     warnings?: Parameters<typeof handlePlayersLoaded>[2],
     metadata?: Parameters<typeof handlePlayersLoaded>[3]
   ) => {
-    setHistory([]);
+    resetHistoryStacks();
     handlePlayersLoaded(players, playerGroups, warnings, metadata);
-  }, [handlePlayersLoaded]);
+  }, [handlePlayersLoaded, resetHistoryStacks]);
 
   const teamIterations = useMemo(() => appState.teamIterations ?? [], [appState.teamIterations]);
   const leagueMemory = useMemo(() => appState.leagueMemory ?? [], [appState.leagueMemory]);
@@ -692,7 +706,9 @@ function App() {
         currentWorkspaceId={currentWorkspaceId}
         onReset={handleResetTeams}
         onUndo={handleUndo}
-        canUndo={history.length > 0}
+        canUndo={historyStacks.undoHistory.length > 0}
+        onRedo={handleRedo}
+        canRedo={historyStacks.redoHistory.length > 0}
         onRefreshBranding={handleRefreshTeamBranding}
         onAddTeam={handleAddTeam}
         onRemoveTeam={handleRemoveTeam}

@@ -21,7 +21,7 @@ import { TeamBoard } from './TeamBoard';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
 import { TeamIterationTabs } from './TeamIterationTabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Copy, SquarePen } from 'lucide-react';
+import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, Redo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Copy, SquarePen } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { WorkspaceManager } from './WorkspaceManager';
@@ -62,6 +62,8 @@ interface FullScreenTeamBuilderProps {
   onReset?: () => void;
   onUndo?: () => void;
   canUndo?: boolean;
+  onRedo?: () => void;
+  canRedo?: boolean;
   onRefreshBranding?: () => void;
   onAddTeam?: () => void;
   onRemoveTeam?: (teamId: string) => void;
@@ -94,6 +96,8 @@ export function FullScreenTeamBuilder({
   onReset,
   onUndo,
   canUndo = false,
+  onRedo,
+  canRedo = false,
   onRefreshBranding,
   onAddTeam,
   onRemoveTeam,
@@ -108,20 +112,33 @@ export function FullScreenTeamBuilder({
   leagueMemory = [],
 }: FullScreenTeamBuilderProps) {
 
-  // Handle Undo Shortcut
+  // Handle Undo / Redo Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      const key = e.key.toLowerCase();
+      const isUndoShortcut = (e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'z';
+      const isRedoShortcut = (e.ctrlKey && key === 'y')
+        || ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'z');
+
+      if (isUndoShortcut) {
         e.preventDefault();
         if (canUndo && onUndo) {
           onUndo();
+        }
+        return;
+      }
+
+      if (isRedoShortcut) {
+        e.preventDefault();
+        if (canRedo && onRedo) {
+          onRedo();
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canUndo, onUndo]);
+  }, [canRedo, canUndo, onRedo, onUndo]);
 
   const [activePlayer, setActivePlayer] = useState<Player | null>(null);
 
@@ -329,6 +346,19 @@ export function FullScreenTeamBuilder({
               >
                 <Undo2 className="w-4 h-4" />
                 <span className="hidden sm:inline">Undo</span>
+              </Button>
+            )}
+            {onRedo && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRedo}
+                disabled={!canRedo}
+                className="gap-2 text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                title="Redo (Ctrl+Y / Ctrl+Shift+Z)"
+              >
+                <Redo2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Redo</span>
               </Button>
             )}
             {onReset && (
