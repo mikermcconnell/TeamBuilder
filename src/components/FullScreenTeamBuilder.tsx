@@ -14,14 +14,14 @@ import {
   DropAnimation
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Player, Team, LeagueConfig, PlayerGroup, PlayerUpdateHandler, TeamGenerationStats, TeamIteration, TeamIterationStatus, LeagueMemoryEntry } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, PlayerUpdateHandler, TeamGenerationStats, TeamIteration, TeamIterationStatus } from '@/types';
 import { getPlayerGroup } from '@/utils/playerGrouping';
 import { PlayerSidebar } from './PlayerSidebar';
 import { TeamBoard } from './TeamBoard';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
 import { TeamIterationTabs } from './TeamIterationTabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, Redo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Copy, SquarePen } from 'lucide-react';
+import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, Redo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Copy, SquarePen, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { WorkspaceManager } from './WorkspaceManager';
@@ -35,8 +35,6 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { buildIterationInsights, buildManualMoveRecommendations } from '@/utils/teamInsights';
-import { ManualEditAssist } from './teams/ManualEditAssist';
 
 interface FullScreenTeamBuilderProps {
   teams: Team[];
@@ -71,11 +69,11 @@ interface FullScreenTeamBuilderProps {
   activeIterationId: string | null;
   onSelectIteration: (iterationId: string) => void;
   onCopyIteration: (iterationId: string) => void;
+  onDeleteIteration: (iterationId: string) => void;
   onRenameIteration: (iterationId: string, nextName: string) => void;
   onAddManualIteration: () => void;
   onStartOver?: () => void;
   activeIterationStatus?: TeamIterationStatus;
-  leagueMemory?: LeagueMemoryEntry[];
 }
 
 export function FullScreenTeamBuilder({
@@ -105,11 +103,11 @@ export function FullScreenTeamBuilder({
   activeIterationId,
   onSelectIteration,
   onCopyIteration,
+  onDeleteIteration,
   onRenameIteration,
   onAddManualIteration,
   onStartOver,
   activeIterationStatus = 'ready',
-  leagueMemory = [],
 }: FullScreenTeamBuilderProps) {
 
   // Handle Undo / Redo Shortcuts
@@ -149,17 +147,6 @@ export function FullScreenTeamBuilder({
   const [isRenameDraftDialogOpen, setIsRenameDraftDialogOpen] = useState(false);
   const [draftNameInput, setDraftNameInput] = useState('');
   const activeIteration = iterations.find(iteration => iteration.id === activeIterationId) ?? null;
-
-  const currentInsights = buildIterationInsights({
-    id: activeIterationId ?? 'current',
-    name: activeIteration?.name || 'Current draft',
-    teams,
-    unassignedPlayers,
-    stats,
-  }, config, leagueMemory);
-  const moveRecommendations = activePlayer
-    ? buildManualMoveRecommendations(activePlayer.id, teams, config, leagueMemory)
-    : [];
 
   // Sort teams
   const sortedTeams = [...teams].sort((a, b) => {
@@ -443,6 +430,7 @@ export function FullScreenTeamBuilder({
               activeIterationId={activeIterationId}
               onSelectIteration={onSelectIteration}
               onCopyIteration={onCopyIteration}
+              onDeleteIteration={onDeleteIteration}
               onAddManualIteration={onAddManualIteration}
               className="flex-1"
             />
@@ -468,6 +456,16 @@ export function FullScreenTeamBuilder({
                 >
                   <Copy className="h-4 w-4" />
                   Duplicate Draft
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full border-red-200 bg-white text-red-600 hover:bg-red-50"
+                  onClick={() => onDeleteIteration(activeIteration.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Draft
                 </Button>
               </div>
             )}
@@ -531,12 +529,6 @@ export function FullScreenTeamBuilder({
               />
             )}
           </div>
-
-          <ManualEditAssist
-            activePlayer={activePlayer}
-            recommendations={moveRecommendations}
-            insights={currentInsights}
-          />
 
           {/* Board */}
           <TeamBoard

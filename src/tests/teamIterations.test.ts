@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { AppState, TeamIteration } from '@/types';
 import { getDefaultConfig } from '@/utils/configManager';
-import { createCopiedTeamIteration, ensureTeamIterations, getUniqueIterationName } from '@/utils/teamIterations';
+import { createCopiedTeamIteration, deleteTeamIterationFromState, ensureTeamIterations, getUniqueIterationName } from '@/utils/teamIterations';
 
 describe('team iteration normalization', () => {
   it('handles legacy iterations with missing arrays', () => {
@@ -326,5 +326,148 @@ describe('team iteration normalization', () => {
 
     expect(result.teamIterations[0]?.stats?.mustHaveRequestsHonored).toBe(1);
     expect(result.teamIterations[0]?.stats?.mustHaveRequestsBroken).toBe(0);
+  });
+
+  it('deletes the active tab and switches to the next remaining tab', () => {
+    const state = {
+      players: [],
+      teams: [{ id: 'team-a', name: 'Alpha', players: [], averageSkill: 0, genderBreakdown: { M: 0, F: 0, Other: 0 } }],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: getDefaultConfig(),
+      execRatingHistory: {},
+      savedConfigs: [],
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-21T00:00:00.000Z',
+          teams: [{ id: 'team-a', name: 'Alpha', players: [], averageSkill: 0, genderBreakdown: { M: 0, F: 0, Other: 0 } }],
+          unassignedPlayers: [],
+        },
+        {
+          id: 'manual-2',
+          name: 'Manual 2',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-21T00:00:00.000Z',
+          teams: [{ id: 'team-b', name: 'Bravo', players: [], averageSkill: 0, genderBreakdown: { M: 0, F: 0, Other: 0 } }],
+          unassignedPlayers: [],
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+      leagueMemory: [],
+    } satisfies AppState;
+
+    const result = deleteTeamIterationFromState(state, 'manual-1');
+
+    expect(result.teamIterations?.map(iteration => iteration.id)).toEqual(['manual-2']);
+    expect(result.activeTeamIterationId).toBe('manual-2');
+    expect(result.teams[0]?.name).toBe('Bravo');
+  });
+
+  it('deletes an inactive tab without disturbing the current active tab', () => {
+    const state = {
+      players: [],
+      teams: [{ id: 'team-b', name: 'Bravo', players: [], averageSkill: 0, genderBreakdown: { M: 0, F: 0, Other: 0 } }],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: getDefaultConfig(),
+      execRatingHistory: {},
+      savedConfigs: [],
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-21T00:00:00.000Z',
+          teams: [{ id: 'team-a', name: 'Alpha', players: [], averageSkill: 0, genderBreakdown: { M: 0, F: 0, Other: 0 } }],
+          unassignedPlayers: [],
+        },
+        {
+          id: 'manual-2',
+          name: 'Manual 2',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-21T00:00:00.000Z',
+          teams: [{ id: 'team-b', name: 'Bravo', players: [], averageSkill: 0, genderBreakdown: { M: 0, F: 0, Other: 0 } }],
+          unassignedPlayers: [],
+        },
+      ],
+      activeTeamIterationId: 'manual-2',
+      leagueMemory: [],
+    } satisfies AppState;
+
+    const result = deleteTeamIterationFromState(state, 'manual-1');
+
+    expect(result.teamIterations?.map(iteration => iteration.id)).toEqual(['manual-2']);
+    expect(result.activeTeamIterationId).toBe('manual-2');
+    expect(result.teams[0]?.name).toBe('Bravo');
+  });
+
+  it('clears the workspace when the last tab is deleted', () => {
+    const state = {
+      players: [],
+      teams: [{ id: 'team-a', name: 'Alpha', players: [], averageSkill: 0, genderBreakdown: { M: 0, F: 0, Other: 0 } }],
+      unassignedPlayers: [],
+      stats: {
+        totalPlayers: 0,
+        assignedPlayers: 0,
+        unassignedPlayers: 0,
+        mutualRequestsHonored: 0,
+        mutualRequestsBroken: 0,
+        mustHaveRequestsHonored: 0,
+        mustHaveRequestsBroken: 0,
+        niceToHaveRequestsHonored: 0,
+        niceToHaveRequestsBroken: 0,
+        avoidRequestsViolated: 0,
+        conflictsDetected: 0,
+        generationTime: 0,
+      },
+      playerGroups: [],
+      config: getDefaultConfig(),
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-21T00:00:00.000Z',
+          teams: [{ id: 'team-a', name: 'Alpha', players: [], averageSkill: 0, genderBreakdown: { M: 0, F: 0, Other: 0 } }],
+          unassignedPlayers: [],
+          stats: {
+            totalPlayers: 0,
+            assignedPlayers: 0,
+            unassignedPlayers: 0,
+            mutualRequestsHonored: 0,
+            mutualRequestsBroken: 0,
+            mustHaveRequestsHonored: 0,
+            mustHaveRequestsBroken: 0,
+            niceToHaveRequestsHonored: 0,
+            niceToHaveRequestsBroken: 0,
+            avoidRequestsViolated: 0,
+            conflictsDetected: 0,
+            generationTime: 0,
+          },
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+      leagueMemory: [],
+      execRatingHistory: {},
+      savedConfigs: [],
+    } satisfies AppState;
+
+    const result = deleteTeamIterationFromState(state, 'manual-1');
+
+    expect(result.teamIterations).toEqual([]);
+    expect(result.activeTeamIterationId).toBeNull();
+    expect(result.teams).toEqual([]);
+    expect(result.unassignedPlayers).toEqual([]);
+    expect(result.stats).toBeUndefined();
   });
 });

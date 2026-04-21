@@ -461,6 +461,40 @@ export function applyTeamIterationToState(state: AppState, iterationId: string |
   };
 }
 
+export function deleteTeamIterationFromState(state: AppState, iterationId: string): AppState {
+  const existingIterations = state.teamIterations ?? [];
+  const deletedIterationIndex = existingIterations.findIndex(iteration => iteration.id === iterationId);
+
+  if (deletedIterationIndex < 0) {
+    return state;
+  }
+
+  const remainingIterations = existingIterations.filter(iteration => iteration.id !== iterationId);
+
+  if (remainingIterations.length === 0) {
+    return {
+      ...state,
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      teamIterations: [],
+      activeTeamIterationId: null,
+    };
+  }
+
+  const nextActiveIterationId = state.activeTeamIterationId === iterationId
+    ? remainingIterations[Math.min(deletedIterationIndex, remainingIterations.length - 1)]!.id
+    : remainingIterations.some(iteration => iteration.id === state.activeTeamIterationId)
+      ? state.activeTeamIterationId
+      : remainingIterations[0]!.id;
+
+  return applyTeamIterationToState({
+    ...state,
+    teamIterations: remainingIterations,
+    activeTeamIterationId: nextActiveIterationId,
+  }, nextActiveIterationId);
+}
+
 export function syncActiveTeamIterationToState(state: AppState): AppState {
   if (!state.activeTeamIterationId || !state.teamIterations?.length) {
     return state;

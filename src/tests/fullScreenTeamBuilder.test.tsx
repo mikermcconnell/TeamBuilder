@@ -65,6 +65,7 @@ function renderWorkspace(overrides?: Partial<ComponentProps<typeof FullScreenTea
       activeIterationId={iteration.id}
       onSelectIteration={vi.fn()}
       onCopyIteration={vi.fn()}
+      onDeleteIteration={vi.fn()}
       onRenameIteration={vi.fn()}
       onAddManualIteration={vi.fn()}
       onUndo={vi.fn()}
@@ -101,5 +102,14 @@ describe('FullScreenTeamBuilder redo controls', () => {
     fireEvent.keyDown(window, { key: 'z', metaKey: true, shiftKey: true });
 
     expect(onRedo).toHaveBeenCalledTimes(3);
+  });
+
+  it('calls the delete handler from the active draft action', () => {
+    const onDeleteIteration = vi.fn();
+    renderWorkspace({ onDeleteIteration });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Draft' }));
+
+    expect(onDeleteIteration).toHaveBeenCalledWith(iteration.id);
   });
 });

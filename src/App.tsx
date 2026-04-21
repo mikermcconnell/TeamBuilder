@@ -11,6 +11,7 @@ import {
   applyTeamIterationToState,
   createCopiedTeamIteration,
   createManualTeamIteration,
+  deleteTeamIterationFromState,
   getUniqueIterationName,
   syncActiveTeamIterationToState,
 } from '@/utils/teamIterations';
@@ -627,6 +628,36 @@ function App() {
     toast.success(finalName === trimmedName ? `Renamed draft to ${finalName}` : `Renamed draft to ${finalName} to avoid a duplicate name`);
   }, [snapshotCurrentState]);
 
+  const handleDeleteIteration = useCallback((iterationId: string) => {
+    const iterationToDelete = teamIterations.find(iteration => iteration.id === iterationId);
+    if (!iterationToDelete) {
+      toast.error('That tab could not be deleted');
+      return;
+    }
+
+    const isLastIteration = teamIterations.length === 1;
+    const confirmMessage = isLastIteration
+      ? `Delete ${iterationToDelete.name}? This will remove the last team tab and close the workspace.`
+      : `Delete ${iterationToDelete.name}?`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    snapshotCurrentState();
+
+    setAppState(prev => deleteTeamIterationFromState(prev, iterationId));
+
+    if (isLastIteration) {
+      setTeamsView('landing');
+      setIsFullScreenMode(false);
+      toast.success('Deleted the last team tab');
+      return;
+    }
+
+    toast.success(`Deleted ${iterationToDelete.name}`);
+  }, [snapshotCurrentState, teamIterations]);
+
   const handleDeleteAllIterations = useCallback(() => {
     if (!window.confirm('Delete all team tabs and start over?')) {
       return;
@@ -716,11 +747,11 @@ function App() {
         activeIterationId={activeIteration?.id ?? null}
         onSelectIteration={selectIteration}
         onCopyIteration={handleCopyIteration}
+        onDeleteIteration={handleDeleteIteration}
         onRenameIteration={handleRenameIteration}
         onAddManualIteration={handleAddManualIteration}
         onStartOver={handleDeleteAllIterations}
         activeIterationStatus={activeIteration?.status}
-        leagueMemory={leagueMemory}
       />
     );
   }
