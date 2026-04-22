@@ -79,4 +79,18 @@ describe('DraggablePlayerCard', () => {
 
     vi.useRealTimers();
   });
+
+  it('uses a denser compact layout with a single metadata row', () => {
+    render(
+      <DraggablePlayerCard
+        player={createPlayer({ age: 44, isNewPlayer: false })}
+        compact
+        onPlayerUpdate={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('draggable-player-card')).toHaveClass('px-1.5', 'py-1', 'gap-1.5');
+    expect(screen.getByTestId('compact-player-meta')).toHaveTextContent('RET');
+    expect(screen.getByTestId('compact-player-meta')).toHaveTextContent('Wise');
+  });
 });

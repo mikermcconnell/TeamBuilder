@@ -72,11 +72,12 @@ export function DraggablePlayerCard({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      data-testid="draggable-player-card"
       className={`
         relative group flex items-center rounded-xl border-2 border-b-4 bg-white 
         hover:border-primary/50 hover:bg-slate-50 transition-all cursor-grab active:cursor-grabbing
         ${isDragging ? 'ring-2 ring-primary border-primary z-50 shadow-xl scale-105' : 'border-slate-200 shadow-sm'}
-        ${compact ? 'p-1.5 gap-2' : 'p-3 gap-3'}
+        ${compact ? 'px-1.5 py-1 gap-1.5 rounded-lg' : 'p-3 gap-3'}
         ${groupColor ? 'border-l-4' : ''}
       `}
       style={{
@@ -114,14 +115,14 @@ export function DraggablePlayerCard({
       <div className={`
         flex items-center justify-center rounded-full font-bold shrink-0
         ${player.gender === 'F' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'}
-        ${compact ? 'h-5 w-5 text-[10px]' : 'h-8 w-8 text-xs'}
+        ${compact ? 'h-[18px] w-[18px] text-[9px]' : 'h-8 w-8 text-xs'}
       `}>
         {player.name.substring(0, 2).toUpperCase()}
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className={`font-medium truncate leading-tight ${compact ? 'text-xs' : 'text-sm'}`}>
+        <div className={`font-medium truncate leading-tight ${compact ? 'text-[11px]' : 'text-sm'}`}>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -157,23 +158,26 @@ export function DraggablePlayerCard({
             </span>
           )}
         </div>
-        {onPlayerUpdate && (
-          <div className="mt-1">
-            <NewPlayerBadge
-              player={player}
-              compact={compact}
-              onStatusChange={(isNewPlayer) => onPlayerUpdate({ ...player, isNewPlayer }, { persistImmediately: true })}
-            />
-          </div>
-        )}
-        {highlightedAgeBand && (
-          <div className={`mt-1 flex ${compact ? 'justify-start' : 'justify-start'}`}>
-            <Badge
-              variant="outline"
-              className={`${getAgeBadgeClass(highlightedAgeBand)} ${compact ? 'h-4 px-1.5 text-[9px]' : 'h-5 px-2 text-[10px]'} font-semibold`}
-            >
-              {highlightedAgeBand === 'young' ? 'Young' : 'Wise'}
-            </Badge>
+        {(onPlayerUpdate || highlightedAgeBand) && (
+          <div
+            data-testid={compact ? 'compact-player-meta' : undefined}
+            className={`mt-0.5 flex items-center gap-1 overflow-hidden ${compact ? 'flex-nowrap whitespace-nowrap' : 'flex-wrap'}`}
+          >
+            {onPlayerUpdate && (
+              <NewPlayerBadge
+                player={player}
+                compact={compact}
+                onStatusChange={(isNewPlayer) => onPlayerUpdate({ ...player, isNewPlayer }, { persistImmediately: true })}
+              />
+            )}
+            {highlightedAgeBand && (
+              <Badge
+                variant="outline"
+                className={`${getAgeBadgeClass(highlightedAgeBand)} ${compact ? 'h-4 px-1.5 text-[9px]' : 'h-5 px-2 text-[10px]'} font-semibold`}
+              >
+                {highlightedAgeBand === 'young' ? 'Young' : 'Wise'}
+              </Badge>
+            )}
           </div>
         )}
         {!compact && (
@@ -187,7 +191,7 @@ export function DraggablePlayerCard({
       <div className="flex flex-col gap-1 items-end">
         <Badge
           variant="outline"
-          className={`font-mono shrink-0 ${getSkillColor(effectiveSkill)} ${compact ? 'text-[10px] px-1 h-4' : 'text-xs'}`}
+          className={`font-mono shrink-0 ${getSkillColor(effectiveSkill)} ${compact ? 'text-[10px] px-1.5 h-4' : 'text-xs'}`}
         >
           {effectiveSkill.toFixed(1)}
         </Badge>

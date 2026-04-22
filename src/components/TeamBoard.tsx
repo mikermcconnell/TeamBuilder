@@ -4,7 +4,6 @@ import { DroppableTeamCard } from './DroppableTeamCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Palette, Plus } from 'lucide-react';
-import { TeamBoardSummary } from './teams/TeamBoardSummary';
 
 interface TeamBoardProps {
     teams: Team[];
@@ -27,33 +26,24 @@ interface TeamBoardProps {
 
 export function TeamBoard({ teams, players, config, onPlayerUpdate, onTeamNameChange, onTeamBrandingChange, onRemoveTeam, onAddTeam, onRefreshBranding, playerGroups = [] }: TeamBoardProps) {
     const largestTeamSize = teams.reduce((maxSize, team) => Math.max(maxSize, team.players.length), 0);
+    const showActions = Boolean(onRefreshBranding) || Boolean(onAddTeam && teams.length > 0);
 
     return (
-        <div className="flex-1 h-full bg-gray-100/50 p-6 overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Team Board</h1>
-                    <p className="text-sm text-gray-500">Drag and drop players to build balanced teams</p>
-                </div>
-                <div className="flex items-center gap-2">
+        <div className="flex-1 h-full bg-gray-100/50 px-6 pb-6 pt-3 overflow-hidden flex flex-col">
+            {showActions && (
+                <div className="mb-3 flex items-center justify-end gap-2">
                     {onRefreshBranding && (
-                        <Button onClick={onRefreshBranding} variant="outline" className="gap-2">
+                        <Button onClick={onRefreshBranding} variant="outline" size="sm" className="h-9 gap-2 px-3">
                             <Palette className="h-4 w-4" />
                             Refresh Names & Colors
                         </Button>
                     )}
                     {onAddTeam && teams.length > 0 && (
-                        <Button onClick={onAddTeam} className="gap-2">
+                        <Button onClick={onAddTeam} size="sm" className="h-9 gap-2 px-3">
                             <Plus className="h-4 w-4" />
                             Add Team
                         </Button>
                     )}
-                </div>
-            </div>
-
-            {teams.length > 0 && (
-                <div className="mb-6">
-                    <TeamBoardSummary teams={teams} />
                 </div>
             )}
 
