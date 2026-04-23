@@ -567,6 +567,7 @@ describe('team iteration normalization', () => {
           status: 'ready',
           isPreferred: true,
           createdAt: '2026-04-23T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:05:00.000Z',
           teams: [],
           unassignedPlayers: [],
         },
@@ -576,6 +577,7 @@ describe('team iteration normalization', () => {
           type: 'manual',
           status: 'ready',
           createdAt: '2026-04-23T10:01:00.000Z',
+          updatedAt: '2026-04-23T10:06:00.000Z',
           teams: [],
           unassignedPlayers: [],
         },
@@ -589,6 +591,7 @@ describe('team iteration normalization', () => {
       { id: 'manual-1', isPreferred: false },
       { id: 'manual-2', isPreferred: true },
     ]);
+    expect(result.teamIterations?.[0]?.updatedAt).toBe('2026-04-23T10:05:00.000Z');
     expect(result.teamIterations?.[1]?.updatedAt).toBe('2026-04-23T12:00:00.000Z');
   });
 
@@ -610,6 +613,7 @@ describe('team iteration normalization', () => {
           status: 'ready',
           isFinal: true,
           createdAt: '2026-04-23T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:05:00.000Z',
           teams: [],
           unassignedPlayers: [],
         },
@@ -619,6 +623,7 @@ describe('team iteration normalization', () => {
           type: 'manual',
           status: 'ready',
           createdAt: '2026-04-23T10:01:00.000Z',
+          updatedAt: '2026-04-23T10:06:00.000Z',
           teams: [],
           unassignedPlayers: [],
         },
@@ -628,6 +633,7 @@ describe('team iteration normalization', () => {
           type: 'manual',
           status: 'failed',
           createdAt: '2026-04-23T10:02:00.000Z',
+          updatedAt: '2026-04-23T10:07:00.000Z',
           teams: [],
           unassignedPlayers: [],
         },
@@ -643,6 +649,9 @@ describe('team iteration normalization', () => {
       { id: 'manual-2', isFinal: true },
       { id: 'manual-3', isFinal: false },
     ]);
+    expect(finalResult.teamIterations?.[0]?.updatedAt).toBe('2026-04-23T10:05:00.000Z');
+    expect(finalResult.teamIterations?.[1]?.updatedAt).toBe('2026-04-23T12:30:00.000Z');
+    expect(finalResult.teamIterations?.[2]?.updatedAt).toBe('2026-04-23T10:07:00.000Z');
     expect(failedResult).toBe(finalResult);
   });
 
