@@ -549,6 +549,145 @@ describe('team iteration normalization', () => {
     expect(result.teamIterations?.[1]?.updatedAt).toBe('2026-04-23T10:01:00.000Z');
   });
 
+  it('keeps metadata preferred and final markers unique for ready drafts', () => {
+    const state = {
+      players: [],
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: getDefaultConfig(),
+      execRatingHistory: {},
+      savedConfigs: [],
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          isPreferred: true,
+          isFinal: true,
+          createdAt: '2026-04-23T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:00:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+        {
+          id: 'manual-2',
+          name: 'Manual 2',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-23T10:01:00.000Z',
+          updatedAt: '2026-04-23T10:01:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+    } as AppState;
+
+    const result = updateTeamIterationMetadata(state, 'manual-2', {
+      isPreferred: true,
+      isFinal: true,
+      now: '2026-04-23T11:00:00.000Z',
+    });
+
+    expect(result.teamIterations?.map(iteration => ({
+      id: iteration.id,
+      isPreferred: iteration.isPreferred,
+      isFinal: iteration.isFinal,
+      updatedAt: iteration.updatedAt,
+    }))).toEqual([
+      { id: 'manual-1', isPreferred: false, isFinal: false, updatedAt: '2026-04-23T10:00:00.000Z' },
+      { id: 'manual-2', isPreferred: true, isFinal: true, updatedAt: '2026-04-23T11:00:00.000Z' },
+    ]);
+  });
+
+  it('does not mark failed drafts preferred or final through metadata updates', () => {
+    const state = {
+      players: [],
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: getDefaultConfig(),
+      execRatingHistory: {},
+      savedConfigs: [],
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'failed',
+          createdAt: '2026-04-23T10:00:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+    } as AppState;
+
+    expect(updateTeamIterationMetadata(state, 'manual-1', { isPreferred: true })).toBe(state);
+    expect(updateTeamIterationMetadata(state, 'manual-1', { isFinal: true })).toBe(state);
+  });
+
+  it('normalizes duplicate persisted preferred and final markers', () => {
+    const result = ensureTeamIterations({
+      players: [],
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: getDefaultConfig(),
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          isPreferred: true,
+          isFinal: true,
+          createdAt: '2026-04-23T10:00:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+        {
+          id: 'manual-2',
+          name: 'Manual 2',
+          type: 'manual',
+          status: 'ready',
+          isPreferred: true,
+          isFinal: true,
+          createdAt: '2026-04-23T10:01:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+        {
+          id: 'manual-3',
+          name: 'Failed Draft',
+          type: 'manual',
+          status: 'failed',
+          isPreferred: true,
+          isFinal: true,
+          createdAt: '2026-04-23T10:02:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+    });
+
+    expect(result.teamIterations.map(iteration => ({
+      id: iteration.id,
+      isPreferred: iteration.isPreferred,
+      isFinal: iteration.isFinal,
+    }))).toEqual([
+      { id: 'manual-1', isPreferred: true, isFinal: true },
+      { id: 'manual-2', isPreferred: false, isFinal: false },
+      { id: 'manual-3', isPreferred: false, isFinal: false },
+    ]);
+  });
+
   it('keeps only one preferred draft', () => {
     const state = {
       players: [],

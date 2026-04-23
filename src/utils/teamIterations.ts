@@ -377,13 +377,38 @@ function reconcileReadyIteration(
   };
 }
 
+function normalizeTeamIterationMarkers(iterations: TeamIteration[]): TeamIteration[] {
+  let hasPreferred = false;
+  let hasFinal = false;
+
+  return iterations.map(iteration => {
+    const isReady = iteration.status === 'ready';
+    const isPreferred = isReady && Boolean(iteration.isPreferred) && !hasPreferred;
+    const isFinal = isReady && Boolean(iteration.isFinal) && !hasFinal;
+
+    if (isPreferred) {
+      hasPreferred = true;
+    }
+
+    if (isFinal) {
+      hasFinal = true;
+    }
+
+    return {
+      ...iteration,
+      isPreferred,
+      isFinal,
+    };
+  });
+}
+
 export function ensureTeamIterations(
   data: Pick<
     AppState,
     'players' | 'teams' | 'unassignedPlayers' | 'stats' | 'playerGroups' | 'config' | 'teamIterations' | 'activeTeamIterationId'
   >
 ): { teamIterations: TeamIteration[]; activeTeamIterationId: string | null } {
-  const normalizedIterations = (data.teamIterations ?? []).map(iteration => {
+  const normalizedIterations = normalizeTeamIterationMarkers((data.teamIterations ?? []).map(iteration => {
     const createdAt = iteration.createdAt || new Date().toISOString();
     const normalizedIteration: TeamIteration = {
       ...cloneTeamIteration(iteration),
@@ -414,7 +439,7 @@ export function ensureTeamIterations(
       data.config,
       data.playerGroups || [],
     );
-  });
+  }));
 
   if (normalizedIterations.length > 0) {
     const activeId = normalizedIterations.some(iteration => iteration.id === data.activeTeamIterationId)
@@ -553,14 +578,26 @@ export function updateTeamIterationMetadata(
   updates: TeamIterationMetadataUpdates
 ): AppState {
   const existingIterations = state.teamIterations ?? [];
-  const targetExists = existingIterations.some(iteration => iteration.id === iterationId);
+  const target = existingIterations.find(iteration => iteration.id === iterationId);
 
-  if (!targetExists) {
+  if (!target) {
+    return state;
+  }
+
+  if ((updates.isPreferred === true || updates.isFinal === true) && target.status !== 'ready') {
     return state;
   }
 
   const now = updates.now ?? new Date().toISOString();
   const updatedIterations = existingIterations.map(iteration => {
+    if (iteration.id !== iterationId && (updates.isPreferred === true || updates.isFinal === true)) {
+      return {
+        ...iteration,
+        isPreferred: updates.isPreferred === true ? false : iteration.isPreferred,
+        isFinal: updates.isFinal === true ? false : iteration.isFinal,
+      };
+    }
+
     if (iteration.id !== iterationId) {
       return iteration;
     }
