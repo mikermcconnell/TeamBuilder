@@ -140,6 +140,18 @@ describe('FullScreenTeamBuilder redo controls', () => {
     });
   });
 
+  it('keeps draft details open when the draft name is blank', () => {
+    const onUpdateIterationMetadata = vi.fn();
+    renderWorkspace({ onUpdateIterationMetadata });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Draft Details' }));
+    fireEvent.change(screen.getByLabelText('Draft name'), { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Details' }));
+
+    expect(onUpdateIterationMetadata).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Draft Details' })).toBeInTheDocument();
+  });
+
   it('calls preferred and final handlers from active draft controls', () => {
     const onMarkIterationPreferred = vi.fn();
     const onMarkIterationFinal = vi.fn();

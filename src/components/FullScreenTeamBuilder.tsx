@@ -283,6 +283,8 @@ export function FullScreenTeamBuilder({
 
   const handleConfirmDraftDetails = () => {
     if (!activeIteration) return;
+    if (!draftNameInput.trim()) return;
+
     onUpdateIterationMetadata(activeIteration.id, {
       name: draftNameInput,
       note: draftNoteInput,
