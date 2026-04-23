@@ -152,6 +152,10 @@ export interface TeamIteration {
   stats?: TeamGenerationStats;
   errorMessage?: string;
   createdAt: string;
+  updatedAt?: string;
+  note?: string;
+  isPreferred?: boolean;
+  isFinal?: boolean;
 }
 
 export interface CSVValidationResult {

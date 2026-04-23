@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import type { AppState, TeamIteration } from '@/types';
 import { getDefaultConfig } from '@/utils/configManager';
-import { createCopiedTeamIteration, deleteTeamIterationFromState, ensureTeamIterations, getUniqueIterationName } from '@/utils/teamIterations';
+import {
+  createCopiedTeamIteration,
+  deleteTeamIterationFromState,
+  ensureTeamIterations,
+  getUniqueIterationName,
+  markTeamIterationFinal,
+  markTeamIterationPreferred,
+  updateTeamIterationMetadata,
+} from '@/utils/teamIterations';
 
 describe('team iteration normalization', () => {
   it('handles legacy iterations with missing arrays', () => {
@@ -470,4 +478,172 @@ describe('team iteration normalization', () => {
     expect(result.unassignedPlayers).toEqual([]);
     expect(result.stats).toBeUndefined();
   });
+
+  it('clears preferred and final markers when copying a draft', () => {
+    const sourceIteration: TeamIteration = {
+      id: 'manual-1',
+      name: 'Final Candidate',
+      type: 'manual',
+      status: 'ready',
+      isPreferred: true,
+      isFinal: true,
+      note: 'Keep this note on the original only.',
+      createdAt: '2026-04-23T10:00:00.000Z',
+      updatedAt: '2026-04-23T10:05:00.000Z',
+      teams: [],
+      unassignedPlayers: [],
+    };
+
+    const result = createCopiedTeamIteration(sourceIteration, [sourceIteration]);
+
+    expect(result.name).toBe('Final Candidate Copy');
+    expect(result.isPreferred).toBe(false);
+    expect(result.isFinal).toBe(false);
+    expect(result.note).toBeUndefined();
+    expect(result.updatedAt).toBe(result.createdAt);
+  });
+
+  it('updates a draft note and timestamp without changing other drafts', () => {
+    const state = {
+      players: [],
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: getDefaultConfig(),
+      execRatingHistory: {},
+      savedConfigs: [],
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-23T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:00:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+        {
+          id: 'manual-2',
+          name: 'Manual 2',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-23T10:01:00.000Z',
+          updatedAt: '2026-04-23T10:01:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+    } as AppState;
+
+    const result = updateTeamIterationMetadata(state, 'manual-1', {
+      note: 'Better handler balance.',
+      now: '2026-04-23T11:00:00.000Z',
+    });
+
+    expect(result.teamIterations?.[0]?.note).toBe('Better handler balance.');
+    expect(result.teamIterations?.[0]?.updatedAt).toBe('2026-04-23T11:00:00.000Z');
+    expect(result.teamIterations?.[1]?.note).toBeUndefined();
+    expect(result.teamIterations?.[1]?.updatedAt).toBe('2026-04-23T10:01:00.000Z');
+  });
+
+  it('keeps only one preferred draft', () => {
+    const state = {
+      players: [],
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: getDefaultConfig(),
+      execRatingHistory: {},
+      savedConfigs: [],
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          isPreferred: true,
+          createdAt: '2026-04-23T10:00:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+        {
+          id: 'manual-2',
+          name: 'Manual 2',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-23T10:01:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+    } as AppState;
+
+    const result = markTeamIterationPreferred(state, 'manual-2', '2026-04-23T12:00:00.000Z');
+
+    expect(result.teamIterations?.map(iteration => ({ id: iteration.id, isPreferred: iteration.isPreferred }))).toEqual([
+      { id: 'manual-1', isPreferred: false },
+      { id: 'manual-2', isPreferred: true },
+    ]);
+    expect(result.teamIterations?.[1]?.updatedAt).toBe('2026-04-23T12:00:00.000Z');
+  });
+
+  it('keeps only one final ready draft and ignores failed drafts', () => {
+    const state = {
+      players: [],
+      teams: [],
+      unassignedPlayers: [],
+      stats: undefined,
+      playerGroups: [],
+      config: getDefaultConfig(),
+      execRatingHistory: {},
+      savedConfigs: [],
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          isFinal: true,
+          createdAt: '2026-04-23T10:00:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+        {
+          id: 'manual-2',
+          name: 'Manual 2',
+          type: 'manual',
+          status: 'ready',
+          createdAt: '2026-04-23T10:01:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+        {
+          id: 'manual-3',
+          name: 'Broken Draft',
+          type: 'manual',
+          status: 'failed',
+          createdAt: '2026-04-23T10:02:00.000Z',
+          teams: [],
+          unassignedPlayers: [],
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+    } as AppState;
+
+    const finalResult = markTeamIterationFinal(state, 'manual-2', '2026-04-23T12:30:00.000Z');
+    const failedResult = markTeamIterationFinal(finalResult, 'manual-3', '2026-04-23T12:35:00.000Z');
+
+    expect(finalResult.teamIterations?.map(iteration => ({ id: iteration.id, isFinal: iteration.isFinal }))).toEqual([
+      { id: 'manual-1', isFinal: false },
+      { id: 'manual-2', isFinal: true },
+      { id: 'manual-3', isFinal: false },
+    ]);
+    expect(failedResult).toBe(finalResult);
+  });
+
 });
