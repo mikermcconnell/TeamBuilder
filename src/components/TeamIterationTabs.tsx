@@ -16,9 +16,9 @@ interface TeamIterationTabsProps {
   onSelectIteration: (iterationId: string) => void;
   onCopyIteration: (iterationId: string) => void;
   onDeleteIteration: (iterationId: string) => void;
-  onEditIteration: (iterationId: string) => void;
-  onMarkPreferred: (iterationId: string) => void;
-  onMarkFinal: (iterationId: string) => void;
+  onEditIteration?: (iterationId: string) => void;
+  onMarkPreferred?: (iterationId: string) => void;
+  onMarkFinal?: (iterationId: string) => void;
   onAddManualIteration: () => void;
   className?: string;
 }
@@ -115,7 +115,7 @@ export function TeamIterationTabs({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onClick={() => onEditIteration(iteration.id)}>
+                <DropdownMenuItem disabled={!onEditIteration} onClick={() => onEditIteration?.(iteration.id)}>
                   <SquarePen className="h-4 w-4" />
                   Edit Name &amp; Note
                 </DropdownMenuItem>
@@ -123,11 +123,11 @@ export function TeamIterationTabs({
                   <Copy className="h-4 w-4" />
                   Duplicate Draft
                 </DropdownMenuItem>
-                <DropdownMenuItem disabled={!isReady} onClick={() => onMarkPreferred(iteration.id)}>
+                <DropdownMenuItem disabled={!isReady || !onMarkPreferred} onClick={() => onMarkPreferred?.(iteration.id)}>
                   <Star className="h-4 w-4" />
                   Mark Preferred
                 </DropdownMenuItem>
-                <DropdownMenuItem disabled={!isReady} onClick={() => onMarkFinal(iteration.id)}>
+                <DropdownMenuItem disabled={!isReady || !onMarkFinal} onClick={() => onMarkFinal?.(iteration.id)}>
                   <Flag className="h-4 w-4" />
                   Mark Final
                 </DropdownMenuItem>
