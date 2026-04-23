@@ -1,4 +1,4 @@
-import { Copy, Loader2, Plus, SquarePen, Trash2 } from 'lucide-react';
+import { Copy, FileText, Flag, Loader2, MoreHorizontal, Plus, SquarePen, Star, Trash2 } from 'lucide-react';
 
 import { TeamIteration } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,9 @@ interface TeamIterationTabsProps {
   onSelectIteration: (iterationId: string) => void;
   onCopyIteration: (iterationId: string) => void;
   onDeleteIteration: (iterationId: string) => void;
+  onEditIteration: (iterationId: string) => void;
+  onMarkPreferred: (iterationId: string) => void;
+  onMarkFinal: (iterationId: string) => void;
   onAddManualIteration: () => void;
   className?: string;
 }
@@ -42,6 +45,9 @@ export function TeamIterationTabs({
   onSelectIteration,
   onCopyIteration,
   onDeleteIteration,
+  onEditIteration,
+  onMarkPreferred,
+  onMarkFinal,
   onAddManualIteration,
   className,
 }: TeamIterationTabsProps) {
@@ -54,6 +60,7 @@ export function TeamIterationTabs({
       {iterations.map(iteration => {
         const isActive = iteration.id === activeIterationId;
         const iterationLabel = getIterationLabel(iteration);
+        const isReady = iteration.status === 'ready';
 
         return (
           <div key={iteration.id} className="inline-flex items-stretch">
@@ -74,37 +81,62 @@ export function TeamIterationTabs({
                   Failed
                 </span>
               )}
-            </button>
-            <button
-              type="button"
-              onClick={() => onCopyIteration(iteration.id)}
-              disabled={iteration.status !== 'ready'}
-              title={iteration.status === 'ready' ? `Copy ${iterationLabel}` : 'Only ready tabs can be copied'}
-              className={cn(
-                'inline-flex items-center justify-center border border-b-0 border-l-0 px-3 transition-colors',
-                isActive
-                  ? 'bg-white text-slate-500 border-slate-200 hover:text-slate-900'
-                  : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-900',
-                iteration.status !== 'ready' && 'cursor-not-allowed opacity-50 hover:bg-inherit hover:text-slate-500'
+              {iteration.isPreferred && (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                  Preferred
+                </span>
               )}
-              aria-label={`Copy ${iterationLabel}`}
-            >
-              <Copy className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onDeleteIteration(iteration.id)}
-              title={`Delete ${iterationLabel}`}
-              className={cn(
-                'inline-flex items-center justify-center rounded-r-xl border border-b-0 border-l-0 px-3 transition-colors',
-                isActive
-                  ? 'bg-white text-red-500 border-slate-200 hover:text-red-700'
-                  : 'bg-slate-100 text-red-500 border-slate-200 hover:bg-slate-50 hover:text-red-700'
+              {iteration.isFinal && (
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                  Final
+                </span>
               )}
-              aria-label={`Delete ${iterationLabel}`}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
+              {iteration.note && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700">
+                  <FileText className="h-3 w-3" />
+                  Note
+                </span>
+              )}
             </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  title={`More actions for ${iterationLabel}`}
+                  className={cn(
+                    'inline-flex items-center justify-center rounded-r-xl border border-b-0 border-l-0 px-3 transition-colors',
+                    isActive
+                      ? 'bg-white text-slate-500 border-slate-200 hover:text-slate-900'
+                      : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                  )}
+                  aria-label={`More actions for ${iterationLabel}`}
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={() => onEditIteration(iteration.id)}>
+                  <SquarePen className="h-4 w-4" />
+                  Edit Name &amp; Note
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={!isReady} onClick={() => onCopyIteration(iteration.id)}>
+                  <Copy className="h-4 w-4" />
+                  Duplicate Draft
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={!isReady} onClick={() => onMarkPreferred(iteration.id)}>
+                  <Star className="h-4 w-4" />
+                  Mark Preferred
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={!isReady} onClick={() => onMarkFinal(iteration.id)}>
+                  <Flag className="h-4 w-4" />
+                  Mark Final
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-red-600 focus:text-red-700" onClick={() => onDeleteIteration(iteration.id)}>
+                  <Trash2 className="h-4 w-4" />
+                  Delete Draft
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       })}
