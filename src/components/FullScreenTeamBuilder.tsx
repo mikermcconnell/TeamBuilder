@@ -18,10 +18,11 @@ import { Player, Team, LeagueConfig, PlayerGroup, PlayerUpdateHandler, TeamGener
 import { getPlayerGroup } from '@/utils/playerGrouping';
 import { PlayerSidebar } from './PlayerSidebar';
 import { TeamBoard } from './TeamBoard';
+import { BigBoardView } from './teams/BigBoardView';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
 import { TeamIterationTabs } from './TeamIterationTabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, Redo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Copy, SquarePen, Trash2 } from 'lucide-react';
+import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, Redo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Copy, Trash2, FileText, Flag, LayoutGrid, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { WorkspaceManager } from './WorkspaceManager';
@@ -70,7 +71,9 @@ interface FullScreenTeamBuilderProps {
   onSelectIteration: (iterationId: string) => void;
   onCopyIteration: (iterationId: string) => void;
   onDeleteIteration: (iterationId: string) => void;
-  onRenameIteration: (iterationId: string, nextName: string) => void;
+  onUpdateIterationMetadata: (iterationId: string, updates: { name?: string; note?: string }) => void;
+  onMarkIterationPreferred: (iterationId: string) => void;
+  onMarkIterationFinal: (iterationId: string) => void;
   onAddManualIteration: () => void;
   onStartOver?: () => void;
   activeIterationStatus?: TeamIterationStatus;
@@ -104,7 +107,9 @@ export function FullScreenTeamBuilder({
   onSelectIteration,
   onCopyIteration,
   onDeleteIteration,
-  onRenameIteration,
+  onUpdateIterationMetadata,
+  onMarkIterationPreferred,
+  onMarkIterationFinal,
   onAddManualIteration,
   onStartOver,
   activeIterationStatus = 'ready',
@@ -144,8 +149,10 @@ export function FullScreenTeamBuilder({
 
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isRenameDraftDialogOpen, setIsRenameDraftDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'editing' | 'big-board'>('editing');
+  const [isDraftDetailsDialogOpen, setIsDraftDetailsDialogOpen] = useState(false);
   const [draftNameInput, setDraftNameInput] = useState('');
+  const [draftNoteInput, setDraftNoteInput] = useState('');
   const activeIteration = iterations.find(iteration => iteration.id === activeIterationId) ?? null;
 
   // Sort teams
@@ -267,22 +274,20 @@ export function FullScreenTeamBuilder({
     }),
   };
 
-  const handleOpenRenameDraftDialog = () => {
-    if (!activeIteration) {
-      return;
-    }
-
+  const handleOpenDraftDetailsDialog = () => {
+    if (!activeIteration) return;
     setDraftNameInput(activeIteration.name);
-    setIsRenameDraftDialogOpen(true);
+    setDraftNoteInput(activeIteration.note ?? '');
+    setIsDraftDetailsDialogOpen(true);
   };
 
-  const handleConfirmRenameDraft = () => {
-    if (!activeIteration) {
-      return;
-    }
-
-    onRenameIteration(activeIteration.id, draftNameInput);
-    setIsRenameDraftDialogOpen(false);
+  const handleConfirmDraftDetails = () => {
+    if (!activeIteration) return;
+    onUpdateIterationMetadata(activeIteration.id, {
+      name: draftNameInput,
+      note: draftNoteInput,
+    });
+    setIsDraftDetailsDialogOpen(false);
   };
 
   return (
@@ -431,6 +436,17 @@ export function FullScreenTeamBuilder({
               onSelectIteration={onSelectIteration}
               onCopyIteration={onCopyIteration}
               onDeleteIteration={onDeleteIteration}
+              onEditIteration={(iterationId) => {
+                onSelectIteration(iterationId);
+                const selectedIteration = iterations.find(iteration => iteration.id === iterationId);
+                if (selectedIteration) {
+                  setDraftNameInput(selectedIteration.name);
+                  setDraftNoteInput(selectedIteration.note ?? '');
+                  setIsDraftDetailsDialogOpen(true);
+                }
+              }}
+              onMarkPreferred={onMarkIterationPreferred}
+              onMarkFinal={onMarkIterationFinal}
               onAddManualIteration={onAddManualIteration}
               className="flex-1"
             />
@@ -441,10 +457,42 @@ export function FullScreenTeamBuilder({
                   variant="outline"
                   size="sm"
                   className="gap-2 rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  onClick={handleOpenRenameDraftDialog}
+                  onClick={() => setViewMode(viewMode === 'editing' ? 'big-board' : 'editing')}
                 >
-                  <SquarePen className="h-4 w-4" />
-                  Rename Draft
+                  <LayoutGrid className="h-4 w-4" />
+                  {viewMode === 'big-board' ? 'Back to Editing' : 'Big Board'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  onClick={handleOpenDraftDetailsDialog}
+                >
+                  <FileText className="h-4 w-4" />
+                  Draft Details
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
+                  onClick={() => onMarkIterationPreferred(activeIteration.id)}
+                  disabled={activeIteration.status !== 'ready'}
+                >
+                  <Star className="h-4 w-4" />
+                  Mark Preferred
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => onMarkIterationFinal(activeIteration.id)}
+                  disabled={activeIteration.status !== 'ready'}
+                >
+                  <Flag className="h-4 w-4" />
+                  Mark Final
                 </Button>
                 <Button
                   type="button"
@@ -490,6 +538,8 @@ export function FullScreenTeamBuilder({
             </p>
           </div>
         </div>
+      ) : viewMode === 'big-board' ? (
+        <BigBoardView teams={sortedTeams} config={config} draftName={activeIteration?.name} />
       ) : (
         <DndContext
           sensors={sensors}
@@ -559,30 +609,42 @@ export function FullScreenTeamBuilder({
         </DndContext >
       )}
 
-      <Dialog open={isRenameDraftDialogOpen} onOpenChange={setIsRenameDraftDialogOpen}>
+      <Dialog open={isDraftDetailsDialogOpen} onOpenChange={setIsDraftDetailsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Rename Draft</DialogTitle>
+            <DialogTitle>Draft Details</DialogTitle>
             <DialogDescription>
-              Give this draft a clear name so it is easy to compare and revisit later.
+              Give this draft a clear name and note so it is easy to compare and revisit later.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2 py-4">
-            <Label htmlFor="draft-name">Draft name</Label>
-            <Input
-              id="draft-name"
-              value={draftNameInput}
-              onChange={(event) => setDraftNameInput(event.target.value)}
-              placeholder="e.g., Reviewed Draft A"
-              autoFocus
-            />
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="draft-name">Draft name</Label>
+              <Input
+                id="draft-name"
+                value={draftNameInput}
+                onChange={(event) => setDraftNameInput(event.target.value)}
+                placeholder="e.g., Reviewed Draft A"
+                autoFocus
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="draft-note">Draft note</Label>
+              <textarea
+                id="draft-note"
+                value={draftNoteInput}
+                onChange={(event) => setDraftNoteInput(event.target.value)}
+                placeholder="Add notes about balance, constraints, or review decisions."
+                className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsRenameDraftDialogOpen(false)}>
+            <Button variant="ghost" onClick={() => setIsDraftDetailsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleConfirmRenameDraft}>
-              Save Name
+            <Button onClick={handleConfirmDraftDetails}>
+              Save Details
             </Button>
           </DialogFooter>
         </DialogContent>

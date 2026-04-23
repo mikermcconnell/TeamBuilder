@@ -13,7 +13,10 @@ import {
   createManualTeamIteration,
   deleteTeamIterationFromState,
   getUniqueIterationName,
+  markTeamIterationFinal,
+  markTeamIterationPreferred,
   syncActiveTeamIterationToState,
+  updateTeamIterationMetadata,
 } from '@/utils/teamIterations';
 import {
   applyRedo,
@@ -596,36 +599,39 @@ function App() {
     }
   }, [snapshotCurrentState, teamIterations]);
 
-  const handleRenameIteration = useCallback((iterationId: string, requestedName: string) => {
-    const trimmedName = requestedName.trim();
-    if (!trimmedName) {
+  const handleUpdateIterationMetadata = useCallback((iterationId: string, updates: { name?: string; note?: string }) => {
+    const trimmedName = updates.name?.trim();
+    if (updates.name !== undefined && !trimmedName) {
       toast.error('Enter a draft name first');
       return;
     }
 
-    let finalName = trimmedName;
-
     snapshotCurrentState();
 
     setAppState(prev => {
-      const targetIteration = (prev.teamIterations ?? []).find(iteration => iteration.id === iterationId);
-      if (!targetIteration) {
-        return prev;
-      }
+      const finalName = trimmedName
+        ? getUniqueIterationName(trimmedName, prev.teamIterations ?? [], iterationId)
+        : undefined;
 
-      finalName = getUniqueIterationName(trimmedName, prev.teamIterations ?? [], iterationId);
-
-      return {
-        ...prev,
-        teamIterations: (prev.teamIterations ?? []).map(iteration => (
-          iteration.id === iterationId
-            ? { ...iteration, name: finalName }
-            : iteration
-        )),
-      };
+      return updateTeamIterationMetadata(prev, iterationId, {
+        name: finalName,
+        note: updates.note,
+      });
     });
 
-    toast.success(finalName === trimmedName ? `Renamed draft to ${finalName}` : `Renamed draft to ${finalName} to avoid a duplicate name`);
+    toast.success('Draft details saved');
+  }, [snapshotCurrentState]);
+
+  const handleMarkIterationPreferred = useCallback((iterationId: string) => {
+    snapshotCurrentState();
+    setAppState(prev => markTeamIterationPreferred(prev, iterationId));
+    toast.success('Marked preferred draft');
+  }, [snapshotCurrentState]);
+
+  const handleMarkIterationFinal = useCallback((iterationId: string) => {
+    snapshotCurrentState();
+    setAppState(prev => markTeamIterationFinal(prev, iterationId));
+    toast.success('Marked final draft');
   }, [snapshotCurrentState]);
 
   const handleDeleteIteration = useCallback((iterationId: string) => {
@@ -748,7 +754,9 @@ function App() {
         onSelectIteration={selectIteration}
         onCopyIteration={handleCopyIteration}
         onDeleteIteration={handleDeleteIteration}
-        onRenameIteration={handleRenameIteration}
+        onUpdateIterationMetadata={handleUpdateIterationMetadata}
+        onMarkIterationPreferred={handleMarkIterationPreferred}
+        onMarkIterationFinal={handleMarkIterationFinal}
         onAddManualIteration={handleAddManualIteration}
         onStartOver={handleDeleteAllIterations}
         activeIterationStatus={activeIteration?.status}

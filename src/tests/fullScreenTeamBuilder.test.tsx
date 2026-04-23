@@ -13,6 +13,10 @@ vi.mock('@/components/TeamBoard', () => ({
   TeamBoard: () => <div data-testid="team-board" />,
 }));
 
+vi.mock('@/components/teams/BigBoardView', () => ({
+  BigBoardView: ({ draftName }: { draftName?: string }) => <div data-testid="big-board-view">{draftName}</div>,
+}));
+
 vi.mock('@/components/DraggablePlayerCard', () => ({
   DraggablePlayerCard: () => <div data-testid="draggable-player-card" />,
 }));
@@ -66,7 +70,9 @@ function renderWorkspace(overrides?: Partial<ComponentProps<typeof FullScreenTea
       onSelectIteration={vi.fn()}
       onCopyIteration={vi.fn()}
       onDeleteIteration={vi.fn()}
-      onRenameIteration={vi.fn()}
+      onUpdateIterationMetadata={vi.fn()}
+      onMarkIterationPreferred={vi.fn()}
+      onMarkIterationFinal={vi.fn()}
       onAddManualIteration={vi.fn()}
       onUndo={vi.fn()}
       canUndo
@@ -102,6 +108,48 @@ describe('FullScreenTeamBuilder redo controls', () => {
     fireEvent.keyDown(window, { key: 'z', metaKey: true, shiftKey: true });
 
     expect(onRedo).toHaveBeenCalledTimes(3);
+  });
+
+  it('switches between editing and Big Board views', () => {
+    renderWorkspace();
+
+    expect(screen.getByTestId('team-board')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Big Board' }));
+
+    expect(screen.getByTestId('big-board-view')).toHaveTextContent(iteration.name);
+    expect(screen.queryByTestId('team-board')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Editing' }));
+
+    expect(screen.getByTestId('team-board')).toBeInTheDocument();
+  });
+
+  it('saves draft name and note from the draft details dialog', () => {
+    const onUpdateIterationMetadata = vi.fn();
+    renderWorkspace({ onUpdateIterationMetadata });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Draft Details' }));
+    fireEvent.change(screen.getByLabelText('Draft name'), { target: { value: 'Final Candidate' } });
+    fireEvent.change(screen.getByLabelText('Draft note'), { target: { value: 'Best gender and handler balance.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Details' }));
+
+    expect(onUpdateIterationMetadata).toHaveBeenCalledWith(iteration.id, {
+      name: 'Final Candidate',
+      note: 'Best gender and handler balance.',
+    });
+  });
+
+  it('calls preferred and final handlers from active draft controls', () => {
+    const onMarkIterationPreferred = vi.fn();
+    const onMarkIterationFinal = vi.fn();
+    renderWorkspace({ onMarkIterationPreferred, onMarkIterationFinal });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Preferred' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Final' }));
+
+    expect(onMarkIterationPreferred).toHaveBeenCalledWith(iteration.id);
+    expect(onMarkIterationFinal).toHaveBeenCalledWith(iteration.id);
   });
 
   it('calls the delete handler from the active draft action', () => {
