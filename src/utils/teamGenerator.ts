@@ -98,8 +98,11 @@ export function generateBalancedTeams(
     }
   }
 
+  balanceTeamsByGender(teams, config);
+
   // Balance teams by skill after initial assignment, respecting avoid constraints
   balanceTeamsBySkill(teams, config);
+  balanceTeamsByGender(teams, config);
 
   const stats = calculateStats(players, teams, unassignedPlayers, mutualPairs, playerGroups, startTime);
 
@@ -441,11 +444,25 @@ export function wouldSwapBreakGenderConstraints(
     Other: team2.genderBreakdown.Other - (player2.gender === 'Other' ? 1 : 0) + (player1.gender === 'Other' ? 1 : 0),
   };
 
-  if (team1After.F < config.minFemales || team2After.F < config.minFemales) {
+  const wouldBreakMinimum = (before: number, after: number, minimum: number): boolean => {
+    if (before >= minimum) {
+      return after < minimum;
+    }
+
+    return after < before;
+  };
+
+  if (
+    wouldBreakMinimum(team1.genderBreakdown.F, team1After.F, config.minFemales)
+    || wouldBreakMinimum(team2.genderBreakdown.F, team2After.F, config.minFemales)
+  ) {
     return true;
   }
 
-  if (team1After.M < config.minMales || team2After.M < config.minMales) {
+  if (
+    wouldBreakMinimum(team1.genderBreakdown.M, team1After.M, config.minMales)
+    || wouldBreakMinimum(team2.genderBreakdown.M, team2After.M, config.minMales)
+  ) {
     return true;
   }
 
@@ -459,6 +476,149 @@ export function wouldSwapBreakGenderConstraints(
   }
 
   return false;
+}
+
+function calculateGenderSpread(teams: Team[]): { maleSpread: number; femaleSpread: number; combinedSpread: number } {
+  const maleCounts = teams.map(team => team.genderBreakdown.M);
+  const femaleCounts = teams.map(team => team.genderBreakdown.F);
+  const maleSpread = Math.max(...maleCounts) - Math.min(...maleCounts);
+  const femaleSpread = Math.max(...femaleCounts) - Math.min(...femaleCounts);
+
+  return {
+    maleSpread,
+    femaleSpread,
+    combinedSpread: maleSpread + femaleSpread,
+  };
+}
+
+function wouldSwapImproveGenderBalance(
+  teams: Team[],
+  team1: Team,
+  team2: Team,
+  player1: Player,
+  player2: Player,
+): { improves: boolean; improvement: number } {
+  const currentSpread = calculateGenderSpread(teams);
+
+  const nextTeams = teams.map(team => {
+    if (team.id === team1.id) {
+      return {
+        ...team,
+        genderBreakdown: {
+          M: team.genderBreakdown.M - (player1.gender === 'M' ? 1 : 0) + (player2.gender === 'M' ? 1 : 0),
+          F: team.genderBreakdown.F - (player1.gender === 'F' ? 1 : 0) + (player2.gender === 'F' ? 1 : 0),
+          Other: team.genderBreakdown.Other - (player1.gender === 'Other' ? 1 : 0) + (player2.gender === 'Other' ? 1 : 0),
+        },
+      };
+    }
+
+    if (team.id === team2.id) {
+      return {
+        ...team,
+        genderBreakdown: {
+          M: team.genderBreakdown.M - (player2.gender === 'M' ? 1 : 0) + (player1.gender === 'M' ? 1 : 0),
+          F: team.genderBreakdown.F - (player2.gender === 'F' ? 1 : 0) + (player1.gender === 'F' ? 1 : 0),
+          Other: team.genderBreakdown.Other - (player2.gender === 'Other' ? 1 : 0) + (player1.gender === 'Other' ? 1 : 0),
+        },
+      };
+    }
+
+    return team;
+  });
+
+  const nextSpread = calculateGenderSpread(nextTeams);
+  const spreadImprovement = currentSpread.combinedSpread - nextSpread.combinedSpread;
+
+  return {
+    improves: spreadImprovement > 0,
+    improvement: spreadImprovement,
+  };
+}
+
+function balanceTeamsByGender(teams: Team[], config: LeagueConfig): void {
+  const maxIterations = 12;
+
+  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    const { maleSpread, femaleSpread } = calculateGenderSpread(teams);
+    if (maleSpread <= 1 && femaleSpread <= 1) {
+      break;
+    }
+
+    let bestSwap: { team1: Team; team2: Team; player1: Player; player2: Player; improvement: number } | null = null;
+
+    for (let leftIndex = 0; leftIndex < teams.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < teams.length; rightIndex += 1) {
+        const leftTeam = teams[leftIndex];
+        const rightTeam = teams[rightIndex];
+        if (!leftTeam || !rightTeam) {
+          continue;
+        }
+
+        const leftIsMaleHeavy = leftTeam.genderBreakdown.M > rightTeam.genderBreakdown.M
+          && leftTeam.genderBreakdown.F < rightTeam.genderBreakdown.F;
+        const rightIsMaleHeavy = rightTeam.genderBreakdown.M > leftTeam.genderBreakdown.M
+          && rightTeam.genderBreakdown.F < leftTeam.genderBreakdown.F;
+
+        if (!leftIsMaleHeavy && !rightIsMaleHeavy) {
+          continue;
+        }
+
+        const maleHeavyTeam = leftIsMaleHeavy ? leftTeam : rightTeam;
+        const femaleHeavyTeam = leftIsMaleHeavy ? rightTeam : leftTeam;
+
+        const maleCandidates = samplePlayers(
+          maleHeavyTeam.players.filter(player => player.gender === 'M' && !isGroupedPlayer(player)),
+          6,
+        );
+        const femaleCandidates = samplePlayers(
+          femaleHeavyTeam.players.filter(player => player.gender === 'F' && !isGroupedPlayer(player)),
+          6,
+        );
+
+        for (const malePlayer of maleCandidates) {
+          for (const femalePlayer of femaleCandidates) {
+            const wouldCreateConflicts =
+              hasAvoidConflict(malePlayer, femaleHeavyTeam) ||
+              hasAvoidConflict(femalePlayer, maleHeavyTeam);
+
+            if (wouldCreateConflicts || wouldSwapBreakGenderConstraints(maleHeavyTeam, femaleHeavyTeam, malePlayer, femalePlayer, config)) {
+              continue;
+            }
+
+            const genderResult = wouldSwapImproveGenderBalance(teams, maleHeavyTeam, femaleHeavyTeam, malePlayer, femalePlayer);
+            if (!genderResult.improves) {
+              continue;
+            }
+
+            const maleSkill = malePlayer.execSkillRating !== null ? malePlayer.execSkillRating : malePlayer.skillRating;
+            const femaleSkill = femalePlayer.execSkillRating !== null ? femalePlayer.execSkillRating : femalePlayer.skillRating;
+            const skillPenalty = Math.abs(maleSkill - femaleSkill) * 0.05;
+            const improvement = genderResult.improvement - skillPenalty;
+
+            if (improvement <= 0) {
+              continue;
+            }
+
+            if (!bestSwap || improvement > bestSwap.improvement) {
+              bestSwap = {
+                team1: maleHeavyTeam,
+                team2: femaleHeavyTeam,
+                player1: malePlayer,
+                player2: femalePlayer,
+                improvement,
+              };
+            }
+          }
+        }
+      }
+    }
+
+    if (!bestSwap) {
+      break;
+    }
+
+    swapPlayers(bestSwap.team1, bestSwap.team2, bestSwap.player1, bestSwap.player2);
+  }
 }
 
 function balanceTeamsBySkill(teams: Team[], config: LeagueConfig): void {

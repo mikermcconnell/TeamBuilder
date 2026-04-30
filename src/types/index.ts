@@ -5,9 +5,12 @@ export interface PlayerProfile {
   age?: number;
 }
 
+export type PlayerLabel = string;
+
 export interface Player {
   id: string;
   name: string;
+  labels?: PlayerLabel[];
   isNewPlayer?: boolean;
   profile?: PlayerProfile;
   /** @deprecated Prefer player.profile.registrationInfo */

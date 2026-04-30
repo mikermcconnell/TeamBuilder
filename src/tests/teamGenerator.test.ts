@@ -215,6 +215,31 @@ describe('generateBalancedTeams', () => {
     expect(wouldSwapBreakGenderConstraints(team1, team2, femalePlayer, malePlayer, config)).toBe(true);
   });
 
+  it('allows a repair swap that moves an invalid team closer to the gender minimums', () => {
+    const config = createConfig({ allowMixedGender: true, maxTeamSize: 14, minFemales: 4, minMales: 7 });
+    const invalidTeam: Team = {
+      id: 'team-1',
+      name: 'Team 1',
+      players: [],
+      averageSkill: 6,
+      genderBreakdown: { M: 10, F: 2, Other: 0 },
+      handlerCount: 0,
+    };
+    const donorTeam: Team = {
+      id: 'team-2',
+      name: 'Team 2',
+      players: [],
+      averageSkill: 6,
+      genderBreakdown: { M: 7, F: 6, Other: 0 },
+      handlerCount: 0,
+    };
+
+    const malePlayer = createPlayer({ id: 'p1', name: 'Alex', gender: 'M', skillRating: 8 });
+    const femalePlayer = createPlayer({ id: 'p2', name: 'Blair', gender: 'F', skillRating: 5 });
+
+    expect(wouldSwapBreakGenderConstraints(invalidTeam, donorTeam, malePlayer, femalePlayer, config)).toBe(false);
+  });
+
   it('respects target team count and can still place a balanced roster in random mode', () => {
     const players: Player[] = [
       createPlayer({ id: 'p1', name: 'Alex', gender: 'M', skillRating: 7 }),
@@ -260,6 +285,52 @@ describe('generateBalancedTeams', () => {
     );
 
     expect(result.teams).toHaveLength(3);
+  });
+
+  it('keeps male and female counts tightly distributed for large mixed leagues', () => {
+    const players: Player[] = [];
+
+    for (let index = 0; index < 86; index += 1) {
+      players.push(
+        createPlayer({
+          id: `m${index + 1}`,
+          name: `Male ${index + 1}`,
+          gender: 'M',
+          skillRating: (index % 10) + 1,
+        })
+      );
+    }
+
+    for (let index = 0; index < 47; index += 1) {
+      players.push(
+        createPlayer({
+          id: `f${index + 1}`,
+          name: `Female ${index + 1}`,
+          gender: 'F',
+          skillRating: 10 - (index % 10),
+        })
+      );
+    }
+
+    const result = generateBalancedTeams(
+      players,
+      createConfig({
+        maxTeamSize: 14,
+        minFemales: 4,
+        minMales: 7,
+        targetTeams: 10,
+      }),
+      []
+    );
+
+    const maleCounts = result.teams.map(team => team.genderBreakdown.M);
+    const femaleCounts = result.teams.map(team => team.genderBreakdown.F);
+    const maleSpread = Math.max(...maleCounts) - Math.min(...maleCounts);
+    const femaleSpread = Math.max(...femaleCounts) - Math.min(...femaleCounts);
+
+    expect(result.unassignedPlayers).toHaveLength(0);
+    expect(maleSpread).toBeLessThanOrEqual(1);
+    expect(femaleSpread).toBeLessThanOrEqual(1);
   });
 
 });

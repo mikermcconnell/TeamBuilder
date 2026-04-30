@@ -1,5 +1,6 @@
 import type { Player } from '@/types';
 import { getEffectiveSkillRating } from '@/types';
+import { PlayerLabels } from '@/components/PlayerLabels';
 
 interface CompactPlayerRowProps {
   player: Player;
@@ -31,6 +32,7 @@ export function CompactPlayerRow({ player }: CompactPlayerRowProps) {
   return (
     <div className="flex min-w-0 items-center gap-1.5 rounded-md border border-slate-100 bg-white px-2 py-1 text-xs text-slate-700">
       <span className="min-w-0 flex-1 truncate font-medium text-slate-900">{player.name}</span>
+      <PlayerLabels player={player} compact />
       <span className={badgeClass(player.gender === 'F' ? 'violet' : player.gender === 'M' ? 'blue' : 'slate')}>
         {player.gender}
       </span>

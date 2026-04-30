@@ -212,6 +212,7 @@ export function DroppableTeamCard({ team, allPlayers, config, largestTeamSize = 
 
     return (
         <Card
+            ref={setNodeRef}
             className={`relative h-full flex flex-col transition-all duration-300 rounded-2xl border-2 border-b-4 shadow-sm group ${statusColor}`}
             style={{
                 borderColor: isOver || isOverCapacity || genderIssues ? undefined : hexToRgba(teamColor, 0.35),
@@ -406,7 +407,7 @@ export function DroppableTeamCard({ team, allPlayers, config, largestTeamSize = 
                     items={team.players.map(p => p.id)}
                     strategy={verticalListSortingStrategy}
                 >
-                    <div ref={setNodeRef} className="space-y-3 min-h-full">
+                    <div className="space-y-3 min-h-full">
                         {team.players.length === 0 && (
                             <div className="h-full flex flex-col items-center justify-center text-gray-400 text-xs p-4 text-center mt-8">
                                 <Users className="h-6 w-6 mb-2 opacity-50" />

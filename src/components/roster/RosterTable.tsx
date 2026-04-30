@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { NewPlayerBadge } from '@/components/NewPlayerBadge';
+import { PlayerLabels } from '@/components/PlayerLabels';
 import {
     Tooltip,
     TooltipContent,
@@ -394,6 +395,7 @@ export function RosterTable({
                                                         </Tooltip>
                                                     </TooltipProvider>
                                                     <div className="flex flex-wrap items-center gap-2">
+                                                        <PlayerLabels player={player} />
                                                         <NewPlayerBadge
                                                             player={player}
                                                             onStatusChange={(isNewPlayer) => onPlayerUpdate({ ...player, isNewPlayer }, { persistImmediately: true })}

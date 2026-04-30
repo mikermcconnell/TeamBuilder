@@ -10,8 +10,10 @@ import {
   DragStartEvent,
   DragOverEvent,
   DragEndEvent,
+  pointerWithin,
   defaultDropAnimationSideEffects,
-  DropAnimation
+  DropAnimation,
+  type CollisionDetection
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Player, Team, LeagueConfig, PlayerGroup, PlayerUpdateHandler, TeamGenerationStats, TeamIteration, TeamIterationStatus } from '@/types';
@@ -78,6 +80,11 @@ interface FullScreenTeamBuilderProps {
   onStartOver?: () => void;
   activeIterationStatus?: TeamIterationStatus;
 }
+
+const teamWorkspaceCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  return pointerCollisions.length > 0 ? pointerCollisions : closestCorners(args);
+};
 
 export function FullScreenTeamBuilder({
   teams,
@@ -545,7 +552,7 @@ export function FullScreenTeamBuilder({
       ) : (
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={teamWorkspaceCollisionDetection}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}

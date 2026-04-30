@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Player, PlayerGroup } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { PlayerLabels } from '@/components/PlayerLabels';
 import {
   Select,
   SelectContent,
@@ -78,6 +79,7 @@ export const PlayerCard = memo(function PlayerCard({
             </Badge>
           )}
           <span className="text-sm font-medium truncate">{player.name}</span>
+          <PlayerLabels player={player} compact />
           <Badge className={`text-xs ${getGenderBadgeColor(player.gender)}`}>
             {player.gender}
           </Badge>

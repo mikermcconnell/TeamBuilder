@@ -25,6 +25,7 @@ export interface TeamIterationMetadataUpdates {
 function clonePlayer(player: Player): Player {
   return {
     ...player,
+    labels: player.labels ? [...player.labels] : undefined,
     profile: player.profile ? { ...player.profile } : undefined,
     teammateRequests: [...(player.teammateRequests ?? [])],
     avoidRequests: [...(player.avoidRequests ?? [])],

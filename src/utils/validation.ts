@@ -54,6 +54,7 @@ export function sanitizeString(input: string, maxLength = 100): string {
 export const PlayerSchema = z.object({
   id: z.string().default(() => `player-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`),
   name: z.string().min(1, "Player name cannot be empty").transform(val => sanitizeString(val, MAX_PLAYER_NAME_LENGTH)),
+  labels: z.array(z.string().transform(val => sanitizeString(val, 40))).optional(),
   isNewPlayer: z.boolean().optional(),
   profile: z.object({
     registrationInfo: z.string().transform(val => sanitizeString(val)).optional(),

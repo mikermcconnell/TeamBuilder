@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Player, SavedWorkspace, TeamIteration } from '@/types';
 import { buildWorkspaceWithGeneratedDrafts } from '@/server/workspaces/workspaceDraftBuilder';
@@ -258,6 +258,288 @@ describe('workspaceDraftBuilder', () => {
     expect(result.activeDraft.iteration.id).toBe('ai-balanced');
     expect(result.workspace.activeTeamIterationId).toBe('ai-balanced');
     expect(result.workspace.teams.map(team => team.id)).toEqual(['team-a', 'team-b', 'team-c']);
+  });
+
+  it('retries when a generated draft is too similar to an earlier draft', async () => {
+    const workspace = createWorkspace();
+    const firstDraft = createGeneratedIteration('ai-1', 'AI 1', [
+      {
+        id: 'team-1',
+        name: 'First A',
+        players: [workspace.players[0]!, workspace.players[5]!],
+        averageSkill: 6.5,
+        genderBreakdown: { M: 1, F: 1, Other: 0 },
+        handlerCount: 2,
+      },
+      {
+        id: 'team-2',
+        name: 'First B',
+        players: [workspace.players[2]!, workspace.players[3]!],
+        averageSkill: 6.5,
+        genderBreakdown: { M: 1, F: 1, Other: 0 },
+        handlerCount: 1,
+      },
+      {
+        id: 'team-3',
+        name: 'First C',
+        players: [workspace.players[4]!, workspace.players[1]!],
+        averageSkill: 6.5,
+        genderBreakdown: { M: 1, F: 1, Other: 0 },
+        handlerCount: 0,
+      },
+    ]);
+
+    const duplicateDraft = createGeneratedIteration('ai-2-duplicate', 'AI 2', [
+      {
+        id: 'team-4',
+        name: 'Duplicate A',
+        players: [workspace.players[0]!, workspace.players[5]!],
+        averageSkill: 6.5,
+        genderBreakdown: { M: 1, F: 1, Other: 0 },
+        handlerCount: 2,
+      },
+      {
+        id: 'team-5',
+        name: 'Duplicate B',
+        players: [workspace.players[2]!, workspace.players[3]!],
+        averageSkill: 6.5,
+        genderBreakdown: { M: 1, F: 1, Other: 0 },
+        handlerCount: 1,
+      },
+      {
+        id: 'team-6',
+        name: 'Duplicate C',
+        players: [workspace.players[4]!, workspace.players[1]!],
+        averageSkill: 6.5,
+        genderBreakdown: { M: 1, F: 1, Other: 0 },
+        handlerCount: 0,
+      },
+    ]);
+
+    const distinctDraft = createGeneratedIteration('ai-2-distinct', 'AI 2', [
+      {
+        id: 'team-7',
+        name: 'Distinct A',
+        players: [workspace.players[0]!, workspace.players[3]!],
+        averageSkill: 7.5,
+        genderBreakdown: { M: 1, F: 1, Other: 0 },
+        handlerCount: 1,
+      },
+      {
+        id: 'team-8',
+        name: 'Distinct B',
+        players: [workspace.players[2]!, workspace.players[1]!],
+        averageSkill: 7.5,
+        genderBreakdown: { M: 1, F: 1, Other: 0 },
+        handlerCount: 1,
+      },
+      {
+        id: 'team-9',
+        name: 'Distinct C',
+        players: [workspace.players[4]!, workspace.players[5]!],
+        averageSkill: 4.5,
+        genderBreakdown: { M: 1, F: 1, Other: 0 },
+        handlerCount: 1,
+      },
+    ]);
+
+    const createTeamIteration = vi.fn()
+      .mockResolvedValueOnce(firstDraft)
+      .mockResolvedValueOnce(duplicateDraft)
+      .mockResolvedValueOnce(distinctDraft);
+
+    const result = await buildWorkspaceWithGeneratedDrafts(
+      workspace,
+      { draftCount: 2, targetTeams: 3 },
+      { createTeamIteration },
+    );
+
+    expect(createTeamIteration).toHaveBeenCalledTimes(3);
+    expect(result.generatedDrafts).toHaveLength(2);
+    expect(result.generatedDrafts[0]?.iteration.id).toBe('ai-1');
+    expect(result.generatedDrafts[1]?.iteration.id).toBe('ai-2-distinct');
+    expect(result.workspace.teamIterations).toHaveLength(3);
+    expect(result.workspace.teamIterations[1]?.id).toBe('ai-1');
+    expect(result.workspace.teamIterations[2]?.id).toBe('ai-2-distinct');
+  });
+
+  it('retries when a generated draft has inconsistent gender distribution', async () => {
+    const workspace = createWorkspace();
+    workspace.players = [
+      createPlayer('m1', 'Male 1', 'M', 10),
+      createPlayer('m2', 'Male 2', 'M', 9),
+      createPlayer('m3', 'Male 3', 'M', 8),
+      createPlayer('m4', 'Male 4', 'M', 7),
+      createPlayer('m5', 'Male 5', 'M', 6),
+      createPlayer('m6', 'Male 6', 'M', 5),
+      createPlayer('f1', 'Female 1', 'F', 8),
+      createPlayer('f2', 'Female 2', 'F', 7),
+      createPlayer('f3', 'Female 3', 'F', 6),
+      createPlayer('f4', 'Female 4', 'F', 5),
+    ];
+    workspace.playerGroups = [];
+    workspace.config = {
+      ...workspace.config,
+      maxTeamSize: 5,
+      minFemales: 2,
+      minMales: 3,
+      targetTeams: 2,
+    };
+
+    const invalidDraft = createGeneratedIteration('ai-1-invalid', 'AI 1', [
+      {
+        id: 'team-1',
+        name: 'Invalid A',
+        players: [workspace.players[0]!, workspace.players[1]!, workspace.players[2]!, workspace.players[6]!, workspace.players[7]!],
+        averageSkill: 8.4,
+        genderBreakdown: { M: 3, F: 2, Other: 0 },
+        handlerCount: 0,
+      },
+      {
+        id: 'team-2',
+        name: 'Invalid B',
+        players: [workspace.players[3]!, workspace.players[4]!, workspace.players[5]!, workspace.players[8]!, workspace.players[9]!],
+        averageSkill: 5.8,
+        genderBreakdown: { M: 3, F: 2, Other: 0 },
+        handlerCount: 0,
+      },
+    ]);
+
+    const unevenDraft = createGeneratedIteration('ai-2-uneven', 'AI 2', [
+      {
+        id: 'team-3',
+        name: 'Uneven A',
+        players: [workspace.players[0]!, workspace.players[1]!, workspace.players[2]!, workspace.players[3]!, workspace.players[6]!],
+        averageSkill: 8,
+        genderBreakdown: { M: 4, F: 1, Other: 0 },
+        handlerCount: 0,
+      },
+      {
+        id: 'team-4',
+        name: 'Uneven B',
+        players: [workspace.players[4]!, workspace.players[5]!, workspace.players[7]!, workspace.players[8]!, workspace.players[9]!],
+        averageSkill: 5.8,
+        genderBreakdown: { M: 2, F: 3, Other: 0 },
+        handlerCount: 0,
+      },
+    ]);
+
+    const balancedDraft = createGeneratedIteration('ai-2-balanced', 'AI 2', [
+      {
+        id: 'team-5',
+        name: 'Balanced A',
+        players: [workspace.players[0]!, workspace.players[1]!, workspace.players[3]!, workspace.players[6]!, workspace.players[8]!],
+        averageSkill: 7.8,
+        genderBreakdown: { M: 3, F: 2, Other: 0 },
+        handlerCount: 0,
+      },
+      {
+        id: 'team-6',
+        name: 'Balanced B',
+        players: [workspace.players[2]!, workspace.players[4]!, workspace.players[5]!, workspace.players[7]!, workspace.players[9]!],
+        averageSkill: 6.4,
+        genderBreakdown: { M: 3, F: 2, Other: 0 },
+        handlerCount: 0,
+      },
+    ]);
+
+    const createTeamIteration = vi.fn()
+      .mockResolvedValueOnce(invalidDraft)
+      .mockResolvedValueOnce(unevenDraft)
+      .mockResolvedValueOnce(balancedDraft);
+
+    const result = await buildWorkspaceWithGeneratedDrafts(
+      workspace,
+      { draftCount: 2, targetTeams: 2 },
+      { createTeamIteration },
+    );
+
+    expect(createTeamIteration).toHaveBeenCalledTimes(3);
+    expect(result.generatedDrafts[1]?.iteration.id).toBe('ai-2-balanced');
+  });
+
+  it('falls back to the built-in balanced generator when every AI attempt is gender-uneven', async () => {
+    const workspace = createWorkspace();
+    workspace.players = [
+      createPlayer('m1', 'Male 1', 'M', 10),
+      createPlayer('m2', 'Male 2', 'M', 9),
+      createPlayer('m3', 'Male 3', 'M', 8),
+      createPlayer('m4', 'Male 4', 'M', 7),
+      createPlayer('m5', 'Male 5', 'M', 6),
+      createPlayer('m6', 'Male 6', 'M', 5),
+      createPlayer('f1', 'Female 1', 'F', 8),
+      createPlayer('f2', 'Female 2', 'F', 7),
+      createPlayer('f3', 'Female 3', 'F', 6),
+      createPlayer('f4', 'Female 4', 'F', 5),
+    ];
+    workspace.playerGroups = [];
+    workspace.config = {
+      ...workspace.config,
+      maxTeamSize: 5,
+      minFemales: 2,
+      minMales: 3,
+      targetTeams: 2,
+    };
+
+    const firstDraft = createGeneratedIteration('ai-1', 'AI 1', [
+      {
+        id: 'team-1',
+        name: 'First A',
+        players: [workspace.players[0]!, workspace.players[1]!, workspace.players[6]!, workspace.players[7]!, workspace.players[8]!],
+        averageSkill: 8.6,
+        genderBreakdown: { M: 2, F: 3, Other: 0 },
+        handlerCount: 0,
+      },
+      {
+        id: 'team-2',
+        name: 'First B',
+        players: [workspace.players[2]!, workspace.players[3]!, workspace.players[4]!, workspace.players[5]!, workspace.players[9]!],
+        averageSkill: 6.2,
+        genderBreakdown: { M: 4, F: 1, Other: 0 },
+        handlerCount: 0,
+      },
+    ]);
+
+    const unevenDraft = createGeneratedIteration('ai-2-uneven', 'AI 2', [
+      {
+        id: 'team-3',
+        name: 'Uneven A',
+        players: [workspace.players[0]!, workspace.players[1]!, workspace.players[2]!, workspace.players[3]!, workspace.players[6]!],
+        averageSkill: 8.4,
+        genderBreakdown: { M: 4, F: 1, Other: 0 },
+        handlerCount: 0,
+      },
+      {
+        id: 'team-4',
+        name: 'Uneven B',
+        players: [workspace.players[4]!, workspace.players[5]!, workspace.players[7]!, workspace.players[8]!, workspace.players[9]!],
+        averageSkill: 6.2,
+        genderBreakdown: { M: 2, F: 3, Other: 0 },
+        handlerCount: 0,
+      },
+    ]);
+
+    const createTeamIteration = vi.fn()
+      .mockResolvedValueOnce(firstDraft)
+      .mockResolvedValue(unevenDraft);
+
+    const result = await buildWorkspaceWithGeneratedDrafts(
+      workspace,
+      { draftCount: 2, targetTeams: 2 },
+      { createTeamIteration },
+    );
+
+    const fallbackDraft = result.generatedDrafts[1];
+    const maleCounts = fallbackDraft?.iteration.teams.map(team => team.genderBreakdown.M) ?? [];
+    const femaleCounts = fallbackDraft?.iteration.teams.map(team => team.genderBreakdown.F) ?? [];
+    const maleSpread = Math.max(...maleCounts) - Math.min(...maleCounts);
+    const femaleSpread = Math.max(...femaleCounts) - Math.min(...femaleCounts);
+
+    expect(createTeamIteration).toHaveBeenCalledTimes(6);
+    expect(fallbackDraft?.iteration.generationSource).toBe('fallback');
+    expect(maleSpread).toBeLessThanOrEqual(1);
+    expect(femaleSpread).toBeLessThanOrEqual(1);
+    expect(fallbackDraft?.iteration.errorMessage).toContain('built-in balanced generator');
   });
 });
 

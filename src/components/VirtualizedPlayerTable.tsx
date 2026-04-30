@@ -3,6 +3,7 @@ import { List, RowComponentProps } from 'react-window';
 import { Player } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PlayerLabels } from '@/components/PlayerLabels';
 import { UserCheck, UserX, Eye, Edit2, Trash2 } from 'lucide-react';
 
 interface VirtualizedPlayerTableProps {
@@ -37,7 +38,10 @@ const Row = memo(({ index, style, ...data }: RowComponentProps<RowData>) => {
   return (
     <div style={style} className="flex items-center border-b border-gray-200 hover:bg-gray-50 px-4">
       <div className="flex-1 grid grid-cols-7 gap-4 items-center py-2">
-        <div className="font-medium truncate">{player.name}</div>
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="font-medium truncate">{player.name}</span>
+          <PlayerLabels player={player} compact />
+        </div>
         <div>
           <Badge variant={getGenderBadgeVariant(player.gender)}>
             {player.gender}

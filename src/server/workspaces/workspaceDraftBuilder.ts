@@ -49,9 +49,15 @@ interface ApplyGeneratedDraftOptions {
   now?: string;
 }
 
+const MAX_DIVERSITY_RETRIES_PER_DRAFT = 4;
+const MAX_ALLOWED_PAIRING_OVERLAP = 0.85;
+const MAX_ALLOWED_GENDER_SPREAD = 1;
+const MAX_BUILT_IN_FALLBACK_ATTEMPTS = 24;
+
 function clonePlayer(player: Player): Player {
   return {
     ...player,
+    labels: player.labels ? [...player.labels] : undefined,
     profile: player.profile ? { ...player.profile } : undefined,
     teammateRequests: [...(player.teammateRequests ?? [])],
     avoidRequests: [...(player.avoidRequests ?? [])],
@@ -90,6 +96,17 @@ function clonePlayerGroups(players: Player[], groups: PlayerGroup[]): PlayerGrou
       .map(playerId => playerMap.get(playerId))
       .filter((player): player is Player => Boolean(player)),
   }));
+}
+
+function shuffleItems<T>(items: T[]): T[] {
+  const shuffled = [...items];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex]!, shuffled[index]!];
+  }
+
+  return shuffled;
 }
 
 function createIterationId(): string {
@@ -181,6 +198,100 @@ function getNextAiIterationNumber(existingIterations: TeamIteration[]): number {
 
 function getDraftVariant(index: number): 'primary' | 'alternate' {
   return index % 2 === 0 ? 'primary' : 'alternate';
+}
+
+function getPairingKey(playerIdA: string, playerIdB: string): string {
+  return [playerIdA, playerIdB].sort().join('::');
+}
+
+function buildPairingSet(teams: Team[]): Set<string> {
+  const pairings = new Set<string>();
+
+  teams.forEach(team => {
+    const teamPlayers = team.players ?? [];
+    for (let leftIndex = 0; leftIndex < teamPlayers.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < teamPlayers.length; rightIndex += 1) {
+        const leftPlayer = teamPlayers[leftIndex];
+        const rightPlayer = teamPlayers[rightIndex];
+        if (!leftPlayer || !rightPlayer) {
+          continue;
+        }
+
+        pairings.add(getPairingKey(leftPlayer.id, rightPlayer.id));
+      }
+    }
+  });
+
+  return pairings;
+}
+
+function calculatePairingOverlap(leftTeams: Team[], rightTeams: Team[]): number {
+  const leftPairings = buildPairingSet(leftTeams);
+  const rightPairings = buildPairingSet(rightTeams);
+
+  if (leftPairings.size === 0 && rightPairings.size === 0) {
+    return 1;
+  }
+
+  const intersectionCount = [...leftPairings].filter(pairing => rightPairings.has(pairing)).length;
+  return intersectionCount / Math.max(leftPairings.size, rightPairings.size, 1);
+}
+
+function calculateMaxPairingOverlap(
+  candidate: GeneratedWorkspaceDraft,
+  existingDrafts: Array<Pick<TeamIteration, 'teams'>>,
+): number {
+  if (existingDrafts.length === 0) {
+    return 0;
+  }
+
+  return Math.max(
+    ...existingDrafts.map(existingDraft => calculatePairingOverlap(candidate.iteration.teams, existingDraft.teams)),
+  );
+}
+
+function calculateGenderSpread(teams: Team[]): { maleSpread: number; femaleSpread: number } {
+  const maleCounts = teams.map(team => team.genderBreakdown?.M ?? 0);
+  const femaleCounts = teams.map(team => team.genderBreakdown?.F ?? 0);
+
+  return {
+    maleSpread: Math.max(...maleCounts) - Math.min(...maleCounts),
+    femaleSpread: Math.max(...femaleCounts) - Math.min(...femaleCounts),
+  };
+}
+
+function meetsGenderConsistencyThreshold(candidate: GeneratedWorkspaceDraft): boolean {
+  const { maleSpread, femaleSpread } = calculateGenderSpread(candidate.iteration.teams);
+  return maleSpread <= MAX_ALLOWED_GENDER_SPREAD && femaleSpread <= MAX_ALLOWED_GENDER_SPREAD;
+}
+
+function chooseDiverseDraftCandidate(
+  candidates: GeneratedWorkspaceDraft[],
+  existingDrafts: Array<Pick<TeamIteration, 'teams'>>,
+): GeneratedWorkspaceDraft {
+  return [...candidates].sort((left, right) => {
+    const leftMeetsGenderThreshold = meetsGenderConsistencyThreshold(left);
+    const rightMeetsGenderThreshold = meetsGenderConsistencyThreshold(right);
+
+    if (leftMeetsGenderThreshold !== rightMeetsGenderThreshold) {
+      return leftMeetsGenderThreshold ? -1 : 1;
+    }
+
+    const leftOverlap = calculateMaxPairingOverlap(left, existingDrafts);
+    const rightOverlap = calculateMaxPairingOverlap(right, existingDrafts);
+    const leftMeetsThreshold = leftOverlap <= MAX_ALLOWED_PAIRING_OVERLAP;
+    const rightMeetsThreshold = rightOverlap <= MAX_ALLOWED_PAIRING_OVERLAP;
+
+    if (leftMeetsThreshold !== rightMeetsThreshold) {
+      return leftMeetsThreshold ? -1 : 1;
+    }
+
+    if (leftOverlap !== rightOverlap) {
+      return leftOverlap - rightOverlap;
+    }
+
+    return compareGeneratedDrafts(left, right);
+  })[0]!;
 }
 
 function assignPlayersToTeams(players: Player[], teams: Team[]): Player[] {
@@ -373,6 +484,99 @@ async function createAiTeamIteration({
   };
 }
 
+async function generateDraftCandidate(
+  workspace: SavedWorkspace,
+  config: LeagueConfig,
+  iterationName: string,
+  variant: 'primary' | 'alternate',
+  createTeamIteration: (input: CreateTeamIterationInput) => Promise<TeamIteration>,
+): Promise<GeneratedWorkspaceDraft> {
+  const iteration = await createTeamIteration({
+    players: workspace.players,
+    config,
+    playerGroups: workspace.playerGroups,
+    name: iterationName,
+    variant,
+  });
+
+  const insights = buildIterationInsights(
+    {
+      id: iteration.id,
+      name: iteration.name,
+      teams: iteration.teams,
+      unassignedPlayers: iteration.unassignedPlayers,
+      stats: iteration.stats,
+    },
+    config,
+    workspace.leagueMemory ?? [],
+  );
+
+  return { iteration, insights };
+}
+
+function createBuiltInBalancedCandidate(
+  workspace: SavedWorkspace,
+  config: LeagueConfig,
+  iterationName: string,
+  variant: 'primary' | 'alternate',
+  referenceDrafts: Array<Pick<TeamIteration, 'teams'>>,
+): GeneratedWorkspaceDraft {
+  const candidates: GeneratedWorkspaceDraft[] = [];
+
+  for (let attempt = 0; attempt < MAX_BUILT_IN_FALLBACK_ATTEMPTS; attempt += 1) {
+    const shouldShuffle = variant === 'alternate' || attempt > 0;
+    const candidatePlayers = shouldShuffle
+      ? shuffleItems(clonePlayers(workspace.players))
+      : clonePlayers(workspace.players);
+    const candidateGroups = clonePlayerGroups(candidatePlayers, workspace.playerGroups);
+    const generation = generateBalancedTeams(
+      candidatePlayers,
+      config,
+      candidateGroups,
+      false,
+      false,
+    );
+
+    const iteration: TeamIteration = {
+      id: createIterationId(),
+      name: iterationName,
+      type: 'ai',
+      status: 'ready',
+      generationSource: 'fallback',
+      teams: generation.teams.map(cloneTeam),
+      unassignedPlayers: generation.unassignedPlayers.map(clonePlayer),
+      stats: cloneStats(generation.stats),
+      createdAt: new Date().toISOString(),
+      errorMessage: 'TeamBuilder used the built-in balanced generator because the AI candidates did not keep male/female team counts consistent enough across teams.',
+    };
+
+    const insights = buildIterationInsights(
+      {
+        id: iteration.id,
+        name: iteration.name,
+        teams: iteration.teams,
+        unassignedPlayers: iteration.unassignedPlayers,
+        stats: iteration.stats,
+      },
+      config,
+      workspace.leagueMemory ?? [],
+    );
+
+    const candidate = { iteration, insights };
+    candidates.push(candidate);
+
+    if (!meetsGenderConsistencyThreshold(candidate)) {
+      continue;
+    }
+
+    if (referenceDrafts.length === 0 || calculateMaxPairingOverlap(candidate, referenceDrafts) <= MAX_ALLOWED_PAIRING_OVERLAP) {
+      break;
+    }
+  }
+
+  return chooseDiverseDraftCandidate(candidates, referenceDrafts);
+}
+
 export async function buildWorkspaceWithGeneratedDrafts(
   workspace: SavedWorkspace,
   options: WorkspaceDraftBuilderOptions = {},
@@ -391,6 +595,9 @@ export async function buildWorkspaceWithGeneratedDrafts(
   const createTeamIteration = dependencies.createTeamIteration ?? createAiTeamIteration;
   const nextAiIterationNumber = getNextAiIterationNumber(existingIterations);
   const generatedDrafts: GeneratedWorkspaceDraft[] = [];
+  const existingReferenceDrafts = existingIterations
+    .filter(iteration => iteration.status === 'ready' && iteration.type === 'ai')
+    .map(iteration => ({ teams: iteration.teams }));
 
   for (let index = 0; index < draftCount; index += 1) {
     const desiredName = `AI ${nextAiIterationNumber + index}`;
@@ -401,27 +608,52 @@ export async function buildWorkspaceWithGeneratedDrafts(
         ...generatedDrafts.map(candidate => candidate.iteration),
       ],
     );
-    const iteration = await createTeamIteration({
-      players: workspace.players,
-      config: normalizedConfig,
-      playerGroups: workspace.playerGroups,
-      name: iterationName,
-      variant: getDraftVariant(index),
-    });
+    const candidateDrafts: GeneratedWorkspaceDraft[] = [];
+    const referenceDrafts = [
+      ...existingReferenceDrafts,
+      ...generatedDrafts.map(candidate => ({ teams: candidate.iteration.teams })),
+    ];
+    const maxAttempts = referenceDrafts.length === 0 ? 1 : (MAX_DIVERSITY_RETRIES_PER_DRAFT + 1);
 
-    const insights = buildIterationInsights(
-      {
-        id: iteration.id,
-        name: iteration.name,
-        teams: iteration.teams,
-        unassignedPlayers: iteration.unassignedPlayers,
-        stats: iteration.stats,
-      },
-      normalizedConfig,
-      workspace.leagueMemory ?? [],
-    );
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const candidate = await generateDraftCandidate(
+        workspace,
+        normalizedConfig,
+        iterationName,
+        getDraftVariant(index + attempt),
+        createTeamIteration,
+      );
 
-    generatedDrafts.push({ iteration, insights });
+      candidateDrafts.push(candidate);
+
+      if (referenceDrafts.length === 0) {
+        break;
+      }
+
+      const overlap = calculateMaxPairingOverlap(candidate, referenceDrafts);
+      if (overlap <= MAX_ALLOWED_PAIRING_OVERLAP && meetsGenderConsistencyThreshold(candidate)) {
+        break;
+      }
+    }
+
+    const hasAcceptableCandidate = candidateDrafts.some(candidate => (
+      meetsGenderConsistencyThreshold(candidate)
+      && (referenceDrafts.length === 0 || calculateMaxPairingOverlap(candidate, referenceDrafts) <= MAX_ALLOWED_PAIRING_OVERLAP)
+    ));
+
+    if (!hasAcceptableCandidate) {
+      candidateDrafts.push(
+        createBuiltInBalancedCandidate(
+          workspace,
+          normalizedConfig,
+          iterationName,
+          getDraftVariant(index),
+          referenceDrafts,
+        ),
+      );
+    }
+
+    generatedDrafts.push(chooseDiverseDraftCandidate(candidateDrafts, referenceDrafts));
   }
 
   return applyGeneratedDraftsToWorkspace(workspace, generatedDrafts, {

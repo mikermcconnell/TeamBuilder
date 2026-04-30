@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { getPlayerGroup, getPlayerGroupColor, getPlayerGroupLabel, arePlayersInSameGroup, getGroupmates } from '@/utils/playerGrouping';
 import { Input } from '@/components/ui/input';
 import { sanitizeLegacyTeamName } from '@/utils/groupLabels';
+import { PlayerLabels } from '@/components/PlayerLabels';
 
 interface TeamDisplayProps {
   teams: Team[];
@@ -1325,6 +1326,7 @@ function GroupCard({ group, players, moveOptions, onMove, onDragStart, onDragEnd
                 <span className="font-medium truncate" title={player.name}>
                   {player.name}
                 </span>
+                <PlayerLabels player={player} compact />
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <Badge variant="outline" className={compact ? "text-[10px] h-4 px-1" : "text-xs"}>{player.gender}</Badge>
@@ -1410,6 +1412,7 @@ function PlayerCard({ player, moveOptions, onMove, onDragStart, onDragEnd, playe
           <div className={`font-medium ${compact ? 'text-xs truncate flex-1 min-w-0' : 'text-sm truncate'}`} title={player.name}>
             {player.name}
           </div>
+          <PlayerLabels player={player} compact />
           <div className="flex items-center gap-0.5 flex-shrink-0">
             {player.isNewPlayer && (
               <Badge

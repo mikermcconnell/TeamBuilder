@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Player, PlayerUpdateHandler, getEffectiveSkillRating } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { NewPlayerBadge } from '@/components/NewPlayerBadge';
+import { PlayerLabels } from '@/components/PlayerLabels';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { GripVertical, Unlink, Users, AlertTriangle } from 'lucide-react';
 import { getPlayerRegistrationInfo } from '@/utils/playerRegistrationInfo';
@@ -157,6 +158,9 @@ export function DraggablePlayerCard({
               H
             </span>
           )}
+          <span className="ml-1 inline-flex align-middle">
+            <PlayerLabels player={player} compact />
+          </span>
         </div>
         {(onPlayerUpdate || highlightedAgeBand) && (
           <div
