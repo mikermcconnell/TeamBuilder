@@ -16,6 +16,7 @@ import {
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
+import { cleanUndefinedDeep } from '../../services/persistence/cleanup.js';
 import type { SavedWorkspace } from '../../types/index.js';
 
 const execFileAsync = promisify(execFile);
@@ -524,6 +525,8 @@ export async function saveWorkspaceRecord(
   workspace: SavedWorkspace,
   options: { expectedRevision: number; expectedUpdateTime?: string }
 ): Promise<void> {
+  const sanitizedWorkspace = cleanUndefinedDeep(workspace) as SavedWorkspace;
+
   if (shouldUseFirebaseCliRestFallback()) {
     const currentDocument = options.expectedUpdateTime
       ? { updateTime: options.expectedUpdateTime }
@@ -537,8 +540,8 @@ export async function saveWorkspaceRecord(
           writes: [
             {
               update: {
-                name: buildFirestoreDocumentName(workspace.id),
-                fields: (toFirestoreValue(workspace) as { mapValue: { fields: Record<string, FirestoreValue> } }).mapValue.fields,
+                name: buildFirestoreDocumentName(sanitizedWorkspace.id),
+                fields: (toFirestoreValue(sanitizedWorkspace) as { mapValue: { fields: Record<string, FirestoreValue> } }).mapValue.fields,
               },
               currentDocument,
             },
@@ -550,7 +553,7 @@ export async function saveWorkspaceRecord(
   }
 
   const firestore = getFirestore(await getFirebaseAdminApp());
-  const docRef = firestore.collection('workspaces').doc(workspace.id);
+  const docRef = firestore.collection('workspaces').doc(sanitizedWorkspace.id);
 
   await firestore.runTransaction(async transaction => {
     const snapshot = await transaction.get(docRef);
@@ -563,6 +566,6 @@ export async function saveWorkspaceRecord(
       throw new Error(`Workspace revision changed from ${options.expectedRevision} to ${currentRevision}. Reload before writing.`);
     }
 
-    transaction.set(docRef, workspace, { merge: true });
+    transaction.set(docRef, sanitizedWorkspace, { merge: true });
   });
 }
