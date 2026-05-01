@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef, ChangeEvent, useMemo }
 import { AppState, getEffectiveSkillRating } from '@/types';
 import { getDefaultConfig, getRosterFeasibilityWarnings, validateConfig } from '@/utils/configManager';
 import { getProjectBackupFilename, parseProjectBackup, serializeProjectBackup } from '@/utils/projectRecovery';
+import { formatSavedWorkspaceUpdatedAt } from '@/utils/workspaceDate';
 import { validateGroupsForGeneration } from '@/utils/playerGrouping';
 import { serializePlayersToCSV } from '@/utils/csvProcessor';
 import { mergeWorkspaceStateForConflict } from '@/services/persistence/workspaceMerge';
@@ -922,7 +923,7 @@ function App() {
                               </div>
                               <div className="ml-3 text-left overflow-hidden">
                                 <div className="font-bold text-slate-700 truncate">{ws.name}</div>
-                                <div className="text-xs text-slate-400">{new Date(ws.updatedAt).toLocaleDateString()}</div>
+                                <div className="text-xs text-slate-400">Last saved {formatSavedWorkspaceUpdatedAt(ws.updatedAt)}</div>
                               </div>
                             </button>
                           ))}

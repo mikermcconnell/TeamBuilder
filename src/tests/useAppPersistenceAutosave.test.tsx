@@ -299,4 +299,64 @@ describe('useAppPersistence autosave', () => {
       refreshList: false,
     }));
   });
+
+  it('does not reschedule project autosave when only the save callback identity changes', async () => {
+    storageMocks.save.mockResolvedValue({ type: 'cloud' });
+
+    const firstSaveWorkspace = vi.fn().mockResolvedValue({ id: 'workspace-1', type: 'cloud' });
+    const secondSaveWorkspace = vi.fn().mockResolvedValue({ id: 'workspace-1', type: 'cloud' });
+    const user = { uid: 'user-1' };
+    const initialState = createAppState({
+      teams: [
+        {
+          id: 'team-1',
+          name: 'Stable Team',
+          players: [],
+          averageSkill: 0,
+          genderBreakdown: { M: 0, F: 0, Other: 0 },
+        },
+      ],
+    });
+
+    const { rerender } = renderHook((props: {
+      appState: AppState;
+      saveWorkspace: ReturnType<typeof vi.fn>;
+    }) => {
+      const [, setAppState] = useState(props.appState);
+
+      return useAppPersistence({
+        user: user as never,
+        appState: props.appState,
+        setAppState,
+        currentWorkspaceId: 'workspace-1',
+        workspaceName: 'Spring Outdoor 2026',
+        workspaceDescription: 'League draft',
+        saveWorkspace: props.saveWorkspace,
+      });
+    }, {
+      initialProps: {
+        appState: initialState,
+        saveWorkspace: firstSaveWorkspace,
+      },
+    });
+
+    await flushEffects();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(firstSaveWorkspace).toHaveBeenCalledTimes(1);
+
+    rerender({
+      appState: initialState,
+      saveWorkspace: secondSaveWorkspace,
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(secondSaveWorkspace).not.toHaveBeenCalled();
+  });
 });

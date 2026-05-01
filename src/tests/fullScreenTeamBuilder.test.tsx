@@ -53,6 +53,12 @@ const iteration: TeamIteration = {
   createdAt: '2026-04-21T10:00:00.000Z',
 };
 
+const secondIteration: TeamIteration = {
+  ...iteration,
+  id: 'manual-2',
+  name: 'Manual 2',
+};
+
 function renderWorkspace(overrides?: Partial<ComponentProps<typeof FullScreenTeamBuilder>>) {
   return render(
     <FullScreenTeamBuilder
@@ -123,6 +129,24 @@ describe('FullScreenTeamBuilder redo controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to Editing' }));
 
     expect(screen.getByTestId('team-board')).toBeInTheDocument();
+  });
+
+  it('flips between draft tabs from the Big Board view', () => {
+    const onSelectIteration = vi.fn();
+    renderWorkspace({
+      iterations: [iteration, secondIteration],
+      activeIterationId: iteration.id,
+      onSelectIteration,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Big Board' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next draft tab' }));
+
+    expect(onSelectIteration).toHaveBeenCalledWith(secondIteration.id);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous draft tab' }));
+
+    expect(onSelectIteration).toHaveBeenCalledWith(secondIteration.id);
   });
 
   it('saves draft name and note from the draft details dialog', () => {

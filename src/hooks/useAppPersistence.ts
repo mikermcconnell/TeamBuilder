@@ -234,12 +234,17 @@ export function useAppPersistence({
   });
   const projectSaveInFlightRef = useRef(false);
   const projectSaveQueuedRef = useRef(false);
+  const saveWorkspaceRef = useRef(saveWorkspace);
   const latestProjectSaveRef = useRef<{
     state: AppState;
     workspaceId: string;
     name: string;
     description: string;
   } | null>(null);
+
+  useEffect(() => {
+    saveWorkspaceRef.current = saveWorkspace;
+  }, [saveWorkspace]);
 
   const applyWorkspaceSaveStatus = useCallback((result?: WorkspaceSaveResult) => {
     if (!result) {
@@ -283,7 +288,7 @@ export function useAppPersistence({
         });
 
         try {
-          const result = await saveWorkspace(pendingSave.state, {
+          const result = await saveWorkspaceRef.current(pendingSave.state, {
             id: pendingSave.workspaceId,
             name: pendingSave.name,
             description: pendingSave.description,
@@ -309,7 +314,7 @@ export function useAppPersistence({
     } finally {
       projectSaveInFlightRef.current = false;
     }
-  }, [applyWorkspaceSaveStatus, saveWorkspace]);
+  }, [applyWorkspaceSaveStatus]);
 
   const enqueueProjectSave = useCallback((
     state: AppState,

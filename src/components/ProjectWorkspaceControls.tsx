@@ -6,6 +6,7 @@ import { SavedWorkspace } from '@/types';
 import { PersistenceStatusBadge } from '@/components/PersistenceStatusBadge';
 import { PersistenceStatusModel } from '@/hooks/useAppPersistence';
 import type { WorkspaceSaveResult } from '@/services/persistence/saveTypes';
+import { formatSavedWorkspaceUpdatedAt } from '@/utils/workspaceDate';
 import { AuthDialog } from '@/components/AuthDialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -373,7 +374,7 @@ export function ProjectWorkspaceControls({
                     </div>
                     <div className="text-sm text-slate-500 line-clamp-1">{ws.description}</div>
                     <div className="text-xs text-slate-400 mt-1 flex gap-3">
-                      <span>{new Date(ws.updatedAt).toLocaleDateString()}</span>
+                      <span>Last saved {formatSavedWorkspaceUpdatedAt(ws.updatedAt)}</span>
                       <span>•</span>
                       <span>{ws.players?.length || 0} players</span>
                       <span>•</span>

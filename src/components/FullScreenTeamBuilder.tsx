@@ -24,7 +24,7 @@ import { BigBoardView } from './teams/BigBoardView';
 import { DraggablePlayerCard } from './DraggablePlayerCard';
 import { TeamIterationTabs } from './TeamIterationTabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, Redo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Copy, Trash2, FileText, Flag, LayoutGrid, Star } from 'lucide-react';
+import { ArrowLeft, RotateCcw, PanelLeftClose, PanelLeft, Undo2, Redo2, AlertTriangle, Loader2, ArrowUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, Copy, Trash2, FileText, Flag, LayoutGrid, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { WorkspaceManager } from './WorkspaceManager';
@@ -162,6 +162,17 @@ export function FullScreenTeamBuilder({
   const [draftNoteInput, setDraftNoteInput] = useState('');
   const activeIteration = iterations.find(iteration => iteration.id === activeIterationId) ?? null;
   const activeDraftName = activeIteration?.name ?? 'Current Draft';
+  const activeIterationIndex = iterations.findIndex(iteration => iteration.id === activeIterationId);
+  const canFlipDraftTabs = viewMode === 'big-board' && iterations.length > 1 && activeIterationIndex >= 0;
+
+  const selectRelativeIteration = (direction: -1 | 1) => {
+    if (!canFlipDraftTabs) {
+      return;
+    }
+
+    const nextIndex = (activeIterationIndex + direction + iterations.length) % iterations.length;
+    onSelectIteration(iterations[nextIndex].id);
+  };
 
   // Sort teams
   const sortedTeams = [...teams].sort((a, b) => {
@@ -310,16 +321,47 @@ export function FullScreenTeamBuilder({
         <div className={`bg-white/90 backdrop-blur-md border-b border-slate-200 px-3 py-1 flex-shrink-0 z-20 sticky top-0 ${isEmbedded ? 'bg-white' : ''}`}>
           <div className="flex min-h-8 items-center justify-between gap-3">
             <h1 className="min-w-0 truncate text-base font-bold text-slate-950">{activeDraftName}</h1>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 shrink-0 gap-1.5 rounded-full border-slate-300 bg-white px-3 text-xs text-slate-700 hover:bg-slate-50"
-              onClick={() => setViewMode('editing')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Editing
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              {canFlipDraftTabs && (
+                <div className="inline-flex items-center rounded-full border border-slate-200 bg-white shadow-sm">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 rounded-l-full rounded-r-none px-2 text-slate-600 hover:bg-slate-50"
+                    onClick={() => selectRelativeIteration(-1)}
+                    aria-label="Previous draft tab"
+                    title="Previous draft tab"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="border-x border-slate-100 px-2 text-xs font-semibold text-slate-500">
+                    {activeIterationIndex + 1}/{iterations.length}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 rounded-l-none rounded-r-full px-2 text-slate-600 hover:bg-slate-50"
+                    onClick={() => selectRelativeIteration(1)}
+                    aria-label="Next draft tab"
+                    title="Next draft tab"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 rounded-full border-slate-300 bg-white px-3 text-xs text-slate-700 hover:bg-slate-50"
+                onClick={() => setViewMode('editing')}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Editing
+              </Button>
+            </div>
           </div>
         </div>
       ) : (
