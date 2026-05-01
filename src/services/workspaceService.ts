@@ -374,68 +374,53 @@ export class WorkspaceService {
             const isNewWorkspaceSave = expectedRevision === undefined;
 
             if (isNewWorkspaceSave) {
-                const cloudPayload = cleanUndefinedDeep({
-                    ...workspace,
-                    createdAt: workspace.createdAt,
-                    createdAtServer: workspace.createdAtServer ?? serverTimestamp(),
-                    updatedAtServer: serverTimestamp(),
-                    revision: workspace.revision,
-                    lastEditedBySession: sessionId,
-                    lastEditedByDevice: workspace.lastEditedByDevice,
-                    lastEditedAt: now,
-                    activeSessionId: sessionId,
-                    activeSessionHeartbeatAt: now,
-                    activeEditors: this.buildActiveEditors(null, sessionId, now),
-                }) as SavedWorkspace;
-
-                await setDoc(workspaceRef, cloudPayload, { merge: true });
-
-                return {
-                    attempted: true,
-                    saved: true,
-                    workspace: this.normalizeWorkspace({
-                        ...cloudPayload,
-                        createdAtServer: workspace.createdAtServer ?? now,
-                        updatedAtServer: now,
-                    }),
-                };
+                return await this.writeCloudWorkspaceWithoutPreRead(workspaceRef, workspace, sessionId, now);
             }
 
-            const transactionWorkspace = await runTransaction(db, async transaction => {
-                const existingDoc = await transaction.get(workspaceRef);
-                const existingWorkspace = existingDoc.exists()
-                    ? this.normalizeWorkspace(existingDoc.data() as SavedWorkspace)
-                    : null;
+            let transactionWorkspace: SavedWorkspace;
+            try {
+                transactionWorkspace = await runTransaction(db, async transaction => {
+                    const existingDoc = await transaction.get(workspaceRef);
+                    const existingWorkspace = existingDoc.exists()
+                        ? this.normalizeWorkspace(existingDoc.data() as SavedWorkspace)
+                        : null;
 
-                if (!force && expectedRevision !== undefined) {
-                    const actualRevision = existingWorkspace?.revision ?? 0;
+                    if (!force && expectedRevision !== undefined) {
+                        const actualRevision = existingWorkspace?.revision ?? 0;
 
-                    if (actualRevision > expectedRevision) {
-                        throw this.buildConflictResult(workspace.id, expectedRevision, existingWorkspace, 'revision');
+                        if (actualRevision > expectedRevision) {
+                            throw this.buildConflictResult(workspace.id, expectedRevision, existingWorkspace, 'revision');
+                        }
+
+                        if (this.isActiveElsewhere(existingWorkspace, sessionId, now)) {
+                            throw this.buildConflictResult(workspace.id, expectedRevision, existingWorkspace, 'active-editor');
+                        }
                     }
 
-                    if (this.isActiveElsewhere(existingWorkspace, sessionId, now)) {
-                        throw this.buildConflictResult(workspace.id, expectedRevision, existingWorkspace, 'active-editor');
-                    }
+                    const cloudPayload = cleanUndefinedDeep({
+                        ...workspace,
+                        createdAt: existingWorkspace?.createdAt || workspace.createdAt,
+                        createdAtServer: existingWorkspace?.createdAtServer ?? serverTimestamp(),
+                        updatedAtServer: serverTimestamp(),
+                        revision: (existingWorkspace?.revision ?? 0) + 1,
+                        lastEditedBySession: sessionId,
+                        lastEditedByDevice: workspace.lastEditedByDevice,
+                        lastEditedAt: now,
+                        activeSessionId: sessionId,
+                        activeSessionHeartbeatAt: now,
+                        activeEditors: this.buildActiveEditors(existingWorkspace, sessionId, now),
+                    }) as SavedWorkspace;
+
+                    await Promise.resolve(transaction.set(workspaceRef, cloudPayload, { merge: true }));
+                    return this.normalizeWorkspace(cloudPayload);
+                });
+            } catch (transactionError) {
+                if (this.isPermissionDeniedError(transactionError)) {
+                    return await this.writeCloudWorkspaceWithoutPreRead(workspaceRef, workspace, sessionId, now);
                 }
 
-                const cloudPayload = cleanUndefinedDeep({
-                    ...workspace,
-                    createdAt: existingWorkspace?.createdAt || workspace.createdAt,
-                    createdAtServer: existingWorkspace?.createdAtServer ?? serverTimestamp(),
-                    updatedAtServer: serverTimestamp(),
-                    revision: (existingWorkspace?.revision ?? 0) + 1,
-                    lastEditedBySession: sessionId,
-                    lastEditedByDevice: workspace.lastEditedByDevice,
-                    lastEditedAt: now,
-                    activeSessionId: sessionId,
-                    activeSessionHeartbeatAt: now,
-                    activeEditors: this.buildActiveEditors(existingWorkspace, sessionId, now),
-                }) as SavedWorkspace;
-
-                await Promise.resolve(transaction.set(workspaceRef, cloudPayload, { merge: true }));
-                return this.normalizeWorkspace(cloudPayload);
-            });
+                throw transactionError;
+            }
 
             const savedDoc = await getDoc(workspaceRef);
             return {
@@ -464,6 +449,50 @@ export class WorkspaceService {
                 error,
             };
         }
+    }
+
+    private static isPermissionDeniedError(error: unknown): boolean {
+        if (!error || typeof error !== 'object') {
+            return false;
+        }
+
+        const { code, message } = error as { code?: unknown; message?: unknown };
+        return code === 'permission-denied' ||
+            code === 'PERMISSION_DENIED' ||
+            (typeof message === 'string' && message.toLowerCase().includes('permission'));
+    }
+
+    private static async writeCloudWorkspaceWithoutPreRead(
+        workspaceRef: ReturnType<typeof doc>,
+        workspace: SavedWorkspace,
+        sessionId: string,
+        now: string
+    ): Promise<SaveTargetResult & { workspace?: SavedWorkspace }> {
+        const cloudPayload = cleanUndefinedDeep({
+            ...workspace,
+            createdAt: workspace.createdAt,
+            createdAtServer: workspace.createdAtServer ?? serverTimestamp(),
+            updatedAtServer: serverTimestamp(),
+            revision: workspace.revision,
+            lastEditedBySession: sessionId,
+            lastEditedByDevice: workspace.lastEditedByDevice,
+            lastEditedAt: now,
+            activeSessionId: sessionId,
+            activeSessionHeartbeatAt: now,
+            activeEditors: this.buildActiveEditors(null, sessionId, now),
+        }) as SavedWorkspace;
+
+        await setDoc(workspaceRef, cloudPayload, { merge: true });
+
+        return {
+            attempted: true,
+            saved: true,
+            workspace: this.normalizeWorkspace({
+                ...cloudPayload,
+                createdAtServer: workspace.createdAtServer ?? now,
+                updatedAtServer: now,
+            }),
+        };
     }
 
     static async touchWorkspacePresence(workspaceId: string, userId: string): Promise<void> {

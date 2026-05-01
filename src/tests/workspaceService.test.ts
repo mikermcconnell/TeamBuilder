@@ -247,6 +247,50 @@ describe('WorkspaceService', () => {
     ]);
   });
 
+  it('recovers a local-only project when the cloud pre-read is permission denied', async () => {
+    const localOnlyWorkspace = createWorkspace({
+      id: 'local-only-copy',
+      name: 'Spring League Copy',
+      revision: 1,
+      updatedAt: '2026-05-01T14:00:00.000Z',
+    });
+    localStorage.setItem('local_saved_workspaces:user-123', JSON.stringify([localOnlyWorkspace]));
+    mockRunTransaction.mockRejectedValueOnce(Object.assign(new Error('Missing or insufficient permissions'), {
+      code: 'permission-denied',
+    }));
+
+    const result = await WorkspaceService.saveWorkspace(
+      {
+        userId: 'user-123',
+        name: 'Spring League Copy',
+        description: 'Recovered local copy',
+        players: localOnlyWorkspace.players,
+        playerGroups: localOnlyWorkspace.playerGroups,
+        config: localOnlyWorkspace.config,
+        teams: localOnlyWorkspace.teams,
+        unassignedPlayers: localOnlyWorkspace.unassignedPlayers,
+        version: 1,
+      },
+      { id: localOnlyWorkspace.id, expectedRevision: localOnlyWorkspace.revision }
+    );
+
+    expect(result).toEqual(expect.objectContaining({
+      id: 'local-only-copy',
+      type: 'cloud',
+    }));
+    expect(mockRunTransaction).toHaveBeenCalledTimes(1);
+    expect(mockSetDoc).toHaveBeenCalledTimes(1);
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'local-only-copy', path: 'workspaces/local-only-copy' }),
+      expect.objectContaining({
+        id: 'local-only-copy',
+        userId: 'user-123',
+        name: 'Spring League Copy',
+      }),
+      { merge: true }
+    );
+  });
+
   it('still saves to cloud when local workspace cache write fails', async () => {
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('Quota exceeded', 'QuotaExceededError');
