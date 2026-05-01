@@ -150,6 +150,8 @@ describe('WorkspaceService', () => {
 
     expect(result.type).toBe('cloud');
     expect(result.id).toBe('generated-1');
+    expect(mockRunTransaction).not.toHaveBeenCalled();
+    expect(mockGetDoc).not.toHaveBeenCalled();
     expect(mockSetDoc).toHaveBeenCalledTimes(1);
     expect(mockSetDoc).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'generated-1', path: 'workspaces/generated-1' }),

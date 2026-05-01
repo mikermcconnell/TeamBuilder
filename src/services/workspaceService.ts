@@ -8,6 +8,7 @@ import {
     where,
     deleteDoc,
     runTransaction,
+    setDoc,
     onSnapshot,
     serverTimestamp,
     Timestamp,
@@ -370,6 +371,36 @@ export class WorkspaceService {
     ): Promise<(SaveTargetResult & { workspace?: SavedWorkspace }) | WorkspaceSaveResult> {
         try {
             const workspaceRef = doc(db, this.COLLECTION, workspace.id);
+            const isNewWorkspaceSave = expectedRevision === undefined;
+
+            if (isNewWorkspaceSave) {
+                const cloudPayload = cleanUndefinedDeep({
+                    ...workspace,
+                    createdAt: workspace.createdAt,
+                    createdAtServer: workspace.createdAtServer ?? serverTimestamp(),
+                    updatedAtServer: serverTimestamp(),
+                    revision: workspace.revision,
+                    lastEditedBySession: sessionId,
+                    lastEditedByDevice: workspace.lastEditedByDevice,
+                    lastEditedAt: now,
+                    activeSessionId: sessionId,
+                    activeSessionHeartbeatAt: now,
+                    activeEditors: this.buildActiveEditors(null, sessionId, now),
+                }) as SavedWorkspace;
+
+                await setDoc(workspaceRef, cloudPayload, { merge: true });
+
+                return {
+                    attempted: true,
+                    saved: true,
+                    workspace: this.normalizeWorkspace({
+                        ...cloudPayload,
+                        createdAtServer: workspace.createdAtServer ?? now,
+                        updatedAtServer: now,
+                    }),
+                };
+            }
+
             const transactionWorkspace = await runTransaction(db, async transaction => {
                 const existingDoc = await transaction.get(workspaceRef);
                 const existingWorkspace = existingDoc.exists()
