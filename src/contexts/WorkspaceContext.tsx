@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 // Workspace Context for managing projects
 import { SavedWorkspace, AppState, LeagueConfig } from '@/types';
 import { WorkspaceService } from '@/services/workspaceService';
@@ -49,10 +49,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const [workspaceDescription, setWorkspaceDescription] = useState('');
     const [savedWorkspaces, setSavedWorkspaces] = useState<SavedWorkspace[]>([]);
     const [lastWorkspaceConflict, setLastWorkspaceConflict] = useState<WorkspaceSaveResult | null>(null);
+    const currentWorkspaceRevisionRef = useRef<number | null>(null);
 
     // Loading States
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        currentWorkspaceRevisionRef.current = currentWorkspaceRevision;
+    }, [currentWorkspaceRevision]);
 
     const loadWorkspaces = useCallback(async () => {
         if (!user) return;
@@ -106,7 +111,39 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
                     return;
                 }
 
-                setCurrentWorkspaceRevision(prevRevision => Math.max(prevRevision ?? 0, workspace.revision ?? 0));
+                const remoteRevision = workspace.revision ?? 0;
+                const expectedRevision = currentWorkspaceRevisionRef.current;
+                const isOwnWorkspaceUpdate = workspace.lastEditedBySession === WorkspaceService.getCurrentSessionId();
+
+                if (expectedRevision !== null && remoteRevision > expectedRevision && !isOwnWorkspaceUpdate) {
+                    setLastWorkspaceConflict({
+                        id: workspace.id,
+                        type: 'conflict',
+                        revision: remoteRevision,
+                        conflict: {
+                            expectedRevision,
+                            actualRevision: remoteRevision,
+                            reason: 'revision',
+                            lastEditedBySession: workspace.lastEditedBySession,
+                            activeSessionId: workspace.activeSessionId,
+                            activeSessionHeartbeatAt: workspace.activeSessionHeartbeatAt,
+                        },
+                        local: {
+                            attempted: false,
+                            saved: false,
+                        },
+                        cloud: {
+                            attempted: false,
+                            saved: false,
+                        },
+                        error: new Error('Workspace changed in another editor'),
+                    });
+                    return;
+                }
+
+                if (isOwnWorkspaceUpdate || expectedRevision === null) {
+                    setCurrentWorkspaceRevision(prevRevision => Math.max(prevRevision ?? 0, remoteRevision));
+                }
 
                 const activeEditorConflict = WorkspaceService.getActiveEditorConflict(workspace);
 

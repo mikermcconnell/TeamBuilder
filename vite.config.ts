@@ -147,6 +147,10 @@ export default defineConfig(({ mode }) => {
       minify: 'terser',
       cssMinify: true,
       sourcemap: false,
+      // The main app shell intentionally includes the team builder workflow.
+      // Keep this budget explicit so production builds only warn on new,
+      // materially larger chunks.
+      chunkSizeWarningLimit: 1300,
       rollupOptions: {
         output: {
           manualChunks(id) {

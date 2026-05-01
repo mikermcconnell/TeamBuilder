@@ -19,7 +19,7 @@ function badgeClass(tone: 'slate' | 'blue' | 'amber' | 'emerald' | 'violet') {
     violet: 'border-violet-200 bg-violet-50 text-violet-700',
   } as const;
 
-  return `rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none ${tones[tone]}`;
+  return `rounded border px-1 py-0 text-[9px] font-semibold leading-none ${tones[tone]}`;
 }
 
 function skillBadgeClass(skill: number): string {
@@ -44,15 +44,16 @@ export function CompactPlayerRow({ player }: CompactPlayerRowProps) {
   });
 
   return (
-    <div className="flex min-w-0 items-center gap-1 rounded-md border border-slate-100 bg-white px-1.5 py-0.5 text-xs text-slate-700">
-      <span className="min-w-0 flex-1 truncate font-medium text-slate-900">{player.name}</span>
+    <div className="flex min-w-0 items-center gap-1 rounded border border-slate-100 bg-white px-1 py-0 text-[11px] leading-[16px] text-slate-700">
+      <span className="min-w-0 flex-1 truncate font-medium leading-[16px] text-slate-900">{player.name}</span>
       <PlayerLabels player={player} compact />
       <span className={badgeClass(player.gender === 'F' ? 'violet' : player.gender === 'M' ? 'blue' : 'slate')}>
         {player.gender}
       </span>
       {player.isHandler && <span className={badgeClass('amber')}>Handler</span>}
       {player.isNewPlayer && <span className={badgeClass('emerald')}>New</span>}
-      <span className={`w-7 shrink-0 rounded border px-1 py-0.5 text-center text-[10px] font-semibold leading-none tabular-nums ${skillBadgeClass(effectiveSkill)}`}>
+      <span className="sr-only">Exec {formatRating(effectiveSkill)}</span>
+      <span aria-hidden="true" className={`w-6 shrink-0 rounded border px-1 py-0 text-center text-[9px] font-semibold leading-[14px] tabular-nums ${skillBadgeClass(effectiveSkill)}`}>
         {formatRating(effectiveSkill)}
       </span>
     </div>
