@@ -2,14 +2,16 @@ import { db } from '@/config/firebase';
 import {
     collection,
     doc,
-    setDoc,
     getDoc,
     getDocs,
     query,
     where,
     deleteDoc,
+    runTransaction,
+    onSnapshot,
     serverTimestamp,
-    Timestamp
+    Timestamp,
+    type Unsubscribe
 } from 'firebase/firestore';
 import { SavedWorkspace } from '@/types';
 import { cleanUndefinedDeep } from './persistence/cleanup';
@@ -21,6 +23,31 @@ export class WorkspaceService {
     private static readonly COLLECTION = 'workspaces';
     private static readonly LEGACY_LOCAL_KEY = 'local_saved_workspaces';
     private static readonly LOCAL_KEY_PREFIX = 'local_saved_workspaces';
+    private static readonly ACTIVE_EDITOR_TIMEOUT_MS = 2 * 60 * 1000;
+    private static clientSessionId: string | null = null;
+
+    private static getClientSessionId(): string {
+        if (!this.clientSessionId) {
+            const randomPart = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                ? crypto.randomUUID()
+                : Math.random().toString(36).slice(2);
+            this.clientSessionId = `session-${randomPart}`;
+        }
+
+        return this.clientSessionId;
+    }
+
+    static getCurrentSessionId(): string {
+        return this.getClientSessionId();
+    }
+
+    private static getDeviceLabel(): string {
+        if (typeof navigator === 'undefined') {
+            return 'server';
+        }
+
+        return navigator.userAgent.slice(0, 120);
+    }
 
     private static getLocalKey(userId: string): string {
         return buildLocalStorageKey(this.LOCAL_KEY_PREFIX, userId);
@@ -89,6 +116,132 @@ export class WorkspaceService {
             revision: workspace.revision ?? 0,
             createdAtServer: this.toIsoString(workspace.createdAtServer),
             updatedAtServer: this.toIsoString(workspace.updatedAtServer),
+            lastEditedAt: this.toIsoString(workspace.lastEditedAt) ?? workspace.lastEditedAt,
+            activeSessionHeartbeatAt: this.toIsoString(workspace.activeSessionHeartbeatAt) ?? workspace.activeSessionHeartbeatAt,
+            activeEditors: Object.fromEntries(
+                Object.entries(workspace.activeEditors ?? {}).map(([sessionId, presence]) => [
+                    sessionId,
+                    {
+                        ...presence,
+                        sessionId: presence.sessionId || sessionId,
+                        heartbeatAt: this.toIsoString(presence.heartbeatAt) ?? presence.heartbeatAt,
+                    },
+                ])
+            ),
+        };
+    }
+
+    private static getActiveEditors(workspace: SavedWorkspace | null, now: string): Array<{ sessionId: string; heartbeatAt: string; deviceLabel?: string }> {
+        if (!workspace) {
+            return [];
+        }
+
+        const nowTime = new Date(now).getTime();
+        const activeEditors = Object.entries(workspace.activeEditors ?? {})
+            .map(([sessionId, presence]) => ({
+                sessionId: presence.sessionId || sessionId,
+                heartbeatAt: presence.heartbeatAt,
+                deviceLabel: presence.deviceLabel,
+            }))
+            .filter(presence => {
+                const heartbeatTime = presence.heartbeatAt ? new Date(presence.heartbeatAt).getTime() : 0;
+                return !Number.isNaN(heartbeatTime) &&
+                    !Number.isNaN(nowTime) &&
+                    nowTime - heartbeatTime < this.ACTIVE_EDITOR_TIMEOUT_MS;
+            });
+
+        if (workspace.activeSessionId && workspace.activeSessionHeartbeatAt) {
+            const heartbeatTime = new Date(workspace.activeSessionHeartbeatAt).getTime();
+            const alreadyIncluded = activeEditors.some(editor => editor.sessionId === workspace.activeSessionId);
+
+            if (!alreadyIncluded && !Number.isNaN(heartbeatTime) && !Number.isNaN(nowTime) && nowTime - heartbeatTime < this.ACTIVE_EDITOR_TIMEOUT_MS) {
+                activeEditors.push({
+                    sessionId: workspace.activeSessionId,
+                    heartbeatAt: workspace.activeSessionHeartbeatAt,
+                    deviceLabel: workspace.lastEditedByDevice,
+                });
+            }
+        }
+
+        return activeEditors;
+    }
+
+    private static getActiveEditorElsewhere(workspace: SavedWorkspace | null, sessionId: string, now: string) {
+        return this.getActiveEditors(workspace, now).find(editor => editor.sessionId !== sessionId) ?? null;
+    }
+
+    private static isActiveElsewhere(workspace: SavedWorkspace | null, sessionId: string, now: string): boolean {
+        return Boolean(this.getActiveEditorElsewhere(workspace, sessionId, now));
+    }
+
+    static getActiveEditorConflict(workspace: SavedWorkspace): WorkspaceSaveResult['conflict'] | null {
+        const now = new Date().toISOString();
+        const activeEditor = this.getActiveEditorElsewhere(workspace, this.getClientSessionId(), now);
+
+        if (!activeEditor) {
+            return null;
+        }
+
+        return {
+            expectedRevision: workspace.revision,
+            actualRevision: workspace.revision,
+            reason: 'active-editor',
+            lastEditedBySession: workspace.lastEditedBySession,
+            activeSessionId: activeEditor.sessionId,
+            activeSessionHeartbeatAt: activeEditor.heartbeatAt,
+        };
+    }
+
+    private static buildActiveEditors(workspace: SavedWorkspace | null, sessionId: string, now: string): SavedWorkspace['activeEditors'] {
+        const activeEditors = Object.fromEntries(
+            this.getActiveEditors(workspace, now).map(editor => [
+                editor.sessionId,
+                {
+                    sessionId: editor.sessionId,
+                    deviceLabel: editor.deviceLabel,
+                    heartbeatAt: editor.heartbeatAt,
+                },
+            ])
+        );
+
+        activeEditors[sessionId] = {
+            sessionId,
+            deviceLabel: this.getDeviceLabel(),
+            heartbeatAt: now,
+        };
+
+        return activeEditors;
+    }
+
+    private static buildConflictResult(
+        workspaceId: string,
+        expectedRevision: number | undefined,
+        existingWorkspace: SavedWorkspace | null,
+        reason: 'revision' | 'active-editor'
+    ): WorkspaceSaveResult {
+        return {
+            id: workspaceId,
+            type: 'conflict',
+            revision: existingWorkspace?.revision ?? 0,
+            conflict: {
+                expectedRevision,
+                actualRevision: existingWorkspace?.revision ?? 0,
+                reason,
+                lastEditedBySession: existingWorkspace?.lastEditedBySession,
+                activeSessionId: existingWorkspace?.activeSessionId,
+                activeSessionHeartbeatAt: existingWorkspace?.activeSessionHeartbeatAt,
+            },
+            local: {
+                attempted: false,
+                saved: false,
+            },
+            cloud: {
+                attempted: false,
+                saved: false,
+            },
+            error: new Error(reason === 'active-editor'
+                ? 'Workspace is active in another editor'
+                : 'Workspace save conflict detected'),
         };
     }
 
@@ -118,73 +271,45 @@ export class WorkspaceService {
     ): Promise<WorkspaceSaveResult> {
         const workspaceId = options?.id || doc(collection(db, this.COLLECTION)).id;
         const now = new Date().toISOString();
+        const sessionId = this.getClientSessionId();
         const existingLocalWorkspace = this.readLocalWorkspaces(workspace.userId).find(w => w.id === workspaceId) || null;
 
-        let existingCloudWorkspace: SavedWorkspace | null = null;
-        try {
-            const existingCloudDoc = await getDoc(doc(db, this.COLLECTION, workspaceId));
-            if (existingCloudDoc.exists()) {
-                existingCloudWorkspace = this.normalizeWorkspace(existingCloudDoc.data() as SavedWorkspace);
-            }
-        } catch (error) {
-            console.warn('Failed to fetch current cloud workspace before save:', error);
-        }
-
-        const latestExistingWorkspace = this.preferNewerWorkspace(existingCloudWorkspace, existingLocalWorkspace);
-        const actualRevision = latestExistingWorkspace?.revision ?? 0;
         const expectedRevision = options?.expectedRevision ?? undefined;
 
-        if (!options?.force && expectedRevision !== undefined && actualRevision > expectedRevision) {
-            return {
-                id: workspaceId,
-                type: 'conflict',
-                revision: actualRevision,
-                conflict: {
-                    expectedRevision,
-                    actualRevision,
-                },
-                local: {
-                    attempted: false,
-                    saved: false,
-                },
-                cloud: {
-                    attempted: false,
-                    saved: false,
-                },
-                error: new Error('Workspace save conflict detected'),
-            };
+        if (!options?.force && expectedRevision !== undefined && existingLocalWorkspace && existingLocalWorkspace.revision > expectedRevision) {
+            return this.buildConflictResult(workspaceId, expectedRevision, existingLocalWorkspace, 'revision');
         }
 
+        const baseRevision = existingLocalWorkspace?.revision ?? 0;
         const rawPayload = {
             ...workspace,
             id: workspaceId,
             updatedAt: now,
-            createdAt: latestExistingWorkspace?.createdAt || now,
-            createdAtServer: latestExistingWorkspace?.createdAtServer,
-            updatedAtServer: latestExistingWorkspace?.updatedAtServer,
-            revision: actualRevision + 1,
+            createdAt: existingLocalWorkspace?.createdAt || now,
+            createdAtServer: existingLocalWorkspace?.createdAtServer,
+            updatedAtServer: existingLocalWorkspace?.updatedAtServer,
+            revision: baseRevision + 1,
+            lastEditedBySession: sessionId,
+            lastEditedByDevice: this.getDeviceLabel(),
+            lastEditedAt: now,
+            activeSessionId: sessionId,
+            activeSessionHeartbeatAt: now,
         };
 
         const payload = this.normalizeWorkspace(cleanUndefinedDeep(rawPayload) as SavedWorkspace);
 
-        const localResult = this.trySaveLocalWorkspace(payload);
-        const cloudResult = await this.trySaveCloudWorkspace(payload);
+        const cloudResult = await this.trySaveCloudWorkspace(payload, expectedRevision, options?.force ?? false, sessionId, now);
+
+        if ('type' in cloudResult && cloudResult.type === 'conflict') {
+            return cloudResult;
+        }
 
         const normalizedCloudWorkspace = cloudResult.workspace
             ? this.normalizeWorkspace(cloudResult.workspace)
             : null;
 
-        if (normalizedCloudWorkspace) {
-            const syncedLocalResult = this.trySaveLocalWorkspace(normalizedCloudWorkspace);
-            if (!localResult.saved && syncedLocalResult.saved) {
-                localResult.saved = true;
-                localResult.error = undefined;
-            } else if (syncedLocalResult.error) {
-                localResult.error = localResult.error ?? syncedLocalResult.error;
-            }
-        }
-
         if (cloudResult.saved) {
+            const localResult = this.trySaveLocalWorkspace(normalizedCloudWorkspace ?? payload);
             return {
                 id: workspaceId,
                 revision: normalizedCloudWorkspace?.revision ?? payload.revision,
@@ -195,6 +320,7 @@ export class WorkspaceService {
             };
         }
 
+        const localResult = this.trySaveLocalWorkspace(payload);
         if (localResult.saved) {
             return {
                 id: workspaceId,
@@ -208,7 +334,7 @@ export class WorkspaceService {
 
         return {
             id: workspaceId,
-            revision: actualRevision,
+            revision: baseRevision,
             type: 'error',
             local: localResult,
             cloud: cloudResult,
@@ -235,25 +361,64 @@ export class WorkspaceService {
         }
     }
 
-    private static async trySaveCloudWorkspace(workspace: SavedWorkspace): Promise<SaveTargetResult & { workspace?: SavedWorkspace }> {
+    private static async trySaveCloudWorkspace(
+        workspace: SavedWorkspace,
+        expectedRevision: number | undefined,
+        force: boolean,
+        sessionId: string,
+        now: string
+    ): Promise<(SaveTargetResult & { workspace?: SavedWorkspace }) | WorkspaceSaveResult> {
         try {
             const workspaceRef = doc(db, this.COLLECTION, workspace.id);
-            const cloudPayload = cleanUndefinedDeep({
-                ...workspace,
-                createdAtServer: workspace.createdAtServer ?? serverTimestamp(),
-                updatedAtServer: serverTimestamp(),
-            }) as SavedWorkspace;
+            const transactionWorkspace = await runTransaction(db, async transaction => {
+                const existingDoc = await transaction.get(workspaceRef);
+                const existingWorkspace = existingDoc.exists()
+                    ? this.normalizeWorkspace(existingDoc.data() as SavedWorkspace)
+                    : null;
 
-            await setDoc(workspaceRef, cloudPayload, { merge: true });
+                if (!force && expectedRevision !== undefined) {
+                    const actualRevision = existingWorkspace?.revision ?? 0;
+
+                    if (actualRevision > expectedRevision) {
+                        throw this.buildConflictResult(workspace.id, expectedRevision, existingWorkspace, 'revision');
+                    }
+
+                    if (this.isActiveElsewhere(existingWorkspace, sessionId, now)) {
+                        throw this.buildConflictResult(workspace.id, expectedRevision, existingWorkspace, 'active-editor');
+                    }
+                }
+
+                const cloudPayload = cleanUndefinedDeep({
+                    ...workspace,
+                    createdAt: existingWorkspace?.createdAt || workspace.createdAt,
+                    createdAtServer: existingWorkspace?.createdAtServer ?? serverTimestamp(),
+                    updatedAtServer: serverTimestamp(),
+                    revision: (existingWorkspace?.revision ?? 0) + 1,
+                    lastEditedBySession: sessionId,
+                    lastEditedByDevice: workspace.lastEditedByDevice,
+                    lastEditedAt: now,
+                    activeSessionId: sessionId,
+                    activeSessionHeartbeatAt: now,
+                    activeEditors: this.buildActiveEditors(existingWorkspace, sessionId, now),
+                }) as SavedWorkspace;
+
+                await Promise.resolve(transaction.set(workspaceRef, cloudPayload, { merge: true }));
+                return this.normalizeWorkspace(cloudPayload);
+            });
+
             const savedDoc = await getDoc(workspaceRef);
             return {
                 attempted: true,
                 saved: true,
                 workspace: savedDoc.exists()
                     ? this.normalizeWorkspace(savedDoc.data() as SavedWorkspace)
-                    : workspace,
+                    : transactionWorkspace,
             };
         } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'type' in error && (error as WorkspaceSaveResult).type === 'conflict') {
+                return error as WorkspaceSaveResult;
+            }
+
             console.error('Error saving workspace to cloud:', {
                 error,
                 code: error instanceof Error && 'code' in error ? (error as { code?: string }).code : undefined,
@@ -268,6 +433,67 @@ export class WorkspaceService {
                 error,
             };
         }
+    }
+
+    static async touchWorkspacePresence(workspaceId: string, userId: string): Promise<void> {
+        const sessionId = this.getClientSessionId();
+        const now = new Date().toISOString();
+        const workspaceRef = doc(db, this.COLLECTION, workspaceId);
+
+        await runTransaction(db, async transaction => {
+            const existingDoc = await transaction.get(workspaceRef);
+
+            if (!existingDoc.exists()) {
+                return;
+            }
+
+            const existingWorkspace = this.normalizeWorkspace(existingDoc.data() as SavedWorkspace);
+
+            if (existingWorkspace.userId !== userId) {
+                return;
+            }
+
+            const presencePayload = cleanUndefinedDeep({
+                activeSessionId: sessionId,
+                activeSessionHeartbeatAt: now,
+                lastEditedBySession: sessionId,
+                lastEditedByDevice: this.getDeviceLabel(),
+                activeEditors: this.buildActiveEditors(existingWorkspace, sessionId, now),
+            });
+
+            await Promise.resolve(transaction.set(workspaceRef, presencePayload, { merge: true }));
+        });
+    }
+
+    static subscribeWorkspace(
+        workspaceId: string,
+        userId: string,
+        onWorkspace: (workspace: SavedWorkspace | null) => void,
+        onError?: (error: unknown) => void
+    ): Unsubscribe {
+        const workspaceRef = doc(db, this.COLLECTION, workspaceId);
+
+        return onSnapshot(
+            workspaceRef,
+            snapshot => {
+                if (!snapshot.exists()) {
+                    onWorkspace(null);
+                    return;
+                }
+
+                const workspace = this.normalizeWorkspace(snapshot.data() as SavedWorkspace);
+
+                if (workspace.userId !== userId) {
+                    onWorkspace(null);
+                    return;
+                }
+
+                onWorkspace(workspace);
+            },
+            error => {
+                onError?.(error);
+            }
+        );
     }
 
     /**

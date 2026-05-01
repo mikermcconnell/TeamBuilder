@@ -244,6 +244,16 @@ export interface SavedWorkspace {
   createdAtServer?: string;
   updatedAtServer?: string;
   revision: number;
+  lastEditedBySession?: string;
+  lastEditedByDevice?: string;
+  lastEditedAt?: string;
+  activeSessionId?: string;
+  activeSessionHeartbeatAt?: string;
+  activeEditors?: Record<string, {
+    sessionId: string;
+    deviceLabel?: string;
+    heartbeatAt: string;
+  }>;
   tags?: string[];
   version: number;
 }

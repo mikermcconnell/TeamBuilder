@@ -14,6 +14,10 @@ export interface SaveResult {
 export interface SaveConflict {
   expectedRevision?: number;
   actualRevision: number;
+  reason?: 'revision' | 'active-editor';
+  lastEditedBySession?: string;
+  activeSessionId?: string;
+  activeSessionHeartbeatAt?: string;
 }
 
 export interface WorkspaceSaveResult extends SaveResult {

@@ -1,0 +1,86 @@
+{
+  "baseRevision": 151,
+  "currentSpread": 1.643,
+  "best": {
+    "attempt": 1669,
+    "score": 4073.6741214057506,
+    "metrics": {
+      "teams": 10,
+      "players": 142,
+      "unassigned": 0,
+      "brokenGroups": 0,
+      "avoid": 0,
+      "minGenderOk": true,
+      "skillSpread": 0.192,
+      "fSpread": 2,
+      "mSpread": 2,
+      "heartZero": 0,
+      "heartSpread": 1,
+      "handlerSpread": 1,
+      "hearts": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "f": [
+        4,
+        5,
+        4,
+        5,
+        6,
+        5,
+        5,
+        5,
+        4,
+        5
+      ],
+      "m": [
+        10,
+        9,
+        10,
+        10,
+        8,
+        10,
+        9,
+        10,
+        9,
+        9
+      ],
+      "handlers": [
+        4,
+        3,
+        3,
+        3,
+        4,
+        3,
+        4,
+        3,
+        3,
+        3
+      ],
+      "sizes": [
+        14,
+        14,
+        14,
+        15,
+        14,
+        15,
+        14,
+        15,
+        13,
+        14
+      ]
+    },
+    "overlaps": [
+      0.151,
+      0.148
+    ]
+  }
+}

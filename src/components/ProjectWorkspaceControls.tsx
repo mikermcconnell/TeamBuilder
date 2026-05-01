@@ -247,10 +247,17 @@ export function ProjectWorkspaceControls({
           <div className="grid gap-4 py-4">
             {workspaceConflict?.type === 'conflict' && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                <div className="font-bold">This project changed somewhere else.</div>
+                <div className="font-bold">
+                  {workspaceConflict.conflict?.reason === 'active-editor'
+                    ? 'This project is open somewhere else.'
+                    : 'This project changed somewhere else.'}
+                </div>
                 <div className="mt-1 text-xs text-amber-900/80">
                   Current saved revision: {workspaceConflict.conflict?.actualRevision ?? 'unknown'}.
                   Your editor tried to save revision {workspaceConflict.conflict?.expectedRevision ?? 'unknown'}.
+                  {workspaceConflict.conflict?.reason === 'active-editor' && (
+                    <> Another active editor was detected for this signed-in account.</>
+                  )}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button

@@ -1,0 +1,253 @@
+{
+  "selected": [
+    {
+      "draft": 1,
+      "attempt": 3465,
+      "score": 25854.4,
+      "metrics": {
+        "teams": 10,
+        "unassigned": 0,
+        "brokenGroups": 0,
+        "avoid": 0,
+        "minGenderOk": true,
+        "skillSpread": 0.212,
+        "fSpread": 1,
+        "mSpread": 1,
+        "heartZero": 0,
+        "heartSpread": 1,
+        "handlerSpread": 1,
+        "hearts": [
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "f": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          4,
+          5,
+          5,
+          5,
+          4
+        ],
+        "m": [
+          9,
+          9,
+          10,
+          9,
+          9,
+          10,
+          10,
+          9,
+          9,
+          10
+        ],
+        "handlers": [
+          3,
+          3,
+          3,
+          3,
+          4,
+          3,
+          3,
+          4,
+          4,
+          3
+        ],
+        "sizes": [
+          14,
+          14,
+          15,
+          14,
+          14,
+          14,
+          15,
+          14,
+          14,
+          14
+        ]
+      },
+      "overlaps": [
+        1,
+        0.156,
+        0.128
+      ]
+    },
+    {
+      "draft": 2,
+      "attempt": 4007,
+      "score": 28171.6,
+      "metrics": {
+        "teams": 10,
+        "unassigned": 0,
+        "brokenGroups": 0,
+        "avoid": 0,
+        "minGenderOk": true,
+        "skillSpread": 1.643,
+        "fSpread": 1,
+        "mSpread": 1,
+        "heartZero": 0,
+        "heartSpread": 1,
+        "handlerSpread": 2,
+        "hearts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          2,
+          1
+        ],
+        "f": [
+          5,
+          5,
+          5,
+          4,
+          4,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "m": [
+          10,
+          9,
+          9,
+          10,
+          10,
+          9,
+          10,
+          9,
+          9,
+          9
+        ],
+        "handlers": [
+          3,
+          3,
+          3,
+          5,
+          3,
+          3,
+          3,
+          3,
+          4,
+          3
+        ],
+        "sizes": [
+          15,
+          14,
+          14,
+          14,
+          14,
+          14,
+          15,
+          14,
+          14,
+          14
+        ]
+      },
+      "overlaps": [
+        0.156,
+        1,
+        0.156
+      ]
+    },
+    {
+      "draft": 3,
+      "attempt": 2700,
+      "score": 206671.6,
+      "metrics": {
+        "teams": 10,
+        "unassigned": 0,
+        "brokenGroups": 0,
+        "avoid": 0,
+        "minGenderOk": true,
+        "skillSpread": 0.393,
+        "fSpread": 2,
+        "mSpread": 1,
+        "heartZero": 0,
+        "heartSpread": 1,
+        "handlerSpread": 2,
+        "hearts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          2
+        ],
+        "f": [
+          5,
+          4,
+          5,
+          6,
+          4,
+          4,
+          5,
+          5,
+          6,
+          4
+        ],
+        "m": [
+          9,
+          10,
+          9,
+          9,
+          10,
+          10,
+          9,
+          9,
+          9,
+          10
+        ],
+        "handlers": [
+          4,
+          3,
+          3,
+          3,
+          3,
+          3,
+          5,
+          3,
+          3,
+          3
+        ],
+        "sizes": [
+          14,
+          14,
+          14,
+          15,
+          14,
+          14,
+          14,
+          14,
+          15,
+          14
+        ]
+      },
+      "overlaps": [
+        0.128,
+        0.156,
+        1
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
 import { toast } from 'sonner';
 
@@ -232,6 +232,105 @@ export function useAppPersistence({
     scope: 'device',
     surface: 'local',
   });
+  const projectSaveInFlightRef = useRef(false);
+  const projectSaveQueuedRef = useRef(false);
+  const latestProjectSaveRef = useRef<{
+    state: AppState;
+    workspaceId: string;
+    name: string;
+    description: string;
+  } | null>(null);
+
+  const applyWorkspaceSaveStatus = useCallback((result?: WorkspaceSaveResult) => {
+    if (!result) {
+      return;
+    }
+
+    setPersistenceSnapshot({
+      phase: result.type === 'conflict'
+        ? 'conflict'
+        : result.type === 'local'
+          ? 'retrying'
+          : result.type === 'error'
+            ? 'error'
+            : 'saved',
+      scope: 'project',
+      surface: result.type === 'cloud' ? 'cloud' : 'local',
+    });
+  }, []);
+
+  const runQueuedProjectSave = useCallback(async () => {
+    if (projectSaveInFlightRef.current) {
+      projectSaveQueuedRef.current = true;
+      return;
+    }
+
+    projectSaveInFlightRef.current = true;
+
+    try {
+      do {
+        projectSaveQueuedRef.current = false;
+        const pendingSave = latestProjectSaveRef.current;
+
+        if (!pendingSave) {
+          break;
+        }
+
+        setPersistenceSnapshot({
+          phase: 'saving',
+          scope: 'project',
+          surface: 'cloud',
+        });
+
+        try {
+          const result = await saveWorkspace(pendingSave.state, {
+            id: pendingSave.workspaceId,
+            name: pendingSave.name,
+            description: pendingSave.description,
+            silent: true,
+            refreshList: false,
+          });
+
+          applyWorkspaceSaveStatus(result);
+
+          if (result?.type === 'conflict') {
+            projectSaveQueuedRef.current = false;
+            break;
+          }
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+          setPersistenceSnapshot({
+            phase: 'error',
+            scope: 'project',
+            surface: 'cloud',
+          });
+        }
+      } while (projectSaveQueuedRef.current);
+    } finally {
+      projectSaveInFlightRef.current = false;
+    }
+  }, [applyWorkspaceSaveStatus, saveWorkspace]);
+
+  const enqueueProjectSave = useCallback((
+    state: AppState,
+    workspaceId: string,
+    name: string,
+    description: string
+  ) => {
+    latestProjectSaveRef.current = {
+      state,
+      workspaceId,
+      name,
+      description,
+    };
+
+    if (projectSaveInFlightRef.current) {
+      projectSaveQueuedRef.current = true;
+      return;
+    }
+
+    void runQueuedProjectSave();
+  }, [runQueuedProjectSave]);
 
   useEffect(() => {
     let isMounted = true;
@@ -346,56 +445,15 @@ export function useAppPersistence({
       surface: 'cloud',
     });
 
-    const timeoutId = window.setTimeout(async () => {
-      try {
-        const result = await saveWorkspace({
-          players: appState.players,
-          playerGroups: appState.playerGroups,
-          config: appState.config,
-          teams: appState.teams,
-          unassignedPlayers: appState.unassignedPlayers,
-          stats: appState.stats,
-          teamIterations: appState.teamIterations,
-          activeTeamIterationId: appState.activeTeamIterationId,
-          leagueMemory: appState.leagueMemory,
-        }, {
-          id: currentWorkspaceId,
-          name: workspaceName,
-          description: workspaceDescription,
-          silent: true,
-          refreshList: false,
-        });
-
-        if (!result) {
-          return;
-        }
-
-        setPersistenceSnapshot({
-          phase: result.type === 'conflict'
-            ? 'conflict'
-            : result.type === 'local'
-              ? 'retrying'
-              : result.type === 'error'
-                ? 'error'
-                : 'saved',
-          scope: 'project',
-          surface: result.type === 'cloud' ? 'cloud' : 'local',
-        });
-      } catch (error) {
-        console.error('Auto-save failed:', error);
-        setPersistenceSnapshot({
-          phase: 'error',
-          scope: 'project',
-          surface: 'cloud',
-        });
-      }
+    const timeoutId = window.setTimeout(() => {
+      enqueueProjectSave(appState, currentWorkspaceId, workspaceName, workspaceDescription);
     }, 3000);
 
     return () => window.clearTimeout(timeoutId);
   }, [
     appState,
     currentWorkspaceId,
-    saveWorkspace,
+    enqueueProjectSave,
     user,
     workspaceDescription,
     workspaceName,
@@ -408,6 +466,9 @@ export function useAppPersistence({
 
     const flushPendingState = () => {
       void dataStorageService.save(appState);
+      if (currentWorkspaceId && user && workspaceName.trim()) {
+        enqueueProjectSave(appState, currentWorkspaceId, workspaceName, workspaceDescription);
+      }
     };
 
     const handleVisibilityChange = () => {
@@ -423,7 +484,7 @@ export function useAppPersistence({
       window.removeEventListener('pagehide', flushPendingState);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [appState, dataLoaded]);
+  }, [appState, currentWorkspaceId, dataLoaded, enqueueProjectSave, user, workspaceDescription, workspaceName]);
 
   const applyLoadedWorkspace = useCallback((workspace: SavedWorkspace) => {
     setAppState(prev => {
@@ -473,22 +534,8 @@ export function useAppPersistence({
   }, [setAppState]);
 
   const syncWorkspaceSaveStatus = useCallback((result?: WorkspaceSaveResult) => {
-    if (!result) {
-      return;
-    }
-
-    setPersistenceSnapshot({
-      phase: result.type === 'conflict'
-        ? 'conflict'
-        : result.type === 'local'
-          ? 'retrying'
-          : result.type === 'error'
-            ? 'error'
-            : 'saved',
-      scope: 'project',
-      surface: result.type === 'cloud' ? 'cloud' : 'local',
-    });
-  }, []);
+    applyWorkspaceSaveStatus(result);
+  }, [applyWorkspaceSaveStatus]);
 
   const persistAppStateImmediately = useCallback(async (state: AppState) => {
     setPersistenceSnapshot({
@@ -501,17 +548,7 @@ export function useAppPersistence({
       const deviceResult = await dataStorageService.save(state);
 
       if (currentWorkspaceId && user && workspaceName.trim()) {
-        const workspaceResult = await saveWorkspace({
-          players: state.players,
-          playerGroups: state.playerGroups,
-          config: state.config,
-          teams: state.teams,
-          unassignedPlayers: state.unassignedPlayers,
-          stats: state.stats,
-          teamIterations: state.teamIterations,
-          activeTeamIterationId: state.activeTeamIterationId,
-          leagueMemory: state.leagueMemory,
-        }, {
+        const workspaceResult = await saveWorkspace(state, {
           id: currentWorkspaceId,
           name: workspaceName,
           description: workspaceDescription,

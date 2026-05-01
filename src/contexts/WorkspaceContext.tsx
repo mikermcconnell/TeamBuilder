@@ -82,6 +82,86 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user, loadWorkspaces]);
 
+    useEffect(() => {
+        if (!user || !currentWorkspaceId) {
+            return undefined;
+        }
+
+        let hasShownActiveEditorWarning = false;
+
+        const updatePresence = () => {
+            void WorkspaceService.touchWorkspacePresence(currentWorkspaceId, user.uid).catch(error => {
+                console.warn('Failed to update project presence:', error);
+            });
+        };
+
+        updatePresence();
+        const heartbeatId = window.setInterval(updatePresence, 30_000);
+
+        const unsubscribe = WorkspaceService.subscribeWorkspace(
+            currentWorkspaceId,
+            user.uid,
+            workspace => {
+                if (!workspace) {
+                    return;
+                }
+
+                setCurrentWorkspaceRevision(prevRevision => Math.max(prevRevision ?? 0, workspace.revision ?? 0));
+
+                const activeEditorConflict = WorkspaceService.getActiveEditorConflict(workspace);
+
+                if (activeEditorConflict) {
+                    setLastWorkspaceConflict(prev => {
+                        if (prev?.type === 'conflict' && prev.conflict?.reason === 'revision') {
+                            return prev;
+                        }
+
+                        return {
+                            id: workspace.id,
+                            type: 'conflict',
+                            revision: workspace.revision,
+                            conflict: activeEditorConflict,
+                            local: {
+                                attempted: false,
+                                saved: false,
+                            },
+                            cloud: {
+                                attempted: false,
+                                saved: false,
+                            },
+                            error: new Error('Workspace is active in another editor'),
+                        };
+                    });
+
+                    if (!hasShownActiveEditorWarning) {
+                        toast.warning('This project is open in another browser or device on the same sign-in account.', {
+                            description: 'Autosave is paused until you reload, save as a copy, or the other editor becomes inactive.',
+                            duration: 10000,
+                        });
+                        hasShownActiveEditorWarning = true;
+                    }
+
+                    return;
+                }
+
+                setLastWorkspaceConflict(prev => (
+                    prev?.type === 'conflict' && prev.conflict?.reason === 'active-editor'
+                        ? null
+                        : prev
+                ));
+                hasShownActiveEditorWarning = false;
+            },
+            error => {
+                console.warn('Failed to watch project presence:', error);
+            }
+        );
+
+        return () => {
+            window.clearInterval(heartbeatId);
+            unsubscribe();
+        };
+    }, [currentWorkspaceId, user]);
+
     const saveWorkspace = useCallback(async (
         appState: Partial<AppState>,
         options?: {
@@ -114,22 +194,25 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
         setIsSaving(true);
         try {
+            const existingWorkspace = effectiveId
+                ? savedWorkspaces.find(workspace => workspace.id === effectiveId) ?? null
+                : null;
             const payload: Omit<SavedWorkspace, 'id' | 'createdAt' | 'updatedAt' | 'revision'> = {
                 userId: user.uid,
                 name: trimmedName,
                 description: trimmedDescription,
-                players: appState.players || [],
-                playerGroups: appState.playerGroups || [],
-                config: appState.config || ({} as LeagueConfig), // Should be safe if called correctly
-                teams: appState.teams || [],
-                unassignedPlayers: appState.unassignedPlayers || [],
-                stats: appState.stats,
-                execRatingHistory: appState.execRatingHistory || {},
-                savedConfigs: appState.savedConfigs || [],
-                teamIterations: appState.teamIterations || [],
-                activeTeamIterationId: appState.activeTeamIterationId ?? null,
-                leagueMemory: appState.leagueMemory || [],
-                pendingWarnings: appState.pendingWarnings || [],
+                players: appState.players ?? existingWorkspace?.players ?? [],
+                playerGroups: appState.playerGroups ?? existingWorkspace?.playerGroups ?? [],
+                config: appState.config ?? existingWorkspace?.config ?? ({} as LeagueConfig),
+                teams: appState.teams ?? existingWorkspace?.teams ?? [],
+                unassignedPlayers: appState.unassignedPlayers ?? existingWorkspace?.unassignedPlayers ?? [],
+                stats: appState.stats ?? existingWorkspace?.stats,
+                execRatingHistory: appState.execRatingHistory ?? existingWorkspace?.execRatingHistory ?? {},
+                savedConfigs: appState.savedConfigs ?? existingWorkspace?.savedConfigs ?? [],
+                teamIterations: appState.teamIterations ?? existingWorkspace?.teamIterations ?? [],
+                activeTeamIterationId: appState.activeTeamIterationId ?? existingWorkspace?.activeTeamIterationId ?? null,
+                leagueMemory: appState.leagueMemory ?? existingWorkspace?.leagueMemory ?? [],
+                pendingWarnings: appState.pendingWarnings ?? existingWorkspace?.pendingWarnings ?? [],
                 version: 1,
             };
 
@@ -157,7 +240,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             if (result.type === 'conflict') {
                 setLastWorkspaceConflict(result);
                 if (!options?.silent) {
-                    toast.warning('This project changed somewhere else. Reload it or save as a new project.', {
+                    const message = result.conflict?.reason === 'active-editor'
+                        ? 'This project appears to be open in another browser or device. Reload it or save as a new project.'
+                        : 'This project changed somewhere else. Reload it or save as a new project.';
+                    toast.warning(message, {
                         duration: 8000,
                     });
                 }
@@ -197,7 +283,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setIsSaving(false);
         }
-    }, [user, workspaceName, workspaceDescription, currentWorkspaceId, currentWorkspaceRevision, loadWorkspaces]);
+    }, [user, workspaceName, workspaceDescription, currentWorkspaceId, currentWorkspaceRevision, loadWorkspaces, savedWorkspaces]);
 
     const loadWorkspace = useCallback(async (id: string) => {
         if (!user) return null;

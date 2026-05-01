@@ -108,6 +108,15 @@ async function flushEffects() {
   });
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(res => {
+    resolve = res;
+  });
+
+  return { promise, resolve };
+}
+
 describe('useAppPersistence autosave', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -181,6 +190,19 @@ describe('useAppPersistence autosave', () => {
     act(() => {
       result.current.setAppState(prev => ({
         ...prev,
+        execRatingHistory: {
+          'Saved Player': { rating: 8, updatedAt: 123 },
+        },
+        savedConfigs: [{ ...config, id: 'saved-config', name: 'Saved Config' }],
+        pendingWarnings: [{
+          id: 'warning-1',
+          type: 'duplicate-name',
+          severity: 'warning',
+          message: 'Review duplicate player',
+          playerIds: ['player-2'],
+          autoResolvable: false,
+          createdAt: '2026-04-01T10:00:00.000Z',
+        } as never],
         teams: [
           {
             id: 'team-1',
@@ -205,10 +227,74 @@ describe('useAppPersistence autosave', () => {
 
     expect(saveWorkspace).toHaveBeenCalledWith(expect.objectContaining({
       teams: [expect.objectContaining({ id: 'team-1', name: 'Blue Jays' })],
+      execRatingHistory: {
+        'Saved Player': { rating: 8, updatedAt: 123 },
+      },
+      savedConfigs: [expect.objectContaining({ id: 'saved-config', name: 'Saved Config' })],
+      pendingWarnings: [expect.objectContaining({ id: 'warning-1' })],
     }), expect.objectContaining({
       id: 'workspace-1',
       name: 'Spring Outdoor 2026',
       description: 'League draft',
+      silent: true,
+      refreshList: false,
+    }));
+  });
+
+  it('queues a second project autosave when edits happen while a save is in flight', async () => {
+    storageMocks.save.mockResolvedValue({ type: 'cloud' });
+    const firstSave = createDeferred<{ id: string; type: 'cloud' }>();
+    const saveWorkspace = vi.fn()
+      .mockReturnValueOnce(firstSave.promise)
+      .mockResolvedValueOnce({ id: 'workspace-1', type: 'cloud' });
+
+    const { result } = renderPersistence({
+      initialState: createAppState(),
+      user: { uid: 'user-1' },
+      currentWorkspaceId: 'workspace-1',
+      workspaceName: 'Spring Outdoor 2026',
+      saveWorkspace,
+    });
+
+    await flushEffects();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(saveWorkspace).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current.setAppState(prev => ({
+        ...prev,
+        teams: [
+          {
+            id: 'team-queued',
+            name: 'Queued Save Team',
+            players: [],
+            averageSkill: 0,
+            genderBreakdown: { M: 0, F: 0, Other: 0 },
+          },
+        ],
+      }));
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(saveWorkspace).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      firstSave.resolve({ id: 'workspace-1', type: 'cloud' });
+    });
+    await flushEffects();
+
+    expect(saveWorkspace).toHaveBeenCalledTimes(2);
+    expect(saveWorkspace).toHaveBeenLastCalledWith(expect.objectContaining({
+      teams: [expect.objectContaining({ id: 'team-queued', name: 'Queued Save Team' })],
+    }), expect.objectContaining({
+      id: 'workspace-1',
       silent: true,
       refreshList: false,
     }));

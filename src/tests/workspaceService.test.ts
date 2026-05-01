@@ -6,7 +6,9 @@ const {
   mockDoc,
   mockGetDoc,
   mockGetDocs,
+  mockOnSnapshot,
   mockQuery,
+  mockRunTransaction,
   mockServerTimestamp,
   mockSetDoc,
   MockTimestamp,
@@ -29,7 +31,12 @@ const {
     }),
     mockGetDoc: vi.fn(),
     mockGetDocs: vi.fn(),
+    mockOnSnapshot: vi.fn(),
     mockQuery: vi.fn((...args: unknown[]) => ({ kind: 'query', args })),
+    mockRunTransaction: vi.fn(async (_db: unknown, updateFunction: (transaction: { get: (ref: unknown) => Promise<unknown>; set: (...args: unknown[]) => unknown }) => Promise<unknown>) => updateFunction({
+      get: (ref: unknown) => mockGetDoc(ref),
+      set: (...args: unknown[]) => mockSetDoc(...args),
+    })),
     mockServerTimestamp: vi.fn(() => ({ kind: 'server-timestamp' })),
     mockSetDoc: vi.fn(),
     MockTimestamp: class MockTimestamp {
@@ -52,7 +59,9 @@ vi.mock('firebase/firestore', () => ({
   doc: mockDoc,
   getDoc: mockGetDoc,
   getDocs: mockGetDocs,
+  onSnapshot: mockOnSnapshot,
   query: mockQuery,
+  runTransaction: mockRunTransaction,
   serverTimestamp: mockServerTimestamp,
   setDoc: mockSetDoc,
   Timestamp: MockTimestamp,
@@ -123,6 +132,7 @@ describe('WorkspaceService', () => {
       data: () => undefined,
     });
     mockGetDocs.mockResolvedValue({ docs: [] });
+    mockOnSnapshot.mockReturnValue(vi.fn());
   });
 
   it('saves a new project to cloud storage and mirrors it locally', async () => {
@@ -305,6 +315,139 @@ describe('WorkspaceService', () => {
       }),
     }));
     expect(mockSetDoc).not.toHaveBeenCalled();
+  });
+
+  it('detects a cloud revision conflict inside the transaction before writing', async () => {
+    const cloudWorkspace = createWorkspace({
+      id: 'workspace-cloud-conflict',
+      revision: 3,
+      updatedAt: new Date().toISOString(),
+    });
+
+    mockGetDoc.mockResolvedValueOnce({
+      exists: () => true,
+      data: () => cloudWorkspace,
+    });
+
+    const result = await WorkspaceService.saveWorkspace(
+      {
+        userId: 'user-123',
+        name: 'Older Cloud Editor Save',
+        description: 'Should not overwrite cloud',
+        players: cloudWorkspace.players,
+        playerGroups: cloudWorkspace.playerGroups,
+        config: cloudWorkspace.config,
+        teams: cloudWorkspace.teams,
+        unassignedPlayers: cloudWorkspace.unassignedPlayers,
+        version: 1,
+      },
+      {
+        id: cloudWorkspace.id,
+        expectedRevision: 2,
+      }
+    );
+
+    expect(result).toEqual(expect.objectContaining({
+      id: 'workspace-cloud-conflict',
+      type: 'conflict',
+      conflict: expect.objectContaining({
+        expectedRevision: 2,
+        actualRevision: 3,
+        reason: 'revision',
+      }),
+    }));
+    expect(mockSetDoc).not.toHaveBeenCalled();
+    expect(readLocalWorkspaces()).toHaveLength(0);
+  });
+
+  it('blocks autosave when another active editor is using the same signed-in account', async () => {
+    const cloudWorkspace = createWorkspace({
+      id: 'workspace-active-editor',
+      revision: 1,
+      activeSessionId: 'another-session',
+      activeSessionHeartbeatAt: new Date().toISOString(),
+    });
+
+    mockGetDoc.mockResolvedValueOnce({
+      exists: () => true,
+      data: () => cloudWorkspace,
+    });
+
+    const result = await WorkspaceService.saveWorkspace(
+      {
+        userId: 'user-123',
+        name: 'Same Account Project',
+        description: 'Should not silently overwrite active editor',
+        players: cloudWorkspace.players,
+        playerGroups: cloudWorkspace.playerGroups,
+        config: cloudWorkspace.config,
+        teams: cloudWorkspace.teams,
+        unassignedPlayers: cloudWorkspace.unassignedPlayers,
+        version: 1,
+      },
+      {
+        id: cloudWorkspace.id,
+        expectedRevision: 1,
+      }
+    );
+
+    expect(result).toEqual(expect.objectContaining({
+      id: 'workspace-active-editor',
+      type: 'conflict',
+      conflict: expect.objectContaining({
+        expectedRevision: 1,
+        actualRevision: 1,
+        reason: 'active-editor',
+        activeSessionId: 'another-session',
+      }),
+    }));
+    expect(mockSetDoc).not.toHaveBeenCalled();
+    expect(readLocalWorkspaces()).toHaveLength(0);
+  });
+
+  it('updates workspace presence with an active editor heartbeat', async () => {
+    const cloudWorkspace = createWorkspace({
+      id: 'workspace-presence',
+      revision: 1,
+    });
+
+    mockGetDoc.mockResolvedValueOnce({
+      exists: () => true,
+      data: () => cloudWorkspace,
+    });
+
+    await WorkspaceService.touchWorkspacePresence('workspace-presence', 'user-123');
+
+    expect(mockSetDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'workspace-presence', path: 'workspaces/workspace-presence' }),
+      expect.objectContaining({
+        activeSessionId: expect.stringMatching(/^session-/),
+        activeSessionHeartbeatAt: expect.any(String),
+        activeEditors: expect.any(Object),
+      }),
+      { merge: true }
+    );
+  });
+
+  it('detects active editors from real-time workspace snapshots', () => {
+    const workspace = createWorkspace({
+      id: 'workspace-presence-conflict',
+      revision: 2,
+      activeEditors: {
+        'another-session': {
+          sessionId: 'another-session',
+          deviceLabel: 'Other Browser',
+          heartbeatAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    expect(WorkspaceService.getActiveEditorConflict(workspace)).toEqual(expect.objectContaining({
+      actualRevision: 2,
+      reason: 'active-editor',
+      activeSessionId: 'another-session',
+      activeSessionHeartbeatAt: workspace.activeEditors?.['another-session']?.heartbeatAt,
+    }));
   });
 
   it('preserves new-player review flags in cloud project saves', async () => {

@@ -161,6 +161,7 @@ export function FullScreenTeamBuilder({
   const [draftNameInput, setDraftNameInput] = useState('');
   const [draftNoteInput, setDraftNoteInput] = useState('');
   const activeIteration = iterations.find(iteration => iteration.id === activeIterationId) ?? null;
+  const activeDraftName = activeIteration?.name ?? 'Current Draft';
 
   // Sort teams
   const sortedTeams = [...teams].sort((a, b) => {
@@ -305,6 +306,23 @@ export function FullScreenTeamBuilder({
       : "fixed inset-0 bg-slate-50 z-50 flex flex-col font-sans text-slate-900"
     }>
       {/* Enterprise Header */}
+      {viewMode === 'big-board' ? (
+        <div className={`bg-white/90 backdrop-blur-md border-b border-slate-200 px-3 py-1.5 flex-shrink-0 z-20 sticky top-0 ${isEmbedded ? 'bg-white' : ''}`}>
+          <div className="flex min-h-9 items-center justify-between gap-3">
+            <h1 className="min-w-0 truncate text-base font-bold text-slate-950">{activeDraftName}</h1>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 gap-1.5 rounded-full border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50"
+              onClick={() => setViewMode('editing')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Editing
+            </Button>
+          </div>
+        </div>
+      ) : (
       <div className={`bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-3 flex-shrink-0 z-20 sticky top-0 ${isEmbedded ? 'bg-white' : ''}`}>
         <div className="flex items-center justify-between gap-6">
           <div className="flex items-center gap-6">
@@ -529,6 +547,7 @@ export function FullScreenTeamBuilder({
           </div>
         )}
       </div>
+      )}
 
       {/* Main Content */}
       {activeIterationStatus !== 'ready' ? (
@@ -548,7 +567,7 @@ export function FullScreenTeamBuilder({
           </div>
         </div>
       ) : viewMode === 'big-board' ? (
-        <BigBoardView teams={sortedTeams} config={config} draftName={activeIteration?.name} />
+        <BigBoardView teams={sortedTeams} config={config} draftName={activeDraftName} />
       ) : (
         <DndContext
           sensors={sensors}
