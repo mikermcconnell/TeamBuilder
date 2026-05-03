@@ -280,7 +280,7 @@ export function generateLeagueOrganizerSummary(
     '='.repeat(title.length),
     '',
     `Generated: ${new Date().toLocaleString()}`,
-    `Draft score: ${insights.score.total}/100`,
+    `Scenario score: ${insights.score.total}/100`,
     `Balance: ${insights.score.balance}/25`,
     `Chemistry: ${insights.score.chemistry}/25`,
     `Compliance: ${insights.score.compliance}/25`,

@@ -1,9 +1,11 @@
 import type { ComponentProps } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FullScreenTeamBuilder } from '@/components/FullScreenTeamBuilder';
-import type { LeagueConfig, TeamIteration } from '@/types';
+import type { LeagueConfig, LeagueMemoryEntry, TeamIteration } from '@/types';
+
+const workspaceManagerMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@/components/PlayerSidebar', () => ({
   PlayerSidebar: () => <div data-testid="player-sidebar" />,
@@ -26,7 +28,10 @@ vi.mock('@/components/TeamIterationTabs', () => ({
 }));
 
 vi.mock('@/components/WorkspaceManager', () => ({
-  WorkspaceManager: () => <div data-testid="workspace-manager" />,
+  WorkspaceManager: (props: unknown) => {
+    workspaceManagerMock(props);
+    return <div data-testid="workspace-manager" />;
+  },
 }));
 
 vi.mock('@/components/teams/ManualEditAssist', () => ({
@@ -59,6 +64,15 @@ const secondIteration: TeamIteration = {
   name: 'Manual 2',
 };
 
+const leagueMemory: LeagueMemoryEntry[] = [
+  {
+    id: 'memory-1',
+    title: 'Last season',
+    createdAt: '2026-04-20T10:00:00.000Z',
+    teams: [],
+  },
+];
+
 function renderWorkspace(overrides?: Partial<ComponentProps<typeof FullScreenTeamBuilder>>) {
   return render(
     <FullScreenTeamBuilder
@@ -90,6 +104,10 @@ function renderWorkspace(overrides?: Partial<ComponentProps<typeof FullScreenTea
 }
 
 describe('FullScreenTeamBuilder redo controls', () => {
+  beforeEach(() => {
+    workspaceManagerMock.mockClear();
+  });
+
   it('renders redo disabled when no redo state is available', () => {
     renderWorkspace({ canRedo: false });
 
@@ -140,11 +158,11 @@ describe('FullScreenTeamBuilder redo controls', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Big Board' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Next draft tab' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next scenario' }));
 
     expect(onSelectIteration).toHaveBeenCalledWith(secondIteration.id);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Previous draft tab' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous scenario' }));
 
     expect(onSelectIteration).toHaveBeenCalledWith(secondIteration.id);
   });
@@ -153,9 +171,9 @@ describe('FullScreenTeamBuilder redo controls', () => {
     const onUpdateIterationMetadata = vi.fn();
     renderWorkspace({ onUpdateIterationMetadata });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Draft Details' }));
-    fireEvent.change(screen.getByLabelText('Draft name'), { target: { value: 'Final Candidate' } });
-    fireEvent.change(screen.getByLabelText('Draft note'), { target: { value: 'Best gender and handler balance.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Scenario Details' }));
+    fireEvent.change(screen.getByLabelText('Scenario name'), { target: { value: 'Final Candidate' } });
+    fireEvent.change(screen.getByLabelText('Scenario note'), { target: { value: 'Best gender and handler balance.' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save Details' }));
 
     expect(onUpdateIterationMetadata).toHaveBeenCalledWith(iteration.id, {
@@ -168,12 +186,12 @@ describe('FullScreenTeamBuilder redo controls', () => {
     const onUpdateIterationMetadata = vi.fn();
     renderWorkspace({ onUpdateIterationMetadata });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Draft Details' }));
-    fireEvent.change(screen.getByLabelText('Draft name'), { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Scenario Details' }));
+    fireEvent.change(screen.getByLabelText('Scenario name'), { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save Details' }));
 
     expect(onUpdateIterationMetadata).not.toHaveBeenCalled();
-    expect(screen.getByRole('dialog', { name: 'Draft Details' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Scenario Details' })).toBeInTheDocument();
   });
 
   it('calls preferred and final handlers from active draft controls', () => {
@@ -192,8 +210,27 @@ describe('FullScreenTeamBuilder redo controls', () => {
     const onDeleteIteration = vi.fn();
     renderWorkspace({ onDeleteIteration });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Draft' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Scenario' }));
 
     expect(onDeleteIteration).toHaveBeenCalledWith(iteration.id);
+  });
+
+  it('uses team scenario language for active version controls', () => {
+    renderWorkspace();
+
+    expect(screen.getByText('Team Scenarios')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Scenario Details' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Duplicate Scenario' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete Scenario' })).toBeInTheDocument();
+  });
+
+  it('passes league memory through to fullscreen project saves', () => {
+    renderWorkspace({ leagueMemory });
+
+    expect(workspaceManagerMock).toHaveBeenCalledWith(expect.objectContaining({
+      leagueMemory,
+      teamIterations: [iteration],
+      activeTeamIterationId: iteration.id,
+    }));
   });
 });

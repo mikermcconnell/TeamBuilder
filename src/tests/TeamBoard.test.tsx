@@ -42,7 +42,7 @@ describe('TeamBoard', () => {
     );
 
     expect(screen.queryByText('Team Board')).not.toBeInTheDocument();
-    expect(screen.queryByText('Draft Summary')).not.toBeInTheDocument();
+    expect(screen.queryByText('Scenario Summary')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /refresh names & colors/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add team/i })).toBeInTheDocument();
     expect(screen.getByTestId('team-team-1')).toBeInTheDocument();

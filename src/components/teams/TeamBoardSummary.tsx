@@ -52,7 +52,7 @@ export function TeamBoardSummary({ teams }: TeamBoardSummaryProps) {
             <BarChart3 className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-slate-900">Draft Summary</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Scenario Summary</h2>
               <p className="text-xs text-slate-500">
                 Skill spread across teams. Lower numbers mean tighter balance.
               </p>

@@ -91,9 +91,9 @@ export function IterationComparisonPanel({
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardHeader>
-        <CardTitle>Side-by-Side Iteration Comparison</CardTitle>
+        <CardTitle>Side-by-Side Scenario Comparison</CardTitle>
         <CardDescription>
-          Compare two draft tabs across scoring, balance, chemistry, and league-memory signals.
+          Compare two team scenarios across scoring, balance, chemistry, and league-memory signals.
         </CardDescription>
       </CardHeader>
 
@@ -103,7 +103,7 @@ export function IterationComparisonPanel({
             <div className="text-sm font-semibold text-slate-500">Left side</div>
             <Select value={leftIterationId} onValueChange={setLeftIterationId}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose an iteration" />
+                <SelectValue placeholder="Choose a scenario" />
               </SelectTrigger>
               <SelectContent>
                 {readyIterations.map(iteration => (
@@ -120,7 +120,7 @@ export function IterationComparisonPanel({
             <div className="text-sm font-semibold text-slate-500">Right side</div>
             <Select value={rightIterationId} onValueChange={setRightIterationId}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose an iteration" />
+                <SelectValue placeholder="Choose a scenario" />
               </SelectTrigger>
               <SelectContent>
                 {readyIterations.map(iteration => (
@@ -157,7 +157,7 @@ export function IterationComparisonPanel({
             <div>{rightInsights.iterationName}</div>
           </div>
           <div className="mt-2">
-            <MetricRow label="Draft score" left={`${leftInsights.score.total}/100`} right={`${rightInsights.score.total}/100`} />
+            <MetricRow label="Scenario score" left={`${leftInsights.score.total}/100`} right={`${rightInsights.score.total}/100`} />
             <MetricRow label="Skill spread" left={leftInsights.skillSpread.toFixed(2)} right={rightInsights.skillSpread.toFixed(2)} />
             <MetricRow label="Handler spread" left={leftInsights.handlerSpread.toString()} right={rightInsights.handlerSpread.toString()} />
             <MetricRow label="Avoid conflicts" left={leftInsights.avoidViolations.toString()} right={rightInsights.avoidViolations.toString()} />

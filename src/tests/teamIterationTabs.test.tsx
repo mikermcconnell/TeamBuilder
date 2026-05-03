@@ -59,7 +59,7 @@ describe('TeamIterationTabs', () => {
     renderTabs({ onDeleteIteration });
 
     openActions('Manual 1');
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete Draft' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete Scenario' }));
 
     expect(onDeleteIteration).toHaveBeenCalledWith('manual-1');
   });
@@ -92,8 +92,17 @@ describe('TeamIterationTabs', () => {
     renderTabs({ onEditIteration });
 
     openActions('Manual 1');
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit Name & Note' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit Scenario Name & Note' }));
 
     expect(onEditIteration).toHaveBeenCalledWith('manual-1');
+  });
+
+  it('uses scenario language for team version actions', () => {
+    renderTabs();
+
+    openActions('Manual 1');
+
+    expect(screen.getByRole('menuitem', { name: 'Duplicate Scenario' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete Scenario' })).toBeInTheDocument();
   });
 });

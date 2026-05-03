@@ -16,7 +16,7 @@ import {
   type CollisionDetection
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Player, Team, LeagueConfig, PlayerGroup, PlayerUpdateHandler, TeamGenerationStats, TeamIteration, TeamIterationStatus } from '@/types';
+import { Player, Team, LeagueConfig, PlayerGroup, PlayerUpdateHandler, TeamGenerationStats, TeamIteration, TeamIterationStatus, LeagueMemoryEntry } from '@/types';
 import { getPlayerGroup } from '@/utils/playerGrouping';
 import { PlayerSidebar } from './PlayerSidebar';
 import { TeamBoard } from './TeamBoard';
@@ -69,6 +69,7 @@ interface FullScreenTeamBuilderProps {
   onAddTeam?: () => void;
   onRemoveTeam?: (teamId: string) => void;
   iterations: TeamIteration[];
+  leagueMemory?: LeagueMemoryEntry[];
   activeIterationId: string | null;
   onSelectIteration: (iterationId: string) => void;
   onCopyIteration: (iterationId: string) => void;
@@ -110,6 +111,7 @@ export function FullScreenTeamBuilder({
   onAddTeam,
   onRemoveTeam,
   iterations,
+  leagueMemory = [],
   activeIterationId,
   onSelectIteration,
   onCopyIteration,
@@ -161,7 +163,7 @@ export function FullScreenTeamBuilder({
   const [draftNameInput, setDraftNameInput] = useState('');
   const [draftNoteInput, setDraftNoteInput] = useState('');
   const activeIteration = iterations.find(iteration => iteration.id === activeIterationId) ?? null;
-  const activeDraftName = activeIteration?.name ?? 'Current Draft';
+  const activeDraftName = activeIteration?.name ?? 'Current Scenario';
   const activeIterationIndex = iterations.findIndex(iteration => iteration.id === activeIterationId);
   const canFlipDraftTabs = viewMode === 'big-board' && iterations.length > 1 && activeIterationIndex >= 0;
 
@@ -330,8 +332,8 @@ export function FullScreenTeamBuilder({
                     size="sm"
                     className="h-7 rounded-l-full rounded-r-none px-2 text-slate-600 hover:bg-slate-50"
                     onClick={() => selectRelativeIteration(-1)}
-                    aria-label="Previous draft tab"
-                    title="Previous draft tab"
+                    aria-label="Previous scenario"
+                    title="Previous scenario"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -344,8 +346,8 @@ export function FullScreenTeamBuilder({
                     size="sm"
                     className="h-7 rounded-l-none rounded-r-full px-2 text-slate-600 hover:bg-slate-50"
                     onClick={() => selectRelativeIteration(1)}
-                    aria-label="Next draft tab"
-                    title="Next draft tab"
+                    aria-label="Next scenario"
+                    title="Next scenario"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -427,15 +429,15 @@ export function FullScreenTeamBuilder({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (confirm('Reset this iteration? This will move all players back to the Player Pool for the current tab.')) {
+                  if (confirm('Reset this scenario? This will move all players back to the Player Pool for the current scenario.')) {
                     onReset();
-                    toast.success('Current tab reset');
+                    toast.success('Current scenario reset');
                   }
                 }}
                 className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
               >
                 <RotateCcw className="w-4 h-4" />
-                <span className="hidden sm:inline">Clear Tab</span>
+                <span className="hidden sm:inline">Clear Scenario</span>
               </Button>
             )}
             {onStartOver && (
@@ -486,6 +488,9 @@ export function FullScreenTeamBuilder({
                       unassignedPlayers={unassignedPlayers}
                       config={config}
                       stats={stats}
+                      teamIterations={iterations}
+                      activeTeamIterationId={activeIterationId}
+                      leagueMemory={leagueMemory}
                       onLoadWorkspace={onLoadWorkspace}
                       currentWorkspaceId={currentWorkspaceId}
                       mode="toolbar"
@@ -499,6 +504,9 @@ export function FullScreenTeamBuilder({
 
         {iterations.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="mr-2 min-w-fit">
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Team Scenarios</div>
+            </div>
             <TeamIterationTabs
               iterations={iterations}
               activeIterationId={activeIterationId}
@@ -539,7 +547,7 @@ export function FullScreenTeamBuilder({
                   onClick={handleOpenDraftDetailsDialog}
                 >
                   <FileText className="h-4 w-4" />
-                  Draft Details
+                  Scenario Details
                 </Button>
                 <Button
                   type="button"
@@ -572,7 +580,7 @@ export function FullScreenTeamBuilder({
                   disabled={activeIteration.status !== 'ready'}
                 >
                   <Copy className="h-4 w-4" />
-                  Duplicate Draft
+                  Duplicate Scenario
                 </Button>
                 <Button
                   type="button"
@@ -582,7 +590,7 @@ export function FullScreenTeamBuilder({
                   onClick={() => onDeleteIteration(activeIteration.id)}
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete Draft
+                  Delete Scenario
                 </Button>
               </div>
             )}
@@ -599,12 +607,12 @@ export function FullScreenTeamBuilder({
               {activeIterationStatus === 'failed' ? <AlertTriangle className="h-8 w-8" /> : <Loader2 className="h-8 w-8 animate-spin" />}
             </div>
             <h2 className="text-2xl font-bold text-slate-800">
-              {activeIterationStatus === 'failed' ? 'This team tab could not be opened' : 'Preparing this team tab'}
+              {activeIterationStatus === 'failed' ? 'This team scenario could not be opened' : 'Preparing this team scenario'}
             </h2>
             <p className="mt-3 text-slate-500">
               {activeIterationStatus === 'failed'
-                ? 'Create another manual tab when you are ready.'
-                : 'Your other team tabs are still available while this version finishes loading.'}
+                ? 'Create another manual scenario when you are ready.'
+                : 'Your other team scenarios are still available while this version finishes loading.'}
             </p>
           </div>
         </div>
@@ -682,24 +690,24 @@ export function FullScreenTeamBuilder({
       <Dialog open={isDraftDetailsDialogOpen} onOpenChange={setIsDraftDetailsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Draft Details</DialogTitle>
+            <DialogTitle>Scenario Details</DialogTitle>
             <DialogDescription>
-              Give this draft a clear name and note so it is easy to compare and revisit later.
+              Give this scenario a clear name and note so it is easy to compare and revisit later.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="draft-name">Draft name</Label>
+              <Label htmlFor="draft-name">Scenario name</Label>
               <Input
                 id="draft-name"
                 value={draftNameInput}
                 onChange={(event) => setDraftNameInput(event.target.value)}
-                placeholder="e.g., Reviewed Draft A"
+                placeholder="e.g., Reviewed Scenario A"
                 autoFocus
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="draft-note">Draft note</Label>
+              <Label htmlFor="draft-note">Scenario note</Label>
               <textarea
                 id="draft-note"
                 value={draftNoteInput}

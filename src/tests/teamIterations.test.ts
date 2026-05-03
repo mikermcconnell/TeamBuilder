@@ -159,7 +159,7 @@ describe('team iteration normalization', () => {
     ];
 
     expect(getUniqueIterationName('Playoff Draft', iterations, 'manual-1')).toBe('Playoff Draft 2');
-    expect(getUniqueIterationName('   ', iterations, 'manual-1')).toBe('Untitled Draft');
+    expect(getUniqueIterationName('   ', iterations, 'manual-1')).toBe('Untitled Scenario');
   });
 
   it('copies iterations safely when older tabs are missing teams arrays', () => {

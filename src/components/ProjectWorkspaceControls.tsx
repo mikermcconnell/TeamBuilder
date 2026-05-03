@@ -1,4 +1,4 @@
-import React, { ChangeEvent, RefObject, SetStateAction, Dispatch, useMemo } from 'react';
+import React, { ChangeEvent, RefObject, SetStateAction, Dispatch, useEffect, useMemo, useState } from 'react';
 import { User } from 'firebase/auth';
 import { Copy, Download, FolderOpen, Save, SquarePen, Trash2, Upload, UserCheck, Users } from 'lucide-react';
 
@@ -32,9 +32,13 @@ interface ProjectWorkspaceControlsProps {
   workspaceName: string;
   workspaceDescription: string;
   currentWorkspaceId: string | null;
-  setCurrentWorkspaceInfo: (id: string | null, name: string, description: string) => void;
+  currentProjectSummary: {
+    playerCount: number;
+    teamCount: number;
+    scenarioCount: number;
+  };
   isSavingWorkspace: boolean;
-  onSaveWorkspace: () => Promise<void>;
+  onSaveWorkspace: (name?: string, description?: string, options?: { asCopy?: boolean }) => Promise<void>;
   workspaceConflict: WorkspaceSaveResult | null;
   onReloadWorkspaceAfterConflict: () => Promise<void>;
   onMergeWorkspaceAfterConflict: () => Promise<void>;
@@ -68,7 +72,7 @@ export function ProjectWorkspaceControls({
   workspaceName,
   workspaceDescription,
   currentWorkspaceId,
-  setCurrentWorkspaceInfo,
+  currentProjectSummary,
   isSavingWorkspace,
   onSaveWorkspace,
   workspaceConflict,
@@ -88,8 +92,45 @@ export function ProjectWorkspaceControls({
     () => savedWorkspaces.filter(ws => ws.name.toLowerCase().includes(workspaceSearchTerm.toLowerCase())),
     [savedWorkspaces, workspaceSearchTerm]
   );
-  const effectiveWorkspaceName = workspaceName.trim() || 'Untitled Draft';
+  const effectiveWorkspaceName = workspaceName.trim() || 'Untitled Project';
   const trimmedWorkspaceDescription = workspaceDescription.trim();
+  const saveDialogTitle = currentWorkspaceId ? 'Rename / Save Project' : 'Save New Project';
+  const saveButtonLabel = currentWorkspaceId ? 'Save Changes' : 'Create Project';
+  const [draftWorkspaceName, setDraftWorkspaceName] = useState(workspaceName);
+  const [draftWorkspaceDescription, setDraftWorkspaceDescription] = useState(workspaceDescription);
+  const [isSavingAsCopy, setIsSavingAsCopy] = useState(false);
+
+  useEffect(() => {
+    if (isSaveWorkspaceDialogOpen) {
+      const baseName = workspaceName.trim() || 'Untitled Project';
+      setDraftWorkspaceName(isSavingAsCopy ? `${baseName} (copy)` : workspaceName);
+      setDraftWorkspaceDescription(workspaceDescription);
+    } else {
+      setIsSavingAsCopy(false);
+    }
+  }, [isSaveWorkspaceDialogOpen, isSavingAsCopy, workspaceDescription, workspaceName]);
+
+  const openDuplicateDialog = () => {
+    setIsSavingAsCopy(true);
+    onSaveWorkspaceDialogOpenChange(true);
+  };
+
+  const handleLoadWorkspaceCard = (id: string) => {
+    if (loadingWorkspaceId) {
+      return;
+    }
+
+    void onLoadWorkspace(id);
+  };
+
+  const handleConfirmSaveWorkspace = () => {
+    if (isSavingAsCopy) {
+      void onSaveWorkspace(draftWorkspaceName, draftWorkspaceDescription, { asCopy: true });
+      return;
+    }
+
+    void onSaveWorkspace(draftWorkspaceName, draftWorkspaceDescription);
+  };
 
   return (
     <>
@@ -109,7 +150,7 @@ export function ProjectWorkspaceControls({
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
               <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${currentWorkspaceId ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600'}`}>
-                {currentWorkspaceId ? 'Current project' : 'Current draft'}
+                {currentWorkspaceId ? 'Current project' : 'Unsaved project'}
               </span>
               <span className="max-w-[320px] truncate font-bold text-slate-800">
                 {effectiveWorkspaceName}
@@ -193,7 +234,7 @@ export function ProjectWorkspaceControls({
                 <span>Rename</span>
               </Button>
               <Button
-                onClick={() => void onSaveWorkspaceAsCopy()}
+                onClick={openDuplicateDialog}
                 variant="ghost"
                 className="h-10 rounded-xl px-3 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-800"
                 disabled={!user}
@@ -207,7 +248,7 @@ export function ProjectWorkspaceControls({
                 className="h-10 rounded-xl px-3 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-800"
               >
                 <Download className="h-4 w-4" />
-                <span>Backup</span>
+                <span>Download Backup</span>
               </Button>
               <Button
                 onClick={onOpenProjectImport}
@@ -215,7 +256,7 @@ export function ProjectWorkspaceControls({
                 className="h-10 rounded-xl px-3 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-800"
               >
                 <Upload className="h-4 w-4" />
-                <span>Restore</span>
+                <span>Restore from Backup</span>
               </Button>
               <Button
                 onClick={onOpenLoadWorkspaceDialog}
@@ -242,8 +283,10 @@ export function ProjectWorkspaceControls({
       <Dialog open={isSaveWorkspaceDialogOpen} onOpenChange={onSaveWorkspaceDialogOpenChange}>
         <DialogContent className="sm:max-w-[425px] rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-extrabold text-slate-800">Save Project</DialogTitle>
-            <DialogDescription>Save your entire workspace (players, teams, and settings) to the cloud.</DialogDescription>
+            <DialogTitle className="text-2xl font-extrabold text-slate-800">
+              {isSavingAsCopy ? 'Save New Project' : saveDialogTitle}
+            </DialogTitle>
+            <DialogDescription>This saves the roster, team scenarios, and settings together.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {workspaceConflict?.type === 'conflict' && (
@@ -300,8 +343,8 @@ export function ProjectWorkspaceControls({
               <Label htmlFor="ws-name" className="font-bold text-slate-700">Project Name</Label>
               <Input
                 id="ws-name"
-                value={workspaceName}
-                onChange={(e) => setCurrentWorkspaceInfo(currentWorkspaceId, e.target.value, workspaceDescription)}
+                value={draftWorkspaceName}
+                onChange={(e) => setDraftWorkspaceName(e.target.value)}
                 placeholder="e.g., Summer Tournament 2024"
                 className="rounded-xl border-2 border-slate-200 focus-visible:ring-primary"
               />
@@ -310,21 +353,37 @@ export function ProjectWorkspaceControls({
               <Label htmlFor="ws-desc" className="font-bold text-slate-700">Description (Optional)</Label>
               <Input
                 id="ws-desc"
-                value={workspaceDescription}
-                onChange={(e) => setCurrentWorkspaceInfo(currentWorkspaceId, workspaceName, e.target.value)}
+                value={draftWorkspaceDescription}
+                onChange={(e) => setDraftWorkspaceDescription(e.target.value)}
                 placeholder="Notes about this session..."
                 className="rounded-xl border-2 border-slate-200 focus-visible:ring-primary"
               />
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                This save includes
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                <div className="rounded-lg bg-white px-2 py-2 text-center font-bold text-slate-700">
+                  {currentProjectSummary.playerCount} players
+                </div>
+                <div className="rounded-lg bg-white px-2 py-2 text-center font-bold text-slate-700">
+                  {currentProjectSummary.teamCount} teams
+                </div>
+                <div className="rounded-lg bg-white px-2 py-2 text-center font-bold text-slate-700">
+                  {currentProjectSummary.scenarioCount} team scenarios
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onSaveWorkspaceDialogOpenChange(false)} className="rounded-xl font-bold">Cancel</Button>
             <Button
-              onClick={onSaveWorkspace}
+              onClick={handleConfirmSaveWorkspace}
               disabled={isSavingWorkspace}
               className="bg-primary hover:bg-primary/90 text-white rounded-xl font-bold"
             >
-              {isSavingWorkspace ? 'Saving...' : 'Save Project'}
+              {isSavingWorkspace ? 'Saving...' : isSavingAsCopy ? 'Create Project' : saveButtonLabel}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -358,12 +417,24 @@ export function ProjectWorkspaceControls({
                 No saved projects found.
               </div>
             ) : (
-              filteredWorkspaces.map(ws => (
-                <button
+              filteredWorkspaces.map(ws => {
+                const scenarioCount = ws.teamIterations?.length ?? 0;
+                const finalScenario = ws.teamIterations?.find(iteration => iteration.isFinal);
+
+                return (
+                <div
                   key={ws.id}
-                  onClick={() => void onLoadWorkspace(ws.id)}
-                  disabled={loadingWorkspaceId === ws.id}
-                  className="w-full flex items-center p-4 bg-white border border-slate-100 hover:border-primary/30 hover:bg-slate-50 rounded-xl transition-all group text-left relative"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleLoadWorkspaceCard(ws.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleLoadWorkspaceCard(ws.id);
+                    }
+                  }}
+                  aria-disabled={Boolean(loadingWorkspaceId)}
+                  className="w-full flex items-center p-4 bg-white border border-slate-100 hover:border-primary/30 hover:bg-slate-50 rounded-xl transition-all group text-left relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="h-12 w-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 group-hover:bg-primary group-hover:text-white transition-colors">
                     <FolderOpen className="h-6 w-6" />
@@ -379,6 +450,14 @@ export function ProjectWorkspaceControls({
                       <span>{ws.players?.length || 0} players</span>
                       <span>•</span>
                       <span>{ws.teams?.length || 0} teams</span>
+                      <span>•</span>
+                      <span>{scenarioCount} {scenarioCount === 1 ? 'scenario' : 'scenarios'}</span>
+                      {finalScenario && (
+                        <>
+                          <span>•</span>
+                          <span>Final: {finalScenario.name}</span>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -388,12 +467,14 @@ export function ProjectWorkspaceControls({
                       size="icon"
                       className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50"
                       onClick={(e) => void onDeleteWorkspaceAction(ws.id, e)}
+                      aria-label={`Delete ${ws.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </button>
-              ))
+                </div>
+                );
+              })
             )}
           </div>
         </DialogContent>

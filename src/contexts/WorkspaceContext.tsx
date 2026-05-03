@@ -218,7 +218,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        const effectiveId = options?.id ?? currentWorkspaceId;
+        const effectiveId = options && 'id' in options ? options.id : currentWorkspaceId;
         const trimmedName = (options?.name ?? workspaceName).trim();
         const trimmedDescription = (options?.description ?? workspaceDescription).trim();
 

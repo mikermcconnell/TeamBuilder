@@ -86,6 +86,9 @@ function Harness() {
       <button type="button" onClick={() => void workspaceContext.saveWorkspace({}, { id: 'workspace-1', name: 'League Project' })}>
         Save
       </button>
+      <button type="button" onClick={() => void workspaceContext.saveWorkspace({}, { id: null, name: 'League Project Copy' })}>
+        Copy
+      </button>
     </div>
   );
 }
@@ -130,6 +133,41 @@ describe('WorkspaceContext presence handling', () => {
       expect.objectContaining({
         id: 'workspace-1',
         expectedRevision: 1,
+      })
+    );
+  });
+
+  it('treats a null save id as an explicit request to create a copy', async () => {
+    serviceMocks.getUserWorkspaces.mockResolvedValue([workspace]);
+    serviceMocks.getWorkspace.mockResolvedValue(workspace);
+    serviceMocks.saveWorkspace.mockResolvedValue({ id: 'workspace-copy', revision: 1, type: 'cloud' });
+    serviceMocks.touchWorkspacePresence.mockResolvedValue(undefined);
+
+    render(
+      <WorkspaceProvider>
+        <Harness />
+      </WorkspaceProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load' }));
+
+    await waitFor(() => {
+      expect(serviceMocks.subscribeWorkspace).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+
+    await waitFor(() => {
+      expect(serviceMocks.saveWorkspace).toHaveBeenCalled();
+    });
+
+    expect(serviceMocks.saveWorkspace).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        name: 'League Project Copy',
+      }),
+      expect.objectContaining({
+        id: undefined,
+        expectedRevision: undefined,
       })
     );
   });

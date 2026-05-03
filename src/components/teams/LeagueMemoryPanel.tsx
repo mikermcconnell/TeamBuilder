@@ -43,7 +43,7 @@ export function LeagueMemoryPanel({
               <div className="mt-1 text-sm text-slate-500">
                 {activeInsights
                   ? `${activeInsights.repeatedPairings} repeat pairing${activeInsights.repeatedPairings === 1 ? '' : 's'} found across ${leagueMemory.length} saved season snapshot${leagueMemory.length === 1 ? '' : 's'}.`
-                  : 'Save a snapshot once you are happy with a season so future drafts can avoid repeats.'}
+                  : 'Save a snapshot once you are happy with a season so future scenarios can avoid repeats.'}
               </div>
             </div>
 
@@ -58,7 +58,7 @@ export function LeagueMemoryPanel({
 
         {latestEntries.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-            No league memory saved yet. Save a finished season here so future drafts can spread familiar teammates around.
+            No league memory saved yet. Save a finished season here so future scenarios can spread familiar teammates around.
           </div>
         ) : (
           <div className="space-y-3">

@@ -280,7 +280,7 @@ function buildStrengthsAndRisks(
 
   const summary = strengths.length > 0
     ? strengths[0]
-    : risks[0] || 'No major draft signal was detected yet.';
+    : risks[0] || 'No major scenario signal was detected yet.';
 
   return { strengths, risks, summary };
 }
@@ -370,9 +370,9 @@ export function compareIterationInsights(
   const rightReasons: string[] = [];
 
   if (left.score.total > right.score.total) {
-    leftReasons.push(`Higher total draft score (${left.score.total} vs ${right.score.total}).`);
+    leftReasons.push(`Higher total scenario score (${left.score.total} vs ${right.score.total}).`);
   } else if (right.score.total > left.score.total) {
-    rightReasons.push(`Higher total draft score (${right.score.total} vs ${left.score.total}).`);
+    rightReasons.push(`Higher total scenario score (${right.score.total} vs ${left.score.total}).`);
   }
 
   if (left.skillSpread < right.skillSpread) {
@@ -402,13 +402,13 @@ export function compareIterationInsights(
   if (leftReasons.length >= rightReasons.length) {
     return {
       recommendedIterationId: left.iterationId,
-      reasons: leftReasons.length > 0 ? leftReasons : ['This version edges out the other on current draft signals.'],
+      reasons: leftReasons.length > 0 ? leftReasons : ['This version edges out the other on current scenario signals.'],
     };
   }
 
   return {
     recommendedIterationId: right.iterationId,
-    reasons: rightReasons.length > 0 ? rightReasons : ['This version edges out the other on current draft signals.'],
+    reasons: rightReasons.length > 0 ? rightReasons : ['This version edges out the other on current scenario signals.'],
   };
 }
 
@@ -506,7 +506,7 @@ export function buildManualMoveRecommendations(
       }
 
       if (nextInsights.score.total > currentInsights.score.total) {
-        reasons.push('Improves the overall draft score.');
+        reasons.push('Improves the overall scenario score.');
       }
 
       if (Math.abs(targetAverage - currentLeagueAverage) <= Math.abs((sourceTeam?.averageSkill ?? 0) - currentLeagueAverage)) {

@@ -45,7 +45,7 @@ export function ManualEditAssist({
               <CardTitle className="text-base">Manual Edit Assist</CardTitle>
               <CardDescription>
                 {activePlayer
-                  ? `While moving ${activePlayer.name}, these targets keep the draft in better shape.`
+                  ? `While moving ${activePlayer.name}, these targets keep the scenario in better shape.`
                   : 'Start dragging a player to see the best-fit landing spots.'}
               </CardDescription>
             </div>
@@ -66,7 +66,7 @@ export function ManualEditAssist({
           {insights && (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-slate-700">Current draft score</div>
+                <div className="text-sm font-semibold text-slate-700">Current scenario score</div>
                 <Badge variant="secondary">{insights.score.total}/100</Badge>
               </div>
               <div className="mt-2 text-sm text-slate-500">{insights.summary}</div>

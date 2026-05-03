@@ -195,7 +195,7 @@ describe('exportUtils', () => {
     const organizerSummary = generateLeagueOrganizerSummary([team], [], config, stats, [], 'Spring Draft Summary');
 
     expect(organizerSummary).toContain('Spring Draft Summary');
-    expect(organizerSummary).toContain('Draft score:');
+    expect(organizerSummary).toContain('Scenario score:');
     expect(organizerSummary).toContain('What is working');
     expect(organizerSummary).toContain('What still needs attention');
     expect(organizerSummary).toContain('Sharks');

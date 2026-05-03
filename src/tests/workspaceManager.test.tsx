@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { WorkspaceManager } from '@/components/WorkspaceManager';
-import type { LeagueConfig, Player } from '@/types';
+import type { LeagueConfig, Player, TeamIteration } from '@/types';
 
 const toastMocks = vi.hoisted(() => ({
   error: vi.fn(),
@@ -45,6 +45,16 @@ const config: LeagueConfig = {
   allowMixedGender: true,
 };
 
+const scenario: TeamIteration = {
+  id: 'manual-1',
+  name: 'Manual 1',
+  type: 'manual',
+  status: 'ready',
+  teams: [],
+  unassignedPlayers: [],
+  createdAt: '2026-04-19T12:00:00.000Z',
+};
+
 function createPlayer(overrides: Partial<Player> = {}): Player {
   return {
     id: 'player-1',
@@ -72,6 +82,8 @@ describe('WorkspaceManager', () => {
         teams={[]}
         unassignedPlayers={[]}
         config={config}
+        teamIterations={[scenario]}
+        activeTeamIterationId="manual-1"
         onLoadWorkspace={vi.fn()}
         currentWorkspaceId="workspace-1"
         mode="toolbar"
@@ -84,6 +96,8 @@ describe('WorkspaceManager', () => {
       expect(saveWorkspaceMock).toHaveBeenCalledWith(expect.objectContaining({
         players: [expect.objectContaining({ id: 'player-1', isHandler: true })],
         teams: [],
+        teamIterations: [expect.objectContaining({ id: 'manual-1' })],
+        activeTeamIterationId: 'manual-1',
       }), expect.objectContaining({
         id: 'workspace-1',
         name: 'Autosave Smoke Test 2026-04-19',
@@ -92,7 +106,7 @@ describe('WorkspaceManager', () => {
     });
   });
 
-  it('shows the active project name in toolbar mode and duplicates the project', async () => {
+  it('shows the active project name and saves a renamed duplicate with all scenarios', async () => {
     render(
       <WorkspaceManager
         players={[createPlayer({ id: 'player-1', name: 'Alex Example' })]}
@@ -100,6 +114,8 @@ describe('WorkspaceManager', () => {
         teams={[]}
         unassignedPlayers={[]}
         config={config}
+        teamIterations={[scenario]}
+        activeTeamIterationId="manual-1"
         onLoadWorkspace={vi.fn()}
         currentWorkspaceId="workspace-1"
         mode="toolbar"
@@ -110,10 +126,16 @@ describe('WorkspaceManager', () => {
     expect(screen.getByText('Autosave Smoke Test 2026-04-19')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+    expect(screen.getByRole('dialog', { name: 'Save New Project' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Autosave Smoke Test 2026-04-19 (copy)')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Project' }));
 
     await waitFor(() => {
       expect(saveWorkspaceMock).toHaveBeenCalledWith(expect.objectContaining({
         players: [expect.objectContaining({ id: 'player-1' })],
+        teamIterations: [expect.objectContaining({ id: 'manual-1' })],
+        activeTeamIterationId: 'manual-1',
       }), expect.objectContaining({
         id: null,
         name: 'Autosave Smoke Test 2026-04-19 (copy)',

@@ -81,7 +81,7 @@ export function getUniqueIterationName(
       .map(iteration => normalizeNameKey(iteration.name))
   );
 
-  const trimmedName = desiredName.trim() || 'Untitled Draft';
+  const trimmedName = desiredName.trim() || 'Untitled Scenario';
   if (!usedNames.has(normalizeNameKey(trimmedName))) {
     return trimmedName;
   }
@@ -99,7 +99,7 @@ export function getUniqueIterationName(
 
 function getUniqueCopiedIterationName(sourceName: string, existingNames: string[]): string {
   const usedNames = new Set(existingNames.map(normalizeNameKey));
-  const trimmedSourceName = sourceName.trim() || 'Untitled Tab';
+  const trimmedSourceName = sourceName.trim() || 'Untitled Scenario';
   const baseName = trimmedSourceName.replace(/(?:\s+copy(?:\s+\d+)*)+$/i, '').trim() || trimmedSourceName;
   let candidate = `${baseName} Copy`;
   let copyNumber = 2;
@@ -264,7 +264,7 @@ export function createCopiedTeamIteration(
   existingIterations: TeamIteration[]
 ): TeamIteration {
   const clonedIteration = cloneTeamIteration(iteration);
-  const existingIterationNames = existingIterations.map(existingIteration => existingIteration.name || 'Untitled Tab');
+  const existingIterationNames = existingIterations.map(existingIteration => existingIteration.name || 'Untitled Scenario');
   const existingTeamNames = existingIterations.flatMap(existingIteration =>
     (existingIteration.teams ?? []).map(team => team.name)
   );

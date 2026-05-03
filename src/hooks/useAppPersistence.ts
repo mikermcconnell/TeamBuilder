@@ -146,7 +146,9 @@ export function describePersistenceStatus(
     return {
       title: snapshot.surface === 'cloud' ? 'Saving to cloud' : 'Saving locally',
       detail: snapshot.surface === 'cloud'
-        ? `Syncing ${scopeLabel} now`
+        ? hasProject
+          ? 'Saving roster, teams, and scenarios'
+          : `Syncing ${scopeLabel} now`
         : user
           ? 'Keeping a local copy safe'
           : 'Not signed in',
@@ -176,7 +178,7 @@ export function describePersistenceStatus(
   if (snapshot.phase === 'conflict') {
     return {
       title: 'Sync conflict',
-      detail: 'Reload or save as a new project',
+      detail: 'Reload, merge, or save as a copy',
       tone: 'warning',
       icon: 'warning',
     };
@@ -194,7 +196,7 @@ export function describePersistenceStatus(
   if (snapshot.surface === 'cloud' && snapshot.phase === 'saved') {
     return {
       title: 'Saved to cloud',
-      detail: hasProject ? 'Project autosync is on' : 'Account sync is active',
+      detail: hasProject ? 'Roster, teams, and scenarios saved' : 'Account sync is active',
       tone: 'success',
       icon: 'cloud',
     };
@@ -211,7 +213,7 @@ export function describePersistenceStatus(
 
   return {
     title: hasProject ? 'Project ready' : 'Sync ready',
-    detail: hasProject ? 'Project will autosave' : 'Cloud sync is available',
+    detail: hasProject ? 'Roster, teams, and scenarios will autosave' : 'Cloud sync is available',
     tone: 'neutral',
     icon: user ? 'cloud' : 'local',
   };

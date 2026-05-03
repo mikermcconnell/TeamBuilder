@@ -5,6 +5,12 @@ import { AppState, getEffectiveSkillRating } from '@/types';
 import { getDefaultConfig, getRosterFeasibilityWarnings, validateConfig } from '@/utils/configManager';
 import { getProjectBackupFilename, parseProjectBackup, serializeProjectBackup } from '@/utils/projectRecovery';
 import { formatSavedWorkspaceUpdatedAt } from '@/utils/workspaceDate';
+import {
+  buildProjectDeleteConfirmMessage,
+  buildRestoreBackupConfirmMessage,
+  buildScenarioDeleteConfirmMessage,
+  buildScenarioStartOverConfirmMessage,
+} from '@/utils/saveWorkflowCopy';
 import { validateGroupsForGeneration } from '@/utils/playerGrouping';
 import { serializePlayersToCSV } from '@/utils/csvProcessor';
 import { mergeWorkspaceStateForConflict } from '@/services/persistence/workspaceMerge';
@@ -212,16 +218,28 @@ function App() {
     setIsLoadWorkspaceDialogOpen(true);
   }, [user]);
 
-  const handleSaveWorkspace = useCallback(async () => {
+  const handleSaveWorkspace = useCallback(async (
+    nameOverride?: string,
+    descriptionOverride?: string,
+    options?: { asCopy?: boolean }
+  ) => {
+    const effectiveWorkspaceName = nameOverride ?? workspaceName;
+    const effectiveWorkspaceDescription = descriptionOverride ?? workspaceDescription;
+
     try {
       const result = await saveWorkspace(appState, {
-        id: currentWorkspaceId,
-        name: workspaceName,
-        description: workspaceDescription,
+        id: options?.asCopy ? null : currentWorkspaceId,
+        name: effectiveWorkspaceName,
+        description: effectiveWorkspaceDescription,
       });
       syncWorkspaceSaveStatus(result);
       if (result && result.type !== 'conflict' && result.type !== 'error') {
         setIsSaveWorkspaceDialogOpen(false);
+        if (options?.asCopy) {
+          toast.success(`Copy created: "${effectiveWorkspaceName}"`, {
+            description: "You're now editing the copy. Original unchanged.",
+          });
+        }
       }
     } catch (e) {
       // Toast handled in context
@@ -245,7 +263,7 @@ function App() {
       return;
     }
 
-    if (!window.confirm('Reload the latest cloud version? Your current unsaved changes in this tab will be replaced.')) {
+    if (!window.confirm('Reload the latest cloud version? Your current unsaved changes in this tab will be replaced. Download a backup first if you want a safety copy.')) {
       return;
     }
 
@@ -268,6 +286,10 @@ function App() {
       syncWorkspaceSaveStatus(result);
       if (result && result.type !== 'conflict' && result.type !== 'error') {
         clearWorkspaceConflict();
+        toast.success(`Copy created: "${copyName}"`, {
+          description: "You're now editing the copy. Original unchanged.",
+        });
+        setIsSaveWorkspaceDialogOpen(true);
       }
     } catch {
       // Toast handled in context
@@ -297,7 +319,7 @@ function App() {
       syncWorkspaceSaveStatus(result);
       if (result && result.type !== 'conflict' && result.type !== 'error') {
         clearWorkspaceConflict();
-        toast.success('Merged your draft with the latest saved project');
+        toast.success('Merged your current screen with the latest saved project');
       }
     } catch {
       // Toast handled in context
@@ -316,9 +338,11 @@ function App() {
 
   const handleDeleteWorkspaceAction = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this project?')) return;
+    const workspaceToDelete = savedWorkspaces.find(workspace => workspace.id === id);
+    const projectName = workspaceToDelete?.name ?? 'this project';
+    if (!window.confirm(buildProjectDeleteConfirmMessage(projectName))) return;
     await deleteWorkspace(id);
-  }, [deleteWorkspace]);
+  }, [deleteWorkspace, savedWorkspaces]);
 
   const handleExportProjectBackup = useCallback(() => {
     const backupJson = serializeProjectBackup(appState, {
@@ -356,9 +380,7 @@ function App() {
       const fileText = await file.text();
       const backup = parseProjectBackup(fileText);
 
-      const confirmRestore = window.confirm(
-        `Restore "${backup.project.name}" from backup? This will replace the project currently open on screen.`
-      );
+      const confirmRestore = window.confirm(buildRestoreBackupConfirmMessage(backup.project.name));
 
       if (!confirmRestore) {
         return;
@@ -536,7 +558,7 @@ function App() {
     setTeamsView('landing');
     setIsFullScreenMode(true);
     setIsGenerateTeamsDialogOpen(false);
-    toast.success('Created two manual team tabs');
+    toast.success('Created two manual team scenarios');
   }, [appState.config, appState.playerGroups, appState.players, snapshotCurrentState, validateGenerationSetup]);
 
   const handleAddManualIteration = useCallback(async () => {
@@ -563,12 +585,12 @@ function App() {
   const handleCopyIteration = useCallback((iterationId: string) => {
     const sourceIteration = teamIterations.find(iteration => iteration.id === iterationId);
     if (!sourceIteration) {
-      toast.error('That tab could not be copied');
+      toast.error('That scenario could not be copied');
       return;
     }
 
     if (sourceIteration.status !== 'ready') {
-      toast.error('Only ready tabs can be copied right now');
+      toast.error('Only ready scenarios can be copied right now');
       return;
     }
 
@@ -596,14 +618,14 @@ function App() {
     setTeamsView('landing');
 
     if (copiedIterationName) {
-      toast.success(`Created ${copiedIterationName}`);
+      toast.success(`Created scenario "${copiedIterationName}"`);
     }
   }, [snapshotCurrentState, teamIterations]);
 
   const handleUpdateIterationMetadata = useCallback((iterationId: string, updates: { name?: string; note?: string }) => {
     const trimmedName = updates.name?.trim();
     if (updates.name !== undefined && !trimmedName) {
-      toast.error('Enter a draft name first');
+      toast.error('Enter a scenario name first');
       return;
     }
 
@@ -620,19 +642,19 @@ function App() {
       });
     });
 
-    toast.success('Draft details saved');
+    toast.success('Scenario details saved');
   }, [snapshotCurrentState]);
 
   const handleMarkIterationPreferred = useCallback((iterationId: string) => {
     snapshotCurrentState();
     setAppState(prev => markTeamIterationPreferred(prev, iterationId));
-    toast.success('Marked preferred draft');
+    toast.success('Marked preferred scenario');
   }, [snapshotCurrentState]);
 
   const handleMarkIterationFinal = useCallback((iterationId: string) => {
     snapshotCurrentState();
     setAppState(prev => markTeamIterationFinal(prev, iterationId));
-    toast.success('Marked final draft');
+    toast.success('Marked final scenario');
   }, [snapshotCurrentState]);
 
   const handleDeleteIteration = useCallback((iterationId: string) => {
@@ -643,9 +665,7 @@ function App() {
     }
 
     const isLastIteration = teamIterations.length === 1;
-    const confirmMessage = isLastIteration
-      ? `Delete ${iterationToDelete.name}? This will remove the last team tab and close the workspace.`
-      : `Delete ${iterationToDelete.name}?`;
+    const confirmMessage = buildScenarioDeleteConfirmMessage(iterationToDelete.name, isLastIteration);
 
     if (!window.confirm(confirmMessage)) {
       return;
@@ -658,15 +678,15 @@ function App() {
     if (isLastIteration) {
       setTeamsView('landing');
       setIsFullScreenMode(false);
-      toast.success('Deleted the last team tab');
+      toast.success('Deleted the last team scenario');
       return;
     }
 
-    toast.success(`Deleted ${iterationToDelete.name}`);
+    toast.success(`Deleted scenario "${iterationToDelete.name}"`);
   }, [snapshotCurrentState, teamIterations]);
 
   const handleDeleteAllIterations = useCallback(() => {
-    if (!window.confirm('Delete all team tabs and start over?')) {
+    if (!window.confirm(buildScenarioStartOverConfirmMessage())) {
       return;
     }
 
@@ -684,7 +704,7 @@ function App() {
 
     setTeamsView('landing');
     setIsFullScreenMode(false);
-    toast.success('Deleted all team tabs. You can generate new ones when ready.');
+    toast.success('Deleted all team scenarios. You can generate new ones when ready.');
   }, [snapshotCurrentState]);
 
   // Reset full screen mode when switching away from teams tab
@@ -761,6 +781,7 @@ function App() {
         onAddManualIteration={handleAddManualIteration}
         onStartOver={handleDeleteAllIterations}
         activeIterationStatus={activeIteration?.status}
+        leagueMemory={leagueMemory}
       />
     );
   }
@@ -789,7 +810,11 @@ function App() {
           workspaceName={workspaceName}
           workspaceDescription={workspaceDescription}
           currentWorkspaceId={currentWorkspaceId}
-          setCurrentWorkspaceInfo={setCurrentWorkspaceInfo}
+          currentProjectSummary={{
+            playerCount: appState.players.length,
+            teamCount: appState.teams.length,
+            scenarioCount: appState.teamIterations?.length ?? 0,
+          }}
           isSavingWorkspace={isSavingWorkspace}
           onSaveWorkspace={handleSaveWorkspace}
           workspaceConflict={lastWorkspaceConflict}
@@ -845,7 +870,7 @@ function App() {
                   value="teams"
                   className="flex-1 rounded-xl py-3 font-bold text-slate-600 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
                 >
-                  Teams
+                  Team Scenarios
                   {teamIterations.length > 0 && (
                     <span className="ml-2 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
                       {teamIterations.length}
@@ -977,16 +1002,16 @@ function App() {
                       <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-6">
                         <Users className="h-10 w-10" />
                       </div>
-                       <h3 className="text-xl font-bold text-slate-700 mb-2">No Team Tabs Yet</h3>
+                       <h3 className="text-xl font-bold text-slate-700 mb-2">No Team Scenarios Yet</h3>
                        <p className="text-slate-500 mb-8 max-w-md mx-auto">
-                         Create manual team tabs to start building and comparing versions.
+                         Create team scenarios to start building and comparing versions.
                        </p>
                       <Button
                         onClick={handleOpenGenerateTeamsDialog}
                         size="lg"
                         className="bg-primary hover:bg-primary/90 text-white border-b-4 border-primary-shadow active:border-b-0 rounded-xl font-bold px-8 h-14 text-lg transition-all active:translate-y-1"
                       >
-                        Generate Team Tabs
+                        Generate Team Scenarios
                       </Button>
                     </div>
 
@@ -1007,9 +1032,9 @@ function App() {
                       </div>
                        <div className="rounded-2xl border border-slate-200 bg-white p-5">
                          <div className="text-sm font-bold text-slate-800">3. Generate and compare</div>
-                         <p className="mt-2 text-sm text-slate-500">Create manual tabs, compare scorecards, then publish the version you want.</p>
+                         <p className="mt-2 text-sm text-slate-500">Create scenarios, compare scorecards, then publish the version you want.</p>
                          <Button className="mt-4" onClick={handleOpenGenerateTeamsDialog}>
-                           Generate tabs
+                           Generate scenarios
                          </Button>
                       </div>
                     </div>
@@ -1023,7 +1048,7 @@ function App() {
                         </div>
                         <h3 className="text-xl font-bold text-slate-800 mb-2">Building {activeIteration.name}</h3>
                         <p className="text-slate-500 max-w-md mx-auto">
-                          This team tab is being prepared in the background. You can switch tabs or wait here.
+                          This team scenario is being prepared in the background. You can switch scenarios or wait here.
                         </p>
                       </div>
                     ) : activeIteration?.status === 'failed' ? (
@@ -1031,9 +1056,9 @@ function App() {
                         <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-50 text-red-500">
                           <AlertTriangle className="h-10 w-10" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">This team tab could not be generated</h3>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">This team scenario could not be generated</h3>
                         <p className="text-slate-500 max-w-md mx-auto">
-                          {activeIteration.errorMessage || 'Please create a new manual iteration and try again.'}
+                          {activeIteration.errorMessage || 'Please create a new manual scenario and try again.'}
                         </p>
                       </div>
                     ) : teamsView === 'landing' ? (
@@ -1117,9 +1142,9 @@ function App() {
       <Dialog open={isGenerateTeamsDialogOpen} onOpenChange={setIsGenerateTeamsDialogOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-extrabold text-slate-800">Generate Team Tabs</DialogTitle>
+            <DialogTitle className="text-2xl font-extrabold text-slate-800">Generate Team Scenarios</DialogTitle>
             <DialogDescription>
-              Start with a pair of manual team tabs. You can add more manual tabs later with the + button.
+              Start with a pair of manual team scenarios. You can add more manual scenarios later with the + button.
             </DialogDescription>
           </DialogHeader>
 
@@ -1132,9 +1157,9 @@ function App() {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
                 <SquarePen className="h-6 w-6" />
               </div>
-              <div className="text-lg font-bold text-slate-800">Manual Team</div>
+              <div className="text-lg font-bold text-slate-800">Manual Team Scenario</div>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Creates two blank team tabs so you can build and compare manual versions side by side.
+                Creates two blank team scenarios so you can build and compare manual versions side by side.
               </p>
             </button>
           </div>

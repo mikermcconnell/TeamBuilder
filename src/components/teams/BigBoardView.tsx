@@ -72,7 +72,7 @@ function LeagueMetricsCard({ teams, playerGroups = [] }: { teams: Team[]; player
     <aside className="min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm xl:col-span-2 2xl:col-span-2 min-[1800px]:col-span-2">
       <div className="mb-2">
         <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">League metrics</p>
-        <h2 className="text-sm font-bold text-slate-950">{teams.length}-team draft snapshot</h2>
+        <h2 className="text-sm font-bold text-slate-950">{teams.length}-team scenario snapshot</h2>
       </div>
 
       <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2">
@@ -84,7 +84,7 @@ function LeagueMetricsCard({ teams, playerGroups = [] }: { teams: Team[]; player
           <div className="h-full rounded-full bg-emerald-600" style={{ width: `${groupPct}%` }} />
         </div>
         <p className="mt-1 text-[10px] font-semibold text-emerald-700">
-          {totalGroups > 0 ? `${groupPct}% of requested groups kept together` : 'No requested groups in this draft'}
+          {totalGroups > 0 ? `${groupPct}% of requested groups kept together` : 'No requested groups in this scenario'}
         </p>
       </div>
 
@@ -114,9 +114,9 @@ export function BigBoardView({ teams, config, draftName, playerGroups }: BigBoar
 
   return (
     <div className="min-h-0 flex-1 overflow-auto px-1 py-1">
-      <h2 className="sr-only">{draftName || 'Current Draft'}</h2>
+      <h2 className="sr-only">{draftName || 'Current Scenario'}</h2>
       <div
-        aria-label={draftName || 'Current Draft'}
+        aria-label={draftName || 'Current Scenario'}
         className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[1800px]:grid-cols-6 min-[2200px]:grid-cols-7 min-[2600px]:grid-cols-8"
       >
         {teams.map((team) => (

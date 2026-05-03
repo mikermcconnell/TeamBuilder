@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Player, Team, LeagueConfig, PlayerGroup, SavedWorkspace, TeamGenerationStats } from '@/types';
+import {
+    LeagueConfig,
+    LeagueMemoryEntry,
+    Player,
+    PlayerGroup,
+    SavedWorkspace,
+    Team,
+    TeamGenerationStats,
+    TeamIteration,
+} from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,6 +38,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { buildProjectDeleteConfirmMessage } from '@/utils/saveWorkflowCopy';
 
 interface WorkspaceManagerProps {
     players: Player[];
@@ -37,6 +47,9 @@ interface WorkspaceManagerProps {
     unassignedPlayers: Player[];
     config: LeagueConfig;
     stats?: TeamGenerationStats;
+    teamIterations?: TeamIteration[];
+    activeTeamIterationId?: string | null;
+    leagueMemory?: LeagueMemoryEntry[];
     onLoadWorkspace: (id: string) => void;
     currentWorkspaceId?: string | null;
     mode?: 'default' | 'toolbar';
@@ -49,6 +62,9 @@ export function WorkspaceManager({
     unassignedPlayers,
     config,
     stats,
+    teamIterations,
+    activeTeamIterationId,
+    leagueMemory,
     onLoadWorkspace,
     currentWorkspaceId: propWorkspaceId,
     mode = 'default'
@@ -69,21 +85,40 @@ export function WorkspaceManager({
 
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
     const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
+    const [isSaveAsCopy, setIsSaveAsCopy] = useState(false);
 
     // Local state for the save dialog form
     const [saveName, setSaveName] = useState('');
     const [saveDescription, setSaveDescription] = useState('');
-    const effectiveWorkspaceName = (contextWorkspaceName || '').trim() || 'Untitled Draft';
+    const effectiveWorkspaceName = (contextWorkspaceName || '').trim() || 'Untitled Project';
     const effectiveWorkspaceDescription = (contextWorkspaceDescription || '').trim();
 
     // Check if we are editing an existing workspace or creating new
     // When dialog opens, we want to sync with context
     useEffect(() => {
-        if (isSaveDialogOpen) {
-            setSaveName(contextWorkspaceName || '');
-            setSaveDescription(contextWorkspaceDescription || '');
+        if (!isSaveDialogOpen) {
+            setIsSaveAsCopy(false);
         }
-    }, [isSaveDialogOpen, contextWorkspaceName, contextWorkspaceDescription]);
+    }, [isSaveDialogOpen]);
+
+    const openSaveDialog = (asCopy = false) => {
+        setIsSaveAsCopy(asCopy);
+        setSaveName(asCopy ? `${effectiveWorkspaceName} (copy)` : (contextWorkspaceName || ''));
+        setSaveDescription(contextWorkspaceDescription || '');
+        setIsSaveDialogOpen(true);
+    };
+
+    const buildWorkspacePayload = () => ({
+        players,
+        playerGroups,
+        teams,
+        unassignedPlayers,
+        config,
+        stats,
+        ...(teamIterations !== undefined ? { teamIterations } : {}),
+        ...(activeTeamIterationId !== undefined ? { activeTeamIterationId } : {}),
+        ...(leagueMemory !== undefined ? { leagueMemory } : {}),
+    });
 
     const handleSaveSubmit = async () => {
         if (!user) {
@@ -99,15 +134,10 @@ export function WorkspaceManager({
         try {
             const result = await saveWorkspace(
                 {
-                    players,
-                    playerGroups,
-                    teams,
-                    unassignedPlayers,
-                    config,
-                    stats
+                    ...buildWorkspacePayload(),
                 },
                 {
-                    id: currentId || null,
+                    id: isSaveAsCopy ? null : currentId || null,
                     name: saveName.trim(),
                     description: saveDescription.trim()
                 }
@@ -141,12 +171,7 @@ export function WorkspaceManager({
         try {
             const result = await saveWorkspace(
                 {
-                    players,
-                    playerGroups,
-                    teams,
-                    unassignedPlayers,
-                    config,
-                    stats
+                    ...buildWorkspacePayload(),
                 },
                 {
                     id: currentId || null,
@@ -164,36 +189,13 @@ export function WorkspaceManager({
         }
     };
 
-    const handleDuplicateProject = async () => {
+    const handleDuplicateProject = () => {
         if (!user) {
             toast.error('Please sign in to save projects');
             return;
         }
 
-        const baseName = effectiveWorkspaceName || 'Recovered Project';
-        const copyName = /\(copy\)$/i.test(baseName) ? baseName : `${baseName} (copy)`;
-
-        try {
-            await saveWorkspace(
-                {
-                    players,
-                    playerGroups,
-                    teams,
-                    unassignedPlayers,
-                    config,
-                    stats
-                },
-                {
-                    id: null,
-                    name: copyName,
-                    description: effectiveWorkspaceDescription
-                }
-            );
-        } catch (error: unknown) {
-            console.error('Failed to duplicate project:', error);
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            toast.error(`Duplicate failed: ${message}`);
-        }
+        openSaveDialog(true);
     };
 
     const handleLoadClick = (id: string) => {
@@ -203,24 +205,19 @@ export function WorkspaceManager({
 
     const handleDeleteClick = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!confirm('Are you sure you want to delete this project?')) return;
+        const projectName = savedWorkspaces.find(workspace => workspace.id === id)?.name || 'this project';
+        if (!confirm(buildProjectDeleteConfirmMessage(projectName))) return;
 
         await deleteWorkspace(id);
     };
 
     const saveDialog = (
         <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-            <DialogTrigger asChild>
-                <Button variant="default" className="gap-2">
-                    <SquarePen className="h-4 w-4" />
-                    {currentId ? 'Edit Project' : 'Name Project'}
-                </Button>
-            </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Save Project</DialogTitle>
+                    <DialogTitle>{isSaveAsCopy || !currentId ? 'Save New Project' : 'Rename / Save Project'}</DialogTitle>
                     <DialogDescription>
-                        Save your entire workspace (players, teams, configuration) to resume later.
+                        This saves the roster, team scenarios, and settings together.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -249,7 +246,8 @@ export function WorkspaceManager({
                         <p>This will save:</p>
                         <ul className="list-disc list-inside mt-1">
                             <li>{players.length} players total</li>
-                            <li>{teams.length} teams generated</li>
+                            <li>{teams.length} teams in the current scenario</li>
+                            <li>{teamIterations?.length ?? 0} team scenario{teamIterations?.length === 1 ? '' : 's'}</li>
                             <li>All player groups and settings</li>
                         </ul>
                     </div>
@@ -331,7 +329,7 @@ export function WorkspaceManager({
                                         </div>
                                     </CardHeader>
                                     <CardContent className="pt-0">
-                                        <div className="grid grid-cols-3 gap-4 text-sm">
+                                        <div className="grid grid-cols-4 gap-4 text-sm">
                                             <div className="flex items-center gap-1.5 text-muted-foreground">
                                                 <Users className="h-3.5 w-3.5" />
                                                 <span>{ws.players?.length || 0} players</span>
@@ -339,6 +337,10 @@ export function WorkspaceManager({
                                             <div className="flex items-center gap-1.5 text-muted-foreground">
                                                 <Users className="h-3.5 w-3.5" />
                                                 <span>{ws.teams?.length || 0} teams</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                <Copy className="h-3.5 w-3.5" />
+                                                <span>{ws.teamIterations?.length || 0} scenarios</span>
                                             </div>
                                             <div className="flex items-center gap-1.5 text-muted-foreground">
                                                 <Clock className="h-3.5 w-3.5" />
@@ -371,10 +373,20 @@ export function WorkspaceManager({
                         {effectiveWorkspaceName}
                     </div>
                     <div className="max-w-[260px] truncate text-xs text-slate-500">
-                        {effectiveWorkspaceDescription || (currentId ? 'Saved project' : 'Not saved to cloud yet')}
+                        {effectiveWorkspaceDescription || (currentId ? 'Saved project' : 'Unsaved project')}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button
+                        type="button"
+                        variant="default"
+                        className="gap-2"
+                        onClick={() => openSaveDialog(false)}
+                    >
+                        <SquarePen className="h-4 w-4" />
+                        {currentId ? 'Edit Project' : 'Name Project'}
+                    </Button>
+                    {saveDialog}
                     <Button
                         variant="outline"
                         className="gap-2"
@@ -384,11 +396,10 @@ export function WorkspaceManager({
                         <Save className="h-4 w-4" />
                         {isSaving ? 'Saving...' : 'Save Now'}
                     </Button>
-                    {saveDialog}
                     <Button
                         variant="outline"
                         className="gap-2"
-                        onClick={() => void handleDuplicateProject()}
+                        onClick={handleDuplicateProject}
                         disabled={isSaving}
                     >
                         <Copy className="h-4 w-4" />
@@ -412,6 +423,15 @@ export function WorkspaceManager({
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Saved Projects</h3>
                 <div className="flex gap-6">
+                    <Button
+                        type="button"
+                        variant="default"
+                        className="gap-2"
+                        onClick={() => openSaveDialog(false)}
+                    >
+                        <SquarePen className="h-4 w-4" />
+                        {currentId ? 'Edit Project' : 'Name Project'}
+                    </Button>
                     {saveDialog}
                     {loadDialog}
                 </div>

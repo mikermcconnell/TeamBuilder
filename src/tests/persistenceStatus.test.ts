@@ -28,7 +28,7 @@ describe('describePersistenceStatus', () => {
     ).toEqual(
       expect.objectContaining({
         title: 'Saved to cloud',
-        detail: 'Project autosync is on',
+        detail: 'Roster, teams, and scenarios saved',
       })
     );
   });
@@ -58,7 +58,7 @@ describe('describePersistenceStatus', () => {
     ).toEqual(
       expect.objectContaining({
         title: 'Saving to cloud',
-        detail: 'Syncing project now',
+        detail: 'Saving roster, teams, and scenarios',
       })
     );
   });
@@ -73,7 +73,7 @@ describe('describePersistenceStatus', () => {
     ).toEqual(
       expect.objectContaining({
         title: 'Sync conflict',
-        detail: 'Reload or save as a new project',
+        detail: 'Reload, merge, or save as a copy',
       })
     );
   });

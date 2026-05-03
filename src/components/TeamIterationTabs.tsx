@@ -117,11 +117,11 @@ export function TeamIterationTabs({
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuItem disabled={!onEditIteration} onClick={() => onEditIteration?.(iteration.id)}>
                   <SquarePen className="h-4 w-4" />
-                  Edit Name &amp; Note
+                  Edit Scenario Name &amp; Note
                 </DropdownMenuItem>
                 <DropdownMenuItem disabled={!isReady} onClick={() => onCopyIteration(iteration.id)}>
                   <Copy className="h-4 w-4" />
-                  Duplicate Draft
+                  Duplicate Scenario
                 </DropdownMenuItem>
                 <DropdownMenuItem disabled={!isReady || !onMarkPreferred} onClick={() => onMarkPreferred?.(iteration.id)}>
                   <Star className="h-4 w-4" />
@@ -133,7 +133,7 @@ export function TeamIterationTabs({
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-red-600 focus:text-red-700" onClick={() => onDeleteIteration(iteration.id)}>
                   <Trash2 className="h-4 w-4" />
-                  Delete Draft
+                  Delete Scenario
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -155,7 +155,7 @@ export function TeamIterationTabs({
         <DropdownMenuContent align="start" className="w-48">
           <DropdownMenuItem onClick={onAddManualIteration}>
             <SquarePen className="h-4 w-4" />
-            New Manual Iteration
+            New Manual Scenario
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
