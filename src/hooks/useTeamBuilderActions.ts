@@ -9,7 +9,7 @@ import { normalizeLeagueConfig } from '@/utils/teamCount';
 import { generateBalancedTeams } from '@/utils/teamGenerator';
 import { applyTeamBranding, ensureUniqueTeamNames, getColorName, getTeamBrandPalette } from '@/utils/teamBranding';
 import { getEffectiveAutoGroupSize, processMutualRequests, validateGroupsForGeneration } from '@/utils/playerGrouping';
-import { syncActiveTeamIterationToState } from '@/utils/teamIterations';
+import { reconcileReadyTeamIterations, syncActiveTeamIterationToState } from '@/utils/teamIterations';
 import { debounce } from '@/utils/performance';
 import { reconcileTeamState } from '@/utils/teamStateReconciler';
 import { validateTeamName } from '@/utils/validation';
@@ -167,6 +167,24 @@ function addPlayerToIterationPool(
   };
 }
 
+function syncRosterChangesToReadyIterations(state: AppState): AppState {
+  const activeSyncedState = syncActiveTeamIterationToState(state);
+
+  if (!activeSyncedState.teamIterations?.length) {
+    return activeSyncedState;
+  }
+
+  return {
+    ...activeSyncedState,
+    teamIterations: reconcileReadyTeamIterations(
+      activeSyncedState.teamIterations,
+      activeSyncedState.players,
+      activeSyncedState.config,
+      activeSyncedState.playerGroups,
+    ),
+  };
+}
+
 interface TeamBrandingChange {
   name?: string;
   color?: string;
@@ -273,7 +291,7 @@ export function useTeamBuilderActions({
       players: group.players.map(clearExecRanking)
     }));
 
-    return syncActiveIteration({
+    return syncRosterChangesToReadyIterations({
       ...state,
       players: updatedPlayers,
       teams: updatedTeams,
@@ -281,7 +299,7 @@ export function useTeamBuilderActions({
       playerGroups: updatedPlayerGroups,
       execRatingHistory: resetHistory ? {} : state.execRatingHistory,
     });
-  }, [syncActiveIteration]);
+  }, []);
 
   const deriveWorkspaceNameFromFile = (sourceFileName?: string) => {
     const trimmedName = sourceFileName?.trim();
@@ -500,7 +518,7 @@ export function useTeamBuilderActions({
       const shouldReconcileTeamState = prev.teams.length > 0 || prev.unassignedPlayers.length > 0 || Boolean(prev.stats);
 
       if (!shouldReconcileTeamState) {
-        return syncActiveIteration({
+        return syncRosterChangesToReadyIterations({
           ...prev,
           players: syncedGroupState.players,
           teams: updatedTeams,
@@ -519,7 +537,7 @@ export function useTeamBuilderActions({
         prev.stats,
       );
 
-      return syncActiveIteration({
+      return syncRosterChangesToReadyIterations({
         ...prev,
         players: reconciledState.players,
         teams: reconciledState.teams,
@@ -528,7 +546,7 @@ export function useTeamBuilderActions({
         stats: reconciledState.stats,
         execRatingHistory: updatedHistory
       });
-  }, [syncActiveIteration]);
+  }, []);
 
   const handlePlayerUpdate = useCallback((updatedPlayer: Player, options?: PlayerUpdateOptions) => {
     snapshotCurrentState();
@@ -735,7 +753,7 @@ export function useTeamBuilderActions({
         prev.stats,
       );
 
-      return syncActiveIteration({
+      return syncRosterChangesToReadyIterations({
         ...prev,
         players: reconciledState.players,
         teams: reconciledState.teams,
@@ -744,7 +762,7 @@ export function useTeamBuilderActions({
         stats: reconciledState.stats,
       });
     });
-  }, [setAppState, snapshotCurrentState, syncActiveIteration]);
+  }, [setAppState, snapshotCurrentState]);
 
   const handlePlayerMove = useCallback((playerId: string, targetTeamId: string | null) => {
     snapshotCurrentState();

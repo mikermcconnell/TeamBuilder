@@ -83,6 +83,19 @@ describe('validateAndProcessCSV registration imports', () => {
       avoidRequests: [],
     });
   });
+
+  it('parses Yes-prefixed Do Not Play names as avoid requests', () => {
+    const csv = [
+      'first_name,last_name,status,gender,"Player_Request_#1:",Do_Not_Play,Skill',
+      'Alice,One,accepted,female,,Yes: Bob Two,6',
+      'Bob,Two,accepted,male,,No,6',
+    ].join('\n');
+
+    const result = validateAndProcessCSV(csv);
+
+    expect(result.errors).toEqual([]);
+    expect(result.players.find(player => player.name === 'Alice One')?.avoidRequests).toEqual(['Bob Two']);
+  });
 });
 
 describe('serializePlayersToCSV', () => {
@@ -129,5 +142,25 @@ describe('serializePlayersToCSV', () => {
     expect(getPlayerAge(result.players[0]!)).toBe(29);
     expect(getPlayerRegistrationNotes(result.players[0]!)).toBe('Line 1\nLine 2');
     expect(result.players[0]?.isNewPlayer).toBe(true);
+  });
+
+  it('neutralizes spreadsheet formulas in serialized roster CSV', () => {
+    const players: Player[] = [
+      {
+        id: 'player-1',
+        name: '=HYPERLINK("https://example.com")',
+        gender: 'F',
+        skillRating: 7,
+        execSkillRating: null,
+        teammateRequests: ['+Injected Request'],
+        avoidRequests: ['-Injected Avoid'],
+      },
+    ];
+
+    const csv = serializePlayersToCSV(players);
+
+    expect(csv).toContain('"\'=HYPERLINK(""https://example.com"")"');
+    expect(csv).toContain(",'+Injected Request,");
+    expect(csv).toContain(",'-Injected Avoid,");
   });
 });

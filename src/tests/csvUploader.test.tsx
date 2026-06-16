@@ -66,6 +66,7 @@ describe('CSVUploader', () => {
     expect(screen.getByText('Import Wizard')).toBeInTheDocument();
     expect(screen.getByText('Prepare file')).toBeInTheDocument();
     expect(screen.getByText('Review and confirm')).toBeInTheDocument();
+    expect(screen.getByText('Upload CSV File')).toBeInTheDocument();
   });
 
   it('marks imported players as new when they are missing from historical rosters', async () => {
@@ -99,6 +100,7 @@ describe('CSVUploader', () => {
 
     const fileInput = container.querySelector('input[type="file"]');
     expect(fileInput).not.toBeNull();
+    expect(fileInput?.getAttribute('accept')).toBe('.csv,text/csv');
 
     const csvFile = new File(
       [

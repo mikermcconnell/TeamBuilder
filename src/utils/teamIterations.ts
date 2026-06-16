@@ -378,6 +378,17 @@ function reconcileReadyIteration(
   };
 }
 
+export function reconcileReadyTeamIterations(
+  iterations: TeamIteration[] = [],
+  players: Player[],
+  config: LeagueConfig,
+  playerGroups: PlayerGroup[],
+): TeamIteration[] {
+  return iterations.map(iteration =>
+    reconcileReadyIteration(iteration, players, config, playerGroups)
+  );
+}
+
 function normalizeTeamIterationMarkers(iterations: TeamIteration[]): TeamIteration[] {
   let hasPreferred = false;
   let hasFinal = false;

@@ -99,6 +99,28 @@ describe('exportUtils', () => {
     expect(csv).toContain('"UNASSIGNED","","Charlie Cruz","Other","4","N/A",""');
   });
 
+  it('neutralizes spreadsheet formulas in detailed CSV exports', () => {
+    const team: Team = createTeam({
+      id: 'team-1',
+      name: '=Formula Team',
+      players: [
+        createPlayer({
+          id: 'p1',
+          name: '+Injected Player',
+          gender: 'F',
+          skillRating: 7,
+        }),
+      ],
+      averageSkill: 7,
+      genderBreakdown: { M: 0, F: 1, Other: 0 },
+    });
+
+    const csv = exportTeamsToCSV([team], [], []);
+
+    expect(csv).toContain('"\'=Formula Team"');
+    expect(csv).toContain(`"'+Injected Player"`);
+  });
+
   it('exports a readable summary CSV with stats and player group labels', () => {
     const team: Team = createTeam({
       id: 'team-1',
@@ -122,6 +144,24 @@ describe('exportUtils', () => {
     expect(summaryCsv).toContain('"Unassigned Players","1"');
     expect(summaryCsv).toContain('"Mutual Requests Honored","1"');
     expect(summaryCsv).toContain('"Generation Time (ms)","42"');
+  });
+
+  it('neutralizes spreadsheet formulas and handles empty teams in summary CSV exports', () => {
+    const team: Team = createTeam({
+      id: 'team-1',
+      name: '@Formula Team',
+      colorName: '-Formula Color',
+      players: [],
+      averageSkill: 0,
+      genderBreakdown: { M: 0, F: 0, Other: 0 },
+    });
+
+    const summaryCsv = exportTeamSummaryToCSV([team], [], config);
+
+    expect(summaryCsv).toContain('"\'@Formula Team"');
+    expect(summaryCsv).toContain('"\'-Formula Color"');
+    expect(summaryCsv).toContain('"None","0.00",""');
+    expect(summaryCsv).not.toContain('NaN');
   });
 
   it('generates a report that includes team, request, group, and stats sections', () => {

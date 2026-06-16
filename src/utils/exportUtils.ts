@@ -3,6 +3,7 @@ import { getPlayerGroupLabel } from './playerGrouping';
 import { generateShareableSummary } from './teamBranding';
 import { buildIterationInsights } from './teamInsights';
 import { sanitizeLegacyTeamName } from './groupLabels';
+import { formatCSVCell } from './csvSafety';
 
 export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], playerGroups: PlayerGroup[] = []): string {
   const headers = ['Team', 'Team Color', 'Player Name', 'Gender', 'Skill Rating', 'Exec Skill Rating', 'Player Group', 'Average Team Skill', 'Team Size', 'Males', 'Females', 'Other'];
@@ -60,7 +61,7 @@ export function exportTeamsToCSV(teams: Team[], unassignedPlayers: Player[], pla
   }
 
   return rows.map(row =>
-    row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
+    row.map(formatCSVCell).join(',')
   ).join('\n');
 }
 
@@ -74,7 +75,9 @@ export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[
     // Calculate skill variance using exec skill ratings (or skill rating if exec is N/A)
     const skills = team.players.map(p => p.execSkillRating !== null ? p.execSkillRating : p.skillRating);
     const avgSkill = team.averageSkill;
-    const variance = skills.reduce((sum, skill) => sum + Math.pow(skill - avgSkill, 2), 0) / skills.length;
+    const variance = skills.length > 0
+      ? skills.reduce((sum, skill) => sum + Math.pow(skill - avgSkill, 2), 0) / skills.length
+      : 0;
 
     // Get player groups in this team
     const teamGroups = new Set();
@@ -123,7 +126,7 @@ export function exportTeamSummaryToCSV(teams: Team[], playerGroups: PlayerGroup[
   }
 
   return rows.map(row =>
-    row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
+    row.map(formatCSVCell).join(',')
   ).join('\n');
 }
 

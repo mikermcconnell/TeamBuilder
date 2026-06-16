@@ -1,6 +1,7 @@
 import { Player, CSVValidationResult, CSVRow, Gender, LeagueConfig, PlayerGroup, getPlayerAge, getPlayerRegistrationNotes } from '@/types';
 import { getEffectiveAutoGroupSize, processMutualRequests } from './playerGrouping';
 import { fuzzyMatcher, FuzzyMatchResult } from './fuzzyNameMatcher';
+import { sanitizeCSVCellForSpreadsheet } from './csvSafety';
 import Papa from 'papaparse';
 
 // CSV format types for automatic detection
@@ -59,16 +60,16 @@ export const NORMALIZED_ROSTER_HEADERS = [
 
 export function serializePlayersToCSV(players: Player[]): string {
   const rows = players.map(player => ({
-    [NORMALIZED_ROSTER_HEADERS[0]]: player.name,
-    [NORMALIZED_ROSTER_HEADERS[1]]: player.gender,
+    [NORMALIZED_ROSTER_HEADERS[0]]: sanitizeCSVCellForSpreadsheet(player.name),
+    [NORMALIZED_ROSTER_HEADERS[1]]: sanitizeCSVCellForSpreadsheet(player.gender),
     [NORMALIZED_ROSTER_HEADERS[2]]: player.skillRating,
     [NORMALIZED_ROSTER_HEADERS[3]]: player.execSkillRating ?? '',
-    [NORMALIZED_ROSTER_HEADERS[4]]: player.teammateRequests.join('; '),
-    [NORMALIZED_ROSTER_HEADERS[5]]: player.avoidRequests.join('; '),
-    [NORMALIZED_ROSTER_HEADERS[6]]: player.email ?? '',
-    [NORMALIZED_ROSTER_HEADERS[7]]: typeof player.isNewPlayer === 'boolean' ? (player.isNewPlayer ? 'Yes' : 'No') : '',
+    [NORMALIZED_ROSTER_HEADERS[4]]: sanitizeCSVCellForSpreadsheet(player.teammateRequests.join('; ')),
+    [NORMALIZED_ROSTER_HEADERS[5]]: sanitizeCSVCellForSpreadsheet(player.avoidRequests.join('; ')),
+    [NORMALIZED_ROSTER_HEADERS[6]]: sanitizeCSVCellForSpreadsheet(player.email ?? ''),
+    [NORMALIZED_ROSTER_HEADERS[7]]: sanitizeCSVCellForSpreadsheet(typeof player.isNewPlayer === 'boolean' ? (player.isNewPlayer ? 'Yes' : 'No') : ''),
     [NORMALIZED_ROSTER_HEADERS[8]]: getPlayerAge(player) ?? '',
-    [NORMALIZED_ROSTER_HEADERS[9]]: getPlayerRegistrationNotes(player) ?? '',
+    [NORMALIZED_ROSTER_HEADERS[9]]: sanitizeCSVCellForSpreadsheet(getPlayerRegistrationNotes(player) ?? ''),
   }));
 
   return Papa.unparse(rows, {
@@ -594,11 +595,7 @@ function processRegistrationFormat(
     if (doNotPlayCol) {
       const doNotPlayVal = row[doNotPlayCol]?.trim();
       // Only process if it's not "No" or empty - extract actual player names
-      if (doNotPlayVal && doNotPlayVal.toLowerCase() !== 'no' && !doNotPlayVal.toLowerCase().startsWith('yes:')) {
-        // Split by common delimiters and add each name
-        const names = doNotPlayVal.split(/[,;]/).map(n => n.trim()).filter(n => n.length > 0);
-        avoidRequests.push(...names);
-      }
+      avoidRequests.push(...parseDoNotPlayRequests(doNotPlayVal || ''));
     }
 
     const registrationInfo = mergeRegistrationNotes(
@@ -777,6 +774,21 @@ function parsePlayerList(str: string): string[] {
     .split(/[,;]/)
     .map(name => name.trim())
     .filter(name => name.length > 0);
+}
+
+function parseDoNotPlayRequests(value: string): string[] {
+  const trimmed = value.trim();
+  const normalized = trimmed.toLowerCase();
+
+  if (!trimmed || ['no', 'n/a', 'none', 'yes'].includes(normalized)) {
+    return [];
+  }
+
+  const names = normalized.startsWith('yes:')
+    ? trimmed.slice(trimmed.indexOf(':') + 1).trim()
+    : trimmed;
+
+  return parsePlayerList(names);
 }
 
 function generatePlayerId(name: string): string {

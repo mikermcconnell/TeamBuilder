@@ -12,6 +12,7 @@ import { buildWorkspacePdfHtml, openWorkspacePdfPrintWindow } from '@/utils/work
 import { hexToRgba } from '@/utils/teamBranding';
 import { sanitizeLegacyTeamName } from '@/utils/groupLabels';
 import { reconcileTeamState } from '@/utils/teamStateReconciler';
+import { openTextReportPrintWindow } from '@/utils/printReport';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -165,24 +166,8 @@ export function ExportPanel({
 
   const handlePrintReport = () => {
     if (reportText) {
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Team Report</title>
-              <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                pre { white-space: pre-wrap; font-family: Arial, sans-serif; }
-              </style>
-            </head>
-            <body>
-              <pre>${reportText}</pre>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
+      if (!openTextReportPrintWindow(reportText)) {
+        toast.error('Unable to open the report print window');
       }
     }
   };

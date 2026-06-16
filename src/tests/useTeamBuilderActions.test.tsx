@@ -316,6 +316,72 @@ describe('useTeamBuilderActions', () => {
     expect(result.current.appState.playerGroups[0]?.playerIds).toEqual(['grouped-player']);
   });
 
+  it('syncs roster edits into inactive ready team tabs', () => {
+    const editedPlayer = createPlayer({
+      id: 'edited-player',
+      name: 'Edited Player',
+      gender: 'M',
+      skillRating: 6,
+    });
+    const activeTeam = createTeam({
+      id: 'team-active',
+      players: [editedPlayer],
+      averageSkill: 6,
+      genderBreakdown: { M: 1, F: 0, Other: 0 },
+    });
+    const inactiveTeam = createTeam({
+      id: 'team-inactive',
+      players: [editedPlayer],
+      averageSkill: 6,
+      genderBreakdown: { M: 1, F: 0, Other: 0 },
+    });
+
+    const { result } = renderActions(createAppState({
+      players: [editedPlayer],
+      teams: [activeTeam],
+      unassignedPlayers: [],
+      teamIterations: [
+        {
+          id: 'manual-1',
+          name: 'Manual 1',
+          type: 'manual',
+          status: 'ready',
+          teams: [activeTeam],
+          unassignedPlayers: [],
+          createdAt: '2026-04-21T10:00:00.000Z',
+        },
+        {
+          id: 'manual-2',
+          name: 'Manual 2',
+          type: 'manual',
+          status: 'ready',
+          teams: [inactiveTeam],
+          unassignedPlayers: [],
+          createdAt: '2026-04-21T10:01:00.000Z',
+        },
+      ],
+      activeTeamIterationId: 'manual-1',
+    }));
+
+    act(() => {
+      result.current.handlePlayerUpdate({
+        ...editedPlayer,
+        gender: 'F',
+        skillRating: 9,
+      });
+    });
+
+    const inactiveIteration = result.current.appState.teamIterations.find(iteration => iteration.id === 'manual-2');
+
+    expect(inactiveIteration?.teams[0]?.players[0]).toEqual(expect.objectContaining({
+      id: 'edited-player',
+      gender: 'F',
+      skillRating: 9,
+    }));
+    expect(inactiveIteration?.teams[0]?.averageSkill).toBe(9);
+    expect(inactiveIteration?.teams[0]?.genderBreakdown).toEqual({ M: 0, F: 1, Other: 0 });
+  });
+
   it('adds a new player to the pool without resetting existing teams', () => {
     const assignedPlayer = createPlayer({
       id: 'assigned-player',
@@ -580,5 +646,52 @@ describe('useTeamBuilderActions', () => {
 
     expect(result.current.appState.playerGroups[0]?.playerIds).toEqual(['player-2']);
     expect(result.current.appState.playerGroups[0]?.players.map(player => player.id)).toEqual(['player-2']);
+  });
+
+  it('removes deleted players from inactive ready team tabs', () => {
+    const firstPlayer = createPlayer({
+      id: 'player-1',
+      name: 'Player One',
+      gender: 'M',
+    });
+    const secondPlayer = createPlayer({
+      id: 'player-2',
+      name: 'Player Two',
+      gender: 'F',
+      teammateRequests: ['Player One'],
+      avoidRequests: ['Player One'],
+    });
+    const inactiveTeam = createTeam({
+      id: 'team-inactive',
+      players: [firstPlayer, secondPlayer],
+      averageSkill: 6,
+      genderBreakdown: { M: 1, F: 1, Other: 0 },
+    });
+
+    const { result } = renderActions(createAppState({
+      players: [firstPlayer, secondPlayer],
+      teamIterations: [
+        {
+          id: 'manual-2',
+          name: 'Manual 2',
+          type: 'manual',
+          status: 'ready',
+          teams: [inactiveTeam],
+          unassignedPlayers: [],
+          createdAt: '2026-04-21T10:01:00.000Z',
+        },
+      ],
+    }));
+
+    act(() => {
+      result.current.handlePlayerRemove('player-1');
+    });
+
+    const inactiveIteration = result.current.appState.teamIterations.find(iteration => iteration.id === 'manual-2');
+
+    expect(inactiveIteration?.teams[0]?.players.map(player => player.id)).toEqual(['player-2']);
+    expect(inactiveIteration?.teams[0]?.genderBreakdown).toEqual({ M: 0, F: 1, Other: 0 });
+    expect(inactiveIteration?.teams[0]?.players[0]?.teammateRequests).toEqual([]);
+    expect(inactiveIteration?.teams[0]?.players[0]?.avoidRequests).toEqual([]);
   });
 });

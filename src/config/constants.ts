@@ -22,16 +22,16 @@ export const MAX_CSV_SIZE_BYTES = 1024 * 1024; // 1MB
 
 // --- League Defaults & Constraints ---
 
-export const MIN_TEAM_SIZE = 2;
-export const MAX_TEAM_SIZE = 30;
+export const MIN_TEAM_SIZE = 1;
+export const MAX_TEAM_SIZE = 50;
 export const DEFAULT_MAX_TEAM_SIZE = 12;
 
 export const MIN_GENDER_COUNT = 0;
-export const MAX_GENDER_COUNT = 15;
+export const MAX_GENDER_COUNT = MAX_TEAM_SIZE;
 export const DEFAULT_MIN_FEMALES = 0;
 export const DEFAULT_MIN_MALES = 0;
 
-export const MIN_TARGET_TEAMS = 2;
+export const MIN_TARGET_TEAMS = 1;
 export const MAX_TARGET_TEAMS = 50;
 
 // Age highlighting thresholds

@@ -36,3 +36,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log* 
 .vercel
+
+# Local agent scratch and exported roster data
+.tmp-*
+*teams*.csv

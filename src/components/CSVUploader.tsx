@@ -20,7 +20,6 @@ import { getUserRosters } from '@/services/rosterService';
 import { findPlayerMatches } from '@/services/aiService';
 import { StructuredWarning, parseWarnings, parseWarningMessage } from '@/types/StructuredWarning';
 import { MAX_CSV_SIZE_BYTES } from '@/config/constants';
-import * as XLSX from 'xlsx';
 import { getEffectiveAutoGroupSize, processMutualRequests } from '@/utils/playerGrouping';
 import { applyWarningResolutionToRequests, isAvoidWarning } from '@/utils/warningResolution';
 import { flagNewPlayersFromHistory } from '@/utils/newPlayerDetection';
@@ -45,8 +44,7 @@ export function CSVUploader({
   currentRosterCsvContent,
   currentRosterPlayerCount,
 }: CSVUploaderProps) {
-  const SUPPORTED_EXTENSIONS = ['.csv', '.xlsx'];
-  const EXCEL_EXTENSIONS = ['.xlsx'];
+  const SUPPORTED_EXTENSIONS = ['.csv'];
   const [dragActive, setDragActive] = useState(false);
   const [validationResult, setValidationResult] = useState<CSVValidationResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -99,31 +97,6 @@ export function CSVUploader({
   const getFileExtension = (fileName: string) => {
     const match = fileName && fileName.match(/(\.[^.]+)$/);
     return (match && match[1]) ? match[1].toLowerCase() : '';
-  };
-
-  const convertExcelToCSV = async (file: File) => {
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    const firstSheetName = workbook.SheetNames[0];
-
-    if (!firstSheetName) {
-      throw new Error('Excel file does not contain any sheets');
-    }
-
-    const worksheet = workbook.Sheets[firstSheetName];
-    if (!worksheet) {
-      throw new Error('Excel file could not be read');
-    }
-
-    const csv = XLSX.utils.sheet_to_csv(worksheet, {
-      blankrows: false,
-    });
-
-    if (!csv.trim()) {
-      throw new Error('Excel file does not contain any rows');
-    }
-
-    return csv;
   };
 
   const refineMatches = async (initialResult: CSVValidationResult): Promise<CSVValidationResult> => {
@@ -197,7 +170,7 @@ export function CSVUploader({
   const handleFile = async (file: File) => {
     const extension = getFileExtension(file.name);
     if (!SUPPORTED_EXTENSIONS.includes(extension)) {
-      toast.error('Unsupported file type. Please upload a CSV or .xlsx file');
+      toast.error('Unsupported file type. Please upload a CSV file');
       return;
     }
 
@@ -210,12 +183,7 @@ export function CSVUploader({
 
     try {
       setUploadedFileName(file.name);
-      let text: string;
-      if (EXCEL_EXTENSIONS.includes(extension)) {
-        text = await convertExcelToCSV(file);
-      } else {
-        text = await file.text();
-      }
+      const text = await file.text();
       setCurrentCSVContent(text);
       const result = validateAndProcessCSV(text, config);
 
@@ -425,7 +393,7 @@ export function CSVUploader({
                   {
                     step: 2,
                     title: 'Upload roster',
-                    description: 'Drop in a CSV or Excel file and let TeamBuilder parse it.',
+                    description: 'Drop in a CSV file and let TeamBuilder parse it.',
                   },
                   {
                     step: 3,
@@ -466,7 +434,7 @@ export function CSVUploader({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm text-gray-600">Your CSV or Excel file must include these columns:</p>
+                <p className="text-sm text-gray-600">Your CSV file must include these columns:</p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">Required</Badge>
@@ -523,7 +491,7 @@ export function CSVUploader({
             <CardHeader>
               <CardTitle>Upload Player Roster</CardTitle>
               <CardDescription>
-                Step 2 of 3 — drop your CSV or Excel file here or click to browse
+                Step 2 of 3 — drop your CSV file here or click to browse
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -542,7 +510,7 @@ export function CSVUploader({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    accept=".csv,text/csv"
                     onChange={handleFileInput}
                     className="hidden"
                   />
@@ -551,14 +519,14 @@ export function CSVUploader({
                   <Upload className="h-12 w-12 text-gray-400 mx-auto" />
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">
-                      {isProcessing ? 'Processing...' : 'Upload CSV or Excel File'}
+                      {isProcessing ? 'Processing...' : 'Upload CSV File'}
                     </h3>
                     <p className="text-gray-600 mt-1">
                       {isProcessing ? 'Please wait while we process your file' : 'Drag and drop or click to browse'}
                     </p>
                   </div>
                   <p className="text-sm text-gray-500">
-                    Supports CSV (.csv) or Excel (.xlsx) up to 1MB
+                    Supports CSV (.csv) up to 1MB
                   </p>
                 </div>
               </div>
@@ -601,7 +569,7 @@ export function CSVUploader({
                       No file uploaded or processed yet.
                     </p>
                     <p className="text-sm text-slate-500">
-                      Upload a CSV or Excel file to see validation results here.
+                      Upload a CSV file to see validation results here.
                     </p>
                   </div>
                 )}
