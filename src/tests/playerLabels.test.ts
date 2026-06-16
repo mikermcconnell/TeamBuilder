@@ -21,11 +21,29 @@ describe('playerLabels', () => {
   });
 
   it('returns display metadata for known labels', () => {
-    expect(getPlayerLabels(makePlayer(['heart']))).toEqual([
+    expect(getPlayerLabels(makePlayer(['heart', 'A♂', 'B♂', 'leader-a-male', 'leader-b-male']))).toEqual([
       expect.objectContaining({
         key: 'heart',
         shortLabel: '💜',
         label: 'Heart',
+      }),
+      expect.objectContaining({
+        key: 'a♂',
+        shortLabel: 'A♂',
+        label: 'Leader A Male',
+      }),
+      expect.objectContaining({
+        key: 'b♂',
+        shortLabel: 'B♂',
+        label: 'Leader B Male',
+      }),
+      expect.objectContaining({
+        key: 'leader-a-male',
+        shortLabel: 'A♂',
+      }),
+      expect.objectContaining({
+        key: 'leader-b-male',
+        shortLabel: 'B♂',
       }),
     ]);
   });
@@ -34,4 +52,3 @@ describe('playerLabels', () => {
     expect(getPlayerLabels(makePlayer(['heart', ' Heart ']))).toHaveLength(1);
   });
 });
-

@@ -17,11 +17,12 @@ Use this sequence when generating teams:
 2. **Balance male and female counts**  
    - Distribute male and female players as evenly as possible across teams.
 
-3. **Spread female leaders / heart-labelled players**  
+3. **Spread leaders**  
    - Players with the heart label are female leaders.
-   - Spread them as evenly as possible across teams.
-   - Target **at least 1 per team** when there are enough heart-labelled female leaders.
-   - If there are fewer leaders than teams, minimize the number of teams without one.
+   - Spread female leaders as evenly as possible across teams.
+   - Target **at least 1 heart-labelled female leader per team** when there are enough.
+   - Spread male leaders so each team has **either 1 Leader A male or 2 Leader B males** where possible.
+   - If there are not enough leaders to cover every team, minimize the number of teams without leader coverage.
 
 4. **Balance skill level**  
    - Use available skill inputs, including exec ratings when present.
@@ -40,7 +41,7 @@ Use this sequence when generating teams:
 - If priorities conflict, the **higher priority wins**.
 - Group integrity always beats every other balancing goal.
 - Male/female balance outranks skill balance.
-- Female-leader spread outranks skill balance.
+- Leader spread outranks skill balance.
 - Skill balance outranks handler balance.
 - New/returning and young/wise balance are preferences only.
 
@@ -50,7 +51,7 @@ When generating AI teams:
 
 - first protect groups
 - then balance gender counts
-- then spread heart-labelled female leaders
+- then spread female and male leaders
 - then balance skill
 - then balance handlers
 - then improve new/returning spread
