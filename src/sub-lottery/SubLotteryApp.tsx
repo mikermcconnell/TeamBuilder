@@ -22,6 +22,30 @@ const starterState: SubLotteryPublicState = {
   scheduleEntries: [],
 };
 
+const samplePlayersCsv = [
+  'Name,Pool',
+  'Alice Green,Female',
+  'Bella Blue,Female',
+  'Cara Cloud,Female',
+  'Dina Dash,Female',
+  'Priya Pine,Female',
+  'Owen Orange,Open',
+  'Sam Spruce,Open',
+  'Noah Navy,Open',
+  'Liam Lime,Open',
+  'Jordan Jet,Open',
+].join('\n');
+
+const sampleScheduleCsv = [
+  'Week,Date,Captain,Team,Game Time,Pool',
+  'Week 1,2026-06-24,Morgan,Blue Team,Friday 8 PM,Female',
+  'Week 1,2026-06-24,Casey,Green Team,Friday 9 PM,Open',
+  'Week 1,2026-06-24,Taylor,Red Team,Thursday 7 PM,Female',
+  'Week 1,2026-06-24,Riley,Yellow Team,Thursday 8 PM,Open',
+  'Week 2,2026-07-01,Jamie,Purple Team,Friday 8 PM,Female',
+  'Week 2,2026-07-01,Avery,Orange Team,Friday 9 PM,Open',
+].join('\n');
+
 export function SubLotteryApp() {
   const [state, setState] = useState<SubLotteryPublicState>(starterState);
   const [loading, setLoading] = useState(true);
@@ -120,8 +144,8 @@ function AdminImportPanel({ seasonId, disabled, onImport, setBusy, setError, set
   const [open, setOpen] = useState(false);
   const [adminPin, setAdminPin] = useState('');
   const [seasonName, setSeasonName] = useState('Current season');
-  const [playersCsvText, setPlayersCsvText] = useState('Name,Pool\nAlice Green,Female\nOwen Orange,Open');
-  const [scheduleCsvText, setScheduleCsvText] = useState('Week,Date,Captain,Team,Game Time,Pool\nWeek 1,2026-06-24,Morgan,Blue Team,Friday 8 PM,Female\nWeek 1,2026-06-24,Casey,Green Team,Friday 9 PM,Open');
+  const [playersCsvText, setPlayersCsvText] = useState(samplePlayersCsv);
+  const [scheduleCsvText, setScheduleCsvText] = useState(sampleScheduleCsv);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
