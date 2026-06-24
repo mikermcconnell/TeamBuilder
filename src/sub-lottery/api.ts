@@ -1,6 +1,8 @@
 import type {
   AdminImportPlayersRequest,
   AdminImportPlayersResponse,
+  AdminImportScheduleRequest,
+  AdminImportScheduleResponse,
   ApiResponse,
   CreateSubRequestRequest,
   CreateSubRequestResponse,
@@ -45,4 +47,8 @@ export function runDraw(body: RunDrawRequest): Promise<RunDrawResponse> {
 
 export function adminImportPlayers(body: AdminImportPlayersRequest): Promise<AdminImportPlayersResponse> {
   return postJson<AdminImportPlayersRequest, AdminImportPlayersResponse>('/api/sub-lottery/admin-import-players', body);
+}
+
+export function adminImportSchedule(body: AdminImportScheduleRequest): Promise<AdminImportScheduleResponse> {
+  return postJson<AdminImportScheduleRequest, AdminImportScheduleResponse>('/api/sub-lottery/admin-import-schedule', body);
 }

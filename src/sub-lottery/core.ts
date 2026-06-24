@@ -3,6 +3,7 @@ import type {
   SubLotteryEntry,
   SubLotteryPlayer,
   SubLotteryPool,
+  SubLotteryScheduleEntry,
 } from './types';
 
 interface EligibleSubsInput {
@@ -103,6 +104,42 @@ export function parseSubPlayerCsv(csvText: string): SubLotteryPlayer[] {
       name,
       pool,
       seasonSubCount: 0,
+      active: true,
+    }];
+  });
+}
+
+export function parseSubScheduleCsv(csvText: string): SubLotteryScheduleEntry[] {
+  const lines = csvText
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  if (lines.length <= 1) {
+    return [];
+  }
+
+  return lines.slice(1).flatMap(line => {
+    const [rawWeek = '', rawCaptain = '', rawTeam = '', rawGame = '', rawPool = ''] = line
+      .split(',')
+      .map(value => value.trim());
+    const weekLabel = rawWeek.trim();
+    const captainName = rawCaptain.trim();
+    const teamName = rawTeam.trim();
+    const gameLabel = rawGame.trim();
+    const pool = normalizePool(rawPool);
+
+    if (!weekLabel || !captainName || !teamName || !gameLabel || !pool) {
+      return [];
+    }
+
+    return [{
+      id: slugify(`${weekLabel}-${captainName}-${teamName}-${gameLabel}`),
+      weekLabel,
+      captainName,
+      teamName,
+      gameLabel,
+      pool,
       active: true,
     }];
   });

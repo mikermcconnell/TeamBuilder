@@ -118,5 +118,9 @@ service cloud.firestore {
     match /subLotteryAssignments/{document} {
       allow read, write: if false;
     }
+
+    match /subLotterySchedule/{document} {
+      allow read, write: if false;
+    }
   }
 }
