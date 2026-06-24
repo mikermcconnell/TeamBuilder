@@ -8,6 +8,17 @@ export interface SubLotteryPlayer {
   active: boolean;
 }
 
+export interface SubLotteryScheduleEntry {
+  id: string;
+  seasonId?: string;
+  weekLabel: string;
+  captainName: string;
+  teamName: string;
+  gameLabel: string;
+  pool: SubLotteryPool;
+  active: boolean;
+}
+
 export interface SubLotteryRequest {
   id: string;
   seasonId: string;
@@ -20,6 +31,8 @@ export interface SubLotteryRequest {
   closesAt: string;
   assignedPlayerId?: string;
   assignedAt?: string;
+  scheduleEntryId?: string;
+  weekLabel?: string;
 }
 
 export interface SubLotteryAvailability {
@@ -46,4 +59,5 @@ export interface SubLotteryPublicState {
   players: SubLotteryPlayer[];
   requests: SubLotteryRequest[];
   availability: SubLotteryAvailability[];
+  scheduleEntries: SubLotteryScheduleEntry[];
 }

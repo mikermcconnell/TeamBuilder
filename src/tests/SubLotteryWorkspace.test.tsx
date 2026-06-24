@@ -11,6 +11,26 @@ const state: SubLotteryPublicState = {
     { id: 'alice', name: 'Alice Green', pool: 'female', seasonSubCount: 0, active: true },
     { id: 'owen', name: 'Owen Orange', pool: 'open', seasonSubCount: 1, active: true },
   ],
+  scheduleEntries: [
+    {
+      id: 'week-1-morgan-blue-team-friday-8-pm',
+      weekLabel: 'Week 1',
+      captainName: 'Morgan',
+      teamName: 'Blue Team',
+      gameLabel: 'Friday 8 PM',
+      pool: 'female',
+      active: true,
+    },
+    {
+      id: 'week-1-casey-green-team-friday-9-pm',
+      weekLabel: 'Week 1',
+      captainName: 'Casey',
+      teamName: 'Green Team',
+      gameLabel: 'Friday 9 PM',
+      pool: 'open',
+      active: true,
+    },
+  ],
   requests: [
     {
       id: 'req-1',
@@ -48,25 +68,24 @@ describe('SubLotteryWorkspace', () => {
     expect(onMarkAvailable).toHaveBeenCalledWith('req-1', 'alice');
   });
 
-  test('lets a captain create a female matching request', () => {
+  test('lets a captain select their weekly schedule entry and autofills team and game time', () => {
     const onCreateRequest = vi.fn();
 
     render(<SubLotteryWorkspace state={state} onCreateRequest={onCreateRequest} />);
 
     fireEvent.change(screen.getByLabelText('Captain PIN'), { target: { value: '1234' } });
+    fireEvent.change(screen.getByLabelText('Week'), { target: { value: 'Week 1' } });
     fireEvent.change(screen.getByLabelText('Captain name'), { target: { value: 'Morgan' } });
-    fireEvent.change(screen.getByLabelText('Team name'), { target: { value: 'Blue Team' } });
-    fireEvent.change(screen.getByLabelText('Game time'), { target: { value: 'Friday 8 PM' } });
-    fireEvent.click(screen.getByLabelText('Female matching'));
-    fireEvent.click(screen.getByRole('button', { name: 'Open 2-hour lottery' }));
+
+    expect(screen.getByDisplayValue('Blue Team')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Friday 8 PM')).toBeInTheDocument();
+    expect(screen.getAllByText('Female matching').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm need a sub' }));
 
     expect(onCreateRequest).toHaveBeenCalledWith({
       captainPin: '1234',
-      captainName: 'Morgan',
-      teamName: 'Blue Team',
-      gameLabel: 'Friday 8 PM',
-      pool: 'female',
+      scheduleEntryId: 'week-1-morgan-blue-team-friday-8-pm',
     });
   });
 });
-

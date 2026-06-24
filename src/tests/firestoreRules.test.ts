@@ -129,6 +129,7 @@ describe('firestore security rules', () => {
     'subLotteryRequests',
     'subLotteryAvailability',
     'subLotteryAssignments',
+    'subLotterySchedule',
   ])('blocks direct client access to %s documents', async (collectionName) => {
     const db = testEnv.authenticatedContext('league-user').firestore();
 

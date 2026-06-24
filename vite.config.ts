@@ -9,6 +9,7 @@ const localApiModules: Record<string, string> = {
   '/api/sub-lottery/availability': '/api/sub-lottery/availability.ts',
   '/api/sub-lottery/run-draw': '/api/sub-lottery/run-draw.ts',
   '/api/sub-lottery/admin-import-players': '/api/sub-lottery/admin-import-players.ts',
+  '/api/sub-lottery/admin-import-schedule': '/api/sub-lottery/admin-import-schedule.ts',
   '/api/ai/team-suggestions': '/api/ai/team-suggestions.ts',
   '/api/ai/name-match': '/api/ai/name-match.ts',
   '/api/ai/group-suggestions': '/api/ai/group-suggestions.ts',

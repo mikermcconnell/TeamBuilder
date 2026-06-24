@@ -3,9 +3,11 @@ import { Loader2, UploadCloud } from 'lucide-react';
 
 import {
   adminImportPlayers,
+  adminImportSchedule,
   createCaptainRequest,
   loadSubLotteryState,
   markAvailable,
+  runDraw,
 } from './api';
 import { SubLotteryWorkspace } from './SubLotteryWorkspace';
 import type { CreateSubRequestRequest } from './apiContracts';
@@ -17,6 +19,7 @@ const starterState: SubLotteryPublicState = {
   players: [],
   requests: [],
   availability: [],
+  scheduleEntries: [],
 };
 
 export function SubLotteryApp() {
@@ -76,13 +79,19 @@ export function SubLotteryApp() {
         onCreateRequest={(payload) => {
           void runAction(
             () => createCaptainRequest({ ...payload, seasonId: state.seasonId } satisfies CreateSubRequestRequest),
-            'Lottery window opened. Share the link in Slack!',
+            'Sub need opened. Subs can enter now.',
           );
         }}
         onMarkAvailable={(requestId, playerId) => {
           void runAction(
             () => markAvailable({ requestId, playerId }),
             'You are entered. Good luck!',
+          );
+        }}
+        onRunDraw={(requestId) => {
+          void runAction(
+            () => runDraw({ requestId }),
+            'Lottery complete.',
           );
         }}
       />
@@ -111,7 +120,8 @@ function AdminImportPanel({ seasonId, disabled, onImport, setBusy, setError, set
   const [open, setOpen] = useState(false);
   const [adminPin, setAdminPin] = useState('');
   const [seasonName, setSeasonName] = useState('Current season');
-  const [csvText, setCsvText] = useState('Name,Pool\nAlice Green,Female\nOwen Orange,Open');
+  const [playersCsvText, setPlayersCsvText] = useState('Name,Pool\nAlice Green,Female\nOwen Orange,Open');
+  const [scheduleCsvText, setScheduleCsvText] = useState('Week,Captain,Team,Game Time,Pool\nWeek 1,Morgan,Blue Team,Friday 8 PM,Female\nWeek 1,Casey,Green Team,Friday 9 PM,Open');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -119,9 +129,10 @@ function AdminImportPanel({ seasonId, disabled, onImport, setBusy, setError, set
     setError(null);
     setSuccess(null);
     try {
-      const nextState = await adminImportPlayers({ seasonId, adminPin, seasonName, csvText });
+      const playerState = await adminImportPlayers({ seasonId, adminPin, seasonName, csvText: playersCsvText });
+      const nextState = await adminImportSchedule({ seasonId: playerState.seasonId, adminPin, seasonName, csvText: scheduleCsvText });
       onImport(nextState);
-      setSuccess('Sub list imported.');
+      setSuccess('Sub list and schedule imported.');
       setOpen(false);
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : 'Import failed.');
@@ -138,7 +149,7 @@ function AdminImportPanel({ seasonId, disabled, onImport, setBusy, setError, set
           onClick={() => setOpen(value => !value)}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-black text-zinc-700"
         >
-          <UploadCloud className="h-4 w-4" /> Admin: load season sub list
+          <UploadCloud className="h-4 w-4" /> Admin: load sub list and schedule
         </button>
         {open && (
           <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
@@ -155,9 +166,17 @@ function AdminImportPanel({ seasonId, disabled, onImport, setBusy, setError, set
               placeholder="Season name"
               className="h-11 rounded-2xl border-2 border-zinc-200 px-4 font-bold outline-none focus:border-emerald-400"
             />
+            <label className="text-sm font-black uppercase tracking-wide text-zinc-500">Sub list CSV</label>
             <textarea
-              value={csvText}
-              onChange={event => setCsvText(event.target.value)}
+              value={playersCsvText}
+              onChange={event => setPlayersCsvText(event.target.value)}
+              rows={5}
+              className="rounded-2xl border-2 border-zinc-200 p-4 font-mono text-sm outline-none focus:border-emerald-400"
+            />
+            <label className="text-sm font-black uppercase tracking-wide text-zinc-500">Schedule CSV</label>
+            <textarea
+              value={scheduleCsvText}
+              onChange={event => setScheduleCsvText(event.target.value)}
               rows={5}
               className="rounded-2xl border-2 border-zinc-200 p-4 font-mono text-sm outline-none focus:border-emerald-400"
             />
@@ -166,7 +185,7 @@ function AdminImportPanel({ seasonId, disabled, onImport, setBusy, setError, set
               disabled={disabled}
               className="rounded-2xl border-2 border-emerald-700 bg-[#58cc02] px-5 py-3 font-black text-white shadow-[0_4px_0_#58a700] disabled:opacity-60"
             >
-              Import players
+              Import players and schedule
             </button>
           </form>
         )}

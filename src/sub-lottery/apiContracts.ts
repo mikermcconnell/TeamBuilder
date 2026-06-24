@@ -1,4 +1,4 @@
-import type { SubLotteryPool, SubLotteryPublicState } from './types';
+import type { SubLotteryPublicState } from './types';
 
 export interface ApiSuccess<T> {
   ok: true;
@@ -19,10 +19,7 @@ export interface LoadPublicStateRequest {
 export interface CreateSubRequestRequest {
   seasonId?: string;
   captainPin: string;
-  captainName: string;
-  teamName: string;
-  gameLabel: string;
-  pool: SubLotteryPool;
+  scheduleEntryId: string;
 }
 
 export interface MarkAvailabilityRequest {
@@ -41,8 +38,16 @@ export interface AdminImportPlayersRequest {
   csvText: string;
 }
 
+export interface AdminImportScheduleRequest {
+  seasonId?: string;
+  seasonName: string;
+  adminPin: string;
+  csvText: string;
+}
+
 export type LoadPublicStateResponse = SubLotteryPublicState;
 export type CreateSubRequestResponse = SubLotteryPublicState;
 export type MarkAvailabilityResponse = SubLotteryPublicState;
 export type RunDrawResponse = SubLotteryPublicState;
 export type AdminImportPlayersResponse = SubLotteryPublicState;
+export type AdminImportScheduleResponse = SubLotteryPublicState;

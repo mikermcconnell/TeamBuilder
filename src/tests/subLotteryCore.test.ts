@@ -5,6 +5,7 @@ import {
   drawWeightedSubWinner,
   getEligibleAvailableSubs,
   parseSubPlayerCsv,
+  parseSubScheduleCsv,
 } from '@/sub-lottery/core';
 import type { SubLotteryAvailability, SubLotteryPlayer } from '@/sub-lottery/types';
 
@@ -55,6 +56,30 @@ describe('sub lottery core', () => {
     expect(parsed).toEqual([
       { id: 'alice-green', name: 'Alice Green', pool: 'female', seasonSubCount: 0, active: true },
       { id: 'owen-orange', name: 'Owen Orange', pool: 'open', seasonSubCount: 0, active: true },
+    ]);
+  });
+  test('parses an uploaded weekly captain schedule', () => {
+    const parsed = parseSubScheduleCsv('Week,Captain,Team,Game Time,Pool\nWeek 1,Morgan,Blue Team,Friday 8 PM,Female\nWeek 1,Casey,Green Team,Friday 9 PM,Open\n');
+
+    expect(parsed).toEqual([
+      {
+        id: 'week-1-morgan-blue-team-friday-8-pm',
+        weekLabel: 'Week 1',
+        captainName: 'Morgan',
+        teamName: 'Blue Team',
+        gameLabel: 'Friday 8 PM',
+        pool: 'female',
+        active: true,
+      },
+      {
+        id: 'week-1-casey-green-team-friday-9-pm',
+        weekLabel: 'Week 1',
+        captainName: 'Casey',
+        teamName: 'Green Team',
+        gameLabel: 'Friday 9 PM',
+        pool: 'open',
+        active: true,
+      },
     ]);
   });
 });

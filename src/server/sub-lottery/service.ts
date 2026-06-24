@@ -1,11 +1,12 @@
-import { parseSubPlayerCsv } from '../../sub-lottery/core.js';
-import { createCaptainSubRequest, runSubLotteryDraw } from '../../sub-lottery/lifecycle.js';
+import { parseSubPlayerCsv, parseSubScheduleCsv } from '../../sub-lottery/core.js';
+import { runSubLotteryDraw } from '../../sub-lottery/lifecycle.js';
 import type { CreateSubRequestRequest } from '../../sub-lottery/apiContracts.js';
 import type {
   SubLotteryAvailability,
   SubLotteryPlayer,
   SubLotteryPublicState,
   SubLotteryRequest,
+  SubLotteryScheduleEntry,
 } from '../../sub-lottery/types.js';
 import { getSubLotteryFirestore } from './firebaseAdmin.js';
 
@@ -15,6 +16,7 @@ const COLLECTIONS = {
   requests: 'subLotteryRequests',
   availability: 'subLotteryAvailability',
   assignments: 'subLotteryAssignments',
+  schedule: 'subLotterySchedule',
 } as const;
 
 const DEFAULT_SEASON_ID = 'default-season';
@@ -52,25 +54,14 @@ function sortState(state: SubLotteryPublicState): SubLotteryPublicState {
     players: [...state.players].sort((a, b) => a.name.localeCompare(b.name)),
     requests: [...state.requests].sort((a, b) => b.openedAt.localeCompare(a.openedAt)),
     availability: [...state.availability].sort((a, b) => a.enteredAt.localeCompare(b.enteredAt)),
+    scheduleEntries: [...state.scheduleEntries].sort((a, b) => (
+      `${a.weekLabel} ${a.gameLabel} ${a.captainName}`.localeCompare(`${b.weekLabel} ${b.gameLabel} ${b.captainName}`)
+    )),
   };
 }
 
-async function runReadyDraws(seasonId: string): Promise<void> {
-  const db = await getSubLotteryFirestore();
-  const requestsSnapshot = await db
-    .collection(COLLECTIONS.requests)
-    .where('seasonId', '==', seasonId)
-    .where('status', '==', 'open')
-    .get();
-
-  const now = new Date();
-  const readyRequests = requestsSnapshot.docs
-    .map(doc => dataWithId<SubLotteryRequest>(doc))
-    .filter(request => new Date(request.closesAt).getTime() <= now.getTime());
-
-  for (const request of readyRequests) {
-    await runDrawForRequest(request.id, now);
-  }
+async function runReadyDraws(_seasonId: string): Promise<void> {
+  // Weekly schedule requests are drawn manually when the captain/admin is ready.
 }
 
 export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise<SubLotteryPublicState> {
@@ -78,11 +69,12 @@ export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise
   await runReadyDraws(seasonId);
 
   const db = await getSubLotteryFirestore();
-  const [seasonDoc, playersSnapshot, requestsSnapshot, availabilitySnapshot] = await Promise.all([
+  const [seasonDoc, playersSnapshot, requestsSnapshot, availabilitySnapshot, scheduleSnapshot] = await Promise.all([
     db.collection(COLLECTIONS.seasons).doc(seasonId).get(),
     db.collection(COLLECTIONS.players).where('seasonId', '==', seasonId).get(),
     db.collection(COLLECTIONS.requests).where('seasonId', '==', seasonId).get(),
     db.collection(COLLECTIONS.availability).where('seasonId', '==', seasonId).get(),
+    db.collection(COLLECTIONS.schedule).where('seasonId', '==', seasonId).get(),
   ]);
 
   const seasonName = seasonDoc.exists && typeof seasonDoc.data()?.name === 'string'
@@ -95,6 +87,7 @@ export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise
     players: playersSnapshot.docs.map(doc => dataWithId<SubLotteryPlayer>(doc)),
     requests: requestsSnapshot.docs.map(doc => dataWithId<SubLotteryRequest>(doc)),
     availability: availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc)),
+    scheduleEntries: scheduleSnapshot.docs.map(doc => dataWithId<SubLotteryScheduleEntry>(doc)),
   });
 }
 
@@ -103,19 +96,43 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
 
   const seasonId = getSeasonId(input.seasonId);
   const db = await getSubLotteryFirestore();
+  const scheduleDoc = await db.collection(COLLECTIONS.schedule).doc(input.scheduleEntryId).get();
+  if (!scheduleDoc.exists) {
+    throw new Error('Schedule entry not found.');
+  }
+
+  const scheduleEntry = dataWithId<SubLotteryScheduleEntry>(scheduleDoc);
+  if (scheduleEntry.seasonId !== seasonId || !scheduleEntry.active) {
+    throw new Error('Schedule entry is not active for this season.');
+  }
+
+  const existingRequest = await db
+    .collection(COLLECTIONS.requests)
+    .where('seasonId', '==', seasonId)
+    .where('scheduleEntryId', '==', scheduleEntry.id)
+    .where('status', '==', 'open')
+    .limit(1)
+    .get();
+
+  if (!existingRequest.empty) {
+    throw new Error('A sub need is already open for this scheduled game.');
+  }
+
   const requestRef = db.collection(COLLECTIONS.requests).doc();
-  const request = createCaptainSubRequest({
+  const now = new Date().toISOString();
+  const request: SubLotteryRequest = {
     id: requestRef.id,
     seasonId,
-    captainName: input.captainName,
-    teamName: input.teamName,
-    gameLabel: input.gameLabel,
-    pool: input.pool,
-  });
-
-  if (!request.captainName || !request.teamName || !request.gameLabel) {
-    throw new Error('Captain name, team name, and game time are required.');
-  }
+    captainName: scheduleEntry.captainName,
+    teamName: scheduleEntry.teamName,
+    gameLabel: scheduleEntry.gameLabel,
+    pool: scheduleEntry.pool,
+    status: 'open',
+    openedAt: now,
+    closesAt: '9999-12-31T23:59:59.999Z',
+    scheduleEntryId: scheduleEntry.id,
+    weekLabel: scheduleEntry.weekLabel,
+  };
 
   await requestRef.set(request);
   return loadPublicSubLotteryState(seasonId);
@@ -144,7 +161,6 @@ export async function markPlayerAvailable(requestId: string, playerId: string): 
     seasonId = request.seasonId;
 
     if (request.status !== 'open') throw new Error('This request is no longer open.');
-    if (new Date(request.closesAt).getTime() <= Date.now()) throw new Error('This request window has closed.');
     if (!player.active || player.pool !== request.pool) throw new Error('This player is not eligible for this request.');
 
     transaction.set(availabilityRef, {
@@ -174,7 +190,12 @@ export async function runDrawForRequest(requestId: string, now = new Date()): Pr
   ]);
   const players = playersSnapshot.docs.map(doc => dataWithId<SubLotteryPlayer>(doc));
   const availability = availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc));
-  const draw = runSubLotteryDraw({ request, players, availability, now });
+  const draw = runSubLotteryDraw({
+    request: { ...request, closesAt: now.toISOString() },
+    players,
+    availability,
+    now,
+  });
 
   if (draw.status !== 'assigned') {
     return;
@@ -258,3 +279,43 @@ export async function importSubPlayers(input: {
   return loadPublicSubLotteryState(seasonId);
 }
 
+export async function importSubSchedule(input: {
+  seasonId?: string;
+  seasonName: string;
+  adminPin: string;
+  csvText: string;
+}): Promise<SubLotteryPublicState> {
+  assertPinMatches(input.adminPin, 'SUB_LOTTERY_ADMIN_PIN');
+
+  const seasonId = getSeasonId(input.seasonId);
+  const scheduleEntries = parseSubScheduleCsv(input.csvText).map(entry => ({
+    ...entry,
+    seasonId,
+  }));
+
+  if (scheduleEntries.length === 0) {
+    throw new Error('No valid schedule entries found. Use CSV headers: Week,Captain,Team,Game Time,Pool.');
+  }
+
+  const db = await getSubLotteryFirestore();
+  const existingSchedule = await db.collection(COLLECTIONS.schedule).where('seasonId', '==', seasonId).get();
+  const batch = db.batch();
+  const now = new Date().toISOString();
+
+  batch.set(db.collection(COLLECTIONS.seasons).doc(seasonId), {
+    id: seasonId,
+    name: input.seasonName.trim() || 'Current season',
+    updatedAt: now,
+  }, { merge: true });
+
+  existingSchedule.docs.forEach(doc => {
+    batch.set(doc.ref, { active: false }, { merge: true });
+  });
+
+  scheduleEntries.forEach(entry => {
+    batch.set(db.collection(COLLECTIONS.schedule).doc(entry.id), entry, { merge: true });
+  });
+
+  await batch.commit();
+  return loadPublicSubLotteryState(seasonId);
+}
