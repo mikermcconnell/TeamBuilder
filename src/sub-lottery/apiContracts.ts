@@ -1,4 +1,4 @@
-import type { SubLotteryPublicState } from './types';
+import type { SubLotteryPool, SubLotteryPublicState } from './types';
 
 export interface ApiSuccess<T> {
   ok: true;
@@ -20,6 +20,7 @@ export interface CreateSubRequestRequest {
   seasonId?: string;
   captainPin: string;
   scheduleEntryId: string;
+  pool: SubLotteryPool;
 }
 
 export interface MarkAvailabilityRequest {

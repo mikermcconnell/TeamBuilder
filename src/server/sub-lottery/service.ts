@@ -105,6 +105,9 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
   if (scheduleEntry.seasonId !== seasonId || !scheduleEntry.active) {
     throw new Error('Schedule entry is not active for this season.');
   }
+  if (input.pool !== 'open' && input.pool !== 'female') {
+    throw new Error('Choose open matching or female matching.');
+  }
 
   const existingRequest = await db
     .collection(COLLECTIONS.requests)
@@ -126,7 +129,7 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
     captainName: scheduleEntry.captainName,
     teamName: scheduleEntry.teamName,
     gameLabel: scheduleEntry.gameLabel,
-    pool: scheduleEntry.pool,
+    pool: input.pool,
     status: 'open',
     openedAt: now,
     closesAt: '9999-12-31T23:59:59.999Z',

@@ -3,11 +3,12 @@ import { CheckCircle2, Clock, Crown, Sparkles, Trophy, Users } from 'lucide-reac
 
 import { cn } from '@/lib/utils';
 import { getCurrentScheduleWeekLabel } from './core';
-import type { SubLotteryPlayer, SubLotteryPublicState } from './types';
+import type { SubLotteryPlayer, SubLotteryPool, SubLotteryPublicState } from './types';
 
 interface CreateRequestPayload {
   captainPin: string;
   scheduleEntryId: string;
+  pool: SubLotteryPool;
 }
 
 interface SubLotteryWorkspaceProps {
@@ -47,6 +48,7 @@ export function SubLotteryWorkspace({
   const [selectedPlayerName, setSelectedPlayerName] = useState('');
   const [captainPin, setCaptainPin] = useState('');
   const [selectedCaptainName, setSelectedCaptainName] = useState('');
+  const [selectedRequestPool, setSelectedRequestPool] = useState<SubLotteryPool | null>(null);
 
   const activePlayers = useMemo(
     () => state.players.filter(player => player.active).sort((a, b) => a.name.localeCompare(b.name)),
@@ -73,10 +75,11 @@ export function SubLotteryWorkspace({
 
   const handleCreateRequest = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedScheduleEntry) return;
+    if (!selectedScheduleEntry || !selectedRequestPool) return;
     onCreateRequest?.({
       captainPin,
       scheduleEntryId: selectedScheduleEntry.id,
+      pool: selectedRequestPool,
     });
   };
 
@@ -197,13 +200,11 @@ export function SubLotteryWorkspace({
                 <ReadOnlyField label="Team name" value={selectedScheduleEntry?.teamName ?? ''} />
                 <ReadOnlyField label="Game time" value={selectedScheduleEntry?.gameLabel ?? ''} />
               </div>
-              <div className="rounded-2xl border-2 border-sky-100 bg-sky-50 p-4 text-sm font-black text-sky-800">
-                {selectedScheduleEntry ? getPoolLabel(selectedScheduleEntry.pool) : 'Upload a schedule to enable captain requests.'}
-              </div>
+              <PoolCheckboxes selectedPool={selectedRequestPool} onChange={setSelectedRequestPool} />
 
               <button
                 type="submit"
-                disabled={isBusy || !selectedScheduleEntry || Boolean(existingOpenRequestForSchedule)}
+                disabled={isBusy || !selectedScheduleEntry || !selectedRequestPool || Boolean(existingOpenRequestForSchedule)}
                 className="mt-1 rounded-2xl border-2 border-sky-700 bg-[#1cb0f6] px-5 py-4 text-base font-black text-white shadow-[0_4px_0_#1899d6] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-60"
               >
                 {existingOpenRequestForSchedule ? 'Sub need already open' : 'Confirm need a sub'}
@@ -254,6 +255,47 @@ export function SubLotteryWorkspace({
         </section>
       </div>
     </main>
+  );
+}
+
+function PoolCheckboxes({
+  selectedPool,
+  onChange,
+}: {
+  selectedPool: SubLotteryPool | null;
+  onChange: (pool: SubLotteryPool) => void;
+}) {
+  const options: Array<{ pool: SubLotteryPool; label: string; help: string }> = [
+    { pool: 'open', label: 'Open matching sub', help: 'Anyone in the open-matching pool can enter.' },
+    { pool: 'female', label: 'Female matching sub', help: 'Only female-matching subs can enter.' },
+  ];
+
+  return (
+    <fieldset className="rounded-2xl border-2 border-sky-100 bg-sky-50 p-4">
+      <legend className="mb-3 text-sm font-black uppercase tracking-wide text-sky-800">Required: sub type needed</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {options.map(option => (
+          <label
+            key={option.pool}
+            className={cn(
+              'flex cursor-pointer gap-3 rounded-2xl border-2 bg-white p-4 transition',
+              selectedPool === option.pool ? 'border-sky-500 ring-4 ring-sky-100' : 'border-zinc-200'
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={selectedPool === option.pool}
+              onChange={() => onChange(option.pool)}
+              className="mt-1 h-5 w-5 rounded border-zinc-300 text-sky-600 focus:ring-sky-400"
+            />
+            <span>
+              <span className="block text-sm font-black text-zinc-800">{option.label}</span>
+              <span className="mt-1 block text-xs font-bold text-zinc-500">{option.help}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
