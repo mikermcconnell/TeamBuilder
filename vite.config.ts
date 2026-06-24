@@ -4,6 +4,11 @@ import react from "@vitejs/plugin-react"
 import { defineConfig, loadEnv, type Connect, type Plugin, type ViteDevServer } from "vite"
 
 const localApiModules: Record<string, string> = {
+  '/api/sub-lottery/public-state': '/api/sub-lottery/public-state.ts',
+  '/api/sub-lottery/create-request': '/api/sub-lottery/create-request.ts',
+  '/api/sub-lottery/availability': '/api/sub-lottery/availability.ts',
+  '/api/sub-lottery/run-draw': '/api/sub-lottery/run-draw.ts',
+  '/api/sub-lottery/admin-import-players': '/api/sub-lottery/admin-import-players.ts',
   '/api/ai/team-suggestions': '/api/ai/team-suggestions.ts',
   '/api/ai/name-match': '/api/ai/name-match.ts',
   '/api/ai/group-suggestions': '/api/ai/group-suggestions.ts',
@@ -211,4 +216,3 @@ export default defineConfig(({ mode }) => {
     }
   }
 })
-

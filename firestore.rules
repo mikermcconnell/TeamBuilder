@@ -97,5 +97,26 @@ service cloud.firestore {
       allow delete: if isResourceOwner();
       allow create: if isClaimingOwnership();
     }
+    // Sub Lottery collections are public-facing through Vercel API routes only.
+    // Browser clients must not read or write them directly.
+    match /subLotterySeasons/{document} {
+      allow read, write: if false;
+    }
+
+    match /subLotteryPlayers/{document} {
+      allow read, write: if false;
+    }
+
+    match /subLotteryRequests/{document} {
+      allow read, write: if false;
+    }
+
+    match /subLotteryAvailability/{document} {
+      allow read, write: if false;
+    }
+
+    match /subLotteryAssignments/{document} {
+      allow read, write: if false;
+    }
   }
 }
