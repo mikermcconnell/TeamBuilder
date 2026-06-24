@@ -64,7 +64,12 @@ describe('SubLotteryWorkspace', () => {
 
     render(<SubLotteryWorkspace state={state} onMarkAvailable={onMarkAvailable} />);
 
-    fireEvent.change(screen.getByLabelText('Pick your name'), { target: { value: 'alice' } });
+    const nameInput = screen.getByLabelText('Pick your name');
+    expect(nameInput.tagName).toBe('INPUT');
+    expect(nameInput).toHaveAttribute('list', 'sub-player-suggestions');
+    expect(document.querySelector('#sub-player-suggestions option[value="Alice Green"]')).toBeInTheDocument();
+
+    fireEvent.change(nameInput, { target: { value: 'Alice Green' } });
     fireEvent.click(screen.getByRole('button', { name: 'I can play' }));
 
     expect(onMarkAvailable).toHaveBeenCalledWith('req-1', 'alice');
@@ -78,7 +83,12 @@ describe('SubLotteryWorkspace', () => {
     fireEvent.change(screen.getByLabelText('Captain PIN'), { target: { value: '1234' } });
     expect(screen.queryByLabelText('Week')).not.toBeInTheDocument();
     expect(screen.getByText('Current week: Week 1')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Captain name'), { target: { value: 'Morgan' } });
+    const captainInput = screen.getByLabelText('Captain name');
+    expect(captainInput.tagName).toBe('INPUT');
+    expect(captainInput).toHaveAttribute('list', 'captain-name-suggestions');
+    expect(document.querySelector('#captain-name-suggestions option[value="Morgan"]')).toBeInTheDocument();
+
+    fireEvent.change(captainInput, { target: { value: 'Morgan' } });
 
     expect(screen.getByDisplayValue('Blue Team')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Friday 8 PM')).toBeInTheDocument();

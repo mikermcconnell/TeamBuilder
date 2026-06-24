@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CheckCircle2, Clock, Crown, Sparkles, Trophy, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -32,6 +32,10 @@ function uniqueSorted(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
 }
 
+function normalizeName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
 export function SubLotteryWorkspace({
   state,
   onCreateRequest,
@@ -40,7 +44,7 @@ export function SubLotteryWorkspace({
   isBusy = false,
   currentDate = new Date(),
 }: SubLotteryWorkspaceProps) {
-  const [selectedPlayerId, setSelectedPlayerId] = useState('');
+  const [selectedPlayerName, setSelectedPlayerName] = useState('');
   const [captainPin, setCaptainPin] = useState('');
   const [selectedCaptainName, setSelectedCaptainName] = useState('');
 
@@ -55,21 +59,14 @@ export function SubLotteryWorkspace({
   const currentWeekLabel = getCurrentScheduleWeekLabel(activeScheduleEntries, currentDate);
   const scheduleEntriesForWeek = activeScheduleEntries.filter(entry => entry.weekLabel === currentWeekLabel);
   const captainOptions = uniqueSorted(scheduleEntriesForWeek.map(entry => entry.captainName));
-  const selectedScheduleEntry = scheduleEntriesForWeek.find(entry => entry.captainName === selectedCaptainName) ?? null;
+  const selectedScheduleEntry = scheduleEntriesForWeek.find(entry => normalizeName(entry.captainName) === normalizeName(selectedCaptainName)) ?? null;
   const existingOpenRequestForSchedule = selectedScheduleEntry
     ? state.requests.find(request => request.scheduleEntryId === selectedScheduleEntry.id && request.status === 'open')
     : null;
 
-
-  useEffect(() => {
-    if (!captainOptions.includes(selectedCaptainName)) {
-      setSelectedCaptainName(captainOptions[0] ?? '');
-    }
-  }, [captainOptions, selectedCaptainName]);
-
   const openRequests = state.requests.filter(request => request.status === 'open');
   const assignedRequests = state.requests.filter(request => request.status === 'assigned');
-  const selectedPlayer = state.players.find(player => player.id === selectedPlayerId);
+  const selectedPlayer = activePlayers.find(player => normalizeName(player.name) === normalizeName(selectedPlayerName));
   const matchingOpenRequests = selectedPlayer
     ? openRequests.filter(request => request.pool === selectedPlayer.pool)
     : openRequests;
@@ -122,18 +119,20 @@ export function SubLotteryWorkspace({
               </div>
             </div>
 
-            <label htmlFor="sub-player-select" className="mb-2 block text-sm font-black uppercase tracking-wide text-zinc-500">Pick your name</label>
-            <select
-              id="sub-player-select"
-              value={selectedPlayerId}
-              onChange={event => setSelectedPlayerId(event.target.value)}
-              className="mb-5 h-12 w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 text-base font-bold outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
-            >
-              <option value="">Choose your name</option>
-              {activePlayers.map(player => (
-                <option key={player.id} value={player.id}>{player.name} · {getPoolLabel(player.pool)}</option>
-              ))}
-            </select>
+            <div className="mb-5">
+              <LabeledTypeahead
+                label="Pick your name"
+                listId="sub-player-suggestions"
+                value={selectedPlayerName}
+                onChange={setSelectedPlayerName}
+                placeholder="Start typing your name"
+                options={activePlayers.map(player => ({
+                  value: player.name,
+                  label: getPoolLabel(player.pool),
+                }))}
+                focusColor="emerald"
+              />
+            </div>
 
             <div className="space-y-3">
               {matchingOpenRequests.length === 0 ? (
@@ -141,7 +140,7 @@ export function SubLotteryWorkspace({
                   No matching weekly needs yet. Check back after captains confirm.
                 </div>
               ) : matchingOpenRequests.map(request => {
-                const entered = state.availability.some(entry => entry.requestId === request.id && entry.playerId === selectedPlayerId);
+                const entered = Boolean(selectedPlayer && state.availability.some(entry => entry.requestId === request.id && entry.playerId === selectedPlayer.id));
                 return (
                   <article key={request.id} className="rounded-3xl border-2 border-zinc-200 bg-white p-4 shadow-sm">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -152,14 +151,14 @@ export function SubLotteryWorkspace({
                       </div>
                       <button
                         type="button"
-                        disabled={!selectedPlayerId || entered || isBusy}
-                        onClick={() => onMarkAvailable?.(request.id, selectedPlayerId)}
+                        disabled={!selectedPlayer || entered || isBusy}
+                        onClick={() => selectedPlayer && onMarkAvailable?.(request.id, selectedPlayer.id)}
                         className={cn(
                           'rounded-2xl border-2 px-5 py-3 text-sm font-black transition disabled:cursor-not-allowed',
                           entered
                             ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
                             : 'border-emerald-700 bg-[#58cc02] text-white shadow-[0_4px_0_#58a700] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none',
-                          !selectedPlayerId && 'opacity-50'
+                          !selectedPlayer && 'opacity-50'
                         )}
                       >
                         {entered ? 'You’re entered' : 'I can play'}
@@ -185,7 +184,15 @@ export function SubLotteryWorkspace({
               <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-4 text-sm font-black text-emerald-800">
                 Current week: {currentWeekLabel ?? 'No dated schedule for this week'}
               </div>
-              <LabeledSelect label="Captain name" value={selectedCaptainName} onChange={setSelectedCaptainName} options={captainOptions} placeholder="Choose captain" />
+              <LabeledTypeahead
+                label="Captain name"
+                listId="captain-name-suggestions"
+                value={selectedCaptainName}
+                onChange={setSelectedCaptainName}
+                placeholder="Start typing captain name"
+                options={captainOptions.map(name => ({ value: name }))}
+                focusColor="sky"
+              />
               <div className="grid gap-4 sm:grid-cols-2">
                 <ReadOnlyField label="Team name" value={selectedScheduleEntry?.teamName ?? ''} />
                 <ReadOnlyField label="Game time" value={selectedScheduleEntry?.gameLabel ?? ''} />
@@ -275,28 +282,55 @@ function LabeledInput({ label, value, onChange, placeholder, type = 'text' }: La
   );
 }
 
-interface LabeledSelectProps {
-  label: string;
+interface TypeaheadOption {
   value: string;
-  options: string[];
-  placeholder: string;
-  onChange: (value: string) => void;
+  label?: string;
 }
 
-function LabeledSelect({ label, value, options, placeholder, onChange }: LabeledSelectProps) {
+interface LabeledTypeaheadProps {
+  label: string;
+  value: string;
+  placeholder: string;
+  listId: string;
+  options: TypeaheadOption[];
+  onChange: (value: string) => void;
+  focusColor?: 'emerald' | 'sky';
+}
+
+function LabeledTypeahead({
+  label,
+  value,
+  placeholder,
+  listId,
+  options,
+  onChange,
+  focusColor = 'sky',
+}: LabeledTypeaheadProps) {
   const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const focusClasses = focusColor === 'emerald'
+    ? 'focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100'
+    : 'focus:border-sky-400 focus:ring-4 focus:ring-sky-100';
+
   return (
     <div>
       <label htmlFor={id} className="mb-2 block text-sm font-black uppercase tracking-wide text-zinc-500">{label}</label>
-      <select
+      <input
         id={id}
+        list={listId}
         value={value}
         onChange={event => onChange(event.target.value)}
-        className="h-12 w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 text-base font-bold outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-      >
-        <option value="">{placeholder}</option>
-        {options.map(option => <option key={option} value={option}>{option}</option>)}
-      </select>
+        placeholder={placeholder}
+        autoComplete="off"
+        className={cn(
+          'h-12 w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 text-base font-bold outline-none transition placeholder:text-zinc-300',
+          focusClasses,
+        )}
+      />
+      <datalist id={listId}>
+        {options.map(option => (
+          <option key={option.value} value={option.value} label={option.label} />
+        ))}
+      </datalist>
     </div>
   );
 }
