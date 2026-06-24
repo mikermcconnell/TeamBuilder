@@ -180,7 +180,7 @@ export function SubLotteryWorkspace({
             </div>
 
             <form className="grid gap-4" onSubmit={handleCreateRequest}>
-              <LabeledInput label="Captain PIN" value={captainPin} onChange={setCaptainPin} type="password" />
+              <LabeledInput label="Captain PIN" value={captainPin} onChange={setCaptainPin} />
               <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-4 text-sm font-black text-emerald-800">
                 Current week: {currentWeekLabel ?? 'No dated schedule for this week'}
               </div>

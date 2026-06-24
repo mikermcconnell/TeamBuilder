@@ -80,7 +80,9 @@ describe('SubLotteryWorkspace', () => {
 
     render(<SubLotteryWorkspace state={state} onCreateRequest={onCreateRequest} currentDate={new Date('2026-06-25T12:00:00.000Z')} />);
 
-    fireEvent.change(screen.getByLabelText('Captain PIN'), { target: { value: '1234' } });
+    const captainPinInput = screen.getByLabelText('Captain PIN');
+    expect(captainPinInput).toHaveAttribute('type', 'text');
+    fireEvent.change(captainPinInput, { target: { value: '1234' } });
     expect(screen.queryByLabelText('Week')).not.toBeInTheDocument();
     expect(screen.getByText('Current week: Week 1')).toBeInTheDocument();
     const captainInput = screen.getByLabelText('Captain name');

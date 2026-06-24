@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, UploadCloud } from 'lucide-react';
+import { UploadCloud } from 'lucide-react';
 
 import {
   adminImportPlayers,
@@ -9,18 +9,13 @@ import {
   markAvailable,
   runDraw,
 } from './api';
+import { parseSubPlayerCsv, parseSubScheduleCsv } from './core';
+import { runSubLotteryDraw } from './lifecycle';
 import { SubLotteryWorkspace } from './SubLotteryWorkspace';
 import type { CreateSubRequestRequest } from './apiContracts';
 import type { SubLotteryPublicState } from './types';
 
-const starterState: SubLotteryPublicState = {
-  seasonId: 'default-season',
-  seasonName: 'Current season',
-  players: [],
-  requests: [],
-  availability: [],
-  scheduleEntries: [],
-};
+const DEFAULT_SEASON_ID = 'default-season';
 
 const samplePlayersCsv = [
   'Name,Pool',
@@ -36,32 +31,81 @@ const samplePlayersCsv = [
   'Jordan Jet,Open',
 ].join('\n');
 
-const sampleScheduleCsv = [
-  'Week,Date,Captain,Team,Game Time,Pool',
-  'Week 1,2026-06-24,Morgan,Blue Team,Friday 8 PM,Female',
-  'Week 1,2026-06-24,Casey,Green Team,Friday 9 PM,Open',
-  'Week 1,2026-06-24,Taylor,Red Team,Thursday 7 PM,Female',
-  'Week 1,2026-06-24,Riley,Yellow Team,Thursday 8 PM,Open',
-  'Week 2,2026-07-01,Jamie,Purple Team,Friday 8 PM,Female',
-  'Week 2,2026-07-01,Avery,Orange Team,Friday 9 PM,Open',
-].join('\n');
+function formatDateOnly(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getWeekStart(date: Date): Date {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const daysSinceMonday = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - daysSinceMonday);
+  return start;
+}
+
+function addDays(date: Date, days: number): Date {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+function getSampleScheduleCsv(referenceDate = new Date()): string {
+  const weekOneDate = formatDateOnly(addDays(getWeekStart(referenceDate), 2));
+  const weekTwoDate = formatDateOnly(addDays(getWeekStart(referenceDate), 9));
+
+  return [
+    'Week,Date,Captain,Team,Game Time,Pool',
+    `Week 1,${weekOneDate},Morgan,Blue Team,Friday 8 PM,Female`,
+    `Week 1,${weekOneDate},Casey,Green Team,Friday 9 PM,Open`,
+    `Week 1,${weekOneDate},Taylor,Red Team,Thursday 7 PM,Female`,
+    `Week 1,${weekOneDate},Riley,Yellow Team,Thursday 8 PM,Open`,
+    `Week 2,${weekTwoDate},Jamie,Purple Team,Friday 8 PM,Female`,
+    `Week 2,${weekTwoDate},Avery,Orange Team,Friday 9 PM,Open`,
+  ].join('\n');
+}
+
+function getSampleState(referenceDate = new Date()): SubLotteryPublicState {
+  return {
+    seasonId: DEFAULT_SEASON_ID,
+    seasonName: 'Testing season',
+    players: parseSubPlayerCsv(samplePlayersCsv),
+    requests: [],
+    availability: [],
+    scheduleEntries: parseSubScheduleCsv(getSampleScheduleCsv(referenceDate)),
+  };
+}
+
+function hasLoadedTestingData(state: SubLotteryPublicState): boolean {
+  return state.players.length > 0 && state.scheduleEntries.length > 0;
+}
 
 export function SubLotteryApp() {
-  const [state, setState] = useState<SubLotteryPublicState>(starterState);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<SubLotteryPublicState>(() => getSampleState());
+  const [demoMode, setDemoMode] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const refresh = async () => {
     const nextState = await loadSubLotteryState();
-    setState(nextState);
+    if (hasLoadedTestingData(nextState)) {
+      setState(nextState);
+      setDemoMode(false);
+      return;
+    }
+
+    setState(getSampleState());
+    setDemoMode(true);
   };
 
   useEffect(() => {
     refresh()
-      .catch(loadError => setError(loadError instanceof Error ? loadError.message : 'Could not load the sub lottery.'))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        setState(getSampleState());
+        setDemoMode(true);
+      });
   }, []);
 
   const runAction = async (action: () => Promise<SubLotteryPublicState>, successMessage: string) => {
@@ -79,16 +123,90 @@ export function SubLotteryApp() {
     }
   };
 
-  if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f7f7f7] text-[#3c3c3c]">
-        <div className="rounded-[2rem] border-2 border-zinc-200 bg-white p-8 text-center shadow-sm">
-          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-emerald-600" />
-          <div className="text-xl font-black">Loading Sub Squad…</div>
-        </div>
-      </main>
-    );
-  }
+  const createDemoRequest = (payload: CreateSubRequestRequest): SubLotteryPublicState => {
+    const scheduleEntry = state.scheduleEntries.find(entry => entry.id === payload.scheduleEntryId);
+    if (!scheduleEntry) {
+      throw new Error('Schedule entry not found.');
+    }
+
+    const existingOpenRequest = state.requests.find(request => (
+      request.scheduleEntryId === scheduleEntry.id && request.status === 'open'
+    ));
+    if (existingOpenRequest) {
+      throw new Error('A sub need is already open for this scheduled game.');
+    }
+
+    return {
+      ...state,
+      requests: [
+        {
+          id: `demo-request-${Date.now()}`,
+          seasonId: state.seasonId,
+          captainName: scheduleEntry.captainName,
+          teamName: scheduleEntry.teamName,
+          gameLabel: scheduleEntry.gameLabel,
+          pool: scheduleEntry.pool,
+          status: 'open',
+          openedAt: new Date().toISOString(),
+          closesAt: '9999-12-31T23:59:59.999Z',
+          scheduleEntryId: scheduleEntry.id,
+          weekLabel: scheduleEntry.weekLabel,
+        },
+        ...state.requests,
+      ],
+    };
+  };
+
+  const markDemoAvailable = (requestId: string, playerId: string): SubLotteryPublicState => {
+    const alreadyEntered = state.availability.some(entry => (
+      entry.requestId === requestId && entry.playerId === playerId
+    ));
+    if (alreadyEntered) {
+      return state;
+    }
+
+    return {
+      ...state,
+      availability: [
+        ...state.availability,
+        { requestId, playerId, enteredAt: new Date().toISOString() },
+      ],
+    };
+  };
+
+  const runDemoDraw = (requestId: string): SubLotteryPublicState => {
+    const request = state.requests.find(entry => entry.id === requestId);
+    if (!request) {
+      throw new Error('Sub request not found.');
+    }
+
+    const now = new Date();
+    const draw = runSubLotteryDraw({
+      request: { ...request, closesAt: now.toISOString() },
+      players: state.players,
+      availability: state.availability,
+      now,
+    });
+
+    if (draw.status !== 'assigned') {
+      throw new Error('No available matching subs yet.');
+    }
+
+    return {
+      ...state,
+      players: draw.players,
+      requests: state.requests.map(entry => entry.id === requestId ? draw.request : entry),
+    };
+  };
+
+  const importDemoData = (seasonName: string, playersCsvText: string, scheduleCsvText: string): SubLotteryPublicState => ({
+    seasonId: state.seasonId,
+    seasonName: seasonName.trim() || 'Testing season',
+    players: parseSubPlayerCsv(playersCsvText),
+    scheduleEntries: parseSubScheduleCsv(scheduleCsvText),
+    requests: [],
+    availability: [],
+  });
 
   return (
     <>
@@ -101,27 +219,61 @@ export function SubLotteryApp() {
         state={state}
         isBusy={busy}
         onCreateRequest={(payload) => {
-          void runAction(
-            () => createCaptainRequest({ ...payload, seasonId: state.seasonId } satisfies CreateSubRequestRequest),
-            'Sub need opened. Subs can enter now.',
-          );
+          if (demoMode) {
+            try {
+              setState(createDemoRequest(payload));
+              setSuccess('Sub need opened. Subs can enter now.');
+              setError(null);
+            } catch (requestError) {
+              setError(requestError instanceof Error ? requestError.message : 'Sub need could not be opened.');
+              setSuccess(null);
+            }
+          } else {
+            void runAction(
+              () => createCaptainRequest({ ...payload, seasonId: state.seasonId } satisfies CreateSubRequestRequest),
+              'Sub need opened. Subs can enter now.',
+            );
+          }
         }}
         onMarkAvailable={(requestId, playerId) => {
-          void runAction(
-            () => markAvailable({ requestId, playerId }),
-            'You are entered. Good luck!',
-          );
+          if (demoMode) {
+            setState(markDemoAvailable(requestId, playerId));
+            setSuccess('You are entered. Good luck!');
+            setError(null);
+          } else {
+            void runAction(
+              () => markAvailable({ requestId, playerId }),
+              'You are entered. Good luck!',
+            );
+          }
         }}
         onRunDraw={(requestId) => {
-          void runAction(
-            () => runDraw({ requestId }),
-            'Lottery complete.',
-          );
+          if (demoMode) {
+            try {
+              setState(runDemoDraw(requestId));
+              setSuccess('Lottery complete.');
+              setError(null);
+            } catch (drawError) {
+              setError(drawError instanceof Error ? drawError.message : 'Lottery could not run.');
+              setSuccess(null);
+            }
+          } else {
+            void runAction(
+              () => runDraw({ requestId }),
+              'Lottery complete.',
+            );
+          }
         }}
       />
       <AdminImportPanel
         seasonId={state.seasonId}
         onImport={(nextState) => setState(nextState)}
+        onDemoImport={(seasonName, playersCsvText, scheduleCsvText) => {
+          setState(importDemoData(seasonName, playersCsvText, scheduleCsvText));
+          setSuccess('Testing data loaded.');
+          setError(null);
+        }}
+        demoMode={demoMode}
         disabled={busy}
         setBusy={setBusy}
         setError={setError}
@@ -133,22 +285,30 @@ export function SubLotteryApp() {
 
 interface AdminImportPanelProps {
   seasonId: string;
+  demoMode: boolean;
   disabled: boolean;
   onImport: (state: SubLotteryPublicState) => void;
+  onDemoImport: (seasonName: string, playersCsvText: string, scheduleCsvText: string) => void;
   setBusy: (busy: boolean) => void;
   setError: (error: string | null) => void;
   setSuccess: (success: string | null) => void;
 }
 
-function AdminImportPanel({ seasonId, disabled, onImport, setBusy, setError, setSuccess }: AdminImportPanelProps) {
+function AdminImportPanel({ seasonId, demoMode, disabled, onImport, onDemoImport, setBusy, setError, setSuccess }: AdminImportPanelProps) {
   const [open, setOpen] = useState(false);
   const [adminPin, setAdminPin] = useState('');
   const [seasonName, setSeasonName] = useState('Current season');
   const [playersCsvText, setPlayersCsvText] = useState(samplePlayersCsv);
-  const [scheduleCsvText, setScheduleCsvText] = useState(sampleScheduleCsv);
+  const [scheduleCsvText, setScheduleCsvText] = useState(() => getSampleScheduleCsv());
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (demoMode) {
+      onDemoImport(seasonName, playersCsvText, scheduleCsvText);
+      setOpen(false);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     setSuccess(null);
@@ -181,7 +341,7 @@ function AdminImportPanel({ seasonId, disabled, onImport, setBusy, setError, set
               value={adminPin}
               onChange={event => setAdminPin(event.target.value)}
               placeholder="Admin PIN"
-              type="password"
+              type="text"
               className="h-11 rounded-2xl border-2 border-zinc-200 px-4 font-bold outline-none focus:border-emerald-400"
             />
             <input
