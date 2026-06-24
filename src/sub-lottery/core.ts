@@ -5,6 +5,7 @@ import type {
   SubLotteryPool,
   SubLotteryScheduleEntry,
 } from './types';
+import { getSubLotteryCoins } from './workflow';
 
 interface EligibleSubsInput {
   requestId: string;
@@ -90,7 +91,7 @@ export function getEligibleAvailableSubs({
 export function calculateLotteryEntries(players: SubLotteryPlayer[]): SubLotteryEntry[] {
   return players.map(player => ({
     playerId: player.id,
-    weight: 1 / (1 + Math.max(0, player.seasonSubCount)),
+    weight: getSubLotteryCoins(player.seasonSubCount),
   }));
 }
 
@@ -114,6 +115,28 @@ export function drawWeightedSubWinner(
   }
 
   return players[players.length - 1] ?? null;
+}
+
+export function drawWeightedSubWinners(
+  players: SubLotteryPlayer[],
+  slotsNeeded: number,
+  random: () => number = Math.random,
+): SubLotteryPlayer[] {
+  const winners: SubLotteryPlayer[] = [];
+  const remainingPlayers = [...players];
+  const slots = Math.max(0, Math.floor(slotsNeeded));
+
+  while (winners.length < slots && remainingPlayers.length > 0) {
+    const winner = drawWeightedSubWinner(remainingPlayers, random);
+    if (!winner) break;
+    winners.push(winner);
+    const winnerIndex = remainingPlayers.findIndex(player => player.id === winner.id);
+    if (winnerIndex >= 0) {
+      remainingPlayers.splice(winnerIndex, 1);
+    }
+  }
+
+  return winners;
 }
 
 export function parseSubPlayerCsv(csvText: string): SubLotteryPlayer[] {

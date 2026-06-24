@@ -11,6 +11,7 @@ const emptyState: SubLotteryPublicState = {
   requests: [],
   availability: [],
   scheduleEntries: [],
+  assignments: [],
 };
 
 vi.mock('@/sub-lottery/api', () => ({
@@ -36,10 +37,10 @@ describe('SubLotteryApp', () => {
     render(<SubLotteryApp />);
 
     expect(screen.getByText('Sub Squad')).toBeInTheDocument();
-    expect(screen.getByText('Current week: Week 1')).toBeInTheDocument();
+    expect(screen.getByText('Workflow week: Week 2')).toBeInTheDocument();
     expect(document.querySelector('#sub-player-suggestions option[value="Alice Green"]')).toBeInTheDocument();
     expect(document.querySelector('#sub-player-suggestions option[value="Owen Orange"]')).toBeInTheDocument();
-    expect(document.querySelector('#captain-name-suggestions option[value="Morgan"]')).toBeInTheDocument();
-    expect(document.querySelector('#captain-name-suggestions option[value="Riley"]')).toBeInTheDocument();
+    expect(document.querySelector('#captain-name-suggestions option[value="Jamie"]')).toBeInTheDocument();
+    expect(document.querySelector('#captain-name-suggestions option[value="Avery"]')).toBeInTheDocument();
   });
 });

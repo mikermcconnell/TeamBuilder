@@ -21,6 +21,7 @@ export interface CreateSubRequestRequest {
   captainPin: string;
   scheduleEntryId: string;
   pool: SubLotteryPool;
+  slotsNeeded: number;
 }
 
 export interface MarkAvailabilityRequest {

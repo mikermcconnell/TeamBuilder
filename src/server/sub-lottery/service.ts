@@ -2,12 +2,14 @@ import { parseSubPlayerCsv, parseSubScheduleCsv } from '../../sub-lottery/core.j
 import { runSubLotteryDraw } from '../../sub-lottery/lifecycle.js';
 import type { CreateSubRequestRequest } from '../../sub-lottery/apiContracts.js';
 import type {
+  SubLotteryAssignment,
   SubLotteryAvailability,
   SubLotteryPlayer,
   SubLotteryPublicState,
   SubLotteryRequest,
   SubLotteryScheduleEntry,
 } from '../../sub-lottery/types.js';
+import { getWorkflowDeadlinesForGameDate } from '../../sub-lottery/workflow.js';
 import { getSubLotteryFirestore } from './firebaseAdmin.js';
 
 const COLLECTIONS = {
@@ -57,11 +59,12 @@ function sortState(state: SubLotteryPublicState): SubLotteryPublicState {
     scheduleEntries: [...state.scheduleEntries].sort((a, b) => (
       `${a.weekLabel} ${a.gameLabel} ${a.captainName}`.localeCompare(`${b.weekLabel} ${b.gameLabel} ${b.captainName}`)
     )),
+    assignments: [...state.assignments].sort((a, b) => b.assignedAt.localeCompare(a.assignedAt)),
   };
 }
 
-async function runReadyDraws(_seasonId: string): Promise<void> {
-  // Weekly schedule requests are drawn manually when the captain/admin is ready.
+async function runReadyDraws(seasonId: string): Promise<void> {
+  await runDueDrawsForSeason(seasonId);
 }
 
 export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise<SubLotteryPublicState> {
@@ -69,12 +72,13 @@ export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise
   await runReadyDraws(seasonId);
 
   const db = await getSubLotteryFirestore();
-  const [seasonDoc, playersSnapshot, requestsSnapshot, availabilitySnapshot, scheduleSnapshot] = await Promise.all([
+  const [seasonDoc, playersSnapshot, requestsSnapshot, availabilitySnapshot, scheduleSnapshot, assignmentsSnapshot] = await Promise.all([
     db.collection(COLLECTIONS.seasons).doc(seasonId).get(),
     db.collection(COLLECTIONS.players).where('seasonId', '==', seasonId).get(),
     db.collection(COLLECTIONS.requests).where('seasonId', '==', seasonId).get(),
     db.collection(COLLECTIONS.availability).where('seasonId', '==', seasonId).get(),
     db.collection(COLLECTIONS.schedule).where('seasonId', '==', seasonId).get(),
+    db.collection(COLLECTIONS.assignments).where('seasonId', '==', seasonId).get(),
   ]);
 
   const seasonName = seasonDoc.exists && typeof seasonDoc.data()?.name === 'string'
@@ -88,6 +92,7 @@ export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise
     requests: requestsSnapshot.docs.map(doc => dataWithId<SubLotteryRequest>(doc)),
     availability: availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc)),
     scheduleEntries: scheduleSnapshot.docs.map(doc => dataWithId<SubLotteryScheduleEntry>(doc)),
+    assignments: assignmentsSnapshot.docs.map(doc => dataWithId<SubLotteryAssignment>(doc)),
   });
 }
 
@@ -108,11 +113,24 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
   if (input.pool !== 'open' && input.pool !== 'female') {
     throw new Error('Choose open matching or female matching.');
   }
+  const requestedSlots = Number(input.slotsNeeded);
+  if (!Number.isFinite(requestedSlots) || requestedSlots < 1) {
+    throw new Error('Choose how many subs are needed.');
+  }
+  const slotsNeeded = Math.floor(requestedSlots);
+  if (!scheduleEntry.gameDate) {
+    throw new Error('Schedule entry needs a game date.');
+  }
+  const deadlines = getWorkflowDeadlinesForGameDate(scheduleEntry.gameDate);
+  if (Date.now() > new Date(deadlines.captainClosesAt).getTime()) {
+    throw new Error('Captain requests are closed for this week.');
+  }
 
   const existingRequest = await db
     .collection(COLLECTIONS.requests)
     .where('seasonId', '==', seasonId)
     .where('scheduleEntryId', '==', scheduleEntry.id)
+    .where('pool', '==', input.pool)
     .where('status', '==', 'open')
     .limit(1)
     .get();
@@ -130,9 +148,14 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
     teamName: scheduleEntry.teamName,
     gameLabel: scheduleEntry.gameLabel,
     pool: input.pool,
+    slotsNeeded,
     status: 'open',
     openedAt: now,
-    closesAt: '9999-12-31T23:59:59.999Z',
+    closesAt: deadlines.availabilityClosesAt,
+    availabilityOpensAt: deadlines.availabilityOpensAt,
+    availabilityClosesAt: deadlines.availabilityClosesAt,
+    drawAt: deadlines.drawAt,
+    assignedPlayerIds: [],
     scheduleEntryId: scheduleEntry.id,
     weekLabel: scheduleEntry.weekLabel,
   };
@@ -164,6 +187,13 @@ export async function markPlayerAvailable(requestId: string, playerId: string): 
     seasonId = request.seasonId;
 
     if (request.status !== 'open') throw new Error('This request is no longer open.');
+    const now = new Date();
+    if (request.availabilityOpensAt && now.getTime() < new Date(request.availabilityOpensAt).getTime()) {
+      throw new Error('Player entries are not open yet.');
+    }
+    if (request.availabilityClosesAt && now.getTime() > new Date(request.availabilityClosesAt).getTime()) {
+      throw new Error('Player entries are closed.');
+    }
     if (!player.active || player.pool !== request.pool) throw new Error('This player is not eligible for this request.');
 
     transaction.set(availabilityRef, {
@@ -187,6 +217,9 @@ export async function runDrawForRequest(requestId: string, now = new Date()): Pr
   }
 
   const request = dataWithId<SubLotteryRequest>(requestDoc);
+  if (request.status !== 'open') {
+    return;
+  }
   const [playersSnapshot, availabilitySnapshot] = await Promise.all([
     db.collection(COLLECTIONS.players).where('seasonId', '==', request.seasonId).get(),
     db.collection(COLLECTIONS.availability).where('requestId', '==', request.id).get(),
@@ -194,13 +227,13 @@ export async function runDrawForRequest(requestId: string, now = new Date()): Pr
   const players = playersSnapshot.docs.map(doc => dataWithId<SubLotteryPlayer>(doc));
   const availability = availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc));
   const draw = runSubLotteryDraw({
-    request: { ...request, closesAt: now.toISOString() },
+    request,
     players,
     availability,
     now,
   });
 
-  if (draw.status !== 'assigned') {
+  if (draw.status === 'not-ready' || draw.status === 'already-assigned') {
     return;
   }
 
@@ -210,27 +243,54 @@ export async function runDrawForRequest(requestId: string, now = new Date()): Pr
     const latestRequestData = dataWithId<SubLotteryRequest>(latestRequest);
     if (latestRequestData.status === 'assigned') return;
 
-    const winnerRef = db.collection(COLLECTIONS.players).doc(draw.winner.id);
-    const assignmentRef = db.collection(COLLECTIONS.assignments).doc(requestId);
+    const assignedAt = draw.status === 'assigned' ? draw.request.assignedAt : now.toISOString();
+    const assignedPlayerIds = draw.status === 'assigned' ? draw.request.assignedPlayerIds ?? [] : [];
 
     transaction.update(requestRef, {
       status: 'assigned',
-      assignedPlayerId: draw.winner.id,
-      assignedAt: draw.request.assignedAt,
+      assignedPlayerId: assignedPlayerIds[0] ?? '',
+      assignedPlayerIds,
+      assignedAt,
     });
-    transaction.update(winnerRef, {
-      seasonSubCount: draw.winner.seasonSubCount,
+
+    if (draw.status !== 'assigned') return;
+
+    draw.winners.forEach(winner => {
+      const winnerRef = db.collection(COLLECTIONS.players).doc(winner.id);
+      transaction.update(winnerRef, {
+        seasonSubCount: winner.seasonSubCount,
+      });
     });
-    transaction.set(assignmentRef, {
-      requestId,
-      seasonId: request.seasonId,
-      playerId: draw.winner.id,
-      assignedAt: draw.request.assignedAt,
-      eligiblePlayerIds: draw.players
-        .filter(player => availability.some(entry => entry.requestId === request.id && entry.playerId === player.id))
-        .map(player => player.id),
+
+    draw.assignments.forEach(assignment => {
+      const assignmentRef = db.collection(COLLECTIONS.assignments).doc(`${requestId}_${assignment.playerId}`);
+      transaction.set(assignmentRef, assignment);
     });
   });
+}
+
+export async function runDueDrawsForSeason(seasonIdInput?: string, now = new Date()): Promise<void> {
+  const seasonId = getSeasonId(seasonIdInput);
+  const db = await getSubLotteryFirestore();
+  const requestsSnapshot = await db
+    .collection(COLLECTIONS.requests)
+    .where('seasonId', '==', seasonId)
+    .where('status', '==', 'open')
+    .get();
+
+  const dueRequests = requestsSnapshot.docs
+    .map(doc => dataWithId<SubLotteryRequest>(doc))
+    .filter(request => request.drawAt && new Date(request.drawAt).getTime() <= now.getTime());
+
+  for (const request of dueRequests) {
+    await runDrawForRequest(request.id, now);
+  }
+}
+
+export async function runDueDrawsAndLoadState(seasonIdInput?: string): Promise<SubLotteryPublicState> {
+  const seasonId = getSeasonId(seasonIdInput);
+  await runDueDrawsForSeason(seasonId);
+  return loadPublicSubLotteryState(seasonId);
 }
 
 export async function runDrawAndLoadState(requestId: string): Promise<SubLotteryPublicState> {

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
   calculateLotteryEntries,
+  drawWeightedSubWinners,
   drawWeightedSubWinner,
   getEligibleAvailableSubs,
   parseSubPlayerCsv,
@@ -9,6 +10,7 @@ import {
   getCurrentScheduleWeekLabel,
 } from '@/sub-lottery/core';
 import type { SubLotteryAvailability, SubLotteryPlayer } from '@/sub-lottery/types';
+import { getSubLotteryCoins, getSubLotteryWorkflowState } from '@/sub-lottery/workflow';
 
 const players: SubLotteryPlayer[] = [
   { id: 'alice', name: 'Alice Green', pool: 'female', seasonSubCount: 0, active: true },
@@ -40,8 +42,8 @@ describe('sub lottery core', () => {
     const entries = calculateLotteryEntries([players[0]!, players[1]!]);
 
     expect(entries).toEqual([
-      { playerId: 'alice', weight: 1 },
-      { playerId: 'bella', weight: 1 / 3 },
+      { playerId: 'alice', weight: 5 },
+      { playerId: 'bella', weight: 3 },
     ]);
   });
 
@@ -49,6 +51,26 @@ describe('sub lottery core', () => {
     const winner = drawWeightedSubWinner([players[0]!, players[1]!], () => 0.9);
 
     expect(winner?.id).toBe('bella');
+  });
+
+  test('draws multiple unique weighted winners for a multi-slot request', () => {
+    const winners = drawWeightedSubWinners([players[0]!, players[1]!], 2, () => 0);
+
+    expect(winners.map(player => player.id)).toEqual(['alice', 'bella']);
+  });
+
+  test('calculates lottery coins with a floor of one', () => {
+    expect(getSubLotteryCoins(0)).toBe(5);
+    expect(getSubLotteryCoins(1)).toBe(4);
+    expect(getSubLotteryCoins(4)).toBe(1);
+    expect(getSubLotteryCoins(12)).toBe(1);
+  });
+
+  test('identifies weekly workflow phases in Toronto time', () => {
+    expect(getSubLotteryWorkflowState(new Date('2026-06-21T16:00:00.000Z')).phase).toBe('captain');
+    expect(getSubLotteryWorkflowState(new Date('2026-06-22T13:00:00.000Z')).phase).toBe('player');
+    expect(getSubLotteryWorkflowState(new Date('2026-06-22T16:00:30.000Z')).phase).toBe('lottery');
+    expect(getSubLotteryWorkflowState(new Date('2026-06-22T16:01:30.000Z')).phase).toBe('results');
   });
 
   test('parses an admin loaded sub list with open and female pools', () => {

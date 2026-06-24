@@ -3,6 +3,7 @@ import type { ApiFailure, ApiSuccess } from '../../sub-lottery/apiContracts.js';
 export interface SubLotteryServerlessRequest {
   method?: string;
   body?: unknown;
+  headers?: Record<string, string | string[] | undefined>;
 }
 
 export interface SubLotteryServerlessResponse {

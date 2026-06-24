@@ -27,10 +27,15 @@ export interface SubLotteryRequest {
   teamName: string;
   gameLabel: string;
   pool: SubLotteryPool;
+  slotsNeeded?: number;
   status: 'open' | 'assigned' | 'void';
   openedAt: string;
   closesAt: string;
+  availabilityOpensAt?: string;
+  availabilityClosesAt?: string;
+  drawAt?: string;
   assignedPlayerId?: string;
+  assignedPlayerIds?: string[];
   assignedAt?: string;
   scheduleEntryId?: string;
   weekLabel?: string;
@@ -50,6 +55,12 @@ export interface SubLotteryEntry {
 export interface SubLotteryAssignment {
   requestId: string;
   playerId: string;
+  seasonId?: string;
+  captainName?: string;
+  teamName?: string;
+  gameLabel?: string;
+  pool?: SubLotteryPool;
+  weekLabel?: string;
   assignedAt: string;
   eligiblePlayerIds: string[];
 }
@@ -61,5 +72,6 @@ export interface SubLotteryPublicState {
   requests: SubLotteryRequest[];
   availability: SubLotteryAvailability[];
   scheduleEntries: SubLotteryScheduleEntry[];
+  assignments: SubLotteryAssignment[];
 }
 

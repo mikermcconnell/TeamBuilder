@@ -7,13 +7,12 @@ import {
   createCaptainRequest,
   loadSubLotteryState,
   markAvailable,
-  runDraw,
 } from './api';
 import { parseSubPlayerCsv, parseSubScheduleCsv } from './core';
-import { runSubLotteryDraw } from './lifecycle';
 import { SubLotteryWorkspace } from './SubLotteryWorkspace';
 import type { CreateSubRequestRequest } from './apiContracts';
 import type { SubLotteryPublicState } from './types';
+import { getWorkflowDeadlinesForGameDate } from './workflow';
 
 const DEFAULT_SEASON_ID = 'default-season';
 
@@ -74,6 +73,7 @@ function getSampleState(referenceDate = new Date()): SubLotteryPublicState {
     requests: [],
     availability: [],
     scheduleEntries: parseSubScheduleCsv(getSampleScheduleCsv(referenceDate)),
+    assignments: [],
   };
 }
 
@@ -128,12 +128,23 @@ export function SubLotteryApp() {
     if (!scheduleEntry) {
       throw new Error('Schedule entry not found.');
     }
+    if (!scheduleEntry.gameDate) {
+      throw new Error('Schedule entry needs a game date.');
+    }
+    const deadlines = getWorkflowDeadlinesForGameDate(scheduleEntry.gameDate);
+    if (Date.now() > new Date(deadlines.captainClosesAt).getTime()) {
+      throw new Error('Captain requests are closed for this week.');
+    }
 
     const existingOpenRequest = state.requests.find(request => (
-      request.scheduleEntryId === scheduleEntry.id && request.status === 'open'
+      request.scheduleEntryId === scheduleEntry.id && request.pool === payload.pool && request.status === 'open'
     ));
     if (existingOpenRequest) {
       throw new Error('A sub need is already open for this scheduled game.');
+    }
+    const requestedSlots = Number(payload.slotsNeeded);
+    if (!Number.isFinite(requestedSlots) || requestedSlots < 1) {
+      throw new Error('Choose how many subs are needed.');
     }
 
     return {
@@ -146,9 +157,14 @@ export function SubLotteryApp() {
           teamName: scheduleEntry.teamName,
           gameLabel: scheduleEntry.gameLabel,
           pool: payload.pool,
+          slotsNeeded: Math.floor(requestedSlots),
           status: 'open',
           openedAt: new Date().toISOString(),
-          closesAt: '9999-12-31T23:59:59.999Z',
+          closesAt: deadlines.availabilityClosesAt,
+          availabilityOpensAt: deadlines.availabilityOpensAt,
+          availabilityClosesAt: deadlines.availabilityClosesAt,
+          drawAt: deadlines.drawAt,
+          assignedPlayerIds: [],
           scheduleEntryId: scheduleEntry.id,
           weekLabel: scheduleEntry.weekLabel,
         },
@@ -158,6 +174,14 @@ export function SubLotteryApp() {
   };
 
   const markDemoAvailable = (requestId: string, playerId: string): SubLotteryPublicState => {
+    const request = state.requests.find(entry => entry.id === requestId);
+    const now = Date.now();
+    if (request?.availabilityOpensAt && now < new Date(request.availabilityOpensAt).getTime()) {
+      throw new Error('Player entries are not open yet.');
+    }
+    if (request?.availabilityClosesAt && now > new Date(request.availabilityClosesAt).getTime()) {
+      throw new Error('Player entries are closed.');
+    }
     const alreadyEntered = state.availability.some(entry => (
       entry.requestId === requestId && entry.playerId === playerId
     ));
@@ -174,31 +198,6 @@ export function SubLotteryApp() {
     };
   };
 
-  const runDemoDraw = (requestId: string): SubLotteryPublicState => {
-    const request = state.requests.find(entry => entry.id === requestId);
-    if (!request) {
-      throw new Error('Sub request not found.');
-    }
-
-    const now = new Date();
-    const draw = runSubLotteryDraw({
-      request: { ...request, closesAt: now.toISOString() },
-      players: state.players,
-      availability: state.availability,
-      now,
-    });
-
-    if (draw.status !== 'assigned') {
-      throw new Error('No available matching subs yet.');
-    }
-
-    return {
-      ...state,
-      players: draw.players,
-      requests: state.requests.map(entry => entry.id === requestId ? draw.request : entry),
-    };
-  };
-
   const importDemoData = (seasonName: string, playersCsvText: string, scheduleCsvText: string): SubLotteryPublicState => ({
     seasonId: state.seasonId,
     seasonName: seasonName.trim() || 'Testing season',
@@ -206,6 +205,7 @@ export function SubLotteryApp() {
     scheduleEntries: parseSubScheduleCsv(scheduleCsvText),
     requests: [],
     availability: [],
+    assignments: [],
   });
 
   return (
@@ -237,30 +237,18 @@ export function SubLotteryApp() {
         }}
         onMarkAvailable={(requestId, playerId) => {
           if (demoMode) {
-            setState(markDemoAvailable(requestId, playerId));
-            setSuccess('You are entered. Good luck!');
-            setError(null);
-          } else {
-            void runAction(
-              () => markAvailable({ requestId, playerId }),
-              'You are entered. Good luck!',
-            );
-          }
-        }}
-        onRunDraw={(requestId) => {
-          if (demoMode) {
             try {
-              setState(runDemoDraw(requestId));
-              setSuccess('Lottery complete.');
+              setState(markDemoAvailable(requestId, playerId));
+              setSuccess('You are entered. Good luck!');
               setError(null);
-            } catch (drawError) {
-              setError(drawError instanceof Error ? drawError.message : 'Lottery could not run.');
+            } catch (availabilityError) {
+              setError(availabilityError instanceof Error ? availabilityError.message : 'Could not enter this request.');
               setSuccess(null);
             }
           } else {
             void runAction(
-              () => runDraw({ requestId }),
-              'Lottery complete.',
+              () => markAvailable({ requestId, playerId }),
+              'You are entered. Good luck!',
             );
           }
         }}

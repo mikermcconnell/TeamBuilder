@@ -2,20 +2,20 @@ import React, { useMemo, useState } from 'react';
 import { CheckCircle2, Clock, Crown, Sparkles, Trophy, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { getCurrentScheduleWeekLabel } from './core';
+import { formatCountdown, getSubLotteryCoins, getSubLotteryWorkflowState, getWorkflowScheduleWeekLabel } from './workflow';
 import type { SubLotteryPlayer, SubLotteryPool, SubLotteryPublicState } from './types';
 
 interface CreateRequestPayload {
   captainPin: string;
   scheduleEntryId: string;
   pool: SubLotteryPool;
+  slotsNeeded: number;
 }
 
 interface SubLotteryWorkspaceProps {
   state: SubLotteryPublicState;
   onCreateRequest?: (payload: CreateRequestPayload) => void;
   onMarkAvailable?: (requestId: string, playerId: string) => void;
-  onRunDraw?: (requestId: string) => void;
   isBusy?: boolean;
   currentDate?: Date;
 }
@@ -27,6 +27,11 @@ function getPoolLabel(pool: 'open' | 'female'): string {
 function getPlayerName(players: SubLotteryPlayer[], playerId: string | undefined): string {
   if (!playerId) return 'Waiting for draw';
   return players.find(player => player.id === playerId)?.name ?? 'Selected sub';
+}
+
+function getPlayerNames(players: SubLotteryPlayer[], playerIds: string[] | undefined): string {
+  if (!playerIds || playerIds.length === 0) return 'No eligible subs entered.';
+  return playerIds.map(playerId => getPlayerName(players, playerId)).join(', ');
 }
 
 function uniqueSorted(values: string[]): string[] {
@@ -41,7 +46,6 @@ export function SubLotteryWorkspace({
   state,
   onCreateRequest,
   onMarkAvailable,
-  onRunDraw,
   isBusy = false,
   currentDate = new Date(),
 }: SubLotteryWorkspaceProps) {
@@ -49,6 +53,7 @@ export function SubLotteryWorkspace({
   const [captainPin, setCaptainPin] = useState('');
   const [selectedCaptainName, setSelectedCaptainName] = useState('');
   const [selectedRequestPool, setSelectedRequestPool] = useState<SubLotteryPool | null>(null);
+  const [slotsNeeded, setSlotsNeeded] = useState('1');
 
   const activePlayers = useMemo(
     () => state.players.filter(player => player.active).sort((a, b) => a.name.localeCompare(b.name)),
@@ -58,13 +63,16 @@ export function SubLotteryWorkspace({
     () => state.scheduleEntries.filter(entry => entry.active),
     [state.scheduleEntries]
   );
-  const currentWeekLabel = getCurrentScheduleWeekLabel(activeScheduleEntries, currentDate);
+  const workflow = getSubLotteryWorkflowState(currentDate);
+  const currentWeekLabel = getWorkflowScheduleWeekLabel(activeScheduleEntries, currentDate);
   const scheduleEntriesForWeek = activeScheduleEntries.filter(entry => entry.weekLabel === currentWeekLabel);
   const captainOptions = uniqueSorted(scheduleEntriesForWeek.map(entry => entry.captainName));
   const selectedScheduleEntry = scheduleEntriesForWeek.find(entry => normalizeName(entry.captainName) === normalizeName(selectedCaptainName)) ?? null;
   const existingOpenRequestForSchedule = selectedScheduleEntry
-    ? state.requests.find(request => request.scheduleEntryId === selectedScheduleEntry.id && request.status === 'open')
+    ? state.requests.find(request => request.scheduleEntryId === selectedScheduleEntry.id && request.pool === selectedRequestPool && request.status === 'open')
     : null;
+  const isCaptainPhase = workflow.phase === 'captain';
+  const isPlayerPhase = workflow.phase === 'player';
 
   const openRequests = state.requests.filter(request => request.status === 'open');
   const assignedRequests = state.requests.filter(request => request.status === 'assigned');
@@ -80,6 +88,7 @@ export function SubLotteryWorkspace({
       captainPin,
       scheduleEntryId: selectedScheduleEntry.id,
       pool: selectedRequestPool,
+      slotsNeeded: Math.max(1, Math.floor(Number(slotsNeeded) || 0)),
     });
   };
 
@@ -95,7 +104,7 @@ export function SubLotteryWorkspace({
               <div>
                 <h1 className="text-4xl font-black tracking-tight text-[#2f2f2f] sm:text-5xl">Sub Squad</h1>
                 <p className="mt-3 max-w-2xl text-lg font-semibold text-zinc-600">
-                  The schedule opens each week. Subs tap in, captains pick their scheduled game, and the app draws fairly from the matching pool.
+                  Captains submit by Sunday night, players enter Monday morning, and the app draws fairly at lunch.
                 </p>
               </div>
             </div>
@@ -112,13 +121,17 @@ export function SubLotteryWorkspace({
           </div>
         </section>
 
+        <WorkflowStepper workflow={workflow} />
+
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <section className="rounded-[2rem] border-2 border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 flex items-center gap-3">
               <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><Users className="h-6 w-6" /></div>
               <div>
                 <h2 className="text-2xl font-black">Want to play?</h2>
-                <p className="font-semibold text-zinc-500">Pick your name, then tap into a matching weekly need.</p>
+                <p className="font-semibold text-zinc-500">
+                  {isPlayerPhase ? 'Pick your name, then enter the games you can play.' : 'Player entries open Monday from 12:00 AM to 11:59 AM.'}
+                </p>
               </div>
             </div>
 
@@ -154,17 +167,17 @@ export function SubLotteryWorkspace({
                       </div>
                       <button
                         type="button"
-                        disabled={!selectedPlayer || entered || isBusy}
+                        disabled={!isPlayerPhase || !selectedPlayer || entered || isBusy}
                         onClick={() => selectedPlayer && onMarkAvailable?.(request.id, selectedPlayer.id)}
                         className={cn(
                           'rounded-2xl border-2 px-5 py-3 text-sm font-black transition disabled:cursor-not-allowed',
                           entered
                             ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
                             : 'border-emerald-700 bg-[#58cc02] text-white shadow-[0_4px_0_#58a700] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none',
-                          !selectedPlayer && 'opacity-50'
+                          (!isPlayerPhase || !selectedPlayer) && 'opacity-50'
                         )}
                       >
-                        {entered ? 'You’re entered' : 'I can play'}
+                        {entered ? 'You’re entered' : isPlayerPhase ? 'I can play' : 'Entry window closed'}
                       </button>
                     </div>
                   </article>
@@ -178,14 +191,16 @@ export function SubLotteryWorkspace({
               <div className="rounded-2xl bg-sky-100 p-3 text-sky-700"><Crown className="h-6 w-6" /></div>
               <div>
                 <h2 className="text-2xl font-black">Need a sub?</h2>
-                <p className="font-semibold text-zinc-500">The app uses the current week. Pick your captain name and the schedule fills in the rest.</p>
+                <p className="font-semibold text-zinc-500">
+                  {isCaptainPhase ? 'Submit needs before Sunday 11:59 PM.' : 'Captain requests are closed for this workflow week.'}
+                </p>
               </div>
             </div>
 
             <form className="grid gap-4" onSubmit={handleCreateRequest}>
               <LabeledInput label="Captain PIN" value={captainPin} onChange={setCaptainPin} />
               <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-4 text-sm font-black text-emerald-800">
-                Current week: {currentWeekLabel ?? 'No dated schedule for this week'}
+                Workflow week: {currentWeekLabel ?? 'No dated schedule for this workflow week'}
               </div>
               <LabeledTypeahead
                 label="Captain name"
@@ -201,13 +216,14 @@ export function SubLotteryWorkspace({
                 <ReadOnlyField label="Game time" value={selectedScheduleEntry?.gameLabel ?? ''} />
               </div>
               <PoolCheckboxes selectedPool={selectedRequestPool} onChange={setSelectedRequestPool} />
+              <LabeledInput label="Number of subs needed" value={slotsNeeded} onChange={setSlotsNeeded} type="number" min={1} />
 
               <button
                 type="submit"
-                disabled={isBusy || !selectedScheduleEntry || !selectedRequestPool || Boolean(existingOpenRequestForSchedule)}
+                disabled={isBusy || !isCaptainPhase || !selectedScheduleEntry || !selectedRequestPool || Number(slotsNeeded) < 1 || Boolean(existingOpenRequestForSchedule)}
                 className="mt-1 rounded-2xl border-2 border-sky-700 bg-[#1cb0f6] px-5 py-4 text-base font-black text-white shadow-[0_4px_0_#1899d6] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-60"
               >
-                {existingOpenRequestForSchedule ? 'Sub need already open' : 'Confirm need a sub'}
+                {!isCaptainPhase ? 'Captain window closed' : existingOpenRequestForSchedule ? 'Sub need already open' : 'Confirm need a sub'}
               </button>
             </form>
           </section>
@@ -227,34 +243,95 @@ export function SubLotteryWorkspace({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-black">{request.teamName}</div>
-                    <div className="text-sm font-bold text-zinc-500">{request.weekLabel ? `${request.weekLabel} · ` : ''}{request.gameLabel} · {getPoolLabel(request.pool)}</div>
+                    <div className="text-sm font-bold text-zinc-500">
+                      {request.weekLabel ? `${request.weekLabel} · ` : ''}{request.gameLabel} · {getPoolLabel(request.pool)} · {request.slotsNeeded ?? 1} needed
+                    </div>
                   </div>
                   {request.status === 'assigned' ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Clock className="h-5 w-5 text-sky-600" />}
                 </div>
                 <div className="mt-3 rounded-2xl bg-white p-3 text-sm font-extrabold text-zinc-700">
                   {request.status === 'assigned'
-                    ? `${getPlayerName(state.players, request.assignedPlayerId)} won the draw.`
-                    : 'Waiting for available subs, then run the lottery.'}
+                    ? `${getPlayerNames(state.players, request.assignedPlayerIds ?? (request.assignedPlayerId ? [request.assignedPlayerId] : []))} ${request.assignedPlayerIds?.length ? 'won the draw.' : ''}`
+                    : 'Waiting for Monday entries, then the automatic lottery.'}
                 </div>
-                {request.status === 'open' && onRunDraw && (
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => onRunDraw(request.id)}
-                    className="mt-3 rounded-2xl border-2 border-amber-600 bg-amber-400 px-4 py-2 text-sm font-black text-white shadow-[0_3px_0_#d69e2e] disabled:opacity-60"
-                  >
-                    Run lottery
-                  </button>
-                )}
               </article>
             ))}
           </div>
           <p className="mt-4 rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
-            Fairness note: players who have subbed less this season get better odds, but everyone entered still has a chance.
+            Fairness note: players start with 5 lottery coins and lose 1 each time they sub, with a 1-coin minimum so everyone still has a chance.
           </p>
+        </section>
+
+        <section className="rounded-[2rem] border-2 border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+          <h2 className="text-2xl font-black">Season history</h2>
+          <p className="mb-4 font-semibold text-zinc-500">Track who has subbed and how many lottery coins they have left.</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {activePlayers.map(player => (
+              <div key={player.id} className="rounded-3xl border-2 border-zinc-200 bg-zinc-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="font-black">{player.name}</div>
+                    <div className="text-sm font-bold text-zinc-500">{getPoolLabel(player.pool)}</div>
+                  </div>
+                  <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 px-3 py-2 text-sm font-black text-amber-800">
+                    {getSubLotteryCoins(player.seasonSubCount)} coins
+                  </div>
+                </div>
+                <div className="mt-2 text-sm font-bold text-zinc-600">{player.seasonSubCount} season sub{player.seasonSubCount === 1 ? '' : 's'}</div>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </main>
+  );
+}
+
+function WorkflowStepper({ workflow }: { workflow: ReturnType<typeof getSubLotteryWorkflowState> }) {
+  const steps = [
+    { title: 'Captains submit needs', detail: 'Closes Sunday 11:59 PM' },
+    { title: 'Players enter games', detail: 'Monday 12:00 AM–11:59 AM' },
+    { title: 'Lottery runs', detail: 'Monday 12:01 PM' },
+    { title: 'Results posted', detail: 'Check assignments' },
+  ];
+
+  return (
+    <section className="rounded-[2rem] border-2 border-sky-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-black">Weekly workflow</h2>
+          <p className="font-semibold text-zinc-500">Follow the active step. The countdown shows what happens next.</p>
+        </div>
+        <div className="rounded-3xl border-2 border-emerald-200 bg-emerald-50 px-5 py-3 text-center">
+          <div className="text-xs font-black uppercase tracking-wide text-emerald-700">{workflow.nextDeadlineLabel}</div>
+          <div className="text-2xl font-black text-emerald-800">{formatCountdown(workflow.nextDeadlineAt)}</div>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-4">
+        {steps.map((step, index) => {
+          const isActive = workflow.activeStepIndex === index;
+          const isComplete = workflow.activeStepIndex > index;
+          return (
+            <div
+              key={step.title}
+              className={cn(
+                'rounded-3xl border-2 p-4',
+                isActive && 'border-sky-500 bg-sky-50 ring-4 ring-sky-100',
+                isComplete && 'border-emerald-200 bg-emerald-50',
+                !isActive && !isComplete && 'border-zinc-200 bg-zinc-50'
+              )}
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-sm font-black text-zinc-500">Step {index + 1}</div>
+                {isComplete ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Clock className="h-5 w-5 text-sky-600" />}
+              </div>
+              <div className="font-black text-zinc-800">{step.title}</div>
+              <div className="text-sm font-bold text-zinc-500">{step.detail}</div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -305,9 +382,10 @@ interface LabeledInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
+  min?: number;
 }
 
-function LabeledInput({ label, value, onChange, placeholder, type = 'text' }: LabeledInputProps) {
+function LabeledInput({ label, value, onChange, placeholder, type = 'text', min }: LabeledInputProps) {
   const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   return (
     <div>
@@ -316,6 +394,7 @@ function LabeledInput({ label, value, onChange, placeholder, type = 'text' }: La
         id={id}
         type={type}
         value={value}
+        min={min}
         placeholder={placeholder}
         onChange={event => onChange(event.target.value)}
         className="h-12 w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 text-base font-bold outline-none transition placeholder:text-zinc-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"

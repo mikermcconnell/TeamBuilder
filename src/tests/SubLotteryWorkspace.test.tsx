@@ -44,9 +44,11 @@ const state: SubLotteryPublicState = {
       status: 'open',
       openedAt: '2026-06-24T12:00:00.000Z',
       closesAt: '2026-06-24T14:00:00.000Z',
+      slotsNeeded: 1,
     },
   ],
   availability: [],
+  assignments: [],
 };
 
 describe('SubLotteryWorkspace', () => {
@@ -62,7 +64,7 @@ describe('SubLotteryWorkspace', () => {
   test('lets a sub pick their name and enter an open matching pool request', () => {
     const onMarkAvailable = vi.fn();
 
-    render(<SubLotteryWorkspace state={state} onMarkAvailable={onMarkAvailable} />);
+    render(<SubLotteryWorkspace state={state} onMarkAvailable={onMarkAvailable} currentDate={new Date('2026-06-22T13:00:00.000Z')} />);
 
     const nameInput = screen.getByLabelText('Pick your name');
     expect(nameInput.tagName).toBe('INPUT');
@@ -78,13 +80,13 @@ describe('SubLotteryWorkspace', () => {
   test('lets a captain select their weekly schedule entry and autofills team and game time', () => {
     const onCreateRequest = vi.fn();
 
-    render(<SubLotteryWorkspace state={state} onCreateRequest={onCreateRequest} currentDate={new Date('2026-06-25T12:00:00.000Z')} />);
+    render(<SubLotteryWorkspace state={state} onCreateRequest={onCreateRequest} currentDate={new Date('2026-06-21T12:00:00.000Z')} />);
 
     const captainPinInput = screen.getByLabelText('Captain PIN');
     expect(captainPinInput).toHaveAttribute('type', 'text');
     fireEvent.change(captainPinInput, { target: { value: '1234' } });
     expect(screen.queryByLabelText('Week')).not.toBeInTheDocument();
-    expect(screen.getByText('Current week: Week 1')).toBeInTheDocument();
+    expect(screen.getByText('Workflow week: Week 1')).toBeInTheDocument();
     const captainInput = screen.getByLabelText('Captain name');
     expect(captainInput.tagName).toBe('INPUT');
     expect(captainInput).toHaveAttribute('list', 'captain-name-suggestions');
@@ -99,12 +101,14 @@ describe('SubLotteryWorkspace', () => {
     expect(screen.getByRole('button', { name: 'Confirm need a sub' })).toBeDisabled();
 
     fireEvent.click(screen.getByLabelText(/Open matching sub/));
+    fireEvent.change(screen.getByLabelText('Number of subs needed'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm need a sub' }));
 
     expect(onCreateRequest).toHaveBeenCalledWith({
       captainPin: '1234',
       scheduleEntryId: 'week-1-2026-06-24-morgan-blue-team-friday-8-pm',
       pool: 'open',
+      slotsNeeded: 2,
     });
   });
 });
