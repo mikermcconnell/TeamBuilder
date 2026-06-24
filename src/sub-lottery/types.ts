@@ -12,6 +12,7 @@ export interface SubLotteryScheduleEntry {
   id: string;
   seasonId?: string;
   weekLabel: string;
+  gameDate?: string;
   captainName: string;
   teamName: string;
   gameLabel: string;
@@ -61,3 +62,4 @@ export interface SubLotteryPublicState {
   availability: SubLotteryAvailability[];
   scheduleEntries: SubLotteryScheduleEntry[];
 }
+

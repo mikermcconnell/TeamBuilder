@@ -294,7 +294,7 @@ export async function importSubSchedule(input: {
   }));
 
   if (scheduleEntries.length === 0) {
-    throw new Error('No valid schedule entries found. Use CSV headers: Week,Captain,Team,Game Time,Pool.');
+    throw new Error('No valid schedule entries found. Use CSV headers: Week,Date,Captain,Team,Game Time,Pool.');
   }
 
   const db = await getSubLotteryFirestore();

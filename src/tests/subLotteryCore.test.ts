@@ -6,6 +6,7 @@ import {
   getEligibleAvailableSubs,
   parseSubPlayerCsv,
   parseSubScheduleCsv,
+  getCurrentScheduleWeekLabel,
 } from '@/sub-lottery/core';
 import type { SubLotteryAvailability, SubLotteryPlayer } from '@/sub-lottery/types';
 
@@ -58,13 +59,14 @@ describe('sub lottery core', () => {
       { id: 'owen-orange', name: 'Owen Orange', pool: 'open', seasonSubCount: 0, active: true },
     ]);
   });
-  test('parses an uploaded weekly captain schedule', () => {
-    const parsed = parseSubScheduleCsv('Week,Captain,Team,Game Time,Pool\nWeek 1,Morgan,Blue Team,Friday 8 PM,Female\nWeek 1,Casey,Green Team,Friday 9 PM,Open\n');
+  test('parses an uploaded weekly captain schedule with game dates', () => {
+    const parsed = parseSubScheduleCsv('Week,Date,Captain,Team,Game Time,Pool\nWeek 1,2026-06-24,Morgan,Blue Team,Friday 8 PM,Female\nWeek 2,2026-07-01,Casey,Green Team,Friday 9 PM,Open\n');
 
     expect(parsed).toEqual([
       {
-        id: 'week-1-morgan-blue-team-friday-8-pm',
+        id: 'week-1-2026-06-24-morgan-blue-team-friday-8-pm',
         weekLabel: 'Week 1',
+        gameDate: '2026-06-24',
         captainName: 'Morgan',
         teamName: 'Blue Team',
         gameLabel: 'Friday 8 PM',
@@ -72,8 +74,9 @@ describe('sub lottery core', () => {
         active: true,
       },
       {
-        id: 'week-1-casey-green-team-friday-9-pm',
-        weekLabel: 'Week 1',
+        id: 'week-2-2026-07-01-casey-green-team-friday-9-pm',
+        weekLabel: 'Week 2',
+        gameDate: '2026-07-01',
         captainName: 'Casey',
         teamName: 'Green Team',
         gameLabel: 'Friday 9 PM',
@@ -81,5 +84,11 @@ describe('sub lottery core', () => {
         active: true,
       },
     ]);
+  });
+  test('finds the current schedule week from game dates', () => {
+    const schedule = parseSubScheduleCsv('Week,Date,Captain,Team,Game Time,Pool\nWeek 1,2026-06-24,Morgan,Blue Team,Friday 8 PM,Female\nWeek 2,2026-07-01,Casey,Green Team,Friday 9 PM,Open\n');
+
+    expect(getCurrentScheduleWeekLabel(schedule, new Date('2026-06-25T12:00:00.000Z'))).toBe('Week 1');
+    expect(getCurrentScheduleWeekLabel(schedule, new Date('2026-07-02T12:00:00.000Z'))).toBe('Week 2');
   });
 });

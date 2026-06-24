@@ -32,6 +32,42 @@ function normalizePool(value: string): SubLotteryPool | null {
   return null;
 }
 
+function normalizeHeader(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function getColumn(row: string[], headerIndexes: Map<string, number>, aliases: string[]): string {
+  const index = aliases
+    .map(alias => headerIndexes.get(normalizeHeader(alias)))
+    .find((value): value is number => typeof value === 'number');
+
+  return typeof index === 'number' ? (row[index] ?? '').trim() : '';
+}
+
+function parseDateOnly(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day));
+}
+
+function startOfLocalWeek(date: Date): Date {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = start.getDay();
+  const daysSinceMonday = (day + 6) % 7;
+  start.setDate(start.getDate() - daysSinceMonday);
+  return start;
+}
+
+function endOfLocalWeek(date: Date): Date {
+  const end = new Date(startOfLocalWeek(date));
+  end.setDate(end.getDate() + 7);
+  return end;
+}
+
 export function getEligibleAvailableSubs({
   requestId,
   pool,
@@ -119,23 +155,26 @@ export function parseSubScheduleCsv(csvText: string): SubLotteryScheduleEntry[] 
     return [];
   }
 
+  const headers = lines[0]!.split(',').map(value => value.trim());
+  const headerIndexes = new Map(headers.map((header, index) => [normalizeHeader(header), index]));
+
   return lines.slice(1).flatMap(line => {
-    const [rawWeek = '', rawCaptain = '', rawTeam = '', rawGame = '', rawPool = ''] = line
-      .split(',')
-      .map(value => value.trim());
-    const weekLabel = rawWeek.trim();
-    const captainName = rawCaptain.trim();
-    const teamName = rawTeam.trim();
-    const gameLabel = rawGame.trim();
-    const pool = normalizePool(rawPool);
+    const row = line.split(',').map(value => value.trim());
+    const weekLabel = getColumn(row, headerIndexes, ['Week']);
+    const gameDate = getColumn(row, headerIndexes, ['Date', 'Game Date']);
+    const captainName = getColumn(row, headerIndexes, ['Captain', 'Captain Name']);
+    const teamName = getColumn(row, headerIndexes, ['Team', 'Team Name']);
+    const gameLabel = getColumn(row, headerIndexes, ['Game Time', 'Time', 'Game']);
+    const pool = normalizePool(getColumn(row, headerIndexes, ['Pool', 'Gender']));
 
     if (!weekLabel || !captainName || !teamName || !gameLabel || !pool) {
       return [];
     }
 
     return [{
-      id: slugify(`${weekLabel}-${captainName}-${teamName}-${gameLabel}`),
+      id: slugify(`${weekLabel}-${gameDate ? `${gameDate}-` : ''}${captainName}-${teamName}-${gameLabel}`),
       weekLabel,
+      ...(gameDate ? { gameDate } : {}),
       captainName,
       teamName,
       gameLabel,
@@ -143,4 +182,23 @@ export function parseSubScheduleCsv(csvText: string): SubLotteryScheduleEntry[] 
       active: true,
     }];
   });
+}
+
+export function getCurrentScheduleWeekLabel(
+  entries: SubLotteryScheduleEntry[],
+  currentDate: Date = new Date(),
+): string | null {
+  const weekStart = startOfLocalWeek(currentDate);
+  const weekEnd = endOfLocalWeek(currentDate);
+
+  const currentWeekEntry = entries.find(entry => {
+    if (!entry.active || !entry.gameDate) {
+      return false;
+    }
+
+    const gameDate = parseDateOnly(entry.gameDate);
+    return Boolean(gameDate && gameDate >= weekStart && gameDate < weekEnd);
+  });
+
+  return currentWeekEntry?.weekLabel ?? null;
 }

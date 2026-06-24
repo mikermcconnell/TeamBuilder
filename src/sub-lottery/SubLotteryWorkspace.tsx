@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock, Crown, Sparkles, Trophy, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { getCurrentScheduleWeekLabel } from './core';
 import type { SubLotteryPlayer, SubLotteryPublicState } from './types';
 
 interface CreateRequestPayload {
@@ -15,6 +16,7 @@ interface SubLotteryWorkspaceProps {
   onMarkAvailable?: (requestId: string, playerId: string) => void;
   onRunDraw?: (requestId: string) => void;
   isBusy?: boolean;
+  currentDate?: Date;
 }
 
 function getPoolLabel(pool: 'open' | 'female'): string {
@@ -36,10 +38,10 @@ export function SubLotteryWorkspace({
   onMarkAvailable,
   onRunDraw,
   isBusy = false,
+  currentDate = new Date(),
 }: SubLotteryWorkspaceProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [captainPin, setCaptainPin] = useState('');
-  const [selectedWeek, setSelectedWeek] = useState('');
   const [selectedCaptainName, setSelectedCaptainName] = useState('');
 
   const activePlayers = useMemo(
@@ -50,22 +52,14 @@ export function SubLotteryWorkspace({
     () => state.scheduleEntries.filter(entry => entry.active),
     [state.scheduleEntries]
   );
-  const weekOptions = useMemo(
-    () => uniqueSorted(activeScheduleEntries.map(entry => entry.weekLabel)),
-    [activeScheduleEntries]
-  );
-  const scheduleEntriesForWeek = activeScheduleEntries.filter(entry => entry.weekLabel === selectedWeek);
+  const currentWeekLabel = getCurrentScheduleWeekLabel(activeScheduleEntries, currentDate);
+  const scheduleEntriesForWeek = activeScheduleEntries.filter(entry => entry.weekLabel === currentWeekLabel);
   const captainOptions = uniqueSorted(scheduleEntriesForWeek.map(entry => entry.captainName));
   const selectedScheduleEntry = scheduleEntriesForWeek.find(entry => entry.captainName === selectedCaptainName) ?? null;
   const existingOpenRequestForSchedule = selectedScheduleEntry
     ? state.requests.find(request => request.scheduleEntryId === selectedScheduleEntry.id && request.status === 'open')
     : null;
 
-  useEffect(() => {
-    if (!selectedWeek && weekOptions[0]) {
-      setSelectedWeek(weekOptions[0]);
-    }
-  }, [selectedWeek, weekOptions]);
 
   useEffect(() => {
     if (!captainOptions.includes(selectedCaptainName)) {
@@ -182,16 +176,16 @@ export function SubLotteryWorkspace({
               <div className="rounded-2xl bg-sky-100 p-3 text-sky-700"><Crown className="h-6 w-6" /></div>
               <div>
                 <h2 className="text-2xl font-black">Need a sub?</h2>
-                <p className="font-semibold text-zinc-500">Choose your week and captain name. The schedule fills in the rest.</p>
+                <p className="font-semibold text-zinc-500">The app uses the current week. Pick your captain name and the schedule fills in the rest.</p>
               </div>
             </div>
 
             <form className="grid gap-4" onSubmit={handleCreateRequest}>
               <LabeledInput label="Captain PIN" value={captainPin} onChange={setCaptainPin} type="password" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <LabeledSelect label="Week" value={selectedWeek} onChange={setSelectedWeek} options={weekOptions} placeholder="Choose week" />
-                <LabeledSelect label="Captain name" value={selectedCaptainName} onChange={setSelectedCaptainName} options={captainOptions} placeholder="Choose captain" />
+              <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-4 text-sm font-black text-emerald-800">
+                Current week: {currentWeekLabel ?? 'No dated schedule for this week'}
               </div>
+              <LabeledSelect label="Captain name" value={selectedCaptainName} onChange={setSelectedCaptainName} options={captainOptions} placeholder="Choose captain" />
               <div className="grid gap-4 sm:grid-cols-2">
                 <ReadOnlyField label="Team name" value={selectedScheduleEntry?.teamName ?? ''} />
                 <ReadOnlyField label="Game time" value={selectedScheduleEntry?.gameLabel ?? ''} />
