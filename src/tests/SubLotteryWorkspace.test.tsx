@@ -94,13 +94,17 @@ describe('SubLotteryWorkspace', () => {
 
     expect(screen.getByDisplayValue('Blue Team')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Friday 8 PM')).toBeInTheDocument();
-    expect(screen.getAllByText('Female matching').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/Open matching sub/)).not.toBeChecked();
+    expect(screen.getByLabelText(/Female matching sub/)).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Confirm need a sub' })).toBeDisabled();
 
+    fireEvent.click(screen.getByLabelText(/Open matching sub/));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm need a sub' }));
 
     expect(onCreateRequest).toHaveBeenCalledWith({
       captainPin: '1234',
       scheduleEntryId: 'week-1-2026-06-24-morgan-blue-team-friday-8-pm',
+      pool: 'open',
     });
   });
 });

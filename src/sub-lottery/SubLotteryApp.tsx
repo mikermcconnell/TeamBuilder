@@ -145,7 +145,7 @@ export function SubLotteryApp() {
           captainName: scheduleEntry.captainName,
           teamName: scheduleEntry.teamName,
           gameLabel: scheduleEntry.gameLabel,
-          pool: scheduleEntry.pool,
+          pool: payload.pool,
           status: 'open',
           openedAt: new Date().toISOString(),
           closesAt: '9999-12-31T23:59:59.999Z',
