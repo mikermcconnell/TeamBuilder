@@ -56,8 +56,8 @@ describe('SubLotteryWorkspace', () => {
     render(<SubLotteryWorkspace state={state} />);
 
     expect(screen.getByText('Sub Squad')).toBeInTheDocument();
-    expect(screen.getByText('Need a sub?')).toBeInTheDocument();
-    expect(screen.getByText('Want to play?')).toBeInTheDocument();
+    expect(screen.getByText('Captains: add a sub need')).toBeInTheDocument();
+    expect(screen.getByText('Sub players: join a draw')).toBeInTheDocument();
     expect(screen.getAllByText('Green Team').length).toBeGreaterThan(0);
   });
 
@@ -72,7 +72,7 @@ describe('SubLotteryWorkspace', () => {
     expect(document.querySelector('#sub-player-suggestions option[value="Alice Green"]')).toBeInTheDocument();
 
     fireEvent.change(nameInput, { target: { value: 'Alice Green' } });
-    fireEvent.click(screen.getByRole('button', { name: 'I can play' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enter lottery' }));
 
     expect(onMarkAvailable).toHaveBeenCalledWith('req-1', 'alice');
   });
@@ -86,7 +86,7 @@ describe('SubLotteryWorkspace', () => {
     expect(captainPinInput).toHaveAttribute('type', 'text');
     fireEvent.change(captainPinInput, { target: { value: '1234' } });
     expect(screen.queryByLabelText('Week')).not.toBeInTheDocument();
-    expect(screen.getByText('Workflow week: Week 1')).toBeInTheDocument();
+    expect(screen.getByText('Game week: Week 1')).toBeInTheDocument();
     const captainInput = screen.getByLabelText('Captain name');
     expect(captainInput.tagName).toBe('INPUT');
     expect(captainInput).toHaveAttribute('list', 'captain-name-suggestions');
@@ -98,11 +98,11 @@ describe('SubLotteryWorkspace', () => {
     expect(screen.getByDisplayValue('Friday 8 PM')).toBeInTheDocument();
     expect(screen.getByLabelText(/Open matching sub/)).not.toBeChecked();
     expect(screen.getByLabelText(/Female matching sub/)).not.toBeChecked();
-    expect(screen.getByRole('button', { name: 'Confirm need a sub' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add sub need' })).toBeDisabled();
 
     fireEvent.click(screen.getByLabelText(/Open matching sub/));
     fireEvent.change(screen.getByLabelText('Number of subs needed'), { target: { value: '2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm need a sub' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add sub need' }));
 
     expect(onCreateRequest).toHaveBeenCalledWith({
       captainPin: '1234',
@@ -112,4 +112,6 @@ describe('SubLotteryWorkspace', () => {
     });
   });
 });
+
+
 

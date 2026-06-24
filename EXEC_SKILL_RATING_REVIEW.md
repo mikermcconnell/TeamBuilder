@@ -1,3 +1,5 @@
+> **CURRENT STATUS NOTE:** This review is historical but the core exec-rating rule remains current: `execSkillRating` is `number | null`, `null` means N/A, and exec rating overrides skill rating when present. Current persistence is workspace/project based as described in `context.md` and `FIREBASE_SETUP.md`.
+
 # Exec Skill Rating Feature - Comprehensive Code Review & Test Report
 
 ## Executive Summary

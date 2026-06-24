@@ -1,3 +1,5 @@
+> **CURRENT STATUS NOTE:** This is an archived handoff from April 10, 2026. Do not use it as current implementation guidance. Use `README.md`, `context.md`, and current source files instead.
+
 # TeamBuilder Session Handoff - 2026-04-10
 
 ## Purpose

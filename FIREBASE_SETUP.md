@@ -1,93 +1,38 @@
 # Firebase Setup Guide for TeamBuilder
 
-## Repo status on April 16, 2026
+## Current repo status
 
-This repo is already wired to Firebase CLI:
+This repo is wired for Firebase Auth, Firestore, Storage rules, and Firebase Hosting.
 
-- local CLI available through `pnpm`
-- default Firebase project: `teambuilder-3b79e`
-- current CLI login on this machine: `michaelryanmcconnell@gmail.com`
+Known project used by this repo:
 
-### Repo commands
+```text
+teambuilder-3b79e
+```
 
-Run these from the repo root:
+Check your local Firebase CLI state from the repo root:
 
 ```bash
 pnpm firebase:whoami
 pnpm firebase:project
-pnpm firebase:deploy:rules
-pnpm firebase:deploy:indexes
-pnpm firebase:deploy:hosting
 ```
 
-### Important
+## Required Firebase products
 
-Firebase CLI login is still different from Firebase Admin credentials, but the workspace publish script now supports both modes:
+Enable these in Firebase Console:
 
-- **Firebase CLI login** on this machine can publish generated workspaces directly through Google APIs
-- **Firebase Admin credentials** are still recommended for headless automation, CI, or shared scripts
+1. **Authentication**
+   - Enable the sign-in methods used by the app. Anonymous auth is supported by the codebase; email/password may also be used if enabled.
+2. **Firestore Database**
+   - Use the checked-in rules in `firestore.rules`.
+3. **Cloud Storage**
+   - Use the checked-in rules in `storage.rules` if storage features are used.
+4. **Hosting**
+   - Optional; Vercel is also configured and currently used for the live app.
 
-If you want a portable setup that works without this machine's Firebase CLI session, add Admin credentials.
+## App environment variables
 
-Recommended for this repo:
-
-```env
-FIREBASE_PROJECT_ID=teambuilder-3b79e
-FIREBASE_SERVICE_ACCOUNT_PATH=C:/secure/team-builder-service-account.json
-```
-
-The workspace publish script also supports:
-
-```env
-FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
-```
-
-If neither Admin credential option is set, the script will fall back to the existing local Firebase CLI login.
-
-## 🚀 Quick Start - Simple Cloud Save
-
-TeamBuilder now supports optional cloud saving through Firebase. When signed in, your data automatically syncs to the cloud. When signed out, data is saved locally only.
-
-## Features
-- **Anonymous Authentication**: No email/password required - just click "Enable Cloud Save"
-- **Automatic Migration**: Local data automatically migrates to the cloud on first sign-in
-- **Seamless Fallback**: Works offline or when not signed in using localStorage
-- **Single Document Storage**: Simple structure - one document per user
-
-## Step 1: Create a Firebase Project
-
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Click "Create a project" or "Add project"
-3. Enter a project name (e.g., "TeamBuilder")
-4. Choose whether to enable Google Analytics (optional)
-5. Click "Create project"
-
-## Step 2: Enable Authentication
-
-1. In Firebase Console, click on "Authentication" in the left sidebar
-2. Click "Get started"
-3. Go to "Sign-in method" tab
-4. Enable "Anonymous" authentication (this is all we need!)
-
-## Step 3: Enable Firestore Database
-
-1. Click on "Firestore Database" in the left sidebar
-2. Click "Create database"
-3. Choose "Start in production mode"
-4. Select your region (choose closest to your users)
-5. Click "Enable"
-
-## Step 4: Get Your Configuration
-
-1. Go to Project Settings (gear icon) → "Project settings"
-2. Scroll down to "Your apps" section
-3. Click on "</>" (Web) icon
-4. Register your app with a nickname (e.g., "TeamBuilder Web")
-5. Copy the Firebase configuration values
-
-## Step 5: Configure Your App
-
-1. Create a `.env` file in your project root (copy from `.env.example`):
+Create `.env.local` in the repo root:
 
 ```env
 VITE_FIREBASE_API_KEY=your-api-key
@@ -96,93 +41,124 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
 VITE_FIREBASE_APP_ID=your-app-id
-VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id  # Optional
+VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
 ```
 
-2. Replace the values with your actual Firebase configuration
+Restart the dev server after changing `.env.local`.
 
-## Step 6: Set Up Security Rules
+## Automation credentials
 
-### Firestore Rules (Simple Version)
+Workspace publish/build scripts can use Firebase Admin credentials or a local Firebase CLI login.
 
-Go to Firestore Database → Rules and add:
+Recommended for repeatable automation:
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users can only read/write their own data
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
+```env
+FIREBASE_PROJECT_ID=teambuilder-3b79e
+FIREBASE_SERVICE_ACCOUNT_PATH=C:/secure/team-builder-service-account.json
 ```
 
-## 🎉 You're Ready!
+Alternative:
 
-Your Firebase backend is now configured. The app will:
-
-1. **Sign In**: Click "Enable Cloud Save" in the header to sign in anonymously
-2. **Auto Migration**: Your local data will automatically migrate to the cloud on first sign-in
-3. **Cloud Sync**: All changes auto-save to both Firestore and localStorage
-4. **Sign Out**: Click "Sign Out" to return to local-only storage
-
-## How It Works
-
-### Data Structure
-```
-users/
-  {userId}/
-    appState/
-      data (document containing the entire AppState)
+```env
+FIREBASE_PROJECT_ID=teambuilder-3b79e
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 ```
 
-### Sign In Flow
-1. User clicks "Enable Cloud Save"
-2. Anonymous authentication creates a unique user ID
-3. Local data (if any) migrates to Firestore
-4. Future saves go to both Firestore and localStorage
+If Admin credentials are not set, some scripts can fall back to the local Firebase CLI login.
 
-### Sign Out Flow
-1. User clicks "Sign Out"
-2. Data continues to save locally only
-3. Cloud data remains intact for next sign-in
+## Data model
 
-### Data Loading Priority
-1. If signed in: Load from Firestore first, fallback to localStorage
-2. If signed out: Load from localStorage only
-3. On error: Always fallback to localStorage
+### Device/app snapshot
+
+Used by `src/services/dataStorageService.ts`.
+
+```text
+users/{uid}/data/appState
+```
+
+Contains the current app snapshot: players, teams, unassigned players, groups, config, scenario iterations, league memory, pending warnings, saved configs, exec rating history, and timestamps.
+
+Signed-out users use localStorage only:
+
+```text
+teamBuilderState:anonymous
+```
+
+Signed-in users also keep a local fallback:
+
+```text
+teamBuilderState:user:<uid>
+```
+
+### Saved projects/workspaces
+
+Used by `src/services/workspaceService.ts`.
+
+```text
+workspaces/{workspaceId}
+```
+
+Each workspace stores a full project snapshot plus metadata:
+
+- `userId`
+- `name`, `description`
+- `players`, `playerGroups`, `config`
+- `teams`, `unassignedPlayers`, `stats`
+- `teamIterations`, `activeTeamIterationId`
+- `leagueMemory`, `pendingWarnings`, `savedConfigs`, `execRatingHistory`
+- `revision`
+- active-editor/session fields for conflict handling
+
+Local fallback key prefix:
+
+```text
+local_saved_workspaces:<uid>
+```
+
+## Deploy rules and hosting
+
+```bash
+pnpm firebase:deploy:rules
+pnpm firebase:deploy:indexes
+pnpm firebase:deploy:hosting
+```
+
+`firebase.json` points Hosting to `dist` and rewrites SPA routes to `index.html`.
+
+## Security rules
+
+Current Firestore rules allow users to read/write only documents they own for these collections:
+
+- `users/{uid}/data/{document}`
+- `workspaces`
+- `rosters`
+- `rosterVersions`
+- `savedRosters`
+- `teams`
+- `sessions`
+- `configPresets`
+
+`rosterTemplates` can be read publicly, but only the creator can create/update/delete.
+
+Storage rules allow signed-in owners under:
+
+- `csvs/{userId}/...`
+- `configs/{userId}/...`
+- `rosters/{userId}/...`
+
+Everything else is denied.
+
+## Local test commands
+
+```bash
+pnpm test:rules
+pnpm test:run src/tests/workspaceService.test.ts
+pnpm test:run src/tests/firestoreRules.test.ts
+```
 
 ## Troubleshooting
 
-### "Firebase not configured" error
-- Make sure `.env.local` file exists with correct values
-- Restart the development server after adding environment variables
-
-### "Permission denied" errors
-- Check that authentication is enabled
-- Verify security rules are deployed
-- Ensure user is signed in
-
-### "Quota exceeded" errors
-- Check Firebase Console for usage limits
-- Consider upgrading to Blaze plan for production use
-
-## Production Considerations
-
-1. **Upgrade to Blaze Plan**: For production usage with many users
-2. **Backup Strategy**: Implement regular Firestore backups
-3. **Monitoring**: Set up Firebase Performance Monitoring
-4. **Analytics**: Enable Google Analytics for user insights
-5. **Security**: Review and tighten security rules before launch
-
-## Support
-
-For Firebase issues:
-- [Firebase Documentation](https://firebase.google.com/docs)
-- [Firebase Support](https://firebase.google.com/support)
-
-For TeamBuilder issues:
-- Check the main README.md
-- Open an issue on GitHub
+- **Firebase not configured**: confirm `.env.local`, then restart `pnpm dev`.
+- **Permission denied**: confirm Auth sign-in, deployed rules, and matching `userId` fields.
+- **Project save conflict**: the workspace is newer in Firestore or active elsewhere. Use reload, merge, or save as copy in the app.
+- **Local-only save while signed in**: cloud save failed but local fallback succeeded. Check network, rules, and browser extensions.

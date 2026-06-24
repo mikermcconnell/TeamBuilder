@@ -1,3 +1,5 @@
+> **CURRENT STATUS NOTE:** This is a historical performance report. The broad themes still apply, but the current app also includes workspace/project persistence, team scenario iterations, Big Board review, active-editor conflict handling, and Vercel AI endpoints. Verify any numeric performance claims before reusing them externally.
+
 # TeamBuilder Performance & Stability Improvements
 
 ## Overview

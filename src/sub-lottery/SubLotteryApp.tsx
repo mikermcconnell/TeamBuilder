@@ -87,6 +87,8 @@ export function SubLotteryApp() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const showAdminTools = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('admin') === '1';
 
   const refresh = async () => {
     const nextState = await loadSubLotteryState();
@@ -222,7 +224,7 @@ export function SubLotteryApp() {
           if (demoMode) {
             try {
               setState(createDemoRequest(payload));
-              setSuccess('Sub need opened. Subs can enter now.');
+              setSuccess('Sub need added. Sub players can enter during the Monday lottery window.');
               setError(null);
             } catch (requestError) {
               setError(requestError instanceof Error ? requestError.message : 'Sub need could not be opened.');
@@ -239,7 +241,7 @@ export function SubLotteryApp() {
           if (demoMode) {
             try {
               setState(markDemoAvailable(requestId, playerId));
-              setSuccess('You are entered. Good luck!');
+              setSuccess('You are in the lottery.');
               setError(null);
             } catch (availabilityError) {
               setError(availabilityError instanceof Error ? availabilityError.message : 'Could not enter this request.');
@@ -253,20 +255,22 @@ export function SubLotteryApp() {
           }
         }}
       />
-      <AdminImportPanel
-        seasonId={state.seasonId}
-        onImport={(nextState) => setState(nextState)}
-        onDemoImport={(seasonName, playersCsvText, scheduleCsvText) => {
-          setState(importDemoData(seasonName, playersCsvText, scheduleCsvText));
-          setSuccess('Testing data loaded.');
-          setError(null);
-        }}
-        demoMode={demoMode}
-        disabled={busy}
-        setBusy={setBusy}
-        setError={setError}
-        setSuccess={setSuccess}
-      />
+      {showAdminTools && (
+        <AdminImportPanel
+          seasonId={state.seasonId}
+          onImport={(nextState) => setState(nextState)}
+          onDemoImport={(seasonName, playersCsvText, scheduleCsvText) => {
+            setState(importDemoData(seasonName, playersCsvText, scheduleCsvText));
+            setSuccess('Testing data loaded.');
+            setError(null);
+          }}
+          demoMode={demoMode}
+          disabled={busy}
+          setBusy={setBusy}
+          setError={setError}
+          setSuccess={setSuccess}
+        />
+      )}
     </>
   );
 }

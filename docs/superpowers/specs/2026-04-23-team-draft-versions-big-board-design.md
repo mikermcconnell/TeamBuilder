@@ -1,3 +1,5 @@
+> **IMPLEMENTATION STATUS:** First-pass draft/version management and Big Board are implemented. Current files include `src/components/TeamIterationTabs.tsx`, `src/components/FullScreenTeamBuilder.tsx`, `src/components/teams/BigBoardView.tsx`, `src/components/teams/CompactTeamCard.tsx`, `src/components/teams/CompactPlayerRow.tsx`, `src/utils/teamIterations.ts`, and related tests. Treat this as historical design context, not a pending spec.
+
 # Team Draft Versions and Big Board Design
 
 Date: 2026-04-23

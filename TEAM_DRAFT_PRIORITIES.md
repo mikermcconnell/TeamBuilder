@@ -10,9 +10,10 @@ This file captures the default priority order for AI-generated team drafts in Te
 
 Use this sequence when generating teams:
 
-1. **Keep player groups together**  
+1. **Keep must-play groups together**  
    - This is the top priority.
-   - Groups are **non-negotiable** and must not be broken.
+   - Must-play groups are **non-negotiable** and must not be broken.
+   - Use the must-play column as the source of truth for these groups.
 
 2. **Balance male and female counts**  
    - Distribute male and female players as evenly as possible across teams.
@@ -30,29 +31,34 @@ Use this sequence when generating teams:
 5. **Balance handlers**  
    - Spread handlers as evenly as possible after the higher priorities are satisfied.
 
-6. **Balance new vs. returning players**  
+6. **Respect nice-to-play requests**  
+   - Use the nice-to-play column as a soft preference.
+   - Satisfy these requests when possible after the higher priorities are met.
+
+7. **Balance new vs. returning players**  
    - This is a soft preference, not a hard rule.
 
-7. **Balance young vs. wise players**  
+8. **Balance young vs. wise players**  
    - This is also a soft preference, after the higher priorities above.
 
 ## Constraint interpretation
 
 - If priorities conflict, the **higher priority wins**.
-- Group integrity always beats every other balancing goal.
+- Must-play group integrity always beats every other balancing goal.
 - Male/female balance outranks skill balance.
 - Leader spread outranks skill balance.
 - Skill balance outranks handler balance.
-- New/returning and young/wise balance are preferences only.
+- Nice-to-play, new/returning, and young/wise balance are preferences only.
 
 ## Practical summary
 
 When generating AI teams:
 
-- first protect groups
+- first protect must-play groups
 - then balance gender counts
 - then spread female and male leaders
 - then balance skill
 - then balance handlers
+- then respect nice-to-play requests
 - then improve new/returning spread
 - then improve young/wise spread

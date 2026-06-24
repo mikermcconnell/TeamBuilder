@@ -146,7 +146,7 @@ export function getSubLotteryWorkflowState(currentDate: Date = new Date()): SubL
       activeStepIndex: 1,
       targetWeekStartDate: dateOnlyFromParts(currentWeekStart),
       nextDeadlineAt: getWorkflowDeadlinesForWeekStart(dateOnlyFromParts(currentWeekStart)).availabilityClosesAt,
-      nextDeadlineLabel: 'Player entries close',
+      nextDeadlineLabel: 'Sub player entries close',
     };
   }
 
