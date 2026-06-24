@@ -121,7 +121,7 @@ function AdminImportPanel({ seasonId, disabled, onImport, setBusy, setError, set
   const [adminPin, setAdminPin] = useState('');
   const [seasonName, setSeasonName] = useState('Current season');
   const [playersCsvText, setPlayersCsvText] = useState('Name,Pool\nAlice Green,Female\nOwen Orange,Open');
-  const [scheduleCsvText, setScheduleCsvText] = useState('Week,Captain,Team,Game Time,Pool\nWeek 1,Morgan,Blue Team,Friday 8 PM,Female\nWeek 1,Casey,Green Team,Friday 9 PM,Open');
+  const [scheduleCsvText, setScheduleCsvText] = useState('Week,Date,Captain,Team,Game Time,Pool\nWeek 1,2026-06-24,Morgan,Blue Team,Friday 8 PM,Female\nWeek 1,2026-06-24,Casey,Green Team,Friday 9 PM,Open');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

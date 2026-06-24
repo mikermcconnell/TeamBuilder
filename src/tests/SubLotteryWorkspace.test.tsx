@@ -13,8 +13,9 @@ const state: SubLotteryPublicState = {
   ],
   scheduleEntries: [
     {
-      id: 'week-1-morgan-blue-team-friday-8-pm',
+      id: 'week-1-2026-06-24-morgan-blue-team-friday-8-pm',
       weekLabel: 'Week 1',
+      gameDate: '2026-06-24',
       captainName: 'Morgan',
       teamName: 'Blue Team',
       gameLabel: 'Friday 8 PM',
@@ -22,8 +23,9 @@ const state: SubLotteryPublicState = {
       active: true,
     },
     {
-      id: 'week-1-casey-green-team-friday-9-pm',
-      weekLabel: 'Week 1',
+      id: 'week-2-2026-07-01-casey-green-team-friday-9-pm',
+      weekLabel: 'Week 2',
+      gameDate: '2026-07-01',
       captainName: 'Casey',
       teamName: 'Green Team',
       gameLabel: 'Friday 9 PM',
@@ -71,10 +73,11 @@ describe('SubLotteryWorkspace', () => {
   test('lets a captain select their weekly schedule entry and autofills team and game time', () => {
     const onCreateRequest = vi.fn();
 
-    render(<SubLotteryWorkspace state={state} onCreateRequest={onCreateRequest} />);
+    render(<SubLotteryWorkspace state={state} onCreateRequest={onCreateRequest} currentDate={new Date('2026-06-25T12:00:00.000Z')} />);
 
     fireEvent.change(screen.getByLabelText('Captain PIN'), { target: { value: '1234' } });
-    fireEvent.change(screen.getByLabelText('Week'), { target: { value: 'Week 1' } });
+    expect(screen.queryByLabelText('Week')).not.toBeInTheDocument();
+    expect(screen.getByText('Current week: Week 1')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Captain name'), { target: { value: 'Morgan' } });
 
     expect(screen.getByDisplayValue('Blue Team')).toBeInTheDocument();
@@ -85,7 +88,8 @@ describe('SubLotteryWorkspace', () => {
 
     expect(onCreateRequest).toHaveBeenCalledWith({
       captainPin: '1234',
-      scheduleEntryId: 'week-1-morgan-blue-team-friday-8-pm',
+      scheduleEntryId: 'week-1-2026-06-24-morgan-blue-team-friday-8-pm',
     });
   });
 });
+
