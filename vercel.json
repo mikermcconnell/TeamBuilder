@@ -14,6 +14,26 @@
   ],
   "rewrites": [
     {
+      "source": "/api/sub-lottery/public-state",
+      "destination": "/api/sub-lottery/public-state.ts"
+    },
+    {
+      "source": "/api/sub-lottery/create-request",
+      "destination": "/api/sub-lottery/create-request.ts"
+    },
+    {
+      "source": "/api/sub-lottery/availability",
+      "destination": "/api/sub-lottery/availability.ts"
+    },
+    {
+      "source": "/api/sub-lottery/run-draw",
+      "destination": "/api/sub-lottery/run-draw.ts"
+    },
+    {
+      "source": "/api/sub-lottery/admin-import-players",
+      "destination": "/api/sub-lottery/admin-import-players.ts"
+    },
+    {
       "source": "/api/ai/team-suggestions",
       "destination": "/api/ai/team-suggestions.ts"
     },
@@ -75,4 +95,4 @@
       ]
     }
   ]
-} 
+}

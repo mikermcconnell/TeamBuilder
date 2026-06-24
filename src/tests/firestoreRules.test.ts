@@ -123,4 +123,19 @@ describe('firestore security rules', () => {
       }, { merge: true })
     );
   });
+  it.each([
+    'subLotterySeasons',
+    'subLotteryPlayers',
+    'subLotteryRequests',
+    'subLotteryAvailability',
+    'subLotteryAssignments',
+  ])('blocks direct client access to %s documents', async (collectionName) => {
+    const db = testEnv.authenticatedContext('league-user').firestore();
+
+    await assertFails(
+      setDoc(doc(db, collectionName, 'doc-1'), {
+        name: 'No direct browser writes',
+      })
+    );
+  });
 });
