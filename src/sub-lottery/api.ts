@@ -4,6 +4,8 @@ import type {
   AdminImportScheduleRequest,
   AdminImportScheduleResponse,
   ApiResponse,
+  CancelSubRequestRequest,
+  CancelSubRequestResponse,
   CreateSubRequestRequest,
   CreateSubRequestResponse,
   LoadPublicStateRequest,
@@ -20,7 +22,17 @@ async function postJson<TBody, TData>(url: string, body: TBody): Promise<TData> 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  const payload = await response.json() as ApiResponse<TData>;
+  const responseText = await response.text();
+  if (!responseText.trim()) {
+    throw new Error(`Sub lottery request failed. The server returned no response (${response.status}). Please refresh and try again.`);
+  }
+
+  let payload: ApiResponse<TData>;
+  try {
+    payload = JSON.parse(responseText) as ApiResponse<TData>;
+  } catch {
+    throw new Error(`Sub lottery request failed. The server returned an unreadable response (${response.status}). Please refresh and try again.`);
+  }
 
   if (!payload.ok) {
     throw new Error(payload.error);
@@ -43,6 +55,10 @@ export function markAvailable(body: MarkAvailabilityRequest): Promise<MarkAvaila
 
 export function runDraw(body: RunDrawRequest): Promise<RunDrawResponse> {
   return postJson<RunDrawRequest, RunDrawResponse>('/api/sub-lottery/run-draw', body);
+}
+
+export function cancelCaptainRequest(body: CancelSubRequestRequest): Promise<CancelSubRequestResponse> {
+  return postJson<CancelSubRequestRequest, CancelSubRequestResponse>('/api/sub-lottery/cancel-request', body);
 }
 
 export function adminImportPlayers(body: AdminImportPlayersRequest): Promise<AdminImportPlayersResponse> {

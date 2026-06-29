@@ -3,6 +3,7 @@ export type SubLotteryPool = 'open' | 'female';
 export interface SubLotteryPlayer {
   id: string;
   name: string;
+  email?: string;
   pool: SubLotteryPool;
   seasonSubCount: number;
   active: boolean;
@@ -37,6 +38,7 @@ export interface SubLotteryRequest {
   assignedPlayerId?: string;
   assignedPlayerIds?: string[];
   assignedAt?: string;
+  cancelledAt?: string;
   scheduleEntryId?: string;
   weekLabel?: string;
 }
@@ -63,6 +65,26 @@ export interface SubLotteryAssignment {
   weekLabel?: string;
   assignedAt: string;
   eligiblePlayerIds: string[];
+}
+
+export interface SubLotteryWinnerEmailNotification {
+  id: string;
+  seasonId: string;
+  requestId: string;
+  playerId: string;
+  playerName: string;
+  playerEmail: string;
+  teamName?: string;
+  gameLabel?: string;
+  weekLabel?: string;
+  captainName?: string;
+  assignedAt: string;
+  createdAt: string;
+  status: 'pending' | 'sending' | 'sent' | 'failed';
+  attempts: number;
+  updatedAt?: string;
+  sentAt?: string;
+  lastError?: string;
 }
 
 export interface SubLotteryPublicState {

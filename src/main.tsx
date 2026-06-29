@@ -5,10 +5,14 @@ import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext'
 import { SubLotteryApp } from '@/sub-lottery/SubLotteryApp'
+import { shouldRenderSubLotteryApp } from '@/appVariant'
 import './index.css'
 import App from './App.tsx'
 
-const isSubLotteryApp = import.meta.env.VITE_APP_VARIANT === 'subs'
+const isSubLotteryApp = shouldRenderSubLotteryApp(
+  window.location.pathname,
+  import.meta.env.VITE_APP_VARIANT,
+)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

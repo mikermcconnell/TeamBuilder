@@ -1,105 +1,62 @@
-# Firebase Save/Load Test Checklist
+# Firebase Save/Load Checklist
 
-## Test Setup
-1. ✅ Firebase configuration added to `/src/config/firebase.ts`
-2. ✅ Roster service with save functions at `/src/services/rosterService.ts`
-3. ✅ Teams service with save functions at `/src/services/teamsService.ts`
-4. ✅ SavedTeamsManager component created at `/src/components/SavedTeamsManager.tsx`
-5. ✅ SavedTeamsManager integrated into main Teams tab
-6. ✅ SavedTeamsManager integrated into FullScreenTeamBuilder
+This checklist reflects the current workspace-based save/load flow.
 
-## Manual Testing Steps
+## Setup
 
-### 1. Test Roster Saving
-- [ ] Sign in (anonymous auth)
-- [ ] Upload a CSV file with players
-- [ ] Check that roster is automatically saved to Firebase
-- [ ] Verify in Firebase Console under `rosters` collection
+- [ ] `.env.local` contains Firebase client variables.
+- [ ] Firebase Auth is enabled.
+- [ ] Firestore rules from `firestore.rules` are deployed or tested locally.
+- [ ] App is running with `pnpm dev` or `pnpm dev:vercel`.
 
-### 2. Test Teams Generation and Saving
-- [ ] Generate balanced teams
-- [ ] Click "Save Current Teams" button
-- [ ] Enter a name (e.g., "Spring 2025 Teams")
-- [ ] Add optional description
-- [ ] Click Save
-- [ ] Verify save confirmation toast appears
+## App snapshot
 
-### 3. Test Teams Loading
-- [ ] Click "Load Teams" button
-- [ ] Select a previously saved team configuration
-- [ ] Click Load
-- [ ] Verify teams are loaded correctly
-- [ ] Verify unassigned players are restored
-- [ ] Verify configuration settings are restored
+- [ ] Sign out.
+- [ ] Upload or create a roster.
+- [ ] Refresh and confirm local data remains.
+- [ ] Sign in.
+- [ ] Confirm app data syncs to `users/{uid}/data/appState`.
 
-### 4. Test Export/Import
-- [ ] From saved teams list, click export icon
-- [ ] Verify JSON file downloads
-- [ ] Check JSON structure includes:
-  - Teams array
-  - Unassigned players
-  - Configuration
-  - Export timestamp
+## Workspace project save
 
-### 5. Test Full Screen Mode
-- [ ] Enter manual teams mode
-- [ ] Click "Full Screen Team Builder"
-- [ ] Verify SavedTeamsManager appears in header
-- [ ] Test save/load functionality from full screen mode
+- [ ] Sign in.
+- [ ] Upload a CSV roster.
+- [ ] Edit player metadata, including exec rating.
+- [ ] Save as a named project.
+- [ ] Confirm a document exists in `workspaces` with the signed-in `userId`.
 
-### 6. Test Persistence
-- [ ] Save a team configuration
-- [ ] Refresh the page
-- [ ] Sign in again
-- [ ] Verify saved teams persist and can be loaded
+## Team scenario persistence
 
-## Firebase Collections Structure
+- [ ] Create manual team scenarios.
+- [ ] Move players between teams.
+- [ ] Rename a scenario and add a note.
+- [ ] Mark one scenario preferred.
+- [ ] Mark one scenario final.
+- [ ] Duplicate a scenario and confirm preferred/final markers are cleared on the copy.
+- [ ] Save the project.
+- [ ] Refresh and reload the project.
+- [ ] Confirm teams and scenario metadata are restored.
 
-### `rosters` Collection
-```json
-{
-  "userId": "string",
-  "name": "string",
-  "players": [...],
-  "playerGroups": [...],
-  "teams": [...],
-  "unassignedPlayers": [...],
-  "teamsConfig": {...},
-  "metadata": {
-    "totalPlayers": "number",
-    "avgSkillRating": "number",
-    "hasTeams": "boolean",
-    "teamsCount": "number"
-  }
-}
+## Big Board and export
+
+- [ ] Open the full-screen team workspace.
+- [ ] Switch to Big Board.
+- [ ] Confirm all teams render in compact read-only cards.
+- [ ] Return to editing.
+- [ ] Export CSV/report outputs from the Team Scenarios export screen.
+
+## Conflict handling
+
+- [ ] Open the same project in two tabs.
+- [ ] Save an edit in tab A.
+- [ ] Make a conflicting edit in tab B.
+- [ ] Confirm the app offers reload, merge, or save-as-copy recovery.
+
+## Collections to check
+
+```text
+users/{uid}/data/appState
+workspaces/{workspaceId}
 ```
 
-### `teams` Collection
-```json
-{
-  "userId": "string",
-  "rosterId": "string",
-  "name": "string",
-  "description": "string",
-  "teams": [...],
-  "unassignedPlayers": [...],
-  "config": {...},
-  "generationMethod": "string",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-```
-
-## Expected Features
-1. **Save Teams** - Save current team configuration with custom name
-2. **Load Teams** - Load previously saved team configurations
-3. **Delete Teams** - Remove saved team configurations
-4. **Export Teams** - Export teams to JSON file
-5. **Auto-save Rosters** - Rosters save automatically when created/modified
-6. **Cloud Sync** - Data syncs when user is signed in
-
-## Notes
-- Anonymous authentication is used for simplicity
-- Data persists across sessions when signed in
-- Local storage fallback when not signed in
-- Teams are linked to rosters via `rosterId` field
+The older `rosters`, `teams`, and `savedRosters` collections still have rules/services, but workspaces are the current primary save/load model.

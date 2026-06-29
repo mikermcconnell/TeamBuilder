@@ -34,8 +34,16 @@
       "destination": "/api/sub-lottery/run-due-draws.ts"
     },
     {
+      "source": "/api/sub-lottery/cancel-request",
+      "destination": "/api/sub-lottery/cancel-request.ts"
+    },
+    {
       "source": "/api/sub-lottery/admin-import-players",
       "destination": "/api/sub-lottery/admin-import-players.ts"
+    },
+    {
+      "source": "/api/sub-lottery/admin-import-schedule",
+      "destination": "/api/sub-lottery/admin-import-schedule.ts"
     },
     {
       "source": "/api/ai/team-suggestions",

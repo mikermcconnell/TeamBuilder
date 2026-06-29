@@ -1,3 +1,5 @@
+> **IMPLEMENTATION STATUS:** This plan has been implemented for the first-pass scope: scenario metadata, duplicate/delete/rename/note/preferred/final actions, and read-only Big Board. The unchecked boxes below are historical plan syntax and should not be read as current TODOs. Verify against current source and tests before changing behavior.
+
 # Team Draft Versions and Big Board Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

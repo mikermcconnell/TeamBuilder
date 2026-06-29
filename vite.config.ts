@@ -7,7 +7,9 @@ const localApiModules: Record<string, string> = {
   '/api/sub-lottery/public-state': '/api/sub-lottery/public-state.ts',
   '/api/sub-lottery/create-request': '/api/sub-lottery/create-request.ts',
   '/api/sub-lottery/availability': '/api/sub-lottery/availability.ts',
+  '/api/sub-lottery/cancel-request': '/api/sub-lottery/cancel-request.ts',
   '/api/sub-lottery/run-draw': '/api/sub-lottery/run-draw.ts',
+  '/api/sub-lottery/run-due-draws': '/api/sub-lottery/run-due-draws.ts',
   '/api/sub-lottery/admin-import-players': '/api/sub-lottery/admin-import-players.ts',
   '/api/sub-lottery/admin-import-schedule': '/api/sub-lottery/admin-import-schedule.ts',
   '/api/ai/team-suggestions': '/api/ai/team-suggestions.ts',
@@ -89,7 +91,7 @@ async function handleLocalApiRequest(
       res.end()
     }
   } catch (error) {
-    console.error(`Local AI API route failed for ${pathname}:`, error)
+    console.error(`Local API route failed for ${pathname}:`, error)
 
     if (!res.headersSent) {
       res.statusCode = 500
@@ -100,15 +102,15 @@ async function handleLocalApiRequest(
       ok: false,
       error: {
         code: 'MODEL_ERROR',
-        message: error instanceof Error ? error.message : 'Local AI route failed.',
+        message: error instanceof Error ? error.message : 'Local API route failed.',
       },
     }))
   }
 }
 
-function localAiApiPlugin(): Plugin {
+function localApiPlugin(): Plugin {
   return {
-    name: 'local-ai-api-routes',
+    name: 'local-api-routes',
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
@@ -125,7 +127,7 @@ export default defineConfig(({ mode }) => {
   const normalizeId = (id: string) => id.replace(/\\/g, '/')
 
   return {
-    plugins: [react(), localAiApiPlugin()],
+    plugins: [react(), localApiPlugin()],
     base: '/',
     resolve: {
       alias: {

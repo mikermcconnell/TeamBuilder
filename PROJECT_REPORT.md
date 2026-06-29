@@ -1,3 +1,5 @@
+> **CURRENT STATUS NOTE:** This is an archived project report from an earlier version. It is not the current source of truth. The current live app is documented in `README.md`; current architecture is in `context.md`. The old live URL and "client-side only" claims below are outdated because the app now uses Firebase persistence and Vercel API routes.
+
 # TeamBuilder - Project Report
 
 ## 🎯 Project Overview

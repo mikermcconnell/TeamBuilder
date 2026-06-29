@@ -4,6 +4,8 @@ import {
   createCaptainSubRequest,
   markSubAvailability,
   runSubLotteryDraw,
+  runSubLotteryDrawCycle,
+  cancelCaptainSubRequest,
 } from '@/sub-lottery/lifecycle';
 import type {
   SubLotteryAvailability,
@@ -147,4 +149,126 @@ describe('sub lottery lifecycle', () => {
       eligiblePlayerIds: ['alice', 'bella'],
     });
   });
+
+  test('draws a weekly cycle by player entry order and limits each player to one win', () => {
+    const requests: SubLotteryRequest[] = [
+      createCaptainSubRequest({
+        id: 'req-first-choice',
+        seasonId: 'season-2026',
+        captainName: 'Captain First',
+        teamName: 'First Choice Team',
+        gameLabel: 'Thursday 7:00 PM',
+        pool: 'female',
+        gameDate: '2026-06-24',
+        now: new Date('2026-06-21T12:00:00.000Z'),
+      }),
+      createCaptainSubRequest({
+        id: 'req-second-choice',
+        seasonId: 'season-2026',
+        captainName: 'Captain Second',
+        teamName: 'Second Choice Team',
+        gameLabel: 'Thursday 8:00 PM',
+        pool: 'female',
+        gameDate: '2026-06-24',
+        now: new Date('2026-06-21T12:01:00.000Z'),
+      }),
+    ];
+
+    const result = runSubLotteryDrawCycle({
+      requests,
+      players,
+      availability: [
+        { requestId: 'req-first-choice', playerId: 'alice', enteredAt: '2026-06-22T12:01:00.000Z' },
+        { requestId: 'req-second-choice', playerId: 'alice', enteredAt: '2026-06-22T12:02:00.000Z' },
+        { requestId: 'req-second-choice', playerId: 'bella', enteredAt: '2026-06-22T12:03:00.000Z' },
+      ],
+      now: new Date('2026-06-22T16:02:00.000Z'),
+      random: () => 0,
+    });
+
+    expect(result.requests.find(request => request.id === 'req-first-choice')?.assignedPlayerIds).toEqual(['alice']);
+    expect(result.requests.find(request => request.id === 'req-second-choice')?.assignedPlayerIds).toEqual(['bella']);
+    expect(result.players.find(player => player.id === 'alice')?.seasonSubCount).toBe(1);
+    expect(result.players.find(player => player.id === 'bella')?.seasonSubCount).toBe(3);
+  });
+
+  test('marks unfilled requests assigned with no winner after the draw', () => {
+    const request = createCaptainSubRequest({
+      id: 'req-empty',
+      seasonId: 'season-2026',
+      captainName: 'Captain Empty',
+      teamName: 'Empty Team',
+      gameLabel: 'Thursday 9:00 PM',
+      pool: 'female',
+      gameDate: '2026-06-24',
+      now: new Date('2026-06-21T12:00:00.000Z'),
+    });
+
+    const result = runSubLotteryDrawCycle({
+      requests: [request],
+      players,
+      availability: [],
+      now: new Date('2026-06-22T16:02:00.000Z'),
+      random: () => 0,
+    });
+
+    expect(result.requests[0]).toMatchObject({
+      id: 'req-empty',
+      status: 'assigned',
+      assignedPlayerIds: [],
+    });
+    expect(result.assignments).toEqual([]);
+  });
+
+  test('lets captains cancel open requests before the draw but not after', () => {
+    const request = createCaptainSubRequest({
+      id: 'req-cancel',
+      seasonId: 'season-2026',
+      captainName: 'Captain Cancel',
+      teamName: 'Cancel Team',
+      gameLabel: 'Thursday 9:00 PM',
+      pool: 'female',
+      gameDate: '2026-06-24',
+      now: new Date('2026-06-21T12:00:00.000Z'),
+    });
+
+    expect(cancelCaptainSubRequest({
+      request,
+      now: new Date('2026-06-22T15:00:00.000Z'),
+    })).toMatchObject({ status: 'void', cancelledAt: '2026-06-22T15:00:00.000Z' });
+
+    expect(() => cancelCaptainSubRequest({
+      request,
+      now: new Date('2026-06-22T16:02:00.000Z'),
+    })).toThrow('draw already completed');
+  });
+
+
+  test('excludes players who already won earlier in the same draw cycle', () => {
+    const request = createCaptainSubRequest({
+      id: 'req-later-choice',
+      seasonId: 'season-2026',
+      captainName: 'Captain Later',
+      teamName: 'Later Choice Team',
+      gameLabel: 'Thursday 8:00 PM',
+      pool: 'female',
+      gameDate: '2026-06-24',
+      now: new Date('2026-06-21T12:01:00.000Z'),
+    });
+
+    const result = runSubLotteryDrawCycle({
+      requests: [request],
+      players,
+      availability: [
+        { requestId: 'req-later-choice', playerId: 'alice', enteredAt: '2026-06-22T12:01:00.000Z' },
+        { requestId: 'req-later-choice', playerId: 'bella', enteredAt: '2026-06-22T12:02:00.000Z' },
+      ],
+      excludedPlayerIds: ['alice'],
+      now: new Date('2026-06-22T16:02:00.000Z'),
+      random: () => 0,
+    });
+
+    expect(result.requests[0]?.assignedPlayerIds).toEqual(['bella']);
+  });
+
 });

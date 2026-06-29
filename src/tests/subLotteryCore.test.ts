@@ -81,6 +81,19 @@ describe('sub lottery core', () => {
       { id: 'owen-orange', name: 'Owen Orange', pool: 'open', seasonSubCount: 0, active: true },
     ]);
   });
+
+  test('parses optional player emails for winner notifications', () => {
+    const parsed = parseSubPlayerCsv('Name,Email,Pool\nAlice Green,alice@example.com,Female\nOwen Orange,,Open\n');
+
+    expect(parsed[0]).toMatchObject({
+      id: 'alice-green',
+      name: 'Alice Green',
+      email: 'alice@example.com',
+      pool: 'female',
+    });
+    expect(parsed[1]).not.toHaveProperty('email');
+  });
+
   test('parses an uploaded weekly captain schedule with game dates', () => {
     const parsed = parseSubScheduleCsv('Week,Date,Captain,Team,Game Time,Pool\nWeek 1,2026-06-24,Morgan,Blue Team,Friday 8 PM,Female\nWeek 2,2026-07-01,Casey,Green Team,Friday 9 PM,Open\n');
 
@@ -107,10 +120,36 @@ describe('sub lottery core', () => {
       },
     ]);
   });
+
+  test('accepts mixed game schedules without a pool column', () => {
+    const parsed = parseSubScheduleCsv('Week,Date,Captain,Team,Game Time\nWeek 1,2026-06-24,Morgan,Blue Team,Friday 8 PM\n');
+
+    expect(parsed).toEqual([
+      expect.objectContaining({
+        captainName: 'Morgan',
+        teamName: 'Blue Team',
+        gameLabel: 'Friday 8 PM',
+        pool: 'open',
+      }),
+    ]);
+  });
+
   test('finds the current schedule week from game dates', () => {
     const schedule = parseSubScheduleCsv('Week,Date,Captain,Team,Game Time,Pool\nWeek 1,2026-06-24,Morgan,Blue Team,Friday 8 PM,Female\nWeek 2,2026-07-01,Casey,Green Team,Friday 9 PM,Open\n');
 
     expect(getCurrentScheduleWeekLabel(schedule, new Date('2026-06-25T12:00:00.000Z'))).toBe('Week 1');
     expect(getCurrentScheduleWeekLabel(schedule, new Date('2026-07-02T12:00:00.000Z'))).toBe('Week 2');
   });
+
+  test('parses quoted CSV values and keeps duplicate player names distinct', () => {
+    const parsedPlayers = parseSubPlayerCsv('Name,Pool\n"Alice, Green",Female\n"Alice, Green",Female\n');
+    expect(parsedPlayers.map(player => player.id)).toEqual(['alice-green', 'alice-green-2']);
+
+    const parsedSchedule = parseSubScheduleCsv('Week,Date,Captain,Team,Game Time,Pool\nWeek 1,2026-06-24,"Morgan, Jr.","Blue, Team",Friday 8 PM,Female\n');
+    expect(parsedSchedule[0]).toMatchObject({
+      captainName: 'Morgan, Jr.',
+      teamName: 'Blue, Team',
+    });
+  });
+
 });

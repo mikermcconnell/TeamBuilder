@@ -1,4 +1,4 @@
-import type { SubLotteryScheduleEntry } from './types';
+import type { SubLotteryScheduleEntry } from './types.js';
 
 export const SUB_LOTTERY_TIME_ZONE = 'America/Toronto';
 export const STARTING_LOTTERY_COINS = 5;
@@ -146,7 +146,7 @@ export function getSubLotteryWorkflowState(currentDate: Date = new Date()): SubL
       activeStepIndex: 1,
       targetWeekStartDate: dateOnlyFromParts(currentWeekStart),
       nextDeadlineAt: getWorkflowDeadlinesForWeekStart(dateOnlyFromParts(currentWeekStart)).availabilityClosesAt,
-      nextDeadlineLabel: 'Player entries close',
+      nextDeadlineLabel: 'Sub player entries close',
     };
   }
 
