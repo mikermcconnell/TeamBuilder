@@ -54,7 +54,7 @@
       "destination": "/api/ai/team-draft.ts"
     },
     {
-      "source": "/((?!api/.*)(?!_next/.*)(?!static/.*)(?!sitemap.xml)(?!robots.txt)(?!manifest.json).*)",
+      "source": "/((?!api/.*)(?!_next/.*)(?!static/.*)(?!reports/.*)(?!sitemap.xml)(?!robots.txt)(?!manifest.json).*)",
       "destination": "/index.html"
     }
   ],
