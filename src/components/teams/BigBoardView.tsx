@@ -1,5 +1,6 @@
 import { CompactTeamCard } from '@/components/teams/CompactTeamCard';
 import { getEffectiveSkillRating, type LeagueConfig, type PlayerGroup, type Team } from '@/types';
+import { getSkillScaleLegend } from '@/utils/skillScale';
 
 interface BigBoardViewProps {
   teams: Team[];
@@ -10,6 +11,13 @@ interface BigBoardViewProps {
 
 function formatNumber(value: number, decimals = 1): string {
   return Number.isFinite(value) ? value.toFixed(decimals) : '--';
+}
+
+function calculateLeagueAverageSkill(teams: Team[]): number {
+  const players = teams.flatMap((team) => team.players);
+  return players.length > 0
+    ? players.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0) / players.length
+    : 0;
 }
 
 function LeagueMetricsCard({ teams, playerGroups = [] }: { teams: Team[]; playerGroups?: PlayerGroup[] }) {
@@ -25,9 +33,7 @@ function LeagueMetricsCard({ teams, playerGroups = [] }: { teams: Team[]; player
     if (team.players.length === 0) return 0;
     return team.players.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0) / team.players.length;
   });
-  const leagueAverage = players.length > 0
-    ? players.reduce((sum, player) => sum + getEffectiveSkillRating(player), 0) / players.length
-    : 0;
+  const leagueAverage = calculateLeagueAverageSkill(teams);
   const averageVariation = teamAverages.length > 0
     ? teamAverages.reduce((sum, value) => sum + Math.abs(value - leagueAverage), 0) / teamAverages.length
     : 0;
@@ -96,6 +102,33 @@ function LeagueMetricsCard({ teams, playerGroups = [] }: { teams: Team[]; player
           </div>
         ))}
       </div>
+
+      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-2">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Skill scale</p>
+        <div className="mt-1 flex items-center gap-1">
+          {getSkillScaleLegend().map((tone) => (
+            <span
+              key={tone.label}
+              className="rounded border px-1.5 py-0 text-[9px] font-bold tabular-nums"
+              style={{
+                backgroundColor: tone.backgroundColor,
+                borderColor: tone.borderColor,
+                color: tone.textColor,
+              }}
+            >
+              {tone.label}
+            </span>
+          ))}
+          <span className="ml-1 text-[10px] font-semibold text-slate-600">10 = darkest</span>
+        </div>
+      </div>
+
+      <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Badge legend</p>
+        <p className="mt-1 text-[10px] leading-snug text-slate-600">
+          H = handler · FL = female leader · ML-A/ML-B = male leader tiers · New = new player · Group = request group
+        </p>
+      </div>
     </aside>
   );
 }
@@ -111,6 +144,7 @@ export function BigBoardView({ teams, config, draftName, playerGroups }: BigBoar
 
   const maxFemaleRows = Math.max(0, ...teams.map((team) => team.players.filter((player) => player.gender === 'F').length));
   const maxMaleRows = Math.max(0, ...teams.map((team) => team.players.filter((player) => player.gender === 'M').length));
+  const leagueAverageSkill = calculateLeagueAverageSkill(teams);
 
   return (
     <div className="min-h-0 flex-1 overflow-auto px-1 py-1">
@@ -126,6 +160,7 @@ export function BigBoardView({ teams, config, draftName, playerGroups }: BigBoar
             config={config}
             maxFemaleRows={maxFemaleRows}
             maxMaleRows={maxMaleRows}
+            leagueAverageSkill={leagueAverageSkill}
           />
         ))}
         <LeagueMetricsCard teams={teams} playerGroups={playerGroups} />
