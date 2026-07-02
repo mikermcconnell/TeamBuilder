@@ -127,33 +127,6 @@ function variationSection(variation) {
   `;
 }
 
-function playerDetailRows(variation) {
-  return variation.teams.flatMap(team => team.roster.map(player => `
-    <tr>
-      <td>${escapeHtml(team.name)}</td>
-      <td><strong>${escapeHtml(player.name)}</strong></td>
-      <td>${escapeHtml(player.gender)}</td>
-      <td>${Number(player.skill).toFixed(1)}</td>
-      <td>${player.handler ? 'Yes' : 'No'}</td>
-      <td>${escapeHtml((player.leaders ?? []).join(', '))}</td>
-      <td>${escapeHtml(player.newReturning)}</td>
-      <td>${escapeHtml(player.ageBand)}</td>
-    </tr>
-  `)).join('');
-}
-
-function variationDetails(variation) {
-  return `
-    <section class="detail-section">
-      <h2>${escapeHtml(variation.name)} player details</h2>
-      <table>
-        <thead><tr><th>Team</th><th>Player</th><th>Gender</th><th>Skill</th><th>Handler</th><th>Leader</th><th>Status</th><th>Age</th></tr></thead>
-        <tbody>${playerDetailRows(variation)}</tbody>
-      </table>
-    </section>
-  `;
-}
-
 function summaryTable(report) {
   return `
     <section class="summary-card">
@@ -242,11 +215,9 @@ function buildHtml(report) {
     .player-stats { display:flex; flex-shrink:0; align-items:center; gap:7px; }
     .gender-badge { display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:999px; border:1px solid var(--line); background:#f8fafc; color:#475569; font-size:12px; font-weight:800; }
     .skill-badge { border-radius:999px; background:#047857; color:white; padding:7px 9px; font-size:12px; font-weight:800; }
-    .detail-section { margin-top:44px; break-before:page; }
-    .detail-section h2 { margin-bottom:14px; }
     @media (max-width: 1200px) { .snapshot-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .metrics { grid-template-columns:repeat(2,1fr); } }
     @media (max-width: 720px) { .page { padding:16px; } h1 { font-size:34px; } .snapshot-grid { grid-template-columns:1fr; } .variation-heading { display:block; } .variation-pills { justify-content:flex-start; margin-top:12px; } }
-    @media print { @page { size: 17in 11in; margin: .35in; } body { background:white; } .page { max-width:none; padding:0; } .hero, .summary-card, .team-card { box-shadow:none; } .hero-inner { padding:20px; } .metrics { grid-template-columns:repeat(5,1fr) !important; } .snapshot-grid { grid-template-columns:repeat(4,1fr); gap:10px; } .team-inner { padding:10px; } .player-row { min-height:auto; padding:5px 7px; gap:6px; border-radius:10px; } .player-name { font-size:8px; } .team-header h3 { font-size:13px; } .team-header p, .section-head, .pill, .gender-badge, .skill-badge { font-size:7px; } .gender-badge { width:20px; height:20px; } .skill-badge { padding:4px 6px; } .badges { gap:3px; margin-top:3px; } .pill { padding:2px 5px; } .team-metrics { grid-template-columns:repeat(3,30px); } .team-metrics div { padding:4px 0; border-radius:10px; } .team-metrics b { font-size:11px; } .variation-section { break-before:page; } .detail-section { break-before:page; } }
+    @media print { @page { size: 17in 11in; margin: .35in; } body { background:white; } .page { max-width:none; padding:0; } .hero, .summary-card, .team-card { box-shadow:none; } .hero-inner { padding:20px; } .metrics { grid-template-columns:repeat(5,1fr) !important; } .snapshot-grid { grid-template-columns:repeat(4,1fr); gap:10px; } .team-inner { padding:10px; } .player-row { min-height:auto; padding:5px 7px; gap:6px; border-radius:10px; } .player-name { font-size:8px; } .team-header h3 { font-size:13px; } .team-header p, .section-head, .pill, .gender-badge, .skill-badge { font-size:7px; } .gender-badge { width:20px; height:20px; } .skill-badge { padding:4px 6px; } .badges { gap:3px; margin-top:3px; } .pill { padding:2px 5px; } .team-metrics { grid-template-columns:repeat(3,30px); } .team-metrics div { padding:4px 0; border-radius:10px; } .team-metrics b { font-size:11px; } .variation-section { break-before:page; } }
   </style>
 </head>
 <body>
@@ -267,7 +238,6 @@ function buildHtml(report) {
     </section>
     ${summaryTable(report)}
     ${report.variations.map(variationSection).join('')}
-    ${report.variations.map(variationDetails).join('')}
   </main>
 </body>
 </html>`;
