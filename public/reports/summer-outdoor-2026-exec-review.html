@@ -24,12 +24,12 @@
     table { width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border:1px solid var(--line); border-radius:18px; font-size:14px; background:white; }
     th { background:#eef5fc; text-align:left; padding:12px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
     td { padding:11px 12px; border-top:1px solid var(--line); color:#24364f; }
-    .variation-nav { background:#071226; color:white; border-radius:28px; padding:20px; margin:0 0 28px; box-shadow:0 14px 36px rgba(7,18,38,.14); }
-    .variation-nav__label { font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.12em; color:#bfdbfe; margin-bottom:12px; }
-    .variation-nav__links { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-    .variation-nav a { display:block; text-decoration:none; color:white; border:1px solid rgba(255,255,255,.18); border-radius:18px; padding:12px; background:rgba(255,255,255,.08); }
-    .variation-nav a span { display:block; color:#93c5fd; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
-    .variation-nav a strong { display:block; margin-top:5px; font-size:14px; line-height:1.2; }
+    .variation-nav { display:flex; align-items:center; gap:14px; background:rgba(255,255,255,.94); color:var(--ink); border:1px solid var(--line); border-radius:24px; padding:12px 14px; margin:0 0 24px; box-shadow:0 14px 36px rgba(15,23,42,.08); backdrop-filter:blur(12px); }
+    .variation-nav__label { flex:0 0 auto; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.12em; color:var(--green); white-space:nowrap; }
+    .variation-nav__links { display:flex; flex:1 1 auto; min-width:0; gap:8px; overflow-x:auto; scrollbar-width:thin; }
+    .variation-nav a { display:block; flex:1 1 0; min-width:130px; text-decoration:none; color:var(--ink); border:1px solid var(--line); border-radius:16px; padding:9px 11px; background:white; box-shadow:0 4px 14px rgba(15,23,42,.04); }
+    .variation-nav a span { display:block; color:var(--blue); font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+    .variation-nav a strong { display:block; margin-top:3px; font-size:13px; line-height:1.15; }
     .variation-section { margin:34px 0 44px; break-before: page; }
     .variation-section:first-of-type { break-before:auto; }
     .variation-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:16px; border:2px solid #bfdbfe; border-radius:28px; padding:18px 20px; background:linear-gradient(135deg,#eff6ff,#fff); box-shadow:0 12px 28px rgba(37,99,235,.08); }
@@ -70,10 +70,10 @@
     .skill-badge { border:1px solid #047857; border-radius:999px; padding:7px 9px; font-size:12px; font-weight:800; }
 
     .variation-nav { position: sticky; top: 12px; z-index: 20; }
-    .variation-nav a { transition: background .15s ease, border-color .15s ease, transform .15s ease; }
-    .variation-nav a:hover { transform: translateY(-1px); background:rgba(255,255,255,.14); }
-    .variation-nav a.is-current, .variation-nav a[aria-current="true"] { background:#ffffff; color:#071226; border-color:#ffffff; box-shadow:0 10px 24px rgba(15,23,42,.22); }
-    .variation-nav a.is-current span, .variation-nav a[aria-current="true"] span { color:#2563eb; }
+    .variation-nav a { transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+    .variation-nav a:hover { transform: translateY(-1px); background:#f8fafc; border-color:#bfdbfe; }
+    .variation-nav a.is-current, .variation-nav a[aria-current="true"] { background:linear-gradient(135deg,#ecfdf5,#eff6ff); color:var(--ink); border-color:#38bdf8; box-shadow:0 10px 24px rgba(37,99,235,.12); }
+    .variation-nav a.is-current span, .variation-nav a[aria-current="true"] span { color:var(--green); }
     .report-legend-grid { display:grid; grid-template-columns:1fr 2fr; gap:12px; margin:0 0 28px; }
     .legend-card { border:1px solid var(--line); border-radius:22px; padding:14px 16px; background:white; box-shadow:0 8px 24px rgba(15,23,42,.04); }
     .legend-card h3 { margin:0 0 8px; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#475569; }
@@ -91,7 +91,7 @@
     .skill-balance__fill { height:100%; border-radius:999px; }
     .skill-balance__marker { position:absolute; top:50%; width:3px; height:16px; transform:translate(-50%,-50%); border-radius:999px; background:#071226; box-shadow:0 0 0 2px white; }
     .skill-balance__bottom { display:flex; justify-content:space-between; margin-top:5px; color:#64748b; font-size:10px; font-weight:700; }
-    @media (max-width: 720px) { .report-legend-grid { grid-template-columns:1fr; } .variation-nav { position:static; } }
+    @media (max-width: 720px) { .report-legend-grid { grid-template-columns:1fr; } .variation-nav { align-items:flex-start; gap:10px; padding:10px; } .variation-nav__label { padding-top:8px; font-size:10px; } .variation-nav a { min-width:116px; } }
     @media print { .report-legend-grid { grid-template-columns:1fr 2fr; gap:8px; margin-bottom:12px; } .legend-card { box-shadow:none; padding:8px 10px; border-radius:14px; } .legend-card h3, .legend-row, .legend-note { font-size:7px; } .skill-swatch, .legend-chip { font-size:7px; padding:2px 5px; } .skill-balance { padding:5px 7px; margin-bottom:7px; border-radius:10px; } .skill-balance__top, .skill-balance__bottom { font-size:7px; } .skill-balance__track { height:5px; margin-top:3px; } .skill-balance__marker { height:10px; width:2px; } }
 
     @media (max-width: 1200px) { .snapshot-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .metrics, .variation-nav__links { grid-template-columns:repeat(2,1fr); } }
@@ -6248,17 +6248,64 @@
   </main>
 
 <script>
-  function syncCurrentVariationNav() {
-    var hash = window.location.hash || '#variation-1';
-    document.querySelectorAll('.variation-nav a').forEach(function (link) {
-      var current = link.getAttribute('href') === hash;
-      link.classList.toggle('is-current', current);
-      if (current) link.setAttribute('aria-current', 'true');
-      else link.removeAttribute('aria-current');
-    });
-  }
-  window.addEventListener('hashchange', syncCurrentVariationNav);
-  syncCurrentVariationNav();
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('.variation-nav a'));
+    var sections = Array.prototype.slice.call(document.querySelectorAll('.variation-section'));
+    var currentVariationId = '';
+    var ticking = false;
+
+    function setCurrentVariation(id, updateHash) {
+      if (!id || currentVariationId === id) return;
+      currentVariationId = id;
+      links.forEach(function (link) {
+        var current = link.getAttribute('href') === '#' + id;
+        link.classList.toggle('is-current', current);
+        if (current) {
+          link.setAttribute('aria-current', 'true');
+          if (link.scrollIntoView) link.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        } else {
+          link.removeAttribute('aria-current');
+        }
+      });
+      if (updateHash && window.history && window.history.replaceState && window.location.hash !== '#' + id) {
+        history.replaceState(null, '', '#' + id);
+      }
+    }
+
+    function syncCurrentVariationNav() {
+      var id = (window.location.hash || '#variation-1').replace('#', '');
+      setCurrentVariation(id, false);
+    }
+
+    function syncCurrentVariationNavFromScroll() {
+      if (!sections.length) return;
+      var nav = document.querySelector('.variation-nav');
+      var navHeight = nav ? nav.getBoundingClientRect().height : 0;
+      var activationLine = navHeight + 56;
+      var activeId = sections[0].id;
+      sections.forEach(function (section) {
+        if (section.getBoundingClientRect().top <= activationLine) {
+          activeId = section.id;
+        }
+      });
+      setCurrentVariation(activeId, true);
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () {
+        syncCurrentVariationNavFromScroll();
+        ticking = false;
+      });
+    }
+
+    window.addEventListener('hashchange', syncCurrentVariationNav);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('load', syncCurrentVariationNavFromScroll);
+    if (window.location.hash) syncCurrentVariationNav();
+    else syncCurrentVariationNavFromScroll();
+  }());
 </script>
 
 </body>
