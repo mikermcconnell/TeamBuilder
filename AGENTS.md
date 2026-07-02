@@ -7,7 +7,10 @@ Use this order when starting work:
 1. `README.md` for setup and current workflow.
 2. `context.md` for architecture and state model.
 3. Current code under `src/`, `api/`, `scripts/`, and Firebase/Vercel config.
-4. Historical reports only when investigating old decisions.
+4. Repo-only skills under `docs/skills/` when the task matches them.
+5. Historical reports only when investigating old decisions.
+
+For team-building or season-draft work, read `docs/skills/team-drafting/SKILL.md` before drafting teams or publishing a generated workspace.
 
 ## What not to trust as current
 
