@@ -1,11 +1,13 @@
 import { CompactPlayerRow } from '@/components/teams/CompactPlayerRow';
 import { getEffectiveSkillRating, type LeagueConfig, type Player, type Team } from '@/types';
+import { clampSkillRating, formatSkillRating, getSkillTone } from '@/utils/skillScale';
 
 interface CompactTeamCardProps {
   team: Team;
   config: LeagueConfig;
   maxFemaleRows?: number;
   maxMaleRows?: number;
+  leagueAverageSkill?: number;
 }
 
 function getCompactTeamName(name: string): string {
@@ -19,10 +21,18 @@ function sortPlayersBySkillHighToLow(players: Player[]): Player[] {
   });
 }
 
-export function CompactTeamCard({ team, config, maxFemaleRows = 0, maxMaleRows = 0 }: CompactTeamCardProps) {
+export function CompactTeamCard({ team, config, maxFemaleRows = 0, maxMaleRows = 0, leagueAverageSkill = 0 }: CompactTeamCardProps) {
   const handlerCount = team.handlerCount ?? team.players.filter((player) => player.isHandler).length;
   const teamColor = team.color ?? '#64748b';
   const compactTeamName = getCompactTeamName(team.name);
+  const averageSkill = Number.isFinite(team.averageSkill) ? team.averageSkill : 0;
+  const averageTone = getSkillTone(averageSkill);
+  const teamSkillPercent = clampSkillRating(averageSkill) * 10;
+  const leagueSkillPercent = clampSkillRating(leagueAverageSkill) * 10;
+  const skillDelta = averageSkill - leagueAverageSkill;
+  const skillDeltaText = Math.abs(skillDelta) < 0.05
+    ? 'Even with league'
+    : `${skillDelta > 0 ? '+' : ''}${skillDelta.toFixed(1)} vs league`;
   const femalePlayers = sortPlayersBySkillHighToLow(team.players.filter((player) => player.gender === 'F'));
   const malePlayers = sortPlayersBySkillHighToLow(team.players.filter((player) => player.gender === 'M'));
   const otherPlayers = sortPlayersBySkillHighToLow(team.players.filter((player) => player.gender !== 'F' && player.gender !== 'M'));
@@ -60,7 +70,9 @@ export function CompactTeamCard({ team, config, maxFemaleRows = 0, maxMaleRows =
   };
 
   return (
-    <section className="min-w-0 rounded-lg border border-slate-200 bg-slate-50/80 p-1.5 shadow-sm">
+    <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div aria-hidden="true" className="h-1" style={{ backgroundColor: teamColor }} />
+      <div className="p-1.5">
       <div className="mb-1 flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <span
@@ -90,6 +102,34 @@ export function CompactTeamCard({ team, config, maxFemaleRows = 0, maxMaleRows =
         </div>
       </div>
 
+      <div
+        aria-label={`${compactTeamName} skill balance versus league average`}
+        className="mb-1 rounded-md border border-slate-100 bg-slate-50 px-1.5 py-1"
+      >
+        <div className="mb-0.5 flex items-center justify-between gap-2 text-[9px] font-semibold text-slate-600">
+          <span>Skill balance</span>
+          <span className="tabular-nums">{skillDeltaText}</span>
+        </div>
+        <div className="relative h-1.5 rounded-full bg-slate-200">
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${teamSkillPercent}%`,
+              backgroundColor: averageTone.backgroundColor,
+            }}
+          />
+          <span
+            aria-hidden="true"
+            className="absolute top-1/2 h-3 w-0.5 -translate-y-1/2 rounded-full bg-slate-950"
+            style={{ left: `${leagueSkillPercent}%` }}
+          />
+        </div>
+        <div className="mt-0.5 flex justify-between text-[8px] text-slate-500">
+          <span>Team {formatSkillRating(averageSkill)}</span>
+          <span>League {formatSkillRating(leagueAverageSkill)}</span>
+        </div>
+      </div>
+
       <div className="space-y-1">
         {renderPlayerSection(
           'Females',
@@ -112,6 +152,7 @@ export function CompactTeamCard({ team, config, maxFemaleRows = 0, maxMaleRows =
           'bg-slate-100 text-slate-700',
           otherPlayers.length
         )}
+      </div>
       </div>
     </section>
   );

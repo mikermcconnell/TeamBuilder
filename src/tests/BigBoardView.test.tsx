@@ -59,6 +59,9 @@ describe('BigBoardView', () => {
     expect(screen.getByText('Exec 8')).toBeInTheDocument();
     expect(screen.getByText('Handler')).toBeInTheDocument();
     expect(screen.getByText('New')).toBeInTheDocument();
+    expect(screen.getByText('Skill scale')).toBeInTheDocument();
+    expect(screen.getByText('10 = darkest')).toBeInTheDocument();
+    expect(screen.getByLabelText('Blue Comets skill balance versus league average')).toBeInTheDocument();
   });
 
   it('shows an empty message when there are no teams', () => {
