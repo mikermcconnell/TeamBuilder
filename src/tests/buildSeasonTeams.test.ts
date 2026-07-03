@@ -122,6 +122,21 @@ describe('build-season-teams', () => {
     expect(players.find(player => player.name === 'Dan Wu')?.labels).not.toContain('leader-b-male');
   });
 
+  it('lets female Leader A supersede female Leader B', () => {
+    const players = parseRosterRows([
+      {
+        'Full Name': 'Alice Smith',
+        gender: 'female',
+        'Self Rank': 7,
+        'Female Leader': 'yes',
+        Captain: "Yes! I'd love to be a captain!",
+      },
+    ]);
+
+    expect(players[0].labels).toContain('leader-a-female');
+    expect(players[0].labels).not.toContain('leader-b-female');
+  });
+
   it('still counts legacy heart labels as female leader coverage', () => {
     const result = buildSeasonDraftFromRows({
       rows: [

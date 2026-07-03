@@ -22,6 +22,7 @@ Use this sequence when generating teams:
 
 3. **Spread leaders**  
    - Players with the `leader-a-female` label are female Leader A players.
+   - Female Leader A supersedes Female Leader B; a player should not carry both labels.
    - Legacy `heart` labels still count as female leader coverage.
    - Spread female leaders as evenly as possible across teams.
    - Target **at least 1 female Leader A per team** when there are enough.
@@ -31,6 +32,7 @@ Use this sequence when generating teams:
 4. **Respect mutual nice-to-play requests**  
    - Target honoring at least **75%** of mutual nice-to-play pairs.
    - Prefer draft structures that keep mutual nice clusters together when this does not break higher-priority hard rules.
+   - Split a nice-to-play pairing when needed to give every team male and female leader coverage.
    - A draft below 75% is not acceptable unless higher-priority constraints make the target impossible.
 
 5. **Balance skill level**  

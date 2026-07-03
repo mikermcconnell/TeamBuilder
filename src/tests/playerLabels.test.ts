@@ -51,14 +51,19 @@ describe('playerLabels', () => {
         shortLabel: 'B♂',
       }),
       expect.objectContaining({
-        key: 'leader-b-female',
-        shortLabel: 'B♀',
-        label: 'Leader B Female',
-      }),
-      expect.objectContaining({
         key: 'leader-b',
         shortLabel: 'B',
         label: 'Leader B',
+      }),
+    ]);
+  });
+
+  it('shows female Leader B only when female Leader A is absent', () => {
+    expect(getPlayerLabels(makePlayer(['leader-b-female']))).toEqual([
+      expect.objectContaining({
+        key: 'leader-b-female',
+        shortLabel: 'B♀',
+        label: 'Leader B Female',
       }),
     ]);
   });

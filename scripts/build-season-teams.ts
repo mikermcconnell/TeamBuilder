@@ -230,6 +230,7 @@ export function parseRosterRows(rows: WorkbookRow[]): DraftPlayer[] {
       }
 
       parseLabels(getString(row, ['Labels', 'labels'])).forEach(label => labels.add(label));
+      const normalizedLabels = normalizeLeaderLabels(Array.from(labels), gender);
       const explicitHandlerValue = getString(row, ['Handler', 'Is Handler']);
 
       return {
@@ -244,7 +245,7 @@ export function parseRosterRows(rows: WorkbookRow[]): DraftPlayer[] {
         ]),
         avoidRequests: parseRequestedNames(getString(row, ['Do_Not_Play', 'Do Not Play', 'Avoid Requests'])),
         mustPlayGroup: getString(row, ['Must Play Group', 'Must-Play Group']).trim() || undefined,
-        labels: Array.from(labels),
+        labels: normalizedLabels,
         isHandler: explicitHandlerValue
           ? parseBoolean(explicitHandlerValue)
           : parseHandlingAsHandler(getString(row, ['Handling'])),
@@ -413,8 +414,7 @@ export function buildSeasonDraftFromRows(options: BuildOptions): SeasonDraftResu
   const hardGroups = buildHardGroups(players);
   applyMutualNiceToPlayRules(players, hardGroups);
   validateHardGroups(players, hardGroups, targetTeamSize);
-  const units = buildDraftUnits(players, hardGroups, true, targetTeamSize);
-  const teams = assignUnitsToTeams(units, players, options.teamCount, targetTeamSize, options.draftSeed ?? 0);
+  const teams = assignPlayersToTeams(players, hardGroups, options.teamCount, targetTeamSize, options.draftSeed ?? 0);
   const metrics = buildDraftMetrics(teams, players, hardGroups);
 
   return {
@@ -426,8 +426,7 @@ export function buildSeasonDraftFromRows(options: BuildOptions): SeasonDraftResu
     metrics,
     hardRulesPassed: metrics.avoidViolations === 0
       && metrics.hardGroupViolations === 0
-      && metrics.genderSpreadViolations === 0
-      && metrics.niceToPlayTargetMet,
+      && metrics.genderSpreadViolations === 0,
   };
 }
 
@@ -1095,6 +1094,44 @@ function buildDraftUnitsWithNiceClusters(players: DraftPlayer[], groups: HardGro
   }));
 }
 
+function assignPlayersToTeams(
+  players: DraftPlayer[],
+  hardGroups: HardGroup[],
+  teamCount: number,
+  targetTeamSize: number,
+  draftSeed: number,
+): DraftTeam[] {
+  const niceClusterSizes = uniqueNumbers([
+    targetTeamSize,
+    Math.min(8, targetTeamSize),
+    Math.min(5, targetTeamSize),
+    2,
+  ]).filter(size => size >= 2);
+
+  const candidateUnitSets = [
+    ...niceClusterSizes.map(maxClusterSize => buildDraftUnits(players, hardGroups, true, maxClusterSize)),
+    buildDraftUnits(players, hardGroups, false, targetTeamSize),
+  ];
+
+  let bestTeams: DraftTeam[] | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  candidateUnitSets.forEach((units, index) => {
+    const teams = assignUnitsToTeams(units, players, teamCount, targetTeamSize, draftSeed + index * 17);
+    const score = scoreTeams(teams, players, hardGroups);
+    if (score < bestScore) {
+      bestScore = score;
+      bestTeams = teams;
+    }
+  });
+
+  if (!bestTeams) {
+    throw new Error('No team draft could be built.');
+  }
+
+  return bestTeams;
+}
+
 function assignUnitsToTeams(
   units: DraftUnit[],
   players: DraftPlayer[],
@@ -1140,6 +1177,9 @@ function assignUnitsToTeams(
       }
 
       if (failedOrder) {
+        if (order.length > 75) {
+          continue;
+        }
         const backtrackedTeams = assignOrderWithBacktracking(order, players, teamCount, maxTeamSize, targets);
         if (backtrackedTeams) {
           const score = scoreTeams(backtrackedTeams, players, []);
@@ -1479,7 +1519,7 @@ function scoreTeams(teams: DraftTeam[], players: DraftPlayer[], hardGroups: Hard
   const allPlayersAssigned = teams.reduce((sum, team) => sum + team.players.length, 0) === players.length;
   const finalGenderSpreadPenalty = allPlayersAssigned ? metrics.genderSpreadViolations * 5_000_000 : 0;
   const niceTargetShortfall = Math.max(0, Math.ceil(metrics.niceToPlayTotal * NICE_TO_PLAY_TARGET_RATE) - metrics.niceToPlayHonored);
-  const finalNiceTargetPenalty = allPlayersAssigned ? niceTargetShortfall * 1_000_000 : 0;
+  const finalNiceTargetPenalty = allPlayersAssigned ? niceTargetShortfall * 250_000 : 0;
 
   return (
     metrics.avoidViolations * 10_000_000
@@ -1487,7 +1527,7 @@ function scoreTeams(teams: DraftTeam[], players: DraftPlayer[], hardGroups: Hard
     + finalGenderSpreadPenalty
     + metrics.teamSizeSpread * 1_000_000
     + (metrics.maleSpread + metrics.femaleSpread) * 100_000
-    + (femaleLeaderGap + maleLeaderGap) * 50_000
+    + (femaleLeaderGap + maleLeaderGap) * 1_500_000
     + finalNiceTargetPenalty
     + metrics.skillSpread * 1_000
     + metrics.handlerSpread * 500
@@ -1658,6 +1698,19 @@ function parseLabels(value: string): string[] {
     .split(/[,;]/)
     .map(label => label.trim().toLowerCase().replace(/\s+/g, '-'))
     .filter(Boolean);
+}
+
+function normalizeLeaderLabels(labels: string[], gender: Gender): string[] {
+  if (gender !== 'F') {
+    return uniqueRaw(labels);
+  }
+
+  const hasFemaleLeaderA = labels.includes('leader-a-female') || labels.includes('heart');
+  return uniqueRaw(labels).filter(label => !(hasFemaleLeaderA && label === 'leader-b-female'));
+}
+
+function uniqueRaw(values: string[]): string[] {
+  return Array.from(new Set(values));
 }
 
 function getEffectiveSkill(player: DraftPlayer): number {

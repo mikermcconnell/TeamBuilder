@@ -1,20 +1,24 @@
-/* Auto-generated from pass-8 final draft by update script. */
+/* Auto-generated from pass-9 leader-balanced variations. */
 export const summer2026ExecReview = {
   "seasonName": "Summer Outdoor 2026 July 3",
-  "generatedAt": "2026-07-03T14:11:06.681155Z",
+  "generatedAt": "2026-07-03T14:49:27.575748Z",
   "source": {
-    "workbook": "output/summer-2026/pass-8-best-single/summer-outdoor-2026-july-3-normalized-roster.csv",
+    "workbook": "output/summer-2026/source/summer-outdoor-2026-2026-07-03-enriched-roster.csv",
     "sheet": "Normalized roster CSV",
     "teamCount": 8,
-    "seeds": [],
-    "teamsCsv": "output/summer-2026/pass-8-best-single/summer-outdoor-2026-july-3-generated-teams.csv"
+    "seeds": [
+      1,
+      2,
+      3,
+      4
+    ]
   },
   "rules": [
     "Keep must-play groups together.",
     "Keep avoid requests apart.",
     "Keep male and female counts as even as possible.",
-    "Keep mutual nice-to-have requests together when possible.",
-    "Spread female and male leaders.",
+    "Spread female and male leaders before preserving every soft nice-to-have request.",
+    "Keep at least 75% of mutual nice-to-have requests when possible.",
     "Balance skill and handlers."
   ],
   "roster": {
@@ -24,7 +28,7 @@ export const summer2026ExecReview = {
     "other": 0,
     "handlers": 51,
     "femaleLeaders": 8,
-    "femaleLeaderB": 9,
+    "femaleLeaderB": 2,
     "maleLeaderA": 2,
     "maleLeaderB": 19,
     "newPlayers": 17,
@@ -34,46 +38,43 @@ export const summer2026ExecReview = {
   },
   "variations": [
     {
-      "id": "recommended-pass-8",
-      "name": "Recommended 8-Team Draft",
-      "seed": 0,
+      "id": "variation-1",
+      "name": "Variation 1",
+      "seed": 1,
       "summary": {
         "hardRulesPassed": true,
         "teamSizes": [
           15,
+          15,
+          15,
+          15,
+          15,
+          15,
           14,
-          15,
-          15,
-          15,
-          15,
-          15,
           14
         ],
         "maleSpread": 0,
         "femaleSpread": 1,
         "genderSpreadViolations": 0,
-        "skillSpread": 1.47,
-        "handlerSpread": 2,
-        "femaleLeaderTeams": 7,
-        "maleLeaderCoveredTeams": 6,
-        "niceHonored": 32,
+        "skillSpread": 1,
+        "handlerSpread": 3,
+        "femaleLeaderTeams": 8,
+        "maleLeaderCoveredTeams": 8,
+        "niceHonored": 29,
         "niceTotal": 32,
-        "niceRate": 1,
+        "niceRate": 0.91,
         "niceTargetMet": true,
-        "newPlayerSpread": 3,
-        "youngPlayerSpread": 7,
-        "wisePlayerSpread": 4
+        "newPlayerSpread": 2,
+        "youngPlayerSpread": 5,
+        "wisePlayerSpread": 6
       },
       "strengths": [
         "Keeps the required groups together.",
-        "Honours 32/32 nice-to-have requests.",
+        "Honours 29/32 nice-to-have requests.",
         "Keeps gender counts even.",
-        "Strong handler balance."
+        "Covers all teams with female and male leaders."
       ],
-      "watchItems": [
-        "Skill spread is 1.47.",
-        "No female leader: Team 6."
-      ],
+      "watchItems": [],
       "teams": [
         {
           "name": "Team 1",
@@ -81,76 +82,141 @@ export const summer2026ExecReview = {
           "male": 10,
           "female": 5,
           "other": 0,
-          "averageSkill": 5.73,
-          "handlers": 7,
+          "averageSkill": 4.73,
+          "handlers": 6,
           "leaders": [
-            "Matt Hofing - male leader b",
-            "Kurtis Thomas - male leader b",
-            "Richmand Hogg - male leader a",
-            "Richmand Hogg - male leader b",
-            "Molly Douglas - female leader a",
-            "Molly Douglas - female leader b",
-            "Rebecca Robitaille - female leader a",
-            "Rebecca Robitaille - female leader b"
+            "Levi Taylor - male leader b",
+            "Kristy Robinson - female leader a",
+            "David Tran - male leader b"
           ],
-          "newPlayers": 2,
-          "returningPlayers": 13,
-          "youngPlayers": 2,
-          "wisePlayers": 2,
+          "newPlayers": 3,
+          "returningPlayers": 12,
+          "youngPlayers": 3,
+          "wisePlayers": 5,
           "mustPlayGroups": [
             [
-              "Brad Mayer",
-              "Rebecca Robitaille"
+              "Kristy Robinson",
+              "Andy Beecroft"
             ],
             [
-              "Ryan Sagermann",
-              "Carly Sagermann"
+              "Nadine Leiper",
+              "Alli Leiper"
             ],
             [
-              "Kurtis Thomas",
-              "Sara Shakib"
+              "Shannon Wolochatiuk",
+              "Scott Patrick"
             ],
             [
-              "Richmand Hogg",
-              "Molly Douglas"
+              "John Nigh",
+              "Matt Simon"
             ],
             [
-              "Nate Smith",
-              "Frank Smith"
+              "Levi Taylor",
+              "Duncan Taylor"
             ]
           ],
           "niceRequestsHonored": [
-            "Matt Hofing <-> Rebecca Robitaille",
-            "Matt Hofing <-> Brad Mayer",
-            "Kurtis Thomas <-> Richmand Hogg",
-            "Richmand Hogg <-> Sara Shakib",
-            "Molly Douglas <-> Rebecca Robitaille"
+            "Matt Simon <-> Levi Taylor"
           ],
           "roster": [
             {
-              "name": "Matt Hofing",
+              "name": "Eric Bouchard",
               "gender": "M",
-              "skill": 9.0,
-              "handler": true,
-              "leaders": [
-                "Male leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Brad Mayer",
-              "gender": "M",
-              "skill": 8.0,
+              "skill": 6.0,
               "handler": true,
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "wise"
             },
             {
-              "name": "Kurtis Thomas",
+              "name": "Xena Cochi",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Charlie Tardif",
               "gender": "M",
-              "skill": 9.0,
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ben Kleiser",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "John Nigh",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matt Simon",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Levi Taylor",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Duncan Taylor",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Kristy Robinson",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Andy Beecroft",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "David Tran",
+              "gender": "M",
+              "skill": 8.0,
               "handler": true,
               "leaders": [
                 "Male leader B"
@@ -159,45 +225,379 @@ export const summer2026ExecReview = {
               "ageBand": "standard"
             },
             {
-              "name": "Richmand Hogg",
+              "name": "Shannon Wolochatiuk",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Scott Patrick",
               "gender": "M",
-              "skill": 8.0,
+              "skill": 7.0,
               "handler": true,
-              "leaders": [
-                "Male leader A",
-                "Male leader B"
-              ],
+              "leaders": [],
               "newReturning": "returning",
               "ageBand": "standard"
             },
             {
-              "name": "Molly Douglas",
+              "name": "Nadine Leiper",
               "gender": "F",
-              "skill": 8.0,
-              "handler": true,
-              "leaders": [
-                "Female leader A",
-                "Female leader B"
-              ],
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
               "newReturning": "returning",
-              "ageBand": "standard"
+              "ageBand": "wise"
             },
             {
-              "name": "Rebecca Robitaille",
-              "gender": "F",
-              "skill": 9.0,
-              "handler": true,
-              "leaders": [
-                "Female leader A",
-                "Female leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Sara Shakib",
+              "name": "Alli Leiper",
               "gender": "F",
               "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            }
+          ]
+        },
+        {
+          "name": "Team 2",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 5.13,
+          "handlers": 5,
+          "leaders": [
+            "Stephen Hawley - male leader b",
+            "Curtis Reason - male leader b",
+            "Tracy Penley - female leader b"
+          ],
+          "newPlayers": 2,
+          "returningPlayers": 13,
+          "youngPlayers": 6,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Stephen Hawley",
+              "Curtis Reason"
+            ],
+            [
+              "Tracy Penley",
+              "Matt Tribe"
+            ],
+            [
+              "Emilie Farr",
+              "Hailey Irwin"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Tracy Penley <-> Pascale Clements",
+            "Matt Tribe <-> Pascale Clements",
+            "Finn Montgomery <-> Tate Montgomery",
+            "Hailey Irwin <-> Brendan Irwin"
+          ],
+          "roster": [
+            {
+              "name": "Wesley Taggart",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Julianna Lerch",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Paul Marjin",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brandon Canning",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Stephen Hawley",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Curtis Reason",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Tracy Penley",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matt Tribe",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Pascale Clements",
+              "gender": "F",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Emilie Farr",
+              "gender": "F",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Hailey Irwin",
+              "gender": "F",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Brendan Irwin",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Finn Montgomery",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Tate Montgomery",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Dayson Bress",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            }
+          ]
+        },
+        {
+          "name": "Team 3",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 5.0,
+          "handlers": 7,
+          "leaders": [
+            "parker munce - female leader a",
+            "Kyra Frisina - female leader a",
+            "Jeff Cobbledick - male leader b",
+            "Andrew \"Sundance\" Black - male leader b"
+          ],
+          "newPlayers": 3,
+          "returningPlayers": 12,
+          "youngPlayers": 2,
+          "wisePlayers": 0,
+          "mustPlayGroups": [
+            [
+              "Ryan Sagermann",
+              "Carly Sagermann"
+            ],
+            [
+              "parker munce",
+              "Kyra Frisina"
+            ],
+            [
+              "Sean Harrington",
+              "Kileigh Harrington"
+            ],
+            [
+              "Koral Freeman",
+              "Derek Davey"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kyra Frisina <-> Cali Gurr",
+            "Cali Gurr <-> Koral Freeman",
+            "Cali Gurr <-> Derek Davey",
+            "Luke Mackey <-> Derek Davey",
+            "Luke Mackey <-> Koral Freeman"
+          ],
+          "roster": [
+            {
+              "name": "Brett Ormsby",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Neil Bond",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Carden Vickers",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "parker munce",
+              "gender": "F",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kyra Frisina",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cali Gurr",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Koral Freeman",
+              "gender": "F",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Derek Davey",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jeff Cobbledick",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Andrew \"Sundance\" Black",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Sean Harrington",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Kileigh Harrington",
+              "gender": "M",
+              "skill": 5.0,
               "handler": false,
               "leaders": [],
               "newReturning": "returning",
@@ -222,136 +622,6 @@ export const summer2026ExecReview = {
               "ageBand": "standard"
             },
             {
-              "name": "Nate Smith",
-              "gender": "M",
-              "skill": 5.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "young"
-            },
-            {
-              "name": "Frank Smith",
-              "gender": "M",
-              "skill": 2.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "wise"
-            },
-            {
-              "name": "Brett Ormsby",
-              "gender": "M",
-              "skill": 6.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "young"
-            },
-            {
-              "name": "Ryan Bridge",
-              "gender": "M",
-              "skill": 4.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Jaclyn Kane",
-              "gender": "F",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Mat MacLean",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "new",
-              "ageBand": "standard"
-            }
-          ]
-        },
-        {
-          "name": "Team 2",
-          "size": 14,
-          "male": 10,
-          "female": 4,
-          "other": 0,
-          "averageSkill": 4.79,
-          "handlers": 7,
-          "leaders": [
-            "parker munce - female leader a",
-            "parker munce - female leader b",
-            "Kyra Frisina - female leader a",
-            "Kyra Frisina - female leader b",
-            "Joseph Doran - male leader b"
-          ],
-          "newPlayers": 2,
-          "returningPlayers": 12,
-          "youngPlayers": 0,
-          "wisePlayers": 2,
-          "mustPlayGroups": [
-            [
-              "parker munce",
-              "Kyra Frisina"
-            ],
-            [
-              "Brad Dempsey",
-              "Ashish Mehra"
-            ],
-            [
-              "Koral Freeman",
-              "Derek Davey"
-            ]
-          ],
-          "niceRequestsHonored": [
-            "Kyra Frisina <-> Cali Gurr",
-            "Cali Gurr <-> Koral Freeman",
-            "Cali Gurr <-> Derek Davey",
-            "Luke Mackey <-> Derek Davey",
-            "Luke Mackey <-> Koral Freeman"
-          ],
-          "roster": [
-            {
-              "name": "parker munce",
-              "gender": "F",
-              "skill": 9.0,
-              "handler": true,
-              "leaders": [
-                "Female leader A",
-                "Female leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Kyra Frisina",
-              "gender": "F",
-              "skill": 3.0,
-              "handler": true,
-              "leaders": [
-                "Female leader A",
-                "Female leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Cali Gurr",
-              "gender": "F",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
               "name": "Luke Mackey",
               "gender": "M",
               "skill": 7.0,
@@ -359,83 +629,63 @@ export const summer2026ExecReview = {
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "standard"
-            },
+            }
+          ]
+        },
+        {
+          "name": "Team 4",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 5.33,
+          "handlers": 6,
+          "leaders": [
+            "Matt Hofing - male leader b",
+            "Rebecca Robitaille - female leader a",
+            "Patrick Kirkwood - male leader b"
+          ],
+          "newPlayers": 1,
+          "returningPlayers": 14,
+          "youngPlayers": 1,
+          "wisePlayers": 6,
+          "mustPlayGroups": [
+            [
+              "Kyle Stashuk",
+              "Peter Rutkauskas"
+            ],
+            [
+              "Brad Mayer",
+              "Rebecca Robitaille"
+            ],
+            [
+              "Darren Brazier",
+              "Maisy Brazier"
+            ],
+            [
+              "Jamie Cable",
+              "Marianne Auger"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Matt Hofing <-> Rebecca Robitaille",
+            "Matt Hofing <-> Brad Mayer",
+            "Kyle Stashuk <-> Jamie Cable",
+            "Kyle Stashuk <-> Marianne Auger",
+            "Peter Rutkauskas <-> Marianne Auger"
+          ],
+          "roster": [
             {
-              "name": "Koral Freeman",
+              "name": "Courtney Hough",
               "gender": "F",
-              "skill": 2.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "new",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Derek Davey",
-              "gender": "M",
-              "skill": 2.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "new",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Joseph Doran",
-              "gender": "M",
-              "skill": 4.0,
-              "handler": true,
-              "leaders": [
-                "Male leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Brad Dempsey",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Ashish Mehra",
-              "gender": "M",
-              "skill": 7.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Kevin Schuster",
-              "gender": "M",
-              "skill": 7.0,
+              "skill": 5.0,
               "handler": true,
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "standard"
             },
             {
-              "name": "Eric Good",
-              "gender": "M",
-              "skill": 7.0,
-              "handler": true,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Eric Bouchard",
-              "gender": "M",
-              "skill": 6.0,
-              "handler": true,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "wise"
-            },
-            {
-              "name": "Neil Bond",
+              "name": "Ryan Bridge",
               "gender": "M",
               "skill": 4.0,
               "handler": false,
@@ -451,40 +701,148 @@ export const summer2026ExecReview = {
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "wise"
+            },
+            {
+              "name": "Joe Alamshah",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matt Hofing",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brad Mayer",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Rebecca Robitaille",
+              "gender": "F",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Patrick Kirkwood",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kyle Stashuk",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Peter Rutkauskas",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Jamie Cable",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Marianne Auger",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Darren Brazier",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Maisy Brazier",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Taylor Stanojev",
+              "gender": "F",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
             }
           ]
         },
         {
-          "name": "Team 3",
+          "name": "Team 5",
           "size": 15,
           "male": 10,
           "female": 5,
           "other": 0,
-          "averageSkill": 4.27,
-          "handlers": 6,
+          "averageSkill": 4.33,
+          "handlers": 7,
           "leaders": [
-            "Brianna Hall - female leader a",
-            "Brianna Hall - female leader b",
-            "Michael McConnell - male leader b",
-            "Stephen Hawley - male leader b",
-            "Curtis Reason - male leader b"
+            "James Callow - male leader b",
+            "Cale Holmes - male leader b",
+            "Caitlind Lusty - female leader a"
           ],
-          "newPlayers": 2,
-          "returningPlayers": 13,
-          "youngPlayers": 4,
-          "wisePlayers": 0,
+          "newPlayers": 1,
+          "returningPlayers": 14,
+          "youngPlayers": 5,
+          "wisePlayers": 2,
           "mustPlayGroups": [
             [
-              "Stephen Hawley",
-              "Curtis Reason"
+              "Caitlind Lusty",
+              "Matthew Lynar"
             ],
             [
-              "Brianna Hall",
-              "Michael McConnell"
-            ],
-            [
-              "Robin Mennie",
-              "Cody Sinkinson"
+              "James Callow",
+              "Tristan Callow"
             ],
             [
               "Christian Mueller",
@@ -500,29 +858,54 @@ export const summer2026ExecReview = {
             ]
           ],
           "niceRequestsHonored": [
-            "Brianna Hall <-> Robin Mennie",
-            "Michael McConnell <-> Robin Mennie",
+            "James Callow <-> Cale Holmes",
             "Lauren Grasse <-> Elly Switzer",
             "Lauren Grasse <-> Caleb Fisher",
             "Liam Crawford <-> Elly Switzer"
           ],
           "roster": [
             {
-              "name": "Brianna Hall",
+              "name": "Joseph Dunlop",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jaclyn Kane",
               "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "David Pietrowski",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "James Callow",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Cale Holmes",
+              "gender": "M",
               "skill": 4.0,
-              "handler": false,
-              "leaders": [
-                "Female leader A",
-                "Female leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Michael McConnell",
-              "gender": "M",
-              "skill": 8.0,
               "handler": true,
               "leaders": [
                 "Male leader B"
@@ -531,42 +914,31 @@ export const summer2026ExecReview = {
               "ageBand": "standard"
             },
             {
-              "name": "Robin Mennie",
+              "name": "Tristan Callow",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Caitlind Lusty",
               "gender": "F",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Cody Sinkinson",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Stephen Hawley",
-              "gender": "M",
-              "skill": 8.0,
+              "skill": 10.0,
               "handler": true,
               "leaders": [
-                "Male leader B"
+                "Female leader A"
               ],
               "newReturning": "returning",
               "ageBand": "standard"
             },
             {
-              "name": "Curtis Reason",
+              "name": "Matthew Lynar",
               "gender": "M",
-              "skill": 8.0,
-              "handler": true,
-              "leaders": [
-                "Male leader B"
-              ],
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
               "newReturning": "returning",
               "ageBand": "standard"
             },
@@ -625,277 +997,95 @@ export const summer2026ExecReview = {
               "ageBand": "standard"
             },
             {
-              "name": "Jamie Bonany",
+              "name": "Eric Good",
               "gender": "M",
-              "skill": 4.0,
+              "skill": 7.0,
               "handler": true,
               "leaders": [],
               "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Charlie Tardif",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Brandon Canning",
-              "gender": "M",
-              "skill": 2.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "new",
               "ageBand": "standard"
             }
           ]
         },
         {
-          "name": "Team 4",
+          "name": "Team 6",
           "size": 15,
           "male": 10,
           "female": 5,
           "other": 0,
-          "averageSkill": 4.87,
-          "handlers": 7,
-          "leaders": [
-            "James Callow - male leader b",
-            "Cale Holmes - male leader b",
-            "Patrick Kirkwood - male leader b",
-            "Pierce Munce - male leader b",
-            "Emma Hanney - female leader b"
-          ],
-          "newPlayers": 3,
-          "returningPlayers": 12,
-          "youngPlayers": 5,
-          "wisePlayers": 3,
-          "mustPlayGroups": [
-            [
-              "James Callow",
-              "Tristan Callow"
-            ],
-            [
-              "Kole O'C",
-              "Scott O'Connor"
-            ],
-            [
-              "Leah Potje",
-              "Lilyanna Padoin Lee"
-            ]
-          ],
-          "niceRequestsHonored": [
-            "James Callow <-> Cale Holmes",
-            "Kole O'C <-> Lilyanna Padoin Lee"
-          ],
-          "roster": [
-            {
-              "name": "James Callow",
-              "gender": "M",
-              "skill": 7.0,
-              "handler": true,
-              "leaders": [
-                "Male leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "wise"
-            },
-            {
-              "name": "Cale Holmes",
-              "gender": "M",
-              "skill": 4.0,
-              "handler": true,
-              "leaders": [
-                "Male leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Tristan Callow",
-              "gender": "M",
-              "skill": 2.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "young"
-            },
-            {
-              "name": "Patrick Kirkwood",
-              "gender": "M",
-              "skill": 9.0,
-              "handler": true,
-              "leaders": [
-                "Male leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Pierce Munce",
-              "gender": "M",
-              "skill": 9.0,
-              "handler": true,
-              "leaders": [
-                "Male leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Emma Hanney",
-              "gender": "F",
-              "skill": 6.0,
-              "handler": true,
-              "leaders": [
-                "Female leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Kole O'C",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": true,
-              "leaders": [],
-              "newReturning": "new",
-              "ageBand": "young"
-            },
-            {
-              "name": "Scott O'Connor",
-              "gender": "M",
-              "skill": 2.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "new",
-              "ageBand": "wise"
-            },
-            {
-              "name": "Leah Potje",
-              "gender": "F",
-              "skill": 4.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "young"
-            },
-            {
-              "name": "Lilyanna Padoin Lee",
-              "gender": "F",
-              "skill": 5.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "young"
-            },
-            {
-              "name": "Dayson Bress",
-              "gender": "M",
-              "skill": 7.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "young"
-            },
-            {
-              "name": "Courtney Hough",
-              "gender": "F",
-              "skill": 5.0,
-              "handler": true,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Xena Cochi",
-              "gender": "F",
-              "skill": 4.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "David Humphrys",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "wise"
-            },
-            {
-              "name": "Ben Kleiser",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "new",
-              "ageBand": "standard"
-            }
-          ]
-        },
-        {
-          "name": "Team 5",
-          "size": 15,
-          "male": 10,
-          "female": 5,
-          "other": 0,
-          "averageSkill": 5.33,
-          "handlers": 7,
+          "averageSkill": 4.93,
+          "handlers": 8,
           "leaders": [
             "Carly Munce - female leader a",
-            "Carly Munce - female leader b",
             "Thomas Black - male leader a",
             "Thomas Black - male leader b",
             "Niko Hoogeveen - male leader b",
-            "Andrew \"Sundance\" Black - male leader b"
+            "Joseph Doran - male leader b",
+            "Geno Bornea - male leader b"
           ],
           "newPlayers": 1,
           "returningPlayers": 14,
           "youngPlayers": 2,
-          "wisePlayers": 4,
+          "wisePlayers": 3,
           "mustPlayGroups": [
             [
               "Carly Munce",
               "Thomas Black"
             ],
             [
-              "Nadine Leiper",
-              "Alli Leiper"
-            ],
-            [
-              "Kyle Stashuk",
-              "Peter Rutkauskas"
-            ],
-            [
-              "Jamie Cable",
-              "Marianne Auger"
+              "Julie Tillmanns",
+              "Charlee Tillmanns"
             ],
             [
               "Niko Hoogeveen",
               "Adam Soos"
+            ],
+            [
+              "Spencer Brown",
+              "Cole Monteith"
             ]
           ],
           "niceRequestsHonored": [
-            "Kyle Stashuk <-> Jamie Cable",
-            "Kyle Stashuk <-> Marianne Auger",
-            "Peter Rutkauskas <-> Marianne Auger",
+            "Chris Tillmanns <-> Charlee Tillmanns",
+            "Chris Tillmanns <-> Julie Tillmanns",
             "Niko Hoogeveen <-> Amber Soos",
             "Adam Soos <-> Amber Soos"
           ],
           "roster": [
+            {
+              "name": "Will Boaks",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Thomas Barnes",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Olivia Evans",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
             {
               "name": "Carly Munce",
               "gender": "F",
               "skill": 10.0,
               "handler": true,
               "leaders": [
-                "Female leader A",
-                "Female leader B"
+                "Female leader A"
               ],
               "newReturning": "returning",
               "ageBand": "standard"
@@ -942,9 +1132,591 @@ export const summer2026ExecReview = {
               "ageBand": "young"
             },
             {
-              "name": "Andrew \"Sundance\" Black",
+              "name": "Joseph Doran",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Geno Bornea",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Chris Tillmanns",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Julie Tillmanns",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Charlee Tillmanns",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Spencer Brown",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cole Monteith",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 7",
+          "size": 14,
+          "male": 10,
+          "female": 4,
+          "other": 0,
+          "averageSkill": 4.57,
+          "handlers": 7,
+          "leaders": [
+            "Brianna Hall - female leader a",
+            "Michael McConnell - male leader b",
+            "Colton Courville - male leader b",
+            "Emma Hanney - female leader b"
+          ],
+          "newPlayers": 3,
+          "returningPlayers": 11,
+          "youngPlayers": 3,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Brianna Hall",
+              "Michael McConnell"
+            ],
+            [
+              "Brad Dempsey",
+              "Ashish Mehra"
+            ],
+            [
+              "Robin Mennie",
+              "Cody Sinkinson"
+            ],
+            [
+              "Aiden Courville",
+              "Sarah Butt"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Brianna Hall <-> Robin Mennie",
+            "Michael McConnell <-> Robin Mennie",
+            "Aiden Courville <-> Colton Courville"
+          ],
+          "roster": [
+            {
+              "name": "Jamie Bonany",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "David Humphrys",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Stephen Fisher",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brianna Hall",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Michael McConnell",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Robin Mennie",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cody Sinkinson",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Aiden Courville",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Colton Courville",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Sarah Butt",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Emma Hanney",
+              "gender": "F",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [
+                "Female leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brad Dempsey",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ashish Mehra",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kevin Schuster",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 8",
+          "size": 14,
+          "male": 10,
+          "female": 4,
+          "other": 0,
+          "averageSkill": 4.71,
+          "handlers": 5,
+          "leaders": [
+            "Kurtis Thomas - male leader b",
+            "Richmand Hogg - male leader a",
+            "Richmand Hogg - male leader b",
+            "Molly Douglas - female leader a",
+            "Pierce Munce - male leader b"
+          ],
+          "newPlayers": 3,
+          "returningPlayers": 11,
+          "youngPlayers": 4,
+          "wisePlayers": 2,
+          "mustPlayGroups": [
+            [
+              "Kurtis Thomas",
+              "Sara Shakib"
+            ],
+            [
+              "Richmand Hogg",
+              "Molly Douglas"
+            ],
+            [
+              "Kole O'C",
+              "Scott O'Connor"
+            ],
+            [
+              "Nate Smith",
+              "Frank Smith"
+            ],
+            [
+              "Leah Potje",
+              "Lilyanna Padoin Lee"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kurtis Thomas <-> Richmand Hogg",
+            "Richmand Hogg <-> Sara Shakib",
+            "Kole O'C <-> Lilyanna Padoin Lee"
+          ],
+          "roster": [
+            {
+              "name": "Kyle Jones",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Billy Miller",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Mat MacLean",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kurtis Thomas",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Richmand Hogg",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader A",
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Molly Douglas",
+              "gender": "F",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Sara Shakib",
+              "gender": "F",
+              "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Pierce Munce",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kole O'C",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Scott O'Connor",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Leah Potje",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Lilyanna Padoin Lee",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Nate Smith",
               "gender": "M",
               "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Frank Smith",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "variation-2",
+      "name": "Variation 2",
+      "seed": 2,
+      "summary": {
+        "hardRulesPassed": true,
+        "teamSizes": [
+          14,
+          14,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "maleSpread": 0,
+        "femaleSpread": 1,
+        "genderSpreadViolations": 0,
+        "skillSpread": 0.54,
+        "handlerSpread": 3,
+        "femaleLeaderTeams": 8,
+        "maleLeaderCoveredTeams": 8,
+        "niceHonored": 29,
+        "niceTotal": 32,
+        "niceRate": 0.91,
+        "niceTargetMet": true,
+        "newPlayerSpread": 6,
+        "youngPlayerSpread": 5,
+        "wisePlayerSpread": 4
+      },
+      "strengths": [
+        "Keeps the required groups together.",
+        "Honours 29/32 nice-to-have requests.",
+        "Keeps gender counts even.",
+        "Covers all teams with female and male leaders."
+      ],
+      "watchItems": [],
+      "teams": [
+        {
+          "name": "Team 1",
+          "size": 14,
+          "male": 10,
+          "female": 4,
+          "other": 0,
+          "averageSkill": 5.0,
+          "handlers": 5,
+          "leaders": [
+            "Kurtis Thomas - male leader b",
+            "Richmand Hogg - male leader a",
+            "Richmand Hogg - male leader b",
+            "Molly Douglas - female leader a",
+            "Jeff Cobbledick - male leader b"
+          ],
+          "newPlayers": 0,
+          "returningPlayers": 14,
+          "youngPlayers": 1,
+          "wisePlayers": 5,
+          "mustPlayGroups": [
+            [
+              "Kyle Stashuk",
+              "Peter Rutkauskas"
+            ],
+            [
+              "Jamie Cable",
+              "Marianne Auger"
+            ],
+            [
+              "Kurtis Thomas",
+              "Sara Shakib"
+            ],
+            [
+              "Richmand Hogg",
+              "Molly Douglas"
+            ],
+            [
+              "Nate Smith",
+              "Frank Smith"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kyle Stashuk <-> Jamie Cable",
+            "Kyle Stashuk <-> Marianne Auger",
+            "Peter Rutkauskas <-> Marianne Auger",
+            "Kurtis Thomas <-> Richmand Hogg",
+            "Richmand Hogg <-> Sara Shakib"
+          ],
+          "roster": [
+            {
+              "name": "Kyle Jones",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jeffery Hoover",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Kurtis Thomas",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Richmand Hogg",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader A",
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Molly Douglas",
+              "gender": "F",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Sara Shakib",
+              "gender": "F",
+              "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jeff Cobbledick",
+              "gender": "M",
+              "skill": 7.0,
               "handler": true,
               "leaders": [
                 "Male leader B"
@@ -989,31 +1761,80 @@ export const summer2026ExecReview = {
               "ageBand": "wise"
             },
             {
-              "name": "Nadine Leiper",
-              "gender": "F",
-              "skill": 4.0,
+              "name": "Nate Smith",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Frank Smith",
+              "gender": "M",
+              "skill": 2.0,
               "handler": false,
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "wise"
             },
             {
-              "name": "Alli Leiper",
+              "name": "Taylor Stanojev",
               "gender": "F",
-              "skill": 1.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "new",
-              "ageBand": "young"
-            },
-            {
-              "name": "Kyle Jones",
-              "gender": "M",
-              "skill": 4.0,
+              "skill": 6.0,
               "handler": false,
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 2",
+          "size": 14,
+          "male": 10,
+          "female": 4,
+          "other": 0,
+          "averageSkill": 5.14,
+          "handlers": 6,
+          "leaders": [
+            "Brianna Hall - female leader a",
+            "Michael McConnell - male leader b",
+            "Patrick Kirkwood - male leader b",
+            "Emma Hanney - female leader b"
+          ],
+          "newPlayers": 1,
+          "returningPlayers": 13,
+          "youngPlayers": 3,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Brianna Hall",
+              "Michael McConnell"
+            ],
+            [
+              "Robin Mennie",
+              "Cody Sinkinson"
+            ],
+            [
+              "Sean Harrington",
+              "Kileigh Harrington"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Brianna Hall <-> Robin Mennie",
+            "Michael McConnell <-> Robin Mennie",
+            "Finn Montgomery <-> Tate Montgomery"
+          ],
+          "roster": [
+            {
+              "name": "Julianna Lerch",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
             },
             {
               "name": "Billy Miller",
@@ -1025,9 +1846,682 @@ export const summer2026ExecReview = {
               "ageBand": "standard"
             },
             {
-              "name": "Stephen Fisher",
+              "name": "Mat MacLean",
               "gender": "M",
               "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brianna Hall",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Michael McConnell",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Robin Mennie",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cody Sinkinson",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Patrick Kirkwood",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Emma Hanney",
+              "gender": "F",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [
+                "Female leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Sean Harrington",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Kileigh Harrington",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Finn Montgomery",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Tate Montgomery",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Wesley Taggart",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 3",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.6,
+          "handlers": 7,
+          "leaders": [
+            "parker munce - female leader a",
+            "Kyra Frisina - female leader a",
+            "Andrew \"Sundance\" Black - male leader b",
+            "Joseph Doran - male leader b"
+          ],
+          "newPlayers": 2,
+          "returningPlayers": 13,
+          "youngPlayers": 1,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Shannon Wolochatiuk",
+              "Scott Patrick"
+            ],
+            [
+              "parker munce",
+              "Kyra Frisina"
+            ],
+            [
+              "Brad Dempsey",
+              "Ashish Mehra"
+            ],
+            [
+              "Koral Freeman",
+              "Derek Davey"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kyra Frisina <-> Cali Gurr",
+            "Cali Gurr <-> Koral Freeman",
+            "Cali Gurr <-> Derek Davey",
+            "Luke Mackey <-> Derek Davey",
+            "Luke Mackey <-> Koral Freeman"
+          ],
+          "roster": [
+            {
+              "name": "Ryan Bridge",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "David Pietrowski",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "parker munce",
+              "gender": "F",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kyra Frisina",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cali Gurr",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Koral Freeman",
+              "gender": "F",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Derek Davey",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Andrew \"Sundance\" Black",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Joseph Doran",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Shannon Wolochatiuk",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Scott Patrick",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brad Dempsey",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ashish Mehra",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Luke Mackey",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brett Ormsby",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            }
+          ]
+        },
+        {
+          "name": "Team 4",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.93,
+          "handlers": 8,
+          "leaders": [
+            "Carly Munce - female leader a",
+            "Thomas Black - male leader a",
+            "Thomas Black - male leader b",
+            "Colton Courville - male leader b"
+          ],
+          "newPlayers": 6,
+          "returningPlayers": 9,
+          "youngPlayers": 6,
+          "wisePlayers": 2,
+          "mustPlayGroups": [
+            [
+              "Carly Munce",
+              "Thomas Black"
+            ],
+            [
+              "Kole O'C",
+              "Scott O'Connor"
+            ],
+            [
+              "Aiden Courville",
+              "Sarah Butt"
+            ],
+            [
+              "Leah Potje",
+              "Lilyanna Padoin Lee"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kole O'C <-> Lilyanna Padoin Lee",
+            "Aiden Courville <-> Colton Courville"
+          ],
+          "roster": [
+            {
+              "name": "Xena Cochi",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Charlie Tardif",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ben Kleiser",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Carly Munce",
+              "gender": "F",
+              "skill": 10.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Thomas Black",
+              "gender": "M",
+              "skill": 10.0,
+              "handler": true,
+              "leaders": [
+                "Male leader A",
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Aiden Courville",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Colton Courville",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Sarah Butt",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Kole O'C",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Scott O'Connor",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Leah Potje",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Lilyanna Padoin Lee",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Eric Good",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Eric Bouchard",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Jamie Bonany",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 5",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.8,
+          "handlers": 5,
+          "leaders": [
+            "Stephen Hawley - male leader b",
+            "Curtis Reason - male leader b",
+            "Niko Hoogeveen - male leader b",
+            "Kristy Robinson - female leader a"
+          ],
+          "newPlayers": 0,
+          "returningPlayers": 15,
+          "youngPlayers": 2,
+          "wisePlayers": 4,
+          "mustPlayGroups": [
+            [
+              "Kristy Robinson",
+              "Andy Beecroft"
+            ],
+            [
+              "Julie Tillmanns",
+              "Charlee Tillmanns"
+            ],
+            [
+              "Stephen Hawley",
+              "Curtis Reason"
+            ],
+            [
+              "Niko Hoogeveen",
+              "Adam Soos"
+            ],
+            [
+              "Christian Mueller",
+              "Emilie Brown"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Chris Tillmanns <-> Charlee Tillmanns",
+            "Chris Tillmanns <-> Julie Tillmanns",
+            "Niko Hoogeveen <-> Amber Soos",
+            "Adam Soos <-> Amber Soos"
+          ],
+          "roster": [
+            {
+              "name": "Neil Bond",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Carden Vickers",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Stephen Hawley",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Curtis Reason",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Niko Hoogeveen",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Adam Soos",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Amber Soos",
+              "gender": "F",
+              "skill": 8.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Kristy Robinson",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Andy Beecroft",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Chris Tillmanns",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Julie Tillmanns",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Charlee Tillmanns",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Christian Mueller",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Emilie Brown",
+              "gender": "F",
+              "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Will Boaks",
+              "gender": "M",
+              "skill": 5.0,
               "handler": true,
               "leaders": [],
               "newReturning": "returning",
@@ -1041,19 +2535,403 @@ export const summer2026ExecReview = {
           "male": 10,
           "female": 5,
           "other": 0,
-          "averageSkill": 5.07,
+          "averageSkill": 4.8,
+          "handlers": 8,
+          "leaders": [
+            "Matt Hofing - male leader b",
+            "Rebecca Robitaille - female leader a",
+            "Pierce Munce - male leader b",
+            "Geno Bornea - male leader b"
+          ],
+          "newPlayers": 3,
+          "returningPlayers": 12,
+          "youngPlayers": 4,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Brad Mayer",
+              "Rebecca Robitaille"
+            ],
+            [
+              "Lauren Grasse",
+              "Liam Crawford"
+            ],
+            [
+              "Elly Switzer",
+              "Caleb Fisher"
+            ],
+            [
+              "Spencer Brown",
+              "Cole Monteith"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Matt Hofing <-> Rebecca Robitaille",
+            "Matt Hofing <-> Brad Mayer",
+            "Lauren Grasse <-> Elly Switzer",
+            "Lauren Grasse <-> Caleb Fisher",
+            "Liam Crawford <-> Elly Switzer"
+          ],
+          "roster": [
+            {
+              "name": "Jaclyn Kane",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Paul Marjin",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brandon Canning",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matt Hofing",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brad Mayer",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Rebecca Robitaille",
+              "gender": "F",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Pierce Munce",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Geno Bornea",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Lauren Grasse",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Liam Crawford",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Elly Switzer",
+              "gender": "F",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Caleb Fisher",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Spencer Brown",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cole Monteith",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Courtney Hough",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 7",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.6,
           "handlers": 5,
           "leaders": [
-            "Levi Taylor - male leader b"
+            "James Callow - male leader b",
+            "Cale Holmes - male leader b",
+            "Tracy Penley - female leader b"
           ],
           "newPlayers": 2,
           "returningPlayers": 13,
-          "youngPlayers": 7,
+          "youngPlayers": 5,
+          "wisePlayers": 2,
+          "mustPlayGroups": [
+            [
+              "Tracy Penley",
+              "Matt Tribe"
+            ],
+            [
+              "James Callow",
+              "Tristan Callow"
+            ],
+            [
+              "Emilie Farr",
+              "Hailey Irwin"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Tracy Penley <-> Pascale Clements",
+            "Matt Tribe <-> Pascale Clements",
+            "James Callow <-> Cale Holmes",
+            "Hailey Irwin <-> Brendan Irwin"
+          ],
+          "roster": [
+            {
+              "name": "Thomas Barnes",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Olivia Evans",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Joe Alamshah",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "James Callow",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Cale Holmes",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Tristan Callow",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Tracy Penley",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matt Tribe",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Pascale Clements",
+              "gender": "F",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Emilie Farr",
+              "gender": "F",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Hailey Irwin",
+              "gender": "F",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Brendan Irwin",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Kevin Schuster",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Dayson Bress",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Joseph Dunlop",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 8",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.93,
+          "handlers": 7,
+          "leaders": [
+            "Levi Taylor - male leader b",
+            "Caitlind Lusty - female leader a",
+            "David Tran - male leader b"
+          ],
+          "newPlayers": 3,
+          "returningPlayers": 12,
+          "youngPlayers": 4,
           "wisePlayers": 4,
           "mustPlayGroups": [
             [
+              "Caitlind Lusty",
+              "Matthew Lynar"
+            ],
+            [
+              "Nadine Leiper",
+              "Alli Leiper"
+            ],
+            [
               "Darren Brazier",
               "Maisy Brazier"
+            ],
+            [
+              "Ryan Sagermann",
+              "Carly Sagermann"
             ],
             [
               "John Nigh",
@@ -1062,23 +2940,30 @@ export const summer2026ExecReview = {
             [
               "Levi Taylor",
               "Duncan Taylor"
-            ],
-            [
-              "Sean Harrington",
-              "Kileigh Harrington"
-            ],
-            [
-              "Emilie Farr",
-              "Hailey Irwin"
             ]
           ],
           "niceRequestsHonored": [
-            "Matt Simon <-> Sean Harrington",
-            "Matt Simon <-> Levi Taylor",
-            "Levi Taylor <-> Sean Harrington",
-            "Hailey Irwin <-> Brendan Irwin"
+            "Matt Simon <-> Levi Taylor"
           ],
           "roster": [
+            {
+              "name": "David Humphrys",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Stephen Fisher",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
             {
               "name": "John Nigh",
               "gender": "M",
@@ -1118,49 +3003,53 @@ export const summer2026ExecReview = {
               "ageBand": "wise"
             },
             {
-              "name": "Sean Harrington",
-              "gender": "M",
-              "skill": 8.0,
+              "name": "Caitlind Lusty",
+              "gender": "F",
+              "skill": 10.0,
               "handler": true,
-              "leaders": [],
+              "leaders": [
+                "Female leader A"
+              ],
               "newReturning": "returning",
-              "ageBand": "young"
+              "ageBand": "standard"
             },
             {
-              "name": "Kileigh Harrington",
+              "name": "Matthew Lynar",
               "gender": "M",
-              "skill": 5.0,
+              "skill": 3.0,
               "handler": false,
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "standard"
             },
             {
-              "name": "Emilie Farr",
-              "gender": "F",
-              "skill": 7.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "young"
-            },
-            {
-              "name": "Hailey Irwin",
-              "gender": "F",
-              "skill": 7.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "young"
-            },
-            {
-              "name": "Brendan Irwin",
+              "name": "David Tran",
               "gender": "M",
-              "skill": 3.0,
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ryan Sagermann",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Carly Sagermann",
+              "gender": "F",
+              "skill": 4.0,
               "handler": false,
               "leaders": [],
               "newReturning": "new",
-              "ageBand": "young"
+              "ageBand": "standard"
             },
             {
               "name": "Darren Brazier",
@@ -1181,7 +3070,131 @@ export const summer2026ExecReview = {
               "ageBand": "young"
             },
             {
-              "name": "Joseph Dunlop",
+              "name": "Nadine Leiper",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Alli Leiper",
+              "gender": "F",
+              "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "variation-3",
+      "name": "Variation 3",
+      "seed": 3,
+      "summary": {
+        "hardRulesPassed": true,
+        "teamSizes": [
+          14,
+          14,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "maleSpread": 0,
+        "femaleSpread": 1,
+        "genderSpreadViolations": 0,
+        "skillSpread": 0.73,
+        "handlerSpread": 5,
+        "femaleLeaderTeams": 8,
+        "maleLeaderCoveredTeams": 8,
+        "niceHonored": 29,
+        "niceTotal": 32,
+        "niceRate": 0.91,
+        "niceTargetMet": true,
+        "newPlayerSpread": 3,
+        "youngPlayerSpread": 4,
+        "wisePlayerSpread": 4
+      },
+      "strengths": [
+        "Keeps the required groups together.",
+        "Honours 29/32 nice-to-have requests.",
+        "Keeps gender counts even.",
+        "Covers all teams with female and male leaders."
+      ],
+      "watchItems": [
+        "Handler spread is 5."
+      ],
+      "teams": [
+        {
+          "name": "Team 1",
+          "size": 14,
+          "male": 10,
+          "female": 4,
+          "other": 0,
+          "averageSkill": 4.79,
+          "handlers": 5,
+          "leaders": [
+            "Levi Taylor - male leader b",
+            "Kristy Robinson - female leader a",
+            "Pierce Munce - male leader b"
+          ],
+          "newPlayers": 4,
+          "returningPlayers": 10,
+          "youngPlayers": 3,
+          "wisePlayers": 5,
+          "mustPlayGroups": [
+            [
+              "Kristy Robinson",
+              "Andy Beecroft"
+            ],
+            [
+              "Nadine Leiper",
+              "Alli Leiper"
+            ],
+            [
+              "Ryan Sagermann",
+              "Carly Sagermann"
+            ],
+            [
+              "John Nigh",
+              "Matt Simon"
+            ],
+            [
+              "Levi Taylor",
+              "Duncan Taylor"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Matt Simon <-> Levi Taylor"
+          ],
+          "roster": [
+            {
+              "name": "David Humphrys",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Mat MacLean",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "John Nigh",
               "gender": "M",
               "skill": 5.0,
               "handler": false,
@@ -1190,100 +3203,33 @@ export const summer2026ExecReview = {
               "ageBand": "standard"
             },
             {
-              "name": "Julianna Lerch",
-              "gender": "F",
-              "skill": 4.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "wise"
-            },
-            {
-              "name": "David Pietrowski",
+              "name": "Matt Simon",
               "gender": "M",
-              "skill": 3.0,
+              "skill": 7.0,
               "handler": true,
               "leaders": [],
               "newReturning": "returning",
-              "ageBand": "wise"
-            },
-            {
-              "name": "Olivia Evans",
-              "gender": "F",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            }
-          ]
-        },
-        {
-          "name": "Team 7",
-          "size": 15,
-          "male": 10,
-          "female": 5,
-          "other": 0,
-          "averageSkill": 4.27,
-          "handlers": 5,
-          "leaders": [
-            "Colton Courville - male leader b",
-            "Kristy Robinson - female leader a",
-            "David Tran - male leader b"
-          ],
-          "newPlayers": 4,
-          "returningPlayers": 11,
-          "youngPlayers": 6,
-          "wisePlayers": 4,
-          "mustPlayGroups": [
-            [
-              "Kristy Robinson",
-              "Andy Beecroft"
-            ],
-            [
-              "Julie Tillmanns",
-              "Charlee Tillmanns"
-            ],
-            [
-              "Aiden Courville",
-              "Sarah Butt"
-            ]
-          ],
-          "niceRequestsHonored": [
-            "Chris Tillmanns <-> Charlee Tillmanns",
-            "Chris Tillmanns <-> Julie Tillmanns",
-            "Finn Montgomery <-> Tate Montgomery",
-            "Aiden Courville <-> Colton Courville"
-          ],
-          "roster": [
-            {
-              "name": "Aiden Courville",
-              "gender": "M",
-              "skill": 6.0,
-              "handler": true,
-              "leaders": [],
-              "newReturning": "new",
               "ageBand": "young"
             },
             {
-              "name": "Colton Courville",
+              "name": "Levi Taylor",
               "gender": "M",
-              "skill": 3.0,
+              "skill": 8.0,
               "handler": true,
               "leaders": [
                 "Male leader B"
               ],
-              "newReturning": "new",
+              "newReturning": "returning",
               "ageBand": "young"
             },
             {
-              "name": "Sarah Butt",
-              "gender": "F",
-              "skill": 4.0,
-              "handler": false,
+              "name": "Duncan Taylor",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
               "leaders": [],
               "newReturning": "new",
-              "ageBand": "young"
+              "ageBand": "wise"
             },
             {
               "name": "Kristy Robinson",
@@ -1306,9 +3252,9 @@ export const summer2026ExecReview = {
               "ageBand": "wise"
             },
             {
-              "name": "David Tran",
+              "name": "Pierce Munce",
               "gender": "M",
-              "skill": 8.0,
+              "skill": 9.0,
               "handler": true,
               "leaders": [
                 "Male leader B"
@@ -1317,112 +3263,71 @@ export const summer2026ExecReview = {
               "ageBand": "standard"
             },
             {
-              "name": "Chris Tillmanns",
+              "name": "Ryan Sagermann",
               "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "wise"
-            },
-            {
-              "name": "Julie Tillmanns",
-              "gender": "F",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "wise"
-            },
-            {
-              "name": "Charlee Tillmanns",
-              "gender": "F",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "young"
-            },
-            {
-              "name": "Finn Montgomery",
-              "gender": "M",
-              "skill": 6.0,
+              "skill": 7.0,
               "handler": true,
               "leaders": [],
               "newReturning": "returning",
-              "ageBand": "young"
+              "ageBand": "standard"
             },
             {
-              "name": "Tate Montgomery",
-              "gender": "M",
+              "name": "Carly Sagermann",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Nadine Leiper",
+              "gender": "F",
               "skill": 4.0,
               "handler": false,
               "leaders": [],
               "newReturning": "returning",
-              "ageBand": "young"
+              "ageBand": "wise"
             },
             {
-              "name": "Taylor Stanojev",
+              "name": "Alli Leiper",
               "gender": "F",
-              "skill": 6.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Will Boaks",
-              "gender": "M",
-              "skill": 5.0,
-              "handler": true,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Paul Marjin",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Joe Alamshah",
-              "gender": "M",
-              "skill": 2.0,
+              "skill": 1.0,
               "handler": false,
               "leaders": [],
               "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Joseph Dunlop",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
               "ageBand": "standard"
             }
           ]
         },
         {
-          "name": "Team 8",
+          "name": "Team 2",
           "size": 14,
           "male": 10,
           "female": 4,
           "other": 0,
-          "averageSkill": 4.43,
-          "handlers": 7,
+          "averageSkill": 4.79,
+          "handlers": 8,
           "leaders": [
+            "James Callow - male leader b",
+            "Cale Holmes - male leader b",
             "Tracy Penley - female leader b",
-            "Caitlind Lusty - female leader a",
-            "Caitlind Lusty - female leader b",
-            "Jeff Cobbledick - male leader b",
-            "Geno Bornea - male leader b"
+            "Emma Hanney - female leader b"
           ],
           "newPlayers": 1,
           "returningPlayers": 13,
-          "youngPlayers": 0,
+          "youngPlayers": 1,
           "wisePlayers": 1,
           "mustPlayGroups": [
-            [
-              "Caitlind Lusty",
-              "Matthew Lynar"
-            ],
             [
               "Shannon Wolochatiuk",
               "Scott Patrick"
@@ -1432,15 +3337,65 @@ export const summer2026ExecReview = {
               "Matt Tribe"
             ],
             [
-              "Spencer Brown",
-              "Cole Monteith"
+              "James Callow",
+              "Tristan Callow"
             ]
           ],
           "niceRequestsHonored": [
             "Tracy Penley <-> Pascale Clements",
-            "Matt Tribe <-> Pascale Clements"
+            "Matt Tribe <-> Pascale Clements",
+            "James Callow <-> Cale Holmes"
           ],
           "roster": [
+            {
+              "name": "Billy Miller",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ben Kleiser",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "James Callow",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Cale Holmes",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Tristan Callow",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
             {
               "name": "Tracy Penley",
               "gender": "F",
@@ -1471,46 +3426,14 @@ export const summer2026ExecReview = {
               "ageBand": "standard"
             },
             {
-              "name": "Caitlind Lusty",
+              "name": "Emma Hanney",
               "gender": "F",
-              "skill": 10.0,
+              "skill": 6.0,
               "handler": true,
               "leaders": [
-                "Female leader A",
                 "Female leader B"
               ],
               "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Matthew Lynar",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Jeff Cobbledick",
-              "gender": "M",
-              "skill": 7.0,
-              "handler": true,
-              "leaders": [
-                "Male leader B"
-              ],
-              "newReturning": "returning",
-              "ageBand": "standard"
-            },
-            {
-              "name": "Geno Bornea",
-              "gender": "M",
-              "skill": 3.0,
-              "handler": false,
-              "leaders": [
-                "Male leader B"
-              ],
-              "newReturning": "new",
               "ageBand": "standard"
             },
             {
@@ -1530,6 +3453,1132 @@ export const summer2026ExecReview = {
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "standard"
+            },
+            {
+              "name": "Kevin Schuster",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Eric Good",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Will Boaks",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 3",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.6,
+          "handlers": 5,
+          "leaders": [
+            "Carly Munce - female leader a",
+            "Thomas Black - male leader a",
+            "Thomas Black - male leader b",
+            "Patrick Kirkwood - male leader b",
+            "Joseph Doran - male leader b",
+            "Geno Bornea - male leader b"
+          ],
+          "newPlayers": 4,
+          "returningPlayers": 11,
+          "youngPlayers": 4,
+          "wisePlayers": 2,
+          "mustPlayGroups": [
+            [
+              "Carly Munce",
+              "Thomas Black"
+            ],
+            [
+              "Kole O'C",
+              "Scott O'Connor"
+            ],
+            [
+              "Christian Mueller",
+              "Emilie Brown"
+            ],
+            [
+              "Leah Potje",
+              "Lilyanna Padoin Lee"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kole O'C <-> Lilyanna Padoin Lee"
+          ],
+          "roster": [
+            {
+              "name": "Charlie Tardif",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brandon Canning",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Carly Munce",
+              "gender": "F",
+              "skill": 10.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Thomas Black",
+              "gender": "M",
+              "skill": 10.0,
+              "handler": true,
+              "leaders": [
+                "Male leader A",
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Patrick Kirkwood",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Joseph Doran",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Geno Bornea",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kole O'C",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Scott O'Connor",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Leah Potje",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Lilyanna Padoin Lee",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Christian Mueller",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Emilie Brown",
+              "gender": "F",
+              "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brett Ormsby",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Julianna Lerch",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            }
+          ]
+        },
+        {
+          "name": "Team 4",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.93,
+          "handlers": 5,
+          "leaders": [
+            "Stephen Hawley - male leader b",
+            "Curtis Reason - male leader b",
+            "Caitlind Lusty - female leader a"
+          ],
+          "newPlayers": 1,
+          "returningPlayers": 14,
+          "youngPlayers": 1,
+          "wisePlayers": 4,
+          "mustPlayGroups": [
+            [
+              "Caitlind Lusty",
+              "Matthew Lynar"
+            ],
+            [
+              "Kyle Stashuk",
+              "Peter Rutkauskas"
+            ],
+            [
+              "Darren Brazier",
+              "Maisy Brazier"
+            ],
+            [
+              "Stephen Hawley",
+              "Curtis Reason"
+            ],
+            [
+              "Jamie Cable",
+              "Marianne Auger"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kyle Stashuk <-> Jamie Cable",
+            "Kyle Stashuk <-> Marianne Auger",
+            "Peter Rutkauskas <-> Marianne Auger"
+          ],
+          "roster": [
+            {
+              "name": "Paul Marjin",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Joe Alamshah",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Stephen Hawley",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Curtis Reason",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Caitlind Lusty",
+              "gender": "F",
+              "skill": 10.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matthew Lynar",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kyle Stashuk",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Peter Rutkauskas",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Jamie Cable",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Marianne Auger",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Darren Brazier",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Maisy Brazier",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Taylor Stanojev",
+              "gender": "F",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Courtney Hough",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Neil Bond",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 5",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 5.07,
+          "handlers": 7,
+          "leaders": [
+            "Kurtis Thomas - male leader b",
+            "Richmand Hogg - male leader a",
+            "Richmand Hogg - male leader b",
+            "Molly Douglas - female leader a",
+            "Andrew \"Sundance\" Black - male leader b"
+          ],
+          "newPlayers": 1,
+          "returningPlayers": 14,
+          "youngPlayers": 5,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Kurtis Thomas",
+              "Sara Shakib"
+            ],
+            [
+              "Richmand Hogg",
+              "Molly Douglas"
+            ],
+            [
+              "Brad Dempsey",
+              "Ashish Mehra"
+            ],
+            [
+              "Lauren Grasse",
+              "Liam Crawford"
+            ],
+            [
+              "Elly Switzer",
+              "Caleb Fisher"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kurtis Thomas <-> Richmand Hogg",
+            "Richmand Hogg <-> Sara Shakib",
+            "Lauren Grasse <-> Elly Switzer",
+            "Lauren Grasse <-> Caleb Fisher",
+            "Liam Crawford <-> Elly Switzer"
+          ],
+          "roster": [
+            {
+              "name": "Jeffery Hoover",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Kurtis Thomas",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Richmand Hogg",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader A",
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Molly Douglas",
+              "gender": "F",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Sara Shakib",
+              "gender": "F",
+              "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Andrew \"Sundance\" Black",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Lauren Grasse",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Liam Crawford",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Elly Switzer",
+              "gender": "F",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Caleb Fisher",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Brad Dempsey",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ashish Mehra",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Dayson Bress",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Jamie Bonany",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Xena Cochi",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 6",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.93,
+          "handlers": 8,
+          "leaders": [
+            "parker munce - female leader a",
+            "Kyra Frisina - female leader a",
+            "David Tran - male leader b",
+            "Jeff Cobbledick - male leader b"
+          ],
+          "newPlayers": 2,
+          "returningPlayers": 13,
+          "youngPlayers": 3,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "parker munce",
+              "Kyra Frisina"
+            ],
+            [
+              "Sean Harrington",
+              "Kileigh Harrington"
+            ],
+            [
+              "Koral Freeman",
+              "Derek Davey"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kyra Frisina <-> Cali Gurr",
+            "Finn Montgomery <-> Tate Montgomery",
+            "Cali Gurr <-> Koral Freeman",
+            "Cali Gurr <-> Derek Davey",
+            "Luke Mackey <-> Derek Davey",
+            "Luke Mackey <-> Koral Freeman"
+          ],
+          "roster": [
+            {
+              "name": "David Pietrowski",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "parker munce",
+              "gender": "F",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kyra Frisina",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cali Gurr",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Koral Freeman",
+              "gender": "F",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Derek Davey",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "David Tran",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jeff Cobbledick",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Sean Harrington",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Kileigh Harrington",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Finn Montgomery",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Tate Montgomery",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Luke Mackey",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kyle Jones",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jaclyn Kane",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 7",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 5.2,
+          "handlers": 4,
+          "leaders": [
+            "Brianna Hall - female leader a",
+            "Michael McConnell - male leader b",
+            "Niko Hoogeveen - male leader b"
+          ],
+          "newPlayers": 1,
+          "returningPlayers": 14,
+          "youngPlayers": 5,
+          "wisePlayers": 2,
+          "mustPlayGroups": [
+            [
+              "Brianna Hall",
+              "Michael McConnell"
+            ],
+            [
+              "Niko Hoogeveen",
+              "Adam Soos"
+            ],
+            [
+              "Robin Mennie",
+              "Cody Sinkinson"
+            ],
+            [
+              "Nate Smith",
+              "Frank Smith"
+            ],
+            [
+              "Emilie Farr",
+              "Hailey Irwin"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Brianna Hall <-> Robin Mennie",
+            "Michael McConnell <-> Robin Mennie",
+            "Niko Hoogeveen <-> Amber Soos",
+            "Adam Soos <-> Amber Soos",
+            "Hailey Irwin <-> Brendan Irwin"
+          ],
+          "roster": [
+            {
+              "name": "Carden Vickers",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brianna Hall",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Michael McConnell",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Robin Mennie",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cody Sinkinson",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Niko Hoogeveen",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Adam Soos",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Amber Soos",
+              "gender": "F",
+              "skill": 8.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Emilie Farr",
+              "gender": "F",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Hailey Irwin",
+              "gender": "F",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Brendan Irwin",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Nate Smith",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Frank Smith",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Eric Bouchard",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Ryan Bridge",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 8",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.47,
+          "handlers": 9,
+          "leaders": [
+            "Matt Hofing - male leader b",
+            "Rebecca Robitaille - female leader a",
+            "Colton Courville - male leader b"
+          ],
+          "newPlayers": 3,
+          "returningPlayers": 12,
+          "youngPlayers": 4,
+          "wisePlayers": 4,
+          "mustPlayGroups": [
+            [
+              "Julie Tillmanns",
+              "Charlee Tillmanns"
+            ],
+            [
+              "Brad Mayer",
+              "Rebecca Robitaille"
+            ],
+            [
+              "Aiden Courville",
+              "Sarah Butt"
+            ],
+            [
+              "Spencer Brown",
+              "Cole Monteith"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Matt Hofing <-> Rebecca Robitaille",
+            "Matt Hofing <-> Brad Mayer",
+            "Chris Tillmanns <-> Charlee Tillmanns",
+            "Chris Tillmanns <-> Julie Tillmanns",
+            "Aiden Courville <-> Colton Courville"
+          ],
+          "roster": [
+            {
+              "name": "Olivia Evans",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Stephen Fisher",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matt Hofing",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brad Mayer",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Rebecca Robitaille",
+              "gender": "F",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Aiden Courville",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Colton Courville",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Sarah Butt",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Chris Tillmanns",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Julie Tillmanns",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Charlee Tillmanns",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
             },
             {
               "name": "Spencer Brown",
@@ -1566,6 +4615,1154 @@ export const summer2026ExecReview = {
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "wise"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "variation-4",
+      "name": "Variation 4",
+      "seed": 4,
+      "summary": {
+        "hardRulesPassed": true,
+        "teamSizes": [
+          15,
+          15,
+          14,
+          15,
+          15,
+          15,
+          14,
+          15
+        ],
+        "maleSpread": 0,
+        "femaleSpread": 1,
+        "genderSpreadViolations": 0,
+        "skillSpread": 1.73,
+        "handlerSpread": 3,
+        "femaleLeaderTeams": 8,
+        "maleLeaderCoveredTeams": 8,
+        "niceHonored": 27,
+        "niceTotal": 32,
+        "niceRate": 0.84,
+        "niceTargetMet": true,
+        "newPlayerSpread": 2,
+        "youngPlayerSpread": 4,
+        "wisePlayerSpread": 5
+      },
+      "strengths": [
+        "Keeps the required groups together.",
+        "Honours 27/32 nice-to-have requests.",
+        "Keeps gender counts even.",
+        "Covers all teams with female and male leaders."
+      ],
+      "watchItems": [
+        "Skill spread is 1.73."
+      ],
+      "teams": [
+        {
+          "name": "Team 1",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.33,
+          "handlers": 5,
+          "leaders": [
+            "Brianna Hall - female leader a",
+            "Michael McConnell - male leader b",
+            "Colton Courville - male leader b"
+          ],
+          "newPlayers": 3,
+          "returningPlayers": 12,
+          "youngPlayers": 4,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Shannon Wolochatiuk",
+              "Scott Patrick"
+            ],
+            [
+              "Brianna Hall",
+              "Michael McConnell"
+            ],
+            [
+              "Robin Mennie",
+              "Cody Sinkinson"
+            ],
+            [
+              "Aiden Courville",
+              "Sarah Butt"
+            ],
+            [
+              "Nate Smith",
+              "Frank Smith"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Brianna Hall <-> Robin Mennie",
+            "Michael McConnell <-> Robin Mennie",
+            "Aiden Courville <-> Colton Courville"
+          ],
+          "roster": [
+            {
+              "name": "Olivia Evans",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brianna Hall",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Michael McConnell",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Robin Mennie",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cody Sinkinson",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Aiden Courville",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Colton Courville",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Sarah Butt",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Shannon Wolochatiuk",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Scott Patrick",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Nate Smith",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Frank Smith",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Wesley Taggart",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ryan Bridge",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Charlie Tardif",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 2",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.8,
+          "handlers": 7,
+          "leaders": [
+            "Carly Munce - female leader a",
+            "Thomas Black - male leader a",
+            "Thomas Black - male leader b",
+            "Pierce Munce - male leader b",
+            "Emma Hanney - female leader b",
+            "Geno Bornea - male leader b"
+          ],
+          "newPlayers": 3,
+          "returningPlayers": 12,
+          "youngPlayers": 3,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Carly Munce",
+              "Thomas Black"
+            ],
+            [
+              "Kole O'C",
+              "Scott O'Connor"
+            ],
+            [
+              "Leah Potje",
+              "Lilyanna Padoin Lee"
+            ],
+            [
+              "Spencer Brown",
+              "Cole Monteith"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kole O'C <-> Lilyanna Padoin Lee"
+          ],
+          "roster": [
+            {
+              "name": "Stephen Fisher",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Carly Munce",
+              "gender": "F",
+              "skill": 10.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Thomas Black",
+              "gender": "M",
+              "skill": 10.0,
+              "handler": true,
+              "leaders": [
+                "Male leader A",
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Pierce Munce",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Emma Hanney",
+              "gender": "F",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [
+                "Female leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Geno Bornea",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kole O'C",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Scott O'Connor",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Leah Potje",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Lilyanna Padoin Lee",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Spencer Brown",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cole Monteith",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Taylor Stanojev",
+              "gender": "F",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Neil Bond",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Paul Marjin",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 3",
+          "size": 14,
+          "male": 10,
+          "female": 4,
+          "other": 0,
+          "averageSkill": 5.14,
+          "handlers": 6,
+          "leaders": [
+            "Stephen Hawley - male leader b",
+            "Curtis Reason - male leader b",
+            "Caitlind Lusty - female leader a"
+          ],
+          "newPlayers": 1,
+          "returningPlayers": 13,
+          "youngPlayers": 1,
+          "wisePlayers": 5,
+          "mustPlayGroups": [
+            [
+              "Caitlind Lusty",
+              "Matthew Lynar"
+            ],
+            [
+              "Kyle Stashuk",
+              "Peter Rutkauskas"
+            ],
+            [
+              "Darren Brazier",
+              "Maisy Brazier"
+            ],
+            [
+              "Stephen Hawley",
+              "Curtis Reason"
+            ],
+            [
+              "Jamie Cable",
+              "Marianne Auger"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kyle Stashuk <-> Jamie Cable",
+            "Kyle Stashuk <-> Marianne Auger",
+            "Peter Rutkauskas <-> Marianne Auger"
+          ],
+          "roster": [
+            {
+              "name": "Mat MacLean",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Stephen Hawley",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Curtis Reason",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Caitlind Lusty",
+              "gender": "F",
+              "skill": 10.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matthew Lynar",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kyle Stashuk",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Peter Rutkauskas",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Jamie Cable",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Marianne Auger",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Darren Brazier",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Maisy Brazier",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Luke Mackey",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jamie Bonany",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Julianna Lerch",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            }
+          ]
+        },
+        {
+          "name": "Team 4",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 4.73,
+          "handlers": 6,
+          "leaders": [
+            "Levi Taylor - male leader b",
+            "Kristy Robinson - female leader a",
+            "Patrick Kirkwood - male leader b"
+          ],
+          "newPlayers": 2,
+          "returningPlayers": 13,
+          "youngPlayers": 4,
+          "wisePlayers": 6,
+          "mustPlayGroups": [
+            [
+              "Kristy Robinson",
+              "Andy Beecroft"
+            ],
+            [
+              "Julie Tillmanns",
+              "Charlee Tillmanns"
+            ],
+            [
+              "John Nigh",
+              "Matt Simon"
+            ],
+            [
+              "Levi Taylor",
+              "Duncan Taylor"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Chris Tillmanns <-> Charlee Tillmanns",
+            "Chris Tillmanns <-> Julie Tillmanns",
+            "Matt Simon <-> Levi Taylor"
+          ],
+          "roster": [
+            {
+              "name": "Ben Kleiser",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "John Nigh",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matt Simon",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Levi Taylor",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Duncan Taylor",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Kristy Robinson",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Andy Beecroft",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Patrick Kirkwood",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Chris Tillmanns",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Julie Tillmanns",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Charlee Tillmanns",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Dayson Bress",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Courtney Hough",
+              "gender": "F",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Xena Cochi",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "David Pietrowski",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            }
+          ]
+        },
+        {
+          "name": "Team 5",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 5.67,
+          "handlers": 5,
+          "leaders": [
+            "Matt Hofing - male leader b",
+            "Rebecca Robitaille - female leader a",
+            "Niko Hoogeveen - male leader b"
+          ],
+          "newPlayers": 2,
+          "returningPlayers": 13,
+          "youngPlayers": 5,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Brad Mayer",
+              "Rebecca Robitaille"
+            ],
+            [
+              "Niko Hoogeveen",
+              "Adam Soos"
+            ],
+            [
+              "Christian Mueller",
+              "Emilie Brown"
+            ],
+            [
+              "Emilie Farr",
+              "Hailey Irwin"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Matt Hofing <-> Rebecca Robitaille",
+            "Matt Hofing <-> Brad Mayer",
+            "Niko Hoogeveen <-> Amber Soos",
+            "Adam Soos <-> Amber Soos",
+            "Hailey Irwin <-> Brendan Irwin"
+          ],
+          "roster": [
+            {
+              "name": "Brandon Canning",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matt Hofing",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brad Mayer",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Rebecca Robitaille",
+              "gender": "F",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Niko Hoogeveen",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Adam Soos",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Amber Soos",
+              "gender": "F",
+              "skill": 8.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Emilie Farr",
+              "gender": "F",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Hailey Irwin",
+              "gender": "F",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Brendan Irwin",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Christian Mueller",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Emilie Brown",
+              "gender": "F",
+              "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Brett Ormsby",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Kyle Jones",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Billy Miller",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 6",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 3.93,
+          "handlers": 7,
+          "leaders": [
+            "James Callow - male leader b",
+            "Cale Holmes - male leader b",
+            "Tracy Penley - female leader b",
+            "Joseph Doran - male leader b"
+          ],
+          "newPlayers": 3,
+          "returningPlayers": 12,
+          "youngPlayers": 2,
+          "wisePlayers": 4,
+          "mustPlayGroups": [
+            [
+              "Nadine Leiper",
+              "Alli Leiper"
+            ],
+            [
+              "Tracy Penley",
+              "Matt Tribe"
+            ],
+            [
+              "James Callow",
+              "Tristan Callow"
+            ],
+            [
+              "Ryan Sagermann",
+              "Carly Sagermann"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Tracy Penley <-> Pascale Clements",
+            "Matt Tribe <-> Pascale Clements",
+            "James Callow <-> Cale Holmes"
+          ],
+          "roster": [
+            {
+              "name": "Joe Alamshah",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "James Callow",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Cale Holmes",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Tristan Callow",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Tracy Penley",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [
+                "Female leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Matt Tribe",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Pascale Clements",
+              "gender": "F",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Joseph Doran",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ryan Sagermann",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Carly Sagermann",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Nadine Leiper",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Alli Leiper",
+              "gender": "F",
+              "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Eric Bouchard",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            },
+            {
+              "name": "Thomas Barnes",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
             },
             {
               "name": "Carden Vickers",
@@ -1575,6 +5772,376 @@ export const summer2026ExecReview = {
               "leaders": [],
               "newReturning": "returning",
               "ageBand": "standard"
+            }
+          ]
+        },
+        {
+          "name": "Team 7",
+          "size": 14,
+          "male": 10,
+          "female": 4,
+          "other": 0,
+          "averageSkill": 5.21,
+          "handlers": 7,
+          "leaders": [
+            "Kurtis Thomas - male leader b",
+            "Richmand Hogg - male leader a",
+            "Richmand Hogg - male leader b",
+            "Molly Douglas - female leader a",
+            "Andrew \"Sundance\" Black - male leader b"
+          ],
+          "newPlayers": 1,
+          "returningPlayers": 13,
+          "youngPlayers": 4,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "Kurtis Thomas",
+              "Sara Shakib"
+            ],
+            [
+              "Richmand Hogg",
+              "Molly Douglas"
+            ],
+            [
+              "Brad Dempsey",
+              "Ashish Mehra"
+            ],
+            [
+              "Lauren Grasse",
+              "Liam Crawford"
+            ],
+            [
+              "Elly Switzer",
+              "Caleb Fisher"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kurtis Thomas <-> Richmand Hogg",
+            "Richmand Hogg <-> Sara Shakib",
+            "Lauren Grasse <-> Elly Switzer",
+            "Lauren Grasse <-> Caleb Fisher",
+            "Liam Crawford <-> Elly Switzer"
+          ],
+          "roster": [
+            {
+              "name": "Kurtis Thomas",
+              "gender": "M",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Richmand Hogg",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader A",
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Molly Douglas",
+              "gender": "F",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Sara Shakib",
+              "gender": "F",
+              "skill": 1.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Andrew \"Sundance\" Black",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Lauren Grasse",
+              "gender": "F",
+              "skill": 4.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Liam Crawford",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Elly Switzer",
+              "gender": "F",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Caleb Fisher",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "young"
+            },
+            {
+              "name": "Brad Dempsey",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Ashish Mehra",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kevin Schuster",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Joseph Dunlop",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "David Humphrys",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
+            }
+          ]
+        },
+        {
+          "name": "Team 8",
+          "size": 15,
+          "male": 10,
+          "female": 5,
+          "other": 0,
+          "averageSkill": 5.0,
+          "handlers": 8,
+          "leaders": [
+            "parker munce - female leader a",
+            "Kyra Frisina - female leader a",
+            "David Tran - male leader b",
+            "Jeff Cobbledick - male leader b"
+          ],
+          "newPlayers": 2,
+          "returningPlayers": 13,
+          "youngPlayers": 3,
+          "wisePlayers": 1,
+          "mustPlayGroups": [
+            [
+              "parker munce",
+              "Kyra Frisina"
+            ],
+            [
+              "Sean Harrington",
+              "Kileigh Harrington"
+            ],
+            [
+              "Koral Freeman",
+              "Derek Davey"
+            ]
+          ],
+          "niceRequestsHonored": [
+            "Kyra Frisina <-> Cali Gurr",
+            "Finn Montgomery <-> Tate Montgomery",
+            "Cali Gurr <-> Koral Freeman",
+            "Cali Gurr <-> Derek Davey"
+          ],
+          "roster": [
+            {
+              "name": "parker munce",
+              "gender": "F",
+              "skill": 9.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Kyra Frisina",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": true,
+              "leaders": [
+                "Female leader A"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Cali Gurr",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Koral Freeman",
+              "gender": "F",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Derek Davey",
+              "gender": "M",
+              "skill": 2.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "new",
+              "ageBand": "standard"
+            },
+            {
+              "name": "David Tran",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jeff Cobbledick",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [
+                "Male leader B"
+              ],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Sean Harrington",
+              "gender": "M",
+              "skill": 8.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Kileigh Harrington",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Finn Montgomery",
+              "gender": "M",
+              "skill": 6.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Tate Montgomery",
+              "gender": "M",
+              "skill": 4.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "young"
+            },
+            {
+              "name": "Eric Good",
+              "gender": "M",
+              "skill": 7.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Will Boaks",
+              "gender": "M",
+              "skill": 5.0,
+              "handler": true,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jaclyn Kane",
+              "gender": "F",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "standard"
+            },
+            {
+              "name": "Jeffery Hoover",
+              "gender": "M",
+              "skill": 3.0,
+              "handler": false,
+              "leaders": [],
+              "newReturning": "returning",
+              "ageBand": "wise"
             }
           ]
         }

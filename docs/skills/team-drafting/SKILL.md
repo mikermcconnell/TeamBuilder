@@ -32,12 +32,14 @@ Apply this priority order:
    - Do not accept a draft with teams like 10M and 8M unless must-play or avoid constraints make the <=1 spread impossible; if that happens, report it clearly before proceeding.
 4. Spread leaders:
    - female Leader A uses `leader-a-female`; legacy `heart` labels still count as female leader coverage
+   - female Leader A supersedes female Leader B; do not keep both labels on the same player
    - male leader A uses `leader-a-male`
    - male leader B uses `leader-b-male`
    - target each team having either one male Leader A or two male Leader B players where possible
 5. Respect mutual nice-to-play requests.
    - Target honoring at least 75% of mutual nice-to-play pairs.
    - Build with mutual nice clusters when practical so these requests are not treated as afterthoughts.
+   - Break a mutual nice-to-play pairing when needed to cover a team missing a male or female leader.
    - If a variation is below 75%, treat it as not acceptable unless the report shows higher-priority constraints made the target impossible.
 6. Balance skill.
 7. Balance handlers.

@@ -446,8 +446,7 @@ function formatTeamLeaderLabels(player: DraftPlayer): string[] {
   const leaders = [];
   if (hasFemaleLeaderLabel(player)) {
     leaders.push(`${player.name} - female leader A`);
-  }
-  if (player.labels.includes('leader-b-female')) {
+  } else if (player.labels.includes('leader-b-female')) {
     leaders.push(`${player.name} - female leader B`);
   }
   if (player.labels.includes('leader-a-male')) {
@@ -463,8 +462,7 @@ function formatPlayerLeaderRoles(player: DraftPlayer): string[] {
   const leaders = [];
   if (hasFemaleLeaderLabel(player)) {
     leaders.push('Female leader A');
-  }
-  if (player.labels.includes('leader-b-female')) {
+  } else if (player.labels.includes('leader-b-female')) {
     leaders.push('Female leader B');
   }
   if (player.labels.includes('leader-a-male')) {

@@ -63,7 +63,11 @@ export function normalizePlayerLabel(label: string): string {
 }
 
 export function getPlayerLabels(player: Pick<Player, 'labels'>): PlayerLabelDisplay[] {
-  const labels = player.labels ?? [];
+  const rawLabels = player.labels ?? [];
+  const hasFemaleLeaderA = rawLabels.includes('leader-a-female') || rawLabels.includes('heart');
+  const labels = hasFemaleLeaderA
+    ? rawLabels.filter(label => label !== 'leader-b-female')
+    : rawLabels;
   const seen = new Set<string>();
 
   return labels
