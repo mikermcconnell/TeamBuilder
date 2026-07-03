@@ -759,18 +759,28 @@
     {
       "playerName": "Marianne Auger",
       "sourceColumn": "Would like to play with",
-      "inputName": "Peter Rutkauskas",
-      "status": "exact",
-      "matchedName": "Peter Rutkauskas",
-      "score": 1
+      "inputName": "Pete Rutkoaksbehevajabakus",
+      "status": "unmatched",
+      "candidates": [
+        "Peter Rutkauskas",
+        "Thomas Black",
+        "Kyle Stashuk",
+        "Thomas Barnes",
+        "Kurtis Thomas"
+      ]
     },
     {
       "playerName": "Marianne Auger",
       "sourceColumn": "Would like to play with",
-      "inputName": "Kyle Stashuk",
-      "status": "exact",
-      "matchedName": "Kyle Stashuk",
-      "score": 1
+      "inputName": "Kyle Stasiukshukaduk",
+      "status": "unmatched",
+      "candidates": [
+        "Kyle Stashuk",
+        "Kevin Schuster",
+        "Kyle Jones",
+        "Peter Rutkauskas",
+        "Kurtis Thomas"
+      ]
     },
     {
       "playerName": "Michael McConnell",
@@ -1170,18 +1180,30 @@
     {
       "playerName": "Tate Montgomery",
       "sourceColumn": "Player Requests",
-      "inputName": "Finn Montgomery",
-      "status": "exact",
-      "matchedName": "Finn Montgomery",
-      "score": 1
+      "inputName": "Finlay Montgomery",
+      "status": "ambiguous",
+      "score": 0.81,
+      "candidates": [
+        "Finn Montgomery",
+        "Billy Miller",
+        "Carly Munce",
+        "Duncan Taylor",
+        "Elly Switzer"
+      ]
     },
     {
       "playerName": "Tate Montgomery",
       "sourceColumn": "Would like to play with",
-      "inputName": "Finn Montgomery",
-      "status": "exact",
-      "matchedName": "Finn Montgomery",
-      "score": 1
+      "inputName": "Finlay Montgomery",
+      "status": "ambiguous",
+      "score": 0.81,
+      "candidates": [
+        "Finn Montgomery",
+        "Billy Miller",
+        "Carly Munce",
+        "Duncan Taylor",
+        "Elly Switzer"
+      ]
     },
     {
       "playerName": "Rebecca Robitaille",
@@ -1992,6 +2014,32 @@
       ]
     },
     {
+      "playerName": "Marianne Auger",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Pete Rutkoaksbehevajabakus",
+      "status": "unmatched",
+      "candidates": [
+        "Peter Rutkauskas",
+        "Thomas Black",
+        "Kyle Stashuk",
+        "Thomas Barnes",
+        "Kurtis Thomas"
+      ]
+    },
+    {
+      "playerName": "Marianne Auger",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Kyle Stasiukshukaduk",
+      "status": "unmatched",
+      "candidates": [
+        "Kyle Stashuk",
+        "Kevin Schuster",
+        "Kyle Jones",
+        "Peter Rutkauskas",
+        "Kurtis Thomas"
+      ]
+    },
+    {
       "playerName": "Wesley Taggart",
       "sourceColumn": "Player Requests",
       "inputName": "Bryn Davis",
@@ -2028,6 +2076,34 @@
         "Kileigh Harrington",
         "Shannon Wolochatiuk",
         "Scott O'Connor"
+      ]
+    },
+    {
+      "playerName": "Tate Montgomery",
+      "sourceColumn": "Player Requests",
+      "inputName": "Finlay Montgomery",
+      "status": "ambiguous",
+      "score": 0.81,
+      "candidates": [
+        "Finn Montgomery",
+        "Billy Miller",
+        "Carly Munce",
+        "Duncan Taylor",
+        "Elly Switzer"
+      ]
+    },
+    {
+      "playerName": "Tate Montgomery",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Finlay Montgomery",
+      "status": "ambiguous",
+      "score": 0.81,
+      "candidates": [
+        "Finn Montgomery",
+        "Billy Miller",
+        "Carly Munce",
+        "Duncan Taylor",
+        "Elly Switzer"
       ]
     },
     {
@@ -2110,16 +2186,6 @@
       "sourceColumn": "Mutual nice-to-play"
     },
     {
-      "playerName": "Kyle Stashuk",
-      "requestedName": "Marianne Auger",
-      "sourceColumn": "Mutual nice-to-play"
-    },
-    {
-      "playerName": "Peter Rutkauskas",
-      "requestedName": "Marianne Auger",
-      "sourceColumn": "Mutual nice-to-play"
-    },
-    {
       "playerName": "Tracy Penley",
       "requestedName": "Pascale Clements",
       "sourceColumn": "Mutual nice-to-play"
@@ -2195,11 +2261,6 @@
       "sourceColumn": "Mutual nice-to-play"
     },
     {
-      "playerName": "Finn Montgomery",
-      "requestedName": "Tate Montgomery",
-      "sourceColumn": "Mutual nice-to-play"
-    },
-    {
       "playerName": "Cali Gurr",
       "requestedName": "Koral Freeman",
       "sourceColumn": "Mutual nice-to-play"
@@ -2257,6 +2318,11 @@
       "sourceColumn": "Would like to play with"
     },
     {
+      "playerName": "Kyle Stashuk",
+      "requestedName": "Marianne Auger",
+      "sourceColumn": "Would like to play with"
+    },
+    {
       "playerName": "Jamie Bonany",
       "requestedName": "Luke Mackey",
       "sourceColumn": "Would like to play with"
@@ -2284,6 +2350,11 @@
     {
       "playerName": "Peter Rutkauskas",
       "requestedName": "Jamie Cable",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Peter Rutkauskas",
+      "requestedName": "Marianne Auger",
       "sourceColumn": "Would like to play with"
     },
     {
@@ -2344,6 +2415,11 @@
     {
       "playerName": "Scott O'Connor",
       "requestedName": "Lilyanna Padoin Lee",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Finn Montgomery",
+      "requestedName": "Tate Montgomery",
       "sourceColumn": "Would like to play with"
     },
     {

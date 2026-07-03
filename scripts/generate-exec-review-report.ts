@@ -11,16 +11,16 @@ import {
   validateWorkbookRowsForDrafting,
 } from './build-season-teams';
 
-const DEFAULT_WORKBOOK = 'C:/Users/Mike McConnell/Downloads/Summer2026_self_rank.xlsx';
+const DEFAULT_WORKBOOK = 'output/summer-2026/pass-9-leader-variations/summer-outdoor-2026-july-3-draft-source.csv';
 const DEFAULT_SHEET = 'Roster Self Rank';
-const DEFAULT_OUT_DIR = 'output/summer-2026/pass-4-nice75';
+const DEFAULT_OUT_DIR = 'output/summer-2026/pass-9-leader-variations';
 const DEFAULT_SRC_DATA_PATH = 'src/data/summer2026ExecReview.ts';
-const DEFAULT_JSON_PATH = 'output/summer-2026/pass-4-nice75/summer-outdoor-2026-exec-review.json';
-const DEFAULT_MARKDOWN_PATH = 'output/summer-2026/pass-4-nice75/summer-outdoor-2026-exec-review.md';
+const DEFAULT_JSON_PATH = 'output/summer-2026/pass-9-leader-variations/summer-outdoor-2026-july-3-exec-review.json';
+const DEFAULT_MARKDOWN_PATH = 'output/summer-2026/pass-9-leader-variations/summer-outdoor-2026-july-3-exec-review.md';
 const DEFAULT_PUBLIC_JSON_PATH = 'public/reports/summer-outdoor-2026-exec-review.json';
 const DEFAULT_PUBLIC_MARKDOWN_PATH = 'public/reports/summer-outdoor-2026-exec-review.md';
-const DRAFT_SEEDS = [5, 6, 7, 8];
-const VARIATION_LABELS = ['Variation A', 'Variation B', 'Variation C', 'Variation D'];
+const DRAFT_SEEDS = [2, 3, 4, 5];
+const VARIATION_LABELS = ['Variation 1', 'Variation 2', 'Variation 3', 'Variation 4'];
 
 type Gender = 'M' | 'F' | 'Other';
 
@@ -331,7 +331,7 @@ function buildExecReviewVariation(
       male: team.players.filter(player => player.gender === 'M').length,
       female: team.players.filter(player => player.gender === 'F').length,
       other: team.players.filter(player => player.gender === 'Other').length,
-      averageSkill: round2(average(team.players.map(getEffectiveSkill))),
+      averageSkill: round1(average(team.players.map(getEffectiveSkill))),
       handlers: team.players.filter(player => player.isHandler).length,
       leaders: team.players.flatMap(formatTeamLeaderLabels),
       newPlayers: team.players.filter(player => player.isNewPlayer === true).length,
@@ -488,6 +488,10 @@ function average(values: number[]): number {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 function namesEqual(left: string, right: string): boolean {

@@ -152,6 +152,7 @@ interface CliOptions {
   outDir?: string;
   maxTeamSize?: string;
   variationCount?: string;
+  draftSeeds?: string;
 }
 
 export function parseRequestedNames(value: unknown): string[] {
@@ -199,9 +200,9 @@ export function parseRosterRows(rows: WorkbookRow[]): DraftPlayer[] {
       }
       seen.add(nameKey);
 
-      const skillRating = getNumber(row, ['Self Rank', 'Skill Rating', 'Skill', 'Skill Level']);
+      const skillRating = getDraftSkillRating(row);
       if (!Number.isFinite(skillRating)) {
-        throw new Error(`Player "${name}" is missing a numeric Self Rank.`);
+        throw new Error(`Player "${name}" is missing a numeric skill rating.`);
       }
 
       const execSkillRating = getOptionalNumber(row, ['Exec Skill Rating', 'Exec']);
@@ -533,6 +534,7 @@ export async function writeDraftOutputs(input: {
   outDir: string;
   maxTeamSize?: number;
   variationCount?: number;
+  draftSeeds?: number[];
 }) {
   const rows = readWorkbookRows(input.workbookPath, input.sheetName);
   validateWorkbookRowsForDrafting(rows);
@@ -542,13 +544,18 @@ export async function writeDraftOutputs(input: {
   const rosterPath = path.join(input.outDir, `${safeSeason}-normalized-roster.csv`);
   const requestMappingPath = path.join(input.outDir, `${safeSeason}-request-mapping-audit.md`);
   const requestMappingJsonPath = path.join(input.outDir, `${safeSeason}-request-mapping-audit.json`);
-  const variationCount = Math.max(1, input.variationCount ?? 1);
-  const variations = Array.from({ length: variationCount }, (_value, index) => buildSeasonDraftFromRows({
+  const draftSeeds = input.draftSeeds && input.draftSeeds.length > 0
+    ? input.draftSeeds
+    : Array.from({ length: Math.max(1, input.variationCount ?? 1) }, (_value, index) =>
+      input.variationCount === 1 ? 0 : index + 1
+    );
+  const variationCount = draftSeeds.length;
+  const variations = draftSeeds.map((draftSeed, index) => buildSeasonDraftFromRows({
     rows,
     teamCount: input.teamCount,
     seasonName: input.seasonName,
     maxTeamSize: input.maxTeamSize,
-    draftSeed: variationCount === 1 ? 0 : index + 1,
+    draftSeed,
     variationName: variationCount === 1 ? undefined : `Variation ${index + 1}`,
   }));
   const result = variations[0];
@@ -1632,6 +1639,44 @@ function getNumber(row: WorkbookRow, candidates: string[]): number {
   return Number.parseFloat(getString(row, candidates));
 }
 
+function getDraftSkillRating(row: WorkbookRow): number {
+  const explicitSkillRating = getNumber(row, ['Self Rank', 'Skill Rating', 'Skill']);
+  if (Number.isFinite(explicitSkillRating)) {
+    return explicitSkillRating;
+  }
+
+  const registrationSkillRating = getRegistrationSelfRank(row);
+  if (Number.isFinite(registrationSkillRating)) {
+    return registrationSkillRating;
+  }
+
+  return getNumber(row, ['Skill Level']);
+}
+
+function getRegistrationSelfRank(row: WorkbookRow): number {
+  const components = [
+    { columns: ['Skill Level'], max: 10 },
+    { columns: ['Speed'], max: 5 },
+    { columns: ['Throwing'], max: 7 },
+    { columns: ['Defence', 'Defense'], max: 5 },
+    { columns: ['Handling'], max: 5 },
+    { columns: ['Offense', 'Offence'], max: 5 },
+    { columns: ['Division Level'], max: 6 },
+  ];
+
+  const normalizedScores = components.map(component => {
+    const rawValue = getNumber(row, component.columns);
+    return Number.isFinite(rawValue) ? (rawValue / component.max) * 10 : null;
+  });
+
+  if (normalizedScores.some(score => score === null)) {
+    return Number.NaN;
+  }
+
+  const scores = normalizedScores.filter((score): score is number => score !== null);
+  return Math.round((scores.reduce((sum, score) => sum + score, 0) / scores.length) * 10) / 10;
+}
+
 function getOptionalNumber(row: WorkbookRow, candidates: string[]): number | null {
   const value = Number.parseFloat(getString(row, candidates));
   return Number.isFinite(value) ? value : null;
@@ -1866,9 +1911,12 @@ async function main() {
   const teamCount = Number.parseInt(options.teamCount ?? '', 10);
   const maxTeamSize = options.maxTeamSize ? Number.parseInt(options.maxTeamSize, 10) : undefined;
   const variationCount = options.variationCount ? Number.parseInt(options.variationCount, 10) : undefined;
+  const draftSeeds = options.draftSeeds
+    ? options.draftSeeds.split(',').map(seed => Number.parseInt(seed.trim(), 10)).filter(Number.isInteger)
+    : undefined;
 
   if (!options.workbook || !Number.isInteger(teamCount) || !options.season || !options.outDir) {
-    console.error('Usage: pnpm tsx scripts/build-season-teams.ts --workbook <xlsx> --team-count <n> --season <name> --out-dir <dir> [--sheet "Roster Self Rank"] [--variation-count <n>]');
+    console.error('Usage: pnpm tsx scripts/build-season-teams.ts --workbook <xlsx> --team-count <n> --season <name> --out-dir <dir> [--sheet "Roster Self Rank"] [--variation-count <n>] [--draft-seeds 2,3,4,5]');
     process.exitCode = 1;
     return;
   }
@@ -1881,6 +1929,7 @@ async function main() {
     outDir: options.outDir,
     maxTeamSize,
     variationCount,
+    draftSeeds,
   });
 
   console.log(`Roster CSV: ${output.rosterPath}`);

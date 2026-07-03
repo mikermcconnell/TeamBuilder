@@ -282,114 +282,54 @@
     "maleSpread": 0,
     "femaleSpread": 1,
     "genderSpreadViolations": 0,
-    "skillSpread": 1,
+    "skillSpread": 0.93,
     "handlerSpread": 3,
     "femaleLeaderTeams": 8,
     "maleLeaderCoveredTeams": 8,
-    "niceToPlayHonored": 29,
-    "niceToPlayBroken": 3,
-    "niceToPlayTotal": 32,
-    "niceToPlayHonorRate": 0.91,
+    "niceToPlayHonored": 24,
+    "niceToPlayBroken": 5,
+    "niceToPlayTotal": 29,
+    "niceToPlayHonorRate": 0.83,
     "niceToPlayTargetMet": true,
-    "newPlayerSpread": 2,
+    "newPlayerSpread": 4,
     "youngPlayerSpread": 5,
-    "wisePlayerSpread": 6,
+    "wisePlayerSpread": 7,
     "avoidViolations": 0,
     "hardGroupViolations": 0
   },
   "requestMapping": {
     "autoMatchedRequests": 18,
-    "reviewNeededRequests": 9,
-    "niceToPlayMappings": 32,
-    "ignoredOneWayNiceRequests": 28
+    "reviewNeededRequests": 13,
+    "niceToPlayMappings": 29,
+    "ignoredOneWayNiceRequests": 31
   },
   "teams": [
     {
       "name": "Team 1",
       "players": [
-        "Eric Bouchard",
-        "Xena Cochi",
-        "Charlie Tardif",
+        "Tate Montgomery",
         "Ben Kleiser",
-        "John Nigh",
-        "Matt Simon",
-        "Levi Taylor",
-        "Duncan Taylor",
-        "Kristy Robinson",
-        "Andy Beecroft",
-        "David Tran",
-        "Shannon Wolochatiuk",
-        "Scott Patrick",
-        "Nadine Leiper",
-        "Alli Leiper"
-      ]
-    },
-    {
-      "name": "Team 2",
-      "players": [
-        "Wesley Taggart",
-        "Julianna Lerch",
-        "Paul Marjin",
-        "Brandon Canning",
+        "Olivia Evans",
         "Stephen Hawley",
         "Curtis Reason",
         "Tracy Penley",
         "Matt Tribe",
         "Pascale Clements",
-        "Emilie Farr",
-        "Hailey Irwin",
-        "Brendan Irwin",
-        "Finn Montgomery",
-        "Tate Montgomery",
-        "Dayson Bress"
-      ]
-    },
-    {
-      "name": "Team 3",
-      "players": [
-        "Brett Ormsby",
-        "Neil Bond",
-        "Carden Vickers",
-        "parker munce",
-        "Kyra Frisina",
-        "Cali Gurr",
-        "Koral Freeman",
-        "Derek Davey",
-        "Jeff Cobbledick",
-        "Andrew \"Sundance\" Black",
+        "Joseph Doran",
         "Sean Harrington",
         "Kileigh Harrington",
         "Ryan Sagermann",
         "Carly Sagermann",
-        "Luke Mackey"
-      ]
-    },
-    {
-      "name": "Team 4",
-      "players": [
-        "Courtney Hough",
-        "Ryan Bridge",
-        "Jeffery Hoover",
-        "Joe Alamshah",
-        "Matt Hofing",
-        "Brad Mayer",
-        "Rebecca Robitaille",
-        "Patrick Kirkwood",
-        "Kyle Stashuk",
-        "Peter Rutkauskas",
-        "Jamie Cable",
-        "Marianne Auger",
-        "Darren Brazier",
-        "Maisy Brazier",
+        "Luke Mackey",
         "Taylor Stanojev"
       ]
     },
     {
-      "name": "Team 5",
+      "name": "Team 2",
       "players": [
-        "Joseph Dunlop",
+        "Will Boaks",
         "Jaclyn Kane",
-        "David Pietrowski",
+        "Kyle Jones",
         "James Callow",
         "Cale Holmes",
         "Tristan Callow",
@@ -401,35 +341,75 @@
         "Caleb Fisher",
         "Christian Mueller",
         "Emilie Brown",
-        "Eric Good"
+        "Eric Bouchard"
+      ]
+    },
+    {
+      "name": "Team 3",
+      "players": [
+        "Xena Cochi",
+        "Ryan Bridge",
+        "Carden Vickers",
+        "John Nigh",
+        "Matt Simon",
+        "Levi Taylor",
+        "Duncan Taylor",
+        "Pierce Munce",
+        "Emma Hanney",
+        "Chris Tillmanns",
+        "Julie Tillmanns",
+        "Charlee Tillmanns",
+        "Spencer Brown",
+        "Cole Monteith",
+        "Courtney Hough"
+      ]
+    },
+    {
+      "name": "Team 4",
+      "players": [
+        "Jamie Bonany",
+        "Jeffery Hoover",
+        "Mat MacLean",
+        "Matt Hofing",
+        "Brad Mayer",
+        "Rebecca Robitaille",
+        "Niko Hoogeveen",
+        "Adam Soos",
+        "Amber Soos",
+        "Emilie Farr",
+        "Hailey Irwin",
+        "Brendan Irwin",
+        "Darren Brazier",
+        "Maisy Brazier",
+        "Wesley Taggart"
+      ]
+    },
+    {
+      "name": "Team 5",
+      "players": [
+        "Joseph Dunlop",
+        "Thomas Barnes",
+        "Charlie Tardif",
+        "parker munce",
+        "Kyra Frisina",
+        "Cali Gurr",
+        "Koral Freeman",
+        "Derek Davey",
+        "Jeff Cobbledick",
+        "Andrew \"Sundance\" Black",
+        "Shannon Wolochatiuk",
+        "Scott Patrick",
+        "Nate Smith",
+        "Frank Smith",
+        "Finn Montgomery"
       ]
     },
     {
       "name": "Team 6",
       "players": [
-        "Will Boaks",
-        "Thomas Barnes",
-        "Olivia Evans",
-        "Carly Munce",
-        "Thomas Black",
-        "Niko Hoogeveen",
-        "Adam Soos",
-        "Amber Soos",
-        "Joseph Doran",
-        "Geno Bornea",
-        "Chris Tillmanns",
-        "Julie Tillmanns",
-        "Charlee Tillmanns",
-        "Spencer Brown",
-        "Cole Monteith"
-      ]
-    },
-    {
-      "name": "Team 7",
-      "players": [
-        "Jamie Bonany",
-        "David Humphrys",
-        "Stephen Fisher",
+        "Billy Miller",
+        "David Pietrowski",
+        "Brandon Canning",
         "Brianna Hall",
         "Michael McConnell",
         "Robin Mennie",
@@ -437,29 +417,49 @@
         "Aiden Courville",
         "Colton Courville",
         "Sarah Butt",
-        "Emma Hanney",
         "Brad Dempsey",
         "Ashish Mehra",
-        "Kevin Schuster"
+        "Nadine Leiper",
+        "Alli Leiper",
+        "Dayson Bress"
+      ]
+    },
+    {
+      "name": "Team 7",
+      "players": [
+        "Stephen Fisher",
+        "Paul Marjin",
+        "Joe Alamshah",
+        "Kurtis Thomas",
+        "Richmand Hogg",
+        "Molly Douglas",
+        "Sara Shakib",
+        "David Tran",
+        "Kole O'C",
+        "Scott O'Connor",
+        "Leah Potje",
+        "Lilyanna Padoin Lee",
+        "Eric Good",
+        "Brett Ormsby"
       ]
     },
     {
       "name": "Team 8",
       "players": [
-        "Kyle Jones",
-        "Billy Miller",
-        "Mat MacLean",
-        "Kurtis Thomas",
-        "Richmand Hogg",
-        "Molly Douglas",
-        "Sara Shakib",
-        "Pierce Munce",
-        "Kole O'C",
-        "Scott O'Connor",
-        "Leah Potje",
-        "Lilyanna Padoin Lee",
-        "Nate Smith",
-        "Frank Smith"
+        "Julianna Lerch",
+        "Neil Bond",
+        "David Humphrys",
+        "Carly Munce",
+        "Thomas Black",
+        "Kristy Robinson",
+        "Andy Beecroft",
+        "Patrick Kirkwood",
+        "Geno Bornea",
+        "Kyle Stashuk",
+        "Peter Rutkauskas",
+        "Jamie Cable",
+        "Marianne Auger",
+        "Kevin Schuster"
       ]
     }
   ]

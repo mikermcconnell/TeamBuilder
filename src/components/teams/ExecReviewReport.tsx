@@ -115,7 +115,7 @@ function TeamSnapshotCard({ team }: { team: ExecReviewTeam }) {
         <header className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h3 className="truncate text-xl font-black text-slate-950">{team.name}</h3>
-            <p className="mt-1 text-sm text-slate-500">{team.size} players · Avg skill {team.averageSkill.toFixed(2)}</p>
+            <p className="mt-1 text-sm text-slate-500">{team.size} players · Avg skill {team.averageSkill.toFixed(1)}</p>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-center shadow-sm"><div className="text-[10px] font-black text-slate-500">F</div><div className="font-black text-slate-950">{team.female}</div></div>
@@ -170,7 +170,7 @@ function TeamPlayerRows({ team }: { team: ExecReviewTeam }) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle className="text-lg">{team.name}</CardTitle>
-            <CardDescription>{team.size} players · {team.male}M/{team.female}F · Avg skill {team.averageSkill.toFixed(2)} · {team.handlers} handlers</CardDescription>
+            <CardDescription>{team.size} players · {team.male}M/{team.female}F · Avg skill {team.averageSkill.toFixed(1)} · {team.handlers} handlers</CardDescription>
           </div>
           <Badge variant="outline">{team.niceRequestsHonored.length} nice honoured</Badge>
         </div>

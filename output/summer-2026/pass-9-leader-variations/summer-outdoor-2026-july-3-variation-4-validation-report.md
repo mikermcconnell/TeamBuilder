@@ -13,77 +13,77 @@ Hard rules: PASS
 - Gender spread violations: 0
 - Female leader teams: 8/8
 - Male leader covered teams: 8/8
-- Skill spread: 1.73
-- Handler spread: 3
-- Mutual nice-to-play honored/broken: 27/5
-- Mutual nice-to-play honor rate: 84%
+- Skill spread: 0.46
+- Handler spread: 2
+- Mutual nice-to-play honored/broken: 24/5
+- Mutual nice-to-play honor rate: 83%
 - Mutual nice-to-play 75% target: PASS
-- New player spread: 2
-- Young player spread: 4
-- Wise player spread: 5
+- New player spread: 3
+- Young player spread: 6
+- Wise player spread: 4
 
 ## Teams
 
 ### Team 1
 
-- Players: 15
-- Gender: 10M / 5F
-- Avg skill: 4.33
+- Players: 14
+- Gender: 10M / 4F
+- Avg skill: 5.95
 - Handlers: 5
-- Roster: Olivia Evans, Brianna Hall, Michael McConnell, Robin Mennie, Cody Sinkinson, Aiden Courville, Colton Courville, Sarah Butt, Shannon Wolochatiuk, Scott Patrick, Nate Smith, Frank Smith, Wesley Taggart, Ryan Bridge, Charlie Tardif
+- Roster: Charlie Tardif, John Nigh, Matt Simon, Levi Taylor, Duncan Taylor, Kristy Robinson, Andy Beecroft, Patrick Kirkwood, Brad Dempsey, Ashish Mehra, Luke Mackey, Taylor Stanojev, Xena Cochi, Julianna Lerch
 
 ### Team 2
 
 - Players: 15
 - Gender: 10M / 5F
-- Avg skill: 4.80
+- Avg skill: 5.49
 - Handlers: 7
-- Roster: Stephen Fisher, Carly Munce, Thomas Black, Pierce Munce, Emma Hanney, Geno Bornea, Kole O'C, Scott O'Connor, Leah Potje, Lilyanna Padoin Lee, Spencer Brown, Cole Monteith, Taylor Stanojev, Neil Bond, Paul Marjin
+- Roster: Brandon Canning, Stephen Hawley, Curtis Reason, Tracy Penley, Matt Tribe, Pascale Clements, Emma Hanney, Chris Tillmanns, Julie Tillmanns, Charlee Tillmanns, Eric Good, Kevin Schuster, Jamie Bonany, Kyle Jones, Mat MacLean
 
 ### Team 3
 
-- Players: 14
-- Gender: 10M / 4F
-- Avg skill: 5.14
+- Players: 15
+- Gender: 10M / 5F
+- Avg skill: 5.79
 - Handlers: 6
-- Roster: Mat MacLean, Stephen Hawley, Curtis Reason, Caitlind Lusty, Matthew Lynar, Kyle Stashuk, Peter Rutkauskas, Jamie Cable, Marianne Auger, Darren Brazier, Maisy Brazier, Luke Mackey, Jamie Bonany, Julianna Lerch
+- Roster: Joe Alamshah, Carly Munce, Thomas Black, Pierce Munce, Joseph Doran, Kole O'C, Scott O'Connor, Leah Potje, Lilyanna Padoin Lee, Darren Brazier, Maisy Brazier, Eric Bouchard, Billy Miller, Neil Bond, Jaclyn Kane
 
 ### Team 4
 
 - Players: 15
 - Gender: 10M / 5F
-- Avg skill: 4.73
-- Handlers: 6
-- Roster: Ben Kleiser, John Nigh, Matt Simon, Levi Taylor, Duncan Taylor, Kristy Robinson, Andy Beecroft, Patrick Kirkwood, Chris Tillmanns, Julie Tillmanns, Charlee Tillmanns, Dayson Bress, Courtney Hough, Xena Cochi, David Pietrowski
+- Avg skill: 5.61
+- Handlers: 7
+- Roster: Kurtis Thomas, Richmand Hogg, Molly Douglas, Sara Shakib, Andrew "Sundance" Black, Kyle Stashuk, Peter Rutkauskas, Jamie Cable, Marianne Auger, Nate Smith, Frank Smith, Courtney Hough, Stephen Fisher, Ben Kleiser, Olivia Evans
 
 ### Team 5
 
-- Players: 15
-- Gender: 10M / 5F
-- Avg skill: 5.67
-- Handlers: 5
-- Roster: Brandon Canning, Matt Hofing, Brad Mayer, Rebecca Robitaille, Niko Hoogeveen, Adam Soos, Amber Soos, Emilie Farr, Hailey Irwin, Brendan Irwin, Christian Mueller, Emilie Brown, Brett Ormsby, Kyle Jones, Billy Miller
+- Players: 14
+- Gender: 10M / 4F
+- Avg skill: 5.57
+- Handlers: 6
+- Roster: parker munce, Kyra Frisina, Cali Gurr, Koral Freeman, Derek Davey, David Tran, Jeff Cobbledick, Sean Harrington, Kileigh Harrington, Spencer Brown, Cole Monteith, Brett Ormsby, Tate Montgomery, Carden Vickers
 
 ### Team 6
 
 - Players: 15
 - Gender: 10M / 5F
-- Avg skill: 3.93
-- Handlers: 7
-- Roster: Joe Alamshah, James Callow, Cale Holmes, Tristan Callow, Tracy Penley, Matt Tribe, Pascale Clements, Joseph Doran, Ryan Sagermann, Carly Sagermann, Nadine Leiper, Alli Leiper, Eric Bouchard, Thomas Barnes, Carden Vickers
+- Avg skill: 5.52
+- Handlers: 6
+- Roster: Brianna Hall, Michael McConnell, Robin Mennie, Cody Sinkinson, Aiden Courville, Colton Courville, Sarah Butt, Shannon Wolochatiuk, Scott Patrick, Ryan Sagermann, Carly Sagermann, Dayson Bress, Wesley Taggart, Paul Marjin, David Humphrys
 
 ### Team 7
 
-- Players: 14
-- Gender: 10M / 4F
-- Avg skill: 5.21
+- Players: 15
+- Gender: 10M / 5F
+- Avg skill: 5.90
 - Handlers: 7
-- Roster: Kurtis Thomas, Richmand Hogg, Molly Douglas, Sara Shakib, Andrew "Sundance" Black, Lauren Grasse, Liam Crawford, Elly Switzer, Caleb Fisher, Brad Dempsey, Ashish Mehra, Kevin Schuster, Joseph Dunlop, David Humphrys
+- Roster: Matt Hofing, Brad Mayer, Rebecca Robitaille, Niko Hoogeveen, Adam Soos, Amber Soos, Geno Bornea, Emilie Farr, Hailey Irwin, Brendan Irwin, Christian Mueller, Emilie Brown, Will Boaks, Ryan Bridge, Thomas Barnes
 
 ### Team 8
 
 - Players: 15
 - Gender: 10M / 5F
-- Avg skill: 5.00
-- Handlers: 8
-- Roster: parker munce, Kyra Frisina, Cali Gurr, Koral Freeman, Derek Davey, David Tran, Jeff Cobbledick, Sean Harrington, Kileigh Harrington, Finn Montgomery, Tate Montgomery, Eric Good, Will Boaks, Jaclyn Kane, Jeffery Hoover
+- Avg skill: 5.65
+- Handlers: 7
+- Roster: James Callow, Cale Holmes, Tristan Callow, Caitlind Lusty, Matthew Lynar, Lauren Grasse, Liam Crawford, Elly Switzer, Caleb Fisher, Nadine Leiper, Alli Leiper, Finn Montgomery, Joseph Dunlop, David Pietrowski, Jeffery Hoover

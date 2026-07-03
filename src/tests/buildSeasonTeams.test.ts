@@ -37,12 +37,15 @@ describe('build-season-teams', () => {
       '11',
       '--variation-count',
       '4',
+      '--draft-seeds',
+      '2,3,4,5',
     ])).toMatchObject({
       workbook: 'roster.xlsx',
       teamCount: '10',
       outDir: 'output/summer',
       maxTeamSize: '11',
       variationCount: '4',
+      draftSeeds: '2,3,4,5',
     });
   });
 
@@ -180,6 +183,28 @@ describe('build-season-teams', () => {
       name: 'Bob Jones',
       skillRating: 5,
       isHandler: false,
+    });
+  });
+
+  it('calculates one-decimal registration self rank when all scoring components are present', () => {
+    const players = parseRosterRows([
+      {
+        first_name: 'Alice',
+        last_name: 'Smith',
+        gender: 'female',
+        'Skill Level': '7. Competitive league player',
+        Speed: '4. Faster than most',
+        Throwing: '5. Very good basic throws',
+        Defence: '3. Can stay with the play',
+        Handling: "4. I'm comfortable handling",
+        Offense: '3. Can make decent cuts',
+        'Division Level': '2. Intermediate League',
+      },
+    ]);
+
+    expect(players[0]).toMatchObject({
+      name: 'Alice Smith',
+      skillRating: 6.5,
     });
   });
 

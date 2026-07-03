@@ -19,7 +19,9 @@ Use this repo-only skill whenever Mike asks to build teams, draft teams, balance
    - `Handler`
    - `New/Returning`
 4. Use `Self Rank` as the default skill rating, not `Self Rank No Division`.
-5. Use `Exec Skill Rating` instead of `Self Rank` only when an explicit exec rating is present.
+5. For registration exports without `Self Rank`, calculate skill from columns H, I, J, K, L, M, and P: normalize each question to 10 and average them.
+6. Do not include Rules or Experience in that calculated skill.
+7. Do not use `Exec Skill Rating` for Summer Outdoor 2026 unless Mike explicitly asks for it.
 
 ## Drafting rules
 
@@ -60,6 +62,7 @@ Before drafting, calculate the ideal team-size and gender-count bands from the r
 - `Male Leader Tier`: `A` or `B`.
 - `Handler`: yes/no.
 - `New/Returning`: `new` or `returning`.
+- Registration-export skill formula: use `Skill Level`, `Speed`, `Throwing`, `Defence`, `Handling`, `Offense`, and `Division Level`; exclude `Rules` and `Experience`.
 - Young means age `<= 21`; wise means age `>= 44`.
 
 If a hard group is larger than the target team size, stop and report it. Do not split it. If a hard group contains an avoid conflict, stop and report it.

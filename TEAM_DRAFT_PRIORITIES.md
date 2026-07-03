@@ -36,7 +36,10 @@ Use this sequence when generating teams:
    - A draft below 75% is not acceptable unless higher-priority constraints make the target impossible.
 
 5. **Balance skill level**  
-   - Use available skill inputs, including exec ratings when present.
+   - For Summer Outdoor 2026, use the registration questions normalized to 10 and averaged.
+   - Include Skill Level, Speed, Throwing, Defence, Handling, Offense, and Division Level.
+   - Do not include Rules or Experience.
+   - Do not use exec ratings unless Mike explicitly asks for them.
 
 6. **Balance handlers**  
    - Spread handlers as evenly as possible after the higher priorities are satisfied.

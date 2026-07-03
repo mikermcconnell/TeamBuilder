@@ -3,10 +3,10 @@
 ## Summary
 
 - Hard must-play groups: 34
-- Mutual nice-to-play mappings: 32
-- Ignored one-way nice-to-play requests: 28
+- Mutual nice-to-play mappings: 29
+- Ignored one-way nice-to-play requests: 31
 - Auto-matched spelling/name variants: 18
-- Needs review: 9
+- Needs review: 13
 
 ## Hard must-play groups
 
@@ -70,9 +70,13 @@
 
 - Kyle Jones (Would like to play with): "cam Knox" [unmatched]. Candidates: Carly Munce, Adam Soos, Richmand Hogg, Cody Sinkinson, Cale Holmes
 - Courtney Hough (Player Requests): "Kate Bromenshenkel" [unmatched]. Candidates: Stephen Hawley, Robin Mennie, Caleb Fisher, Kristy Robinson, Kevin Schuster
+- Marianne Auger (Would like to play with): "Pete Rutkoaksbehevajabakus" [unmatched]. Candidates: Peter Rutkauskas, Thomas Black, Kyle Stashuk, Thomas Barnes, Kurtis Thomas
+- Marianne Auger (Would like to play with): "Kyle Stasiukshukaduk" [unmatched]. Candidates: Kyle Stashuk, Kevin Schuster, Kyle Jones, Peter Rutkauskas, Kurtis Thomas
 - Wesley Taggart (Player Requests): "Bryn Davis" [unmatched]. Candidates: Brendan Irwin, Brandon Canning, Derek Davey, Brianna Hall, Brad Dempsey
 - Brad Dempsey (Would like to play with): "Christy hofing" [unmatched]. Candidates: Matt Hofing, Kristy Robinson, Chris Tillmanns, Kurtis Thomas, Hailey Irwin
 - Maisy Brazier (Do_Not_Play): "Please email bulconvenor@gmail.com with the player. Reason disclosure not required." [unmatched]. Candidates: Lilyanna Padoin Lee, Pascale Clements, Kileigh Harrington, Shannon Wolochatiuk, Scott O'Connor
+- Tate Montgomery (Player Requests): "Finlay Montgomery" [ambiguous]. Candidates: Finn Montgomery, Billy Miller, Carly Munce, Duncan Taylor, Elly Switzer
+- Tate Montgomery (Would like to play with): "Finlay Montgomery" [ambiguous]. Candidates: Finn Montgomery, Billy Miller, Carly Munce, Duncan Taylor, Elly Switzer
 - Brett Ormsby (Would like to play with): "Erik Vurma" [unmatched]. Candidates: Eric Bouchard, Peter Rutkauskas, Kurtis Thomas, Eric Good, Derek Davey
 - Spencer Brown (Would like to play with): "Jeremey Blondell" [unmatched]. Candidates: Michael McConnell, Jamie Bonany, Jeff Cobbledick, Neil Bond, Jeffery Hoover
 - Cole Monteith (Would like to play with): "Jeremy Blondell" [unmatched]. Candidates: Michael McConnell, Neil Bond, Jeffery Hoover, Rebecca Robitaille, Carly Munce
@@ -85,8 +89,6 @@
 - Chris Tillmanns <-> Charlee Tillmanns
 - Chris Tillmanns <-> Julie Tillmanns
 - Kyle Stashuk <-> Jamie Cable
-- Kyle Stashuk <-> Marianne Auger
-- Peter Rutkauskas <-> Marianne Auger
 - Tracy Penley <-> Pascale Clements
 - Brianna Hall <-> Robin Mennie
 - Matt Tribe <-> Pascale Clements
@@ -102,7 +104,6 @@
 - Levi Taylor <-> Sean Harrington
 - Kole O'C <-> Lilyanna Padoin Lee
 - Adam Soos <-> Amber Soos
-- Finn Montgomery <-> Tate Montgomery
 - Cali Gurr <-> Koral Freeman
 - Cali Gurr <-> Derek Davey
 - Luke Mackey <-> Derek Davey
@@ -117,12 +118,14 @@
 
 - Caitlind Lusty -> Matt Hofing
 - Nadine Leiper -> Julie Tillmanns
+- Kyle Stashuk -> Marianne Auger
 - Jamie Bonany -> Luke Mackey
 - Jamie Bonany -> Cali Gurr
 - Brad Mayer -> Molly Douglas
 - Kyle Jones -> Liam Crawford
 - Scott Patrick -> Jamie Bonany
 - Peter Rutkauskas -> Jamie Cable
+- Peter Rutkauskas -> Marianne Auger
 - Brianna Hall -> Cody Sinkinson
 - Kurtis Thomas -> Molly Douglas
 - John Nigh -> Sean Harrington
@@ -135,6 +138,7 @@
 - Maisy Brazier -> Sean Harrington
 - Alli Leiper -> Charlee Tillmanns
 - Scott O'Connor -> Lilyanna Padoin Lee
+- Finn Montgomery -> Tate Montgomery
 - Luke Mackey -> Cali Gurr
 - Brett Ormsby -> Sean Harrington
 - Sara Shakib -> Molly Douglas

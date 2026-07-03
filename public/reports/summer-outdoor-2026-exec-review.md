@@ -1,846 +1,547 @@
-# Summer Outdoor 2026 July 3 Exec Draft Review
+# Summer Outdoor 2026 Exec Draft Review
 
-Generated: 2026-07-03T14:49:27.575748Z
+Generated: 2026-07-03T15:31:48.610Z
 
 ## Executive summary
 
 - Players: 118 (80M / 38F / 0O)
 - Teams: 8
-- Mutual nice-to-have requests: 32
-- Female Leader A: 8
-- Female Leader B: 2
-- Male Leader A: 2
-- Male Leader B: 19
+- Nice-to-have requests: 29
+- Ignored one-way nice requests: 31
 
 ## Variation comparison
 
-| Variation | Hard rules | Nice requests honoured | Gender balance | Skill spread | Handler spread | Female leaders | Male leaders |
+| Variation | Must-play groups | Nice requests honoured | Gender balance | Skill spread | Handler spread | Female leaders | Male leaders |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Variation 1 | PASS | 29/32 (91%) | 0M / 1F spread | 1.00 | 3 | 8/8 | 8/8 |
-| Variation 2 | PASS | 29/32 (91%) | 0M / 1F spread | 0.54 | 3 | 8/8 | 8/8 |
-| Variation 3 | PASS | 29/32 (91%) | 0M / 1F spread | 0.73 | 5 | 8/8 | 8/8 |
-| Variation 4 | PASS | 27/32 (84%) | 0M / 1F spread | 1.73 | 3 | 8/8 | 8/8 |
+| Variation 1 | Kept | 24/29 (83%) | 0M / 1F spread | 0.93 | 3 | 8/8 teams | 8/8 teams |
+| Variation 2 | Kept | 24/29 (83%) | 0M / 1F spread | 0.56 | 3 | 8/8 teams | 8/8 teams |
+| Variation 3 | Kept | 24/29 (83%) | 0M / 1F spread | 0.60 | 3 | 8/8 teams | 8/8 teams |
+| Variation 4 | Kept | 24/29 (83%) | 0M / 1F spread | 0.46 | 2 | 8/8 teams | 8/8 teams |
 
 ## Variation 1
 
-- Nice-to-have requests honoured: 29/32 (91%)
+- Must-play groups: Kept together
+- Nice-to-have requests honoured: 24/29 (83%)
 - Female leaders: 8/8 teams
 - Male leaders: 8/8 teams
-- Skill spread: 1.00
+- Skill spread: 0.93
 - Handler spread: 3
 
-### Team 1
+### Player rows
 
-- Players: 15 (10M / 5F)
-- Avg skill: 4.73
-- Handlers: 6
-- Nice requests honoured: 1
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Eric Bouchard | M | 6.0 | Yes |  | returning | wise |
-| Xena Cochi | F | 4.0 | No |  | returning | standard |
-| Charlie Tardif | M | 3.0 | No |  | returning | standard |
-| Ben Kleiser | M | 3.0 | No |  | new | standard |
-| John Nigh | M | 5.0 | No |  | returning | standard |
-| Matt Simon | M | 7.0 | Yes |  | returning | young |
-| Levi Taylor | M | 8.0 | Yes | Male leader B | returning | young |
-| Duncan Taylor | M | 3.0 | Yes |  | new | wise |
-| Kristy Robinson | F | 4.0 | No | Female leader A | returning | wise |
-| Andy Beecroft | M | 4.0 | No |  | returning | wise |
-| David Tran | M | 8.0 | Yes | Male leader B | returning | standard |
-| Shannon Wolochatiuk | F | 4.0 | No |  | returning | standard |
-| Scott Patrick | M | 7.0 | Yes |  | returning | standard |
-| Nadine Leiper | F | 4.0 | No |  | returning | wise |
-| Alli Leiper | F | 1.0 | No |  | new | young |
-
-### Team 2
-
-- Players: 15 (10M / 5F)
-- Avg skill: 5.13
-- Handlers: 5
-- Nice requests honoured: 4
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Wesley Taggart | M | 6.0 | Yes |  | returning | standard |
-| Julianna Lerch | F | 4.0 | No |  | returning | wise |
-| Paul Marjin | M | 3.0 | No |  | returning | standard |
-| Brandon Canning | M | 2.0 | No |  | new | standard |
-| Stephen Hawley | M | 8.0 | Yes | Male leader B | returning | standard |
-| Curtis Reason | M | 8.0 | Yes | Male leader B | returning | standard |
-| Tracy Penley | F | 4.0 | No | Female leader B | returning | standard |
-| Matt Tribe | M | 6.0 | Yes |  | returning | standard |
-| Pascale Clements | F | 2.0 | No |  | returning | standard |
-| Emilie Farr | F | 7.0 | No |  | returning | young |
-| Hailey Irwin | F | 7.0 | No |  | returning | young |
-| Brendan Irwin | M | 3.0 | No |  | new | young |
-| Finn Montgomery | M | 6.0 | Yes |  | returning | young |
-| Tate Montgomery | M | 4.0 | No |  | returning | young |
-| Dayson Bress | M | 7.0 | No |  | returning | young |
-
-### Team 3
-
-- Players: 15 (10M / 5F)
-- Avg skill: 5.00
-- Handlers: 7
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Brett Ormsby | M | 6.0 | No |  | returning | young |
-| Neil Bond | M | 4.0 | No |  | returning | standard |
-| Carden Vickers | M | 3.0 | No |  | returning | standard |
-| parker munce | F | 9.0 | Yes | Female leader A | returning | standard |
-| Kyra Frisina | F | 3.0 | Yes | Female leader A | returning | standard |
-| Cali Gurr | F | 3.0 | No |  | returning | standard |
-| Koral Freeman | F | 2.0 | No |  | new | standard |
-| Derek Davey | M | 2.0 | No |  | new | standard |
-| Jeff Cobbledick | M | 7.0 | Yes | Male leader B | returning | standard |
-| Andrew "Sundance" Black | M | 5.0 | Yes | Male leader B | returning | standard |
-| Sean Harrington | M | 8.0 | Yes |  | returning | young |
-| Kileigh Harrington | M | 5.0 | No |  | returning | standard |
-| Ryan Sagermann | M | 7.0 | Yes |  | returning | standard |
-| Carly Sagermann | F | 4.0 | No |  | new | standard |
-| Luke Mackey | M | 7.0 | Yes |  | returning | standard |
-
-### Team 4
-
-- Players: 15 (10M / 5F)
-- Avg skill: 5.33
-- Handlers: 6
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Courtney Hough | F | 5.0 | Yes |  | returning | standard |
-| Ryan Bridge | M | 4.0 | No |  | returning | standard |
-| Jeffery Hoover | M | 3.0 | No |  | returning | wise |
-| Joe Alamshah | M | 2.0 | No |  | new | standard |
-| Matt Hofing | M | 9.0 | Yes | Male leader B | returning | standard |
-| Brad Mayer | M | 8.0 | Yes |  | returning | wise |
-| Rebecca Robitaille | F | 9.0 | Yes | Female leader A | returning | standard |
-| Patrick Kirkwood | M | 9.0 | Yes | Male leader B | returning | standard |
-| Kyle Stashuk | M | 6.0 | No |  | returning | wise |
-| Peter Rutkauskas | M | 3.0 | No |  | returning | wise |
-| Jamie Cable | M | 5.0 | Yes |  | returning | standard |
-| Marianne Auger | F | 3.0 | No |  | returning | wise |
-| Darren Brazier | M | 3.0 | No |  | returning | wise |
-| Maisy Brazier | F | 5.0 | No |  | returning | young |
-| Taylor Stanojev | F | 6.0 | No |  | returning | standard |
-
-### Team 5
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.33
-- Handlers: 7
-- Nice requests honoured: 4
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Joseph Dunlop | M | 5.0 | No |  | returning | standard |
-| Jaclyn Kane | F | 3.0 | No |  | returning | standard |
-| David Pietrowski | M | 3.0 | Yes |  | returning | wise |
-| James Callow | M | 7.0 | Yes | Male leader B | returning | wise |
-| Cale Holmes | M | 4.0 | Yes | Male leader B | returning | standard |
-| Tristan Callow | M | 2.0 | No |  | returning | young |
-| Caitlind Lusty | F | 10.0 | Yes | Female leader A | returning | standard |
-| Matthew Lynar | M | 3.0 | No |  | returning | standard |
-| Lauren Grasse | F | 4.0 | Yes |  | returning | young |
-| Liam Crawford | M | 3.0 | No |  | returning | young |
-| Elly Switzer | F | 6.0 | Yes |  | returning | young |
-| Caleb Fisher | M | 4.0 | No |  | new | young |
-| Christian Mueller | M | 3.0 | No |  | returning | standard |
-| Emilie Brown | F | 1.0 | No |  | returning | standard |
-| Eric Good | M | 7.0 | Yes |  | returning | standard |
-
-### Team 6
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.93
-- Handlers: 8
-- Nice requests honoured: 4
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Will Boaks | M | 5.0 | Yes |  | returning | standard |
-| Thomas Barnes | M | 3.0 | Yes |  | returning | wise |
-| Olivia Evans | F | 3.0 | No |  | returning | standard |
-| Carly Munce | F | 10.0 | Yes | Female leader A | returning | standard |
-| Thomas Black | M | 10.0 | Yes | Male leader A, Male leader B | returning | standard |
-| Niko Hoogeveen | M | 7.0 | Yes | Male leader B | returning | standard |
-| Adam Soos | M | 8.0 | Yes |  | returning | standard |
-| Amber Soos | F | 8.0 | No |  | returning | young |
-| Joseph Doran | M | 4.0 | Yes | Male leader B | returning | standard |
-| Geno Bornea | M | 3.0 | No | Male leader B | new | standard |
-| Chris Tillmanns | M | 3.0 | No |  | returning | wise |
-| Julie Tillmanns | F | 3.0 | No |  | returning | wise |
-| Charlee Tillmanns | F | 3.0 | No |  | returning | young |
-| Spencer Brown | M | 2.0 | No |  | returning | standard |
-| Cole Monteith | M | 2.0 | Yes |  | returning | standard |
-
-### Team 7
-
-- Players: 14 (10M / 4F)
-- Avg skill: 4.57
-- Handlers: 7
-- Nice requests honoured: 3
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Jamie Bonany | M | 4.0 | Yes |  | returning | standard |
-| David Humphrys | M | 3.0 | No |  | returning | wise |
-| Stephen Fisher | M | 3.0 | Yes |  | returning | standard |
-| Brianna Hall | F | 4.0 | No | Female leader A | returning | standard |
-| Michael McConnell | M | 8.0 | Yes | Male leader B | returning | standard |
-| Robin Mennie | F | 3.0 | No |  | returning | standard |
-| Cody Sinkinson | M | 3.0 | No |  | returning | standard |
-| Aiden Courville | M | 6.0 | Yes |  | new | young |
-| Colton Courville | M | 3.0 | Yes | Male leader B | new | young |
-| Sarah Butt | F | 4.0 | No |  | new | young |
-| Emma Hanney | F | 6.0 | Yes | Female leader B | returning | standard |
-| Brad Dempsey | M | 3.0 | No |  | returning | standard |
-| Ashish Mehra | M | 7.0 | No |  | returning | standard |
-| Kevin Schuster | M | 7.0 | Yes |  | returning | standard |
-
-### Team 8
-
-- Players: 14 (10M / 4F)
-- Avg skill: 4.71
-- Handlers: 5
-- Nice requests honoured: 3
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Kyle Jones | M | 4.0 | No |  | returning | standard |
-| Billy Miller | M | 3.0 | No |  | returning | standard |
-| Mat MacLean | M | 3.0 | No |  | new | standard |
-| Kurtis Thomas | M | 9.0 | Yes | Male leader B | returning | standard |
-| Richmand Hogg | M | 8.0 | Yes | Male leader A, Male leader B | returning | standard |
-| Molly Douglas | F | 8.0 | Yes | Female leader A | returning | standard |
-| Sara Shakib | F | 1.0 | No |  | returning | standard |
-| Pierce Munce | M | 9.0 | Yes | Male leader B | returning | standard |
-| Kole O'C | M | 3.0 | Yes |  | new | young |
-| Scott O'Connor | M | 2.0 | No |  | new | wise |
-| Leah Potje | F | 4.0 | No |  | returning | young |
-| Lilyanna Padoin Lee | F | 5.0 | No |  | returning | young |
-| Nate Smith | M | 5.0 | No |  | returning | young |
-| Frank Smith | M | 2.0 | No |  | returning | wise |
+| Team | Player | Gender | Skill | Handler | Leader | Status | Age |
+|---|---|---:|---:|---:|---|---|---|
+| Team 1 | Tate Montgomery | M | 6.1 | No |  | returning | young |
+| Team 1 | Ben Kleiser | M | 5.1 | No |  | new | standard |
+| Team 1 | Olivia Evans | F | 4.6 | No |  | returning | standard |
+| Team 1 | Stephen Hawley | M | 6.6 | Yes | Male leader B | returning | standard |
+| Team 1 | Curtis Reason | M | 7.2 | Yes | Male leader B | returning | standard |
+| Team 1 | Tracy Penley | F | 4.9 | No | Female leader B | returning | standard |
+| Team 1 | Matt Tribe | M | 6.7 | Yes |  | returning | standard |
+| Team 1 | Pascale Clements | F | 3.2 | No |  | returning | standard |
+| Team 1 | Joseph Doran | M | 5.9 | Yes | Male leader B | returning | standard |
+| Team 1 | Sean Harrington | M | 8.0 | Yes |  | returning | young |
+| Team 1 | Kileigh Harrington | M | 5.4 | No |  | returning | standard |
+| Team 1 | Ryan Sagermann | M | 6.3 | Yes |  | returning | standard |
+| Team 1 | Carly Sagermann | F | 4.4 | No |  | new | standard |
+| Team 1 | Luke Mackey | M | 7.3 | Yes |  | returning | standard |
+| Team 1 | Taylor Stanojev | F | 6.1 | No |  | returning | standard |
+| Team 2 | Will Boaks | M | 6.0 | Yes |  | returning | standard |
+| Team 2 | Jaclyn Kane | F | 4.9 | No |  | returning | standard |
+| Team 2 | Kyle Jones | M | 4.5 | No |  | returning | standard |
+| Team 2 | James Callow | M | 7.0 | Yes | Male leader B | returning | wise |
+| Team 2 | Cale Holmes | M | 5.7 | Yes | Male leader B | returning | standard |
+| Team 2 | Tristan Callow | M | 4.5 | No |  | returning | young |
+| Team 2 | Caitlind Lusty | F | 9.4 | Yes | Female leader A | returning | standard |
+| Team 2 | Matthew Lynar | M | 5.5 | No |  | returning | standard |
+| Team 2 | Lauren Grasse | F | 6.1 | Yes |  | returning | young |
+| Team 2 | Liam Crawford | M | 4.4 | No |  | returning | young |
+| Team 2 | Elly Switzer | F | 7.4 | Yes |  | returning | young |
+| Team 2 | Caleb Fisher | M | 5.0 | No |  | new | young |
+| Team 2 | Christian Mueller | M | 3.9 | No |  | returning | standard |
+| Team 2 | Emilie Brown | F | 2.8 | No |  | returning | standard |
+| Team 2 | Eric Bouchard | M | 6.4 | Yes |  | returning | wise |
+| Team 3 | Xena Cochi | F | 5.8 | No |  | returning | standard |
+| Team 3 | Ryan Bridge | M | 5.1 | No |  | returning | standard |
+| Team 3 | Carden Vickers | M | 4.5 | No |  | returning | standard |
+| Team 3 | John Nigh | M | 5.2 | No |  | returning | standard |
+| Team 3 | Matt Simon | M | 7.3 | Yes |  | returning | young |
+| Team 3 | Levi Taylor | M | 8.9 | Yes | Male leader B | returning | young |
+| Team 3 | Duncan Taylor | M | 4.7 | Yes |  | new | wise |
+| Team 3 | Pierce Munce | M | 7.9 | Yes | Male leader B | returning | standard |
+| Team 3 | Emma Hanney | F | 7.4 | Yes | Female leader B | returning | standard |
+| Team 3 | Chris Tillmanns | M | 4.9 | No |  | returning | wise |
+| Team 3 | Julie Tillmanns | F | 4.9 | No |  | returning | wise |
+| Team 3 | Charlee Tillmanns | F | 4.1 | No |  | returning | young |
+| Team 3 | Spencer Brown | M | 4.4 | No |  | returning | standard |
+| Team 3 | Cole Monteith | M | 4.5 | Yes |  | returning | standard |
+| Team 3 | Courtney Hough | F | 6.1 | Yes |  | returning | standard |
+| Team 4 | Jamie Bonany | M | 5.5 | Yes |  | returning | standard |
+| Team 4 | Jeffery Hoover | M | 4.8 | No |  | returning | wise |
+| Team 4 | Mat MacLean | M | 4.3 | No |  | new | standard |
+| Team 4 | Matt Hofing | M | 7.7 | Yes | Male leader B | returning | standard |
+| Team 4 | Brad Mayer | M | 6.9 | Yes |  | returning | wise |
+| Team 4 | Rebecca Robitaille | F | 7.7 | Yes | Female leader A | returning | standard |
+| Team 4 | Niko Hoogeveen | M | 7.0 | Yes | Male leader B | returning | standard |
+| Team 4 | Adam Soos | M | 6.7 | Yes |  | returning | standard |
+| Team 4 | Amber Soos | F | 6.4 | No |  | returning | young |
+| Team 4 | Emilie Farr | F | 7.1 | No |  | returning | young |
+| Team 4 | Hailey Irwin | F | 6.3 | No |  | returning | young |
+| Team 4 | Brendan Irwin | M | 4.9 | No |  | new | young |
+| Team 4 | Darren Brazier | M | 4.1 | No |  | returning | wise |
+| Team 4 | Maisy Brazier | F | 5.9 | No |  | returning | young |
+| Team 4 | Wesley Taggart | M | 6.1 | Yes |  | returning | standard |
+| Team 5 | Joseph Dunlop | M | 5.5 | No |  | returning | standard |
+| Team 5 | Thomas Barnes | M | 4.9 | Yes |  | returning | wise |
+| Team 5 | Charlie Tardif | M | 4.2 | No |  | returning | standard |
+| Team 5 | parker munce | F | 7.6 | Yes | Female leader A | returning | standard |
+| Team 5 | Kyra Frisina | F | 6.0 | Yes | Female leader A | returning | standard |
+| Team 5 | Cali Gurr | F | 4.7 | No |  | returning | standard |
+| Team 5 | Koral Freeman | F | 2.4 | No |  | new | standard |
+| Team 5 | Derek Davey | M | 2.6 | No |  | new | standard |
+| Team 5 | Jeff Cobbledick | M | 7.3 | Yes | Male leader B | returning | standard |
+| Team 5 | Andrew "Sundance" Black | M | 6.1 | Yes | Male leader B | returning | standard |
+| Team 5 | Shannon Wolochatiuk | F | 5.4 | No |  | returning | standard |
+| Team 5 | Scott Patrick | M | 6.8 | Yes |  | returning | standard |
+| Team 5 | Nate Smith | M | 5.4 | No |  | returning | young |
+| Team 5 | Frank Smith | M | 3.8 | No |  | returning | wise |
+| Team 5 | Finn Montgomery | M | 6.9 | Yes |  | returning | young |
+| Team 6 | Billy Miller | M | 5.3 | No |  | returning | standard |
+| Team 6 | David Pietrowski | M | 4.9 | Yes |  | returning | wise |
+| Team 6 | Brandon Canning | M | 3.7 | No |  | new | standard |
+| Team 6 | Brianna Hall | F | 5.9 | No | Female leader A | returning | standard |
+| Team 6 | Michael McConnell | M | 7.8 | Yes | Male leader B | returning | standard |
+| Team 6 | Robin Mennie | F | 3.9 | No |  | returning | standard |
+| Team 6 | Cody Sinkinson | M | 3.9 | No |  | returning | standard |
+| Team 6 | Aiden Courville | M | 6.4 | Yes |  | new | young |
+| Team 6 | Colton Courville | M | 5.0 | Yes | Male leader B | new | young |
+| Team 6 | Sarah Butt | F | 4.8 | No |  | new | young |
+| Team 6 | Brad Dempsey | M | 5.0 | No |  | returning | standard |
+| Team 6 | Ashish Mehra | M | 6.2 | No |  | returning | standard |
+| Team 6 | Nadine Leiper | F | 5.1 | No |  | returning | wise |
+| Team 6 | Alli Leiper | F | 2.6 | No |  | new | young |
+| Team 6 | Dayson Bress | M | 7.0 | No |  | returning | young |
+| Team 7 | Stephen Fisher | M | 5.2 | Yes |  | returning | standard |
+| Team 7 | Paul Marjin | M | 4.7 | No |  | returning | standard |
+| Team 7 | Joe Alamshah | M | 3.1 | No |  | new | standard |
+| Team 7 | Kurtis Thomas | M | 8.7 | Yes | Male leader B | returning | standard |
+| Team 7 | Richmand Hogg | M | 8.2 | Yes | Male leader A, Male leader B | returning | standard |
+| Team 7 | Molly Douglas | F | 7.7 | Yes | Female leader A | returning | standard |
+| Team 7 | Sara Shakib | F | 3.4 | No |  | returning | standard |
+| Team 7 | David Tran | M | 7.4 | Yes | Male leader B | returning | standard |
+| Team 7 | Kole O'C | M | 5.4 | Yes |  | new | young |
+| Team 7 | Scott O'Connor | M | 4.6 | No |  | new | wise |
+| Team 7 | Leah Potje | F | 4.1 | No |  | returning | young |
+| Team 7 | Lilyanna Padoin Lee | F | 6.0 | No |  | returning | young |
+| Team 7 | Eric Good | M | 7.3 | Yes |  | returning | standard |
+| Team 7 | Brett Ormsby | M | 7.1 | No |  | returning | young |
+| Team 8 | Julianna Lerch | F | 5.1 | No |  | returning | wise |
+| Team 8 | Neil Bond | M | 5.1 | No |  | returning | standard |
+| Team 8 | David Humphrys | M | 4.4 | No |  | returning | wise |
+| Team 8 | Carly Munce | F | 8.9 | Yes | Female leader A | returning | standard |
+| Team 8 | Thomas Black | M | 9.2 | Yes | Male leader A, Male leader B | returning | standard |
+| Team 8 | Kristy Robinson | F | 4.9 | No | Female leader A | returning | wise |
+| Team 8 | Andy Beecroft | M | 4.9 | No |  | returning | wise |
+| Team 8 | Patrick Kirkwood | M | 7.7 | Yes | Male leader B | returning | standard |
+| Team 8 | Geno Bornea | M | 5.1 | No | Male leader B | new | standard |
+| Team 8 | Kyle Stashuk | M | 5.4 | No |  | returning | wise |
+| Team 8 | Peter Rutkauskas | M | 5.1 | No |  | returning | wise |
+| Team 8 | Jamie Cable | M | 6.3 | Yes |  | returning | standard |
+| Team 8 | Marianne Auger | F | 3.1 | No |  | returning | wise |
+| Team 8 | Kevin Schuster | M | 7.1 | Yes |  | returning | standard |
 
 ## Variation 2
 
-- Nice-to-have requests honoured: 29/32 (91%)
+- Must-play groups: Kept together
+- Nice-to-have requests honoured: 24/29 (83%)
 - Female leaders: 8/8 teams
 - Male leaders: 8/8 teams
-- Skill spread: 0.54
+- Skill spread: 0.56
 - Handler spread: 3
 
-### Team 1
+### Player rows
 
-- Players: 14 (10M / 4F)
-- Avg skill: 5.00
-- Handlers: 5
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Kyle Jones | M | 4.0 | No |  | returning | standard |
-| Jeffery Hoover | M | 3.0 | No |  | returning | wise |
-| Kurtis Thomas | M | 9.0 | Yes | Male leader B | returning | standard |
-| Richmand Hogg | M | 8.0 | Yes | Male leader A, Male leader B | returning | standard |
-| Molly Douglas | F | 8.0 | Yes | Female leader A | returning | standard |
-| Sara Shakib | F | 1.0 | No |  | returning | standard |
-| Jeff Cobbledick | M | 7.0 | Yes | Male leader B | returning | standard |
-| Kyle Stashuk | M | 6.0 | No |  | returning | wise |
-| Peter Rutkauskas | M | 3.0 | No |  | returning | wise |
-| Jamie Cable | M | 5.0 | Yes |  | returning | standard |
-| Marianne Auger | F | 3.0 | No |  | returning | wise |
-| Nate Smith | M | 5.0 | No |  | returning | young |
-| Frank Smith | M | 2.0 | No |  | returning | wise |
-| Taylor Stanojev | F | 6.0 | No |  | returning | standard |
-
-### Team 2
-
-- Players: 14 (10M / 4F)
-- Avg skill: 5.14
-- Handlers: 6
-- Nice requests honoured: 3
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Julianna Lerch | F | 4.0 | No |  | returning | wise |
-| Billy Miller | M | 3.0 | No |  | returning | standard |
-| Mat MacLean | M | 3.0 | No |  | new | standard |
-| Brianna Hall | F | 4.0 | No | Female leader A | returning | standard |
-| Michael McConnell | M | 8.0 | Yes | Male leader B | returning | standard |
-| Robin Mennie | F | 3.0 | No |  | returning | standard |
-| Cody Sinkinson | M | 3.0 | No |  | returning | standard |
-| Patrick Kirkwood | M | 9.0 | Yes | Male leader B | returning | standard |
-| Emma Hanney | F | 6.0 | Yes | Female leader B | returning | standard |
-| Sean Harrington | M | 8.0 | Yes |  | returning | young |
-| Kileigh Harrington | M | 5.0 | No |  | returning | standard |
-| Finn Montgomery | M | 6.0 | Yes |  | returning | young |
-| Tate Montgomery | M | 4.0 | No |  | returning | young |
-| Wesley Taggart | M | 6.0 | Yes |  | returning | standard |
-
-### Team 3
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.60
-- Handlers: 7
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Ryan Bridge | M | 4.0 | No |  | returning | standard |
-| David Pietrowski | M | 3.0 | Yes |  | returning | wise |
-| parker munce | F | 9.0 | Yes | Female leader A | returning | standard |
-| Kyra Frisina | F | 3.0 | Yes | Female leader A | returning | standard |
-| Cali Gurr | F | 3.0 | No |  | returning | standard |
-| Koral Freeman | F | 2.0 | No |  | new | standard |
-| Derek Davey | M | 2.0 | No |  | new | standard |
-| Andrew "Sundance" Black | M | 5.0 | Yes | Male leader B | returning | standard |
-| Joseph Doran | M | 4.0 | Yes | Male leader B | returning | standard |
-| Shannon Wolochatiuk | F | 4.0 | No |  | returning | standard |
-| Scott Patrick | M | 7.0 | Yes |  | returning | standard |
-| Brad Dempsey | M | 3.0 | No |  | returning | standard |
-| Ashish Mehra | M | 7.0 | No |  | returning | standard |
-| Luke Mackey | M | 7.0 | Yes |  | returning | standard |
-| Brett Ormsby | M | 6.0 | No |  | returning | young |
-
-### Team 4
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.93
-- Handlers: 8
-- Nice requests honoured: 2
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Xena Cochi | F | 4.0 | No |  | returning | standard |
-| Charlie Tardif | M | 3.0 | No |  | returning | standard |
-| Ben Kleiser | M | 3.0 | No |  | new | standard |
-| Carly Munce | F | 10.0 | Yes | Female leader A | returning | standard |
-| Thomas Black | M | 10.0 | Yes | Male leader A, Male leader B | returning | standard |
-| Aiden Courville | M | 6.0 | Yes |  | new | young |
-| Colton Courville | M | 3.0 | Yes | Male leader B | new | young |
-| Sarah Butt | F | 4.0 | No |  | new | young |
-| Kole O'C | M | 3.0 | Yes |  | new | young |
-| Scott O'Connor | M | 2.0 | No |  | new | wise |
-| Leah Potje | F | 4.0 | No |  | returning | young |
-| Lilyanna Padoin Lee | F | 5.0 | No |  | returning | young |
-| Eric Good | M | 7.0 | Yes |  | returning | standard |
-| Eric Bouchard | M | 6.0 | Yes |  | returning | wise |
-| Jamie Bonany | M | 4.0 | Yes |  | returning | standard |
-
-### Team 5
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.80
-- Handlers: 5
-- Nice requests honoured: 4
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Neil Bond | M | 4.0 | No |  | returning | standard |
-| Carden Vickers | M | 3.0 | No |  | returning | standard |
-| Stephen Hawley | M | 8.0 | Yes | Male leader B | returning | standard |
-| Curtis Reason | M | 8.0 | Yes | Male leader B | returning | standard |
-| Niko Hoogeveen | M | 7.0 | Yes | Male leader B | returning | standard |
-| Adam Soos | M | 8.0 | Yes |  | returning | standard |
-| Amber Soos | F | 8.0 | No |  | returning | young |
-| Kristy Robinson | F | 4.0 | No | Female leader A | returning | wise |
-| Andy Beecroft | M | 4.0 | No |  | returning | wise |
-| Chris Tillmanns | M | 3.0 | No |  | returning | wise |
-| Julie Tillmanns | F | 3.0 | No |  | returning | wise |
-| Charlee Tillmanns | F | 3.0 | No |  | returning | young |
-| Christian Mueller | M | 3.0 | No |  | returning | standard |
-| Emilie Brown | F | 1.0 | No |  | returning | standard |
-| Will Boaks | M | 5.0 | Yes |  | returning | standard |
-
-### Team 6
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.80
-- Handlers: 8
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Jaclyn Kane | F | 3.0 | No |  | returning | standard |
-| Paul Marjin | M | 3.0 | No |  | returning | standard |
-| Brandon Canning | M | 2.0 | No |  | new | standard |
-| Matt Hofing | M | 9.0 | Yes | Male leader B | returning | standard |
-| Brad Mayer | M | 8.0 | Yes |  | returning | wise |
-| Rebecca Robitaille | F | 9.0 | Yes | Female leader A | returning | standard |
-| Pierce Munce | M | 9.0 | Yes | Male leader B | returning | standard |
-| Geno Bornea | M | 3.0 | No | Male leader B | new | standard |
-| Lauren Grasse | F | 4.0 | Yes |  | returning | young |
-| Liam Crawford | M | 3.0 | No |  | returning | young |
-| Elly Switzer | F | 6.0 | Yes |  | returning | young |
-| Caleb Fisher | M | 4.0 | No |  | new | young |
-| Spencer Brown | M | 2.0 | No |  | returning | standard |
-| Cole Monteith | M | 2.0 | Yes |  | returning | standard |
-| Courtney Hough | F | 5.0 | Yes |  | returning | standard |
-
-### Team 7
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.60
-- Handlers: 5
-- Nice requests honoured: 4
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Thomas Barnes | M | 3.0 | Yes |  | returning | wise |
-| Olivia Evans | F | 3.0 | No |  | returning | standard |
-| Joe Alamshah | M | 2.0 | No |  | new | standard |
-| James Callow | M | 7.0 | Yes | Male leader B | returning | wise |
-| Cale Holmes | M | 4.0 | Yes | Male leader B | returning | standard |
-| Tristan Callow | M | 2.0 | No |  | returning | young |
-| Tracy Penley | F | 4.0 | No | Female leader B | returning | standard |
-| Matt Tribe | M | 6.0 | Yes |  | returning | standard |
-| Pascale Clements | F | 2.0 | No |  | returning | standard |
-| Emilie Farr | F | 7.0 | No |  | returning | young |
-| Hailey Irwin | F | 7.0 | No |  | returning | young |
-| Brendan Irwin | M | 3.0 | No |  | new | young |
-| Kevin Schuster | M | 7.0 | Yes |  | returning | standard |
-| Dayson Bress | M | 7.0 | No |  | returning | young |
-| Joseph Dunlop | M | 5.0 | No |  | returning | standard |
-
-### Team 8
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.93
-- Handlers: 7
-- Nice requests honoured: 1
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| David Humphrys | M | 3.0 | No |  | returning | wise |
-| Stephen Fisher | M | 3.0 | Yes |  | returning | standard |
-| John Nigh | M | 5.0 | No |  | returning | standard |
-| Matt Simon | M | 7.0 | Yes |  | returning | young |
-| Levi Taylor | M | 8.0 | Yes | Male leader B | returning | young |
-| Duncan Taylor | M | 3.0 | Yes |  | new | wise |
-| Caitlind Lusty | F | 10.0 | Yes | Female leader A | returning | standard |
-| Matthew Lynar | M | 3.0 | No |  | returning | standard |
-| David Tran | M | 8.0 | Yes | Male leader B | returning | standard |
-| Ryan Sagermann | M | 7.0 | Yes |  | returning | standard |
-| Carly Sagermann | F | 4.0 | No |  | new | standard |
-| Darren Brazier | M | 3.0 | No |  | returning | wise |
-| Maisy Brazier | F | 5.0 | No |  | returning | young |
-| Nadine Leiper | F | 4.0 | No |  | returning | wise |
-| Alli Leiper | F | 1.0 | No |  | new | young |
+| Team | Player | Gender | Skill | Handler | Leader | Status | Age |
+|---|---|---:|---:|---:|---|---|---|
+| Team 1 | Julianna Lerch | F | 5.1 | No |  | returning | wise |
+| Team 1 | Paul Marjin | M | 4.7 | No |  | returning | standard |
+| Team 1 | Joe Alamshah | M | 3.1 | No |  | new | standard |
+| Team 1 | Brianna Hall | F | 5.9 | No | Female leader A | returning | standard |
+| Team 1 | Michael McConnell | M | 7.8 | Yes | Male leader B | returning | standard |
+| Team 1 | Robin Mennie | F | 3.9 | No |  | returning | standard |
+| Team 1 | Cody Sinkinson | M | 3.9 | No |  | returning | standard |
+| Team 1 | Pierce Munce | M | 7.9 | Yes | Male leader B | returning | standard |
+| Team 1 | Jeff Cobbledick | M | 7.3 | Yes | Male leader B | returning | standard |
+| Team 1 | Chris Tillmanns | M | 4.9 | No |  | returning | wise |
+| Team 1 | Julie Tillmanns | F | 4.9 | No |  | returning | wise |
+| Team 1 | Charlee Tillmanns | F | 4.1 | No |  | returning | young |
+| Team 1 | Luke Mackey | M | 7.3 | Yes |  | returning | standard |
+| Team 1 | Kevin Schuster | M | 7.1 | Yes |  | returning | standard |
+| Team 1 | Will Boaks | M | 6.0 | Yes |  | returning | standard |
+| Team 2 | Ryan Bridge | M | 5.1 | No |  | returning | standard |
+| Team 2 | Olivia Evans | F | 4.6 | No |  | returning | standard |
+| Team 2 | James Callow | M | 7.0 | Yes | Male leader B | returning | wise |
+| Team 2 | Cale Holmes | M | 5.7 | Yes | Male leader B | returning | standard |
+| Team 2 | Tristan Callow | M | 4.5 | No |  | returning | young |
+| Team 2 | Caitlind Lusty | F | 9.4 | Yes | Female leader A | returning | standard |
+| Team 2 | Matthew Lynar | M | 5.5 | No |  | returning | standard |
+| Team 2 | Lauren Grasse | F | 6.1 | Yes |  | returning | young |
+| Team 2 | Liam Crawford | M | 4.4 | No |  | returning | young |
+| Team 2 | Elly Switzer | F | 7.4 | Yes |  | returning | young |
+| Team 2 | Caleb Fisher | M | 5.0 | No |  | new | young |
+| Team 2 | Spencer Brown | M | 4.4 | No |  | returning | standard |
+| Team 2 | Cole Monteith | M | 4.5 | Yes |  | returning | standard |
+| Team 2 | Taylor Stanojev | F | 6.1 | No |  | returning | standard |
+| Team 2 | Jamie Bonany | M | 5.5 | Yes |  | returning | standard |
+| Team 3 | Neil Bond | M | 5.1 | No |  | returning | standard |
+| Team 3 | Carden Vickers | M | 4.5 | No |  | returning | standard |
+| Team 3 | parker munce | F | 7.6 | Yes | Female leader A | returning | standard |
+| Team 3 | Kyra Frisina | F | 6.0 | Yes | Female leader A | returning | standard |
+| Team 3 | Cali Gurr | F | 4.7 | No |  | returning | standard |
+| Team 3 | Koral Freeman | F | 2.4 | No |  | new | standard |
+| Team 3 | Derek Davey | M | 2.6 | No |  | new | standard |
+| Team 3 | Patrick Kirkwood | M | 7.7 | Yes | Male leader B | returning | standard |
+| Team 3 | David Tran | M | 7.4 | Yes | Male leader B | returning | standard |
+| Team 3 | Sean Harrington | M | 8.0 | Yes |  | returning | young |
+| Team 3 | Kileigh Harrington | M | 5.4 | No |  | returning | standard |
+| Team 3 | Darren Brazier | M | 4.1 | No |  | returning | wise |
+| Team 3 | Maisy Brazier | F | 5.9 | No |  | returning | young |
+| Team 3 | Brett Ormsby | M | 7.1 | No |  | returning | young |
+| Team 3 | Joseph Dunlop | M | 5.5 | No |  | returning | standard |
+| Team 4 | Ben Kleiser | M | 5.1 | No |  | new | standard |
+| Team 4 | David Humphrys | M | 4.4 | No |  | returning | wise |
+| Team 4 | Carly Munce | F | 8.9 | Yes | Female leader A | returning | standard |
+| Team 4 | Thomas Black | M | 9.2 | Yes | Male leader A, Male leader B | returning | standard |
+| Team 4 | Kristy Robinson | F | 4.9 | No | Female leader A | returning | wise |
+| Team 4 | Andy Beecroft | M | 4.9 | No |  | returning | wise |
+| Team 4 | Andrew "Sundance" Black | M | 6.1 | Yes | Male leader B | returning | standard |
+| Team 4 | Kyle Stashuk | M | 5.4 | No |  | returning | wise |
+| Team 4 | Peter Rutkauskas | M | 5.1 | No |  | returning | wise |
+| Team 4 | Jamie Cable | M | 6.3 | Yes |  | returning | standard |
+| Team 4 | Marianne Auger | F | 3.1 | No |  | returning | wise |
+| Team 4 | Christian Mueller | M | 3.9 | No |  | returning | standard |
+| Team 4 | Emilie Brown | F | 2.8 | No |  | returning | standard |
+| Team 4 | Eric Bouchard | M | 6.4 | Yes |  | returning | wise |
+| Team 5 | Jaclyn Kane | F | 4.9 | No |  | returning | standard |
+| Team 5 | Kyle Jones | M | 4.5 | No |  | returning | standard |
+| Team 5 | Matt Hofing | M | 7.7 | Yes | Male leader B | returning | standard |
+| Team 5 | Brad Mayer | M | 6.9 | Yes |  | returning | wise |
+| Team 5 | Rebecca Robitaille | F | 7.7 | Yes | Female leader A | returning | standard |
+| Team 5 | Niko Hoogeveen | M | 7.0 | Yes | Male leader B | returning | standard |
+| Team 5 | Adam Soos | M | 6.7 | Yes |  | returning | standard |
+| Team 5 | Amber Soos | F | 6.4 | No |  | returning | young |
+| Team 5 | Geno Bornea | M | 5.1 | No | Male leader B | new | standard |
+| Team 5 | Shannon Wolochatiuk | F | 5.4 | No |  | returning | standard |
+| Team 5 | Scott Patrick | M | 6.8 | Yes |  | returning | standard |
+| Team 5 | Nate Smith | M | 5.4 | No |  | returning | young |
+| Team 5 | Frank Smith | M | 3.8 | No |  | returning | wise |
+| Team 5 | Wesley Taggart | M | 6.1 | Yes |  | returning | standard |
+| Team 6 | Thomas Barnes | M | 4.9 | Yes |  | returning | wise |
+| Team 6 | Mat MacLean | M | 4.3 | No |  | new | standard |
+| Team 6 | John Nigh | M | 5.2 | No |  | returning | standard |
+| Team 6 | Matt Simon | M | 7.3 | Yes |  | returning | young |
+| Team 6 | Levi Taylor | M | 8.9 | Yes | Male leader B | returning | young |
+| Team 6 | Duncan Taylor | M | 4.7 | Yes |  | new | wise |
+| Team 6 | Aiden Courville | M | 6.4 | Yes |  | new | young |
+| Team 6 | Colton Courville | M | 5.0 | Yes | Male leader B | new | young |
+| Team 6 | Sarah Butt | F | 4.8 | No |  | new | young |
+| Team 6 | Emma Hanney | F | 7.4 | Yes | Female leader B | returning | standard |
+| Team 6 | Ryan Sagermann | M | 6.3 | Yes |  | returning | standard |
+| Team 6 | Carly Sagermann | F | 4.4 | No |  | new | standard |
+| Team 6 | Nadine Leiper | F | 5.1 | No |  | returning | wise |
+| Team 6 | Alli Leiper | F | 2.6 | No |  | new | young |
+| Team 6 | Billy Miller | M | 5.3 | No |  | returning | standard |
+| Team 7 | David Pietrowski | M | 4.9 | Yes |  | returning | wise |
+| Team 7 | Charlie Tardif | M | 4.2 | No |  | returning | standard |
+| Team 7 | Stephen Hawley | M | 6.6 | Yes | Male leader B | returning | standard |
+| Team 7 | Curtis Reason | M | 7.2 | Yes | Male leader B | returning | standard |
+| Team 7 | Tracy Penley | F | 4.9 | No | Female leader B | returning | standard |
+| Team 7 | Matt Tribe | M | 6.7 | Yes |  | returning | standard |
+| Team 7 | Pascale Clements | F | 3.2 | No |  | returning | standard |
+| Team 7 | Emilie Farr | F | 7.1 | No |  | returning | young |
+| Team 7 | Hailey Irwin | F | 6.3 | No |  | returning | young |
+| Team 7 | Brendan Irwin | M | 4.9 | No |  | new | young |
+| Team 7 | Brad Dempsey | M | 5.0 | No |  | returning | standard |
+| Team 7 | Ashish Mehra | M | 6.2 | No |  | returning | standard |
+| Team 7 | Dayson Bress | M | 7.0 | No |  | returning | young |
+| Team 7 | Courtney Hough | F | 6.1 | Yes |  | returning | standard |
+| Team 7 | Stephen Fisher | M | 5.2 | Yes |  | returning | standard |
+| Team 8 | Jeffery Hoover | M | 4.8 | No |  | returning | wise |
+| Team 8 | Brandon Canning | M | 3.7 | No |  | new | standard |
+| Team 8 | Kurtis Thomas | M | 8.7 | Yes | Male leader B | returning | standard |
+| Team 8 | Richmand Hogg | M | 8.2 | Yes | Male leader A, Male leader B | returning | standard |
+| Team 8 | Molly Douglas | F | 7.7 | Yes | Female leader A | returning | standard |
+| Team 8 | Sara Shakib | F | 3.4 | No |  | returning | standard |
+| Team 8 | Joseph Doran | M | 5.9 | Yes | Male leader B | returning | standard |
+| Team 8 | Kole O'C | M | 5.4 | Yes |  | new | young |
+| Team 8 | Scott O'Connor | M | 4.6 | No |  | new | wise |
+| Team 8 | Leah Potje | F | 4.1 | No |  | returning | young |
+| Team 8 | Lilyanna Padoin Lee | F | 6.0 | No |  | returning | young |
+| Team 8 | Eric Good | M | 7.3 | Yes |  | returning | standard |
+| Team 8 | Finn Montgomery | M | 6.9 | Yes |  | returning | young |
+| Team 8 | Tate Montgomery | M | 6.1 | No |  | returning | young |
+| Team 8 | Xena Cochi | F | 5.8 | No |  | returning | standard |
 
 ## Variation 3
 
-- Nice-to-have requests honoured: 29/32 (91%)
+- Must-play groups: Kept together
+- Nice-to-have requests honoured: 24/29 (83%)
 - Female leaders: 8/8 teams
 - Male leaders: 8/8 teams
-- Skill spread: 0.73
-- Handler spread: 5
+- Skill spread: 0.60
+- Handler spread: 3
 
-### Team 1
+### Player rows
 
-- Players: 14 (10M / 4F)
-- Avg skill: 4.79
-- Handlers: 5
-- Nice requests honoured: 1
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| David Humphrys | M | 3.0 | No |  | returning | wise |
-| Mat MacLean | M | 3.0 | No |  | new | standard |
-| John Nigh | M | 5.0 | No |  | returning | standard |
-| Matt Simon | M | 7.0 | Yes |  | returning | young |
-| Levi Taylor | M | 8.0 | Yes | Male leader B | returning | young |
-| Duncan Taylor | M | 3.0 | Yes |  | new | wise |
-| Kristy Robinson | F | 4.0 | No | Female leader A | returning | wise |
-| Andy Beecroft | M | 4.0 | No |  | returning | wise |
-| Pierce Munce | M | 9.0 | Yes | Male leader B | returning | standard |
-| Ryan Sagermann | M | 7.0 | Yes |  | returning | standard |
-| Carly Sagermann | F | 4.0 | No |  | new | standard |
-| Nadine Leiper | F | 4.0 | No |  | returning | wise |
-| Alli Leiper | F | 1.0 | No |  | new | young |
-| Joseph Dunlop | M | 5.0 | No |  | returning | standard |
-
-### Team 2
-
-- Players: 14 (10M / 4F)
-- Avg skill: 4.79
-- Handlers: 8
-- Nice requests honoured: 3
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Billy Miller | M | 3.0 | No |  | returning | standard |
-| Ben Kleiser | M | 3.0 | No |  | new | standard |
-| James Callow | M | 7.0 | Yes | Male leader B | returning | wise |
-| Cale Holmes | M | 4.0 | Yes | Male leader B | returning | standard |
-| Tristan Callow | M | 2.0 | No |  | returning | young |
-| Tracy Penley | F | 4.0 | No | Female leader B | returning | standard |
-| Matt Tribe | M | 6.0 | Yes |  | returning | standard |
-| Pascale Clements | F | 2.0 | No |  | returning | standard |
-| Emma Hanney | F | 6.0 | Yes | Female leader B | returning | standard |
-| Shannon Wolochatiuk | F | 4.0 | No |  | returning | standard |
-| Scott Patrick | M | 7.0 | Yes |  | returning | standard |
-| Kevin Schuster | M | 7.0 | Yes |  | returning | standard |
-| Eric Good | M | 7.0 | Yes |  | returning | standard |
-| Will Boaks | M | 5.0 | Yes |  | returning | standard |
-
-### Team 3
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.60
-- Handlers: 5
-- Nice requests honoured: 1
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Charlie Tardif | M | 3.0 | No |  | returning | standard |
-| Brandon Canning | M | 2.0 | No |  | new | standard |
-| Carly Munce | F | 10.0 | Yes | Female leader A | returning | standard |
-| Thomas Black | M | 10.0 | Yes | Male leader A, Male leader B | returning | standard |
-| Patrick Kirkwood | M | 9.0 | Yes | Male leader B | returning | standard |
-| Joseph Doran | M | 4.0 | Yes | Male leader B | returning | standard |
-| Geno Bornea | M | 3.0 | No | Male leader B | new | standard |
-| Kole O'C | M | 3.0 | Yes |  | new | young |
-| Scott O'Connor | M | 2.0 | No |  | new | wise |
-| Leah Potje | F | 4.0 | No |  | returning | young |
-| Lilyanna Padoin Lee | F | 5.0 | No |  | returning | young |
-| Christian Mueller | M | 3.0 | No |  | returning | standard |
-| Emilie Brown | F | 1.0 | No |  | returning | standard |
-| Brett Ormsby | M | 6.0 | No |  | returning | young |
-| Julianna Lerch | F | 4.0 | No |  | returning | wise |
-
-### Team 4
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.93
-- Handlers: 5
-- Nice requests honoured: 3
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Paul Marjin | M | 3.0 | No |  | returning | standard |
-| Joe Alamshah | M | 2.0 | No |  | new | standard |
-| Stephen Hawley | M | 8.0 | Yes | Male leader B | returning | standard |
-| Curtis Reason | M | 8.0 | Yes | Male leader B | returning | standard |
-| Caitlind Lusty | F | 10.0 | Yes | Female leader A | returning | standard |
-| Matthew Lynar | M | 3.0 | No |  | returning | standard |
-| Kyle Stashuk | M | 6.0 | No |  | returning | wise |
-| Peter Rutkauskas | M | 3.0 | No |  | returning | wise |
-| Jamie Cable | M | 5.0 | Yes |  | returning | standard |
-| Marianne Auger | F | 3.0 | No |  | returning | wise |
-| Darren Brazier | M | 3.0 | No |  | returning | wise |
-| Maisy Brazier | F | 5.0 | No |  | returning | young |
-| Taylor Stanojev | F | 6.0 | No |  | returning | standard |
-| Courtney Hough | F | 5.0 | Yes |  | returning | standard |
-| Neil Bond | M | 4.0 | No |  | returning | standard |
-
-### Team 5
-
-- Players: 15 (10M / 5F)
-- Avg skill: 5.07
-- Handlers: 7
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Jeffery Hoover | M | 3.0 | No |  | returning | wise |
-| Kurtis Thomas | M | 9.0 | Yes | Male leader B | returning | standard |
-| Richmand Hogg | M | 8.0 | Yes | Male leader A, Male leader B | returning | standard |
-| Molly Douglas | F | 8.0 | Yes | Female leader A | returning | standard |
-| Sara Shakib | F | 1.0 | No |  | returning | standard |
-| Andrew "Sundance" Black | M | 5.0 | Yes | Male leader B | returning | standard |
-| Lauren Grasse | F | 4.0 | Yes |  | returning | young |
-| Liam Crawford | M | 3.0 | No |  | returning | young |
-| Elly Switzer | F | 6.0 | Yes |  | returning | young |
-| Caleb Fisher | M | 4.0 | No |  | new | young |
-| Brad Dempsey | M | 3.0 | No |  | returning | standard |
-| Ashish Mehra | M | 7.0 | No |  | returning | standard |
-| Dayson Bress | M | 7.0 | No |  | returning | young |
-| Jamie Bonany | M | 4.0 | Yes |  | returning | standard |
-| Xena Cochi | F | 4.0 | No |  | returning | standard |
-
-### Team 6
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.93
-- Handlers: 8
-- Nice requests honoured: 6
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| David Pietrowski | M | 3.0 | Yes |  | returning | wise |
-| parker munce | F | 9.0 | Yes | Female leader A | returning | standard |
-| Kyra Frisina | F | 3.0 | Yes | Female leader A | returning | standard |
-| Cali Gurr | F | 3.0 | No |  | returning | standard |
-| Koral Freeman | F | 2.0 | No |  | new | standard |
-| Derek Davey | M | 2.0 | No |  | new | standard |
-| David Tran | M | 8.0 | Yes | Male leader B | returning | standard |
-| Jeff Cobbledick | M | 7.0 | Yes | Male leader B | returning | standard |
-| Sean Harrington | M | 8.0 | Yes |  | returning | young |
-| Kileigh Harrington | M | 5.0 | No |  | returning | standard |
-| Finn Montgomery | M | 6.0 | Yes |  | returning | young |
-| Tate Montgomery | M | 4.0 | No |  | returning | young |
-| Luke Mackey | M | 7.0 | Yes |  | returning | standard |
-| Kyle Jones | M | 4.0 | No |  | returning | standard |
-| Jaclyn Kane | F | 3.0 | No |  | returning | standard |
-
-### Team 7
-
-- Players: 15 (10M / 5F)
-- Avg skill: 5.20
-- Handlers: 4
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Carden Vickers | M | 3.0 | No |  | returning | standard |
-| Brianna Hall | F | 4.0 | No | Female leader A | returning | standard |
-| Michael McConnell | M | 8.0 | Yes | Male leader B | returning | standard |
-| Robin Mennie | F | 3.0 | No |  | returning | standard |
-| Cody Sinkinson | M | 3.0 | No |  | returning | standard |
-| Niko Hoogeveen | M | 7.0 | Yes | Male leader B | returning | standard |
-| Adam Soos | M | 8.0 | Yes |  | returning | standard |
-| Amber Soos | F | 8.0 | No |  | returning | young |
-| Emilie Farr | F | 7.0 | No |  | returning | young |
-| Hailey Irwin | F | 7.0 | No |  | returning | young |
-| Brendan Irwin | M | 3.0 | No |  | new | young |
-| Nate Smith | M | 5.0 | No |  | returning | young |
-| Frank Smith | M | 2.0 | No |  | returning | wise |
-| Eric Bouchard | M | 6.0 | Yes |  | returning | wise |
-| Ryan Bridge | M | 4.0 | No |  | returning | standard |
-
-### Team 8
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.47
-- Handlers: 9
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Olivia Evans | F | 3.0 | No |  | returning | standard |
-| Stephen Fisher | M | 3.0 | Yes |  | returning | standard |
-| Matt Hofing | M | 9.0 | Yes | Male leader B | returning | standard |
-| Brad Mayer | M | 8.0 | Yes |  | returning | wise |
-| Rebecca Robitaille | F | 9.0 | Yes | Female leader A | returning | standard |
-| Aiden Courville | M | 6.0 | Yes |  | new | young |
-| Colton Courville | M | 3.0 | Yes | Male leader B | new | young |
-| Sarah Butt | F | 4.0 | No |  | new | young |
-| Chris Tillmanns | M | 3.0 | No |  | returning | wise |
-| Julie Tillmanns | F | 3.0 | No |  | returning | wise |
-| Charlee Tillmanns | F | 3.0 | No |  | returning | young |
-| Spencer Brown | M | 2.0 | No |  | returning | standard |
-| Cole Monteith | M | 2.0 | Yes |  | returning | standard |
-| Wesley Taggart | M | 6.0 | Yes |  | returning | standard |
-| Thomas Barnes | M | 3.0 | Yes |  | returning | wise |
+| Team | Player | Gender | Skill | Handler | Leader | Status | Age |
+|---|---|---:|---:|---:|---|---|---|
+| Team 1 | Jeffery Hoover | M | 4.8 | No |  | returning | wise |
+| Team 1 | Joe Alamshah | M | 3.1 | No |  | new | standard |
+| Team 1 | Carly Munce | F | 8.9 | Yes | Female leader A | returning | standard |
+| Team 1 | Thomas Black | M | 9.2 | Yes | Male leader A, Male leader B | returning | standard |
+| Team 1 | Kristy Robinson | F | 4.9 | No | Female leader A | returning | wise |
+| Team 1 | Andy Beecroft | M | 4.9 | No |  | returning | wise |
+| Team 1 | Geno Bornea | M | 5.1 | No | Male leader B | new | standard |
+| Team 1 | Lauren Grasse | F | 6.1 | Yes |  | returning | young |
+| Team 1 | Liam Crawford | M | 4.4 | No |  | returning | young |
+| Team 1 | Elly Switzer | F | 7.4 | Yes |  | returning | young |
+| Team 1 | Caleb Fisher | M | 5.0 | No |  | new | young |
+| Team 1 | Kevin Schuster | M | 7.1 | Yes |  | returning | standard |
+| Team 1 | Finn Montgomery | M | 6.9 | Yes |  | returning | young |
+| Team 1 | Joseph Dunlop | M | 5.5 | No |  | returning | standard |
+| Team 2 | Paul Marjin | M | 4.7 | No |  | returning | standard |
+| Team 2 | parker munce | F | 7.6 | Yes | Female leader A | returning | standard |
+| Team 2 | Kyra Frisina | F | 6.0 | Yes | Female leader A | returning | standard |
+| Team 2 | Cali Gurr | F | 4.7 | No |  | returning | standard |
+| Team 2 | Koral Freeman | F | 2.4 | No |  | new | standard |
+| Team 2 | Derek Davey | M | 2.6 | No |  | new | standard |
+| Team 2 | Jeff Cobbledick | M | 7.3 | Yes | Male leader B | returning | standard |
+| Team 2 | Andrew "Sundance" Black | M | 6.1 | Yes | Male leader B | returning | standard |
+| Team 2 | Sean Harrington | M | 8.0 | Yes |  | returning | young |
+| Team 2 | Kileigh Harrington | M | 5.4 | No |  | returning | standard |
+| Team 2 | Nate Smith | M | 5.4 | No |  | returning | young |
+| Team 2 | Frank Smith | M | 3.8 | No |  | returning | wise |
+| Team 2 | Eric Bouchard | M | 6.4 | Yes |  | returning | wise |
+| Team 2 | Xena Cochi | F | 5.8 | No |  | returning | standard |
+| Team 2 | Thomas Barnes | M | 4.9 | Yes |  | returning | wise |
+| Team 3 | Olivia Evans | F | 4.6 | No |  | returning | standard |
+| Team 3 | Brandon Canning | M | 3.7 | No |  | new | standard |
+| Team 3 | Brianna Hall | F | 5.9 | No | Female leader A | returning | standard |
+| Team 3 | Michael McConnell | M | 7.8 | Yes | Male leader B | returning | standard |
+| Team 3 | Robin Mennie | F | 3.9 | No |  | returning | standard |
+| Team 3 | Cody Sinkinson | M | 3.9 | No |  | returning | standard |
+| Team 3 | Pierce Munce | M | 7.9 | Yes | Male leader B | returning | standard |
+| Team 3 | Kyle Stashuk | M | 5.4 | No |  | returning | wise |
+| Team 3 | Peter Rutkauskas | M | 5.1 | No |  | returning | wise |
+| Team 3 | Jamie Cable | M | 6.3 | Yes |  | returning | standard |
+| Team 3 | Marianne Auger | F | 3.1 | No |  | returning | wise |
+| Team 3 | Eric Good | M | 7.3 | Yes |  | returning | standard |
+| Team 3 | Dayson Bress | M | 7.0 | No |  | returning | young |
+| Team 3 | Billy Miller | M | 5.3 | No |  | returning | standard |
+| Team 3 | Jaclyn Kane | F | 4.9 | No |  | returning | standard |
+| Team 4 | Kyle Jones | M | 4.5 | No |  | returning | standard |
+| Team 4 | James Callow | M | 7.0 | Yes | Male leader B | returning | wise |
+| Team 4 | Cale Holmes | M | 5.7 | Yes | Male leader B | returning | standard |
+| Team 4 | Tristan Callow | M | 4.5 | No |  | returning | young |
+| Team 4 | Tracy Penley | F | 4.9 | No | Female leader B | returning | standard |
+| Team 4 | Matt Tribe | M | 6.7 | Yes |  | returning | standard |
+| Team 4 | Pascale Clements | F | 3.2 | No |  | returning | standard |
+| Team 4 | Kole O'C | M | 5.4 | Yes |  | new | young |
+| Team 4 | Scott O'Connor | M | 4.6 | No |  | new | wise |
+| Team 4 | Leah Potje | F | 4.1 | No |  | returning | young |
+| Team 4 | Lilyanna Padoin Lee | F | 6.0 | No |  | returning | young |
+| Team 4 | Luke Mackey | M | 7.3 | Yes |  | returning | standard |
+| Team 4 | Courtney Hough | F | 6.1 | Yes |  | returning | standard |
+| Team 4 | Tate Montgomery | M | 6.1 | No |  | returning | young |
+| Team 4 | David Pietrowski | M | 4.9 | Yes |  | returning | wise |
+| Team 5 | Carden Vickers | M | 4.5 | No |  | returning | standard |
+| Team 5 | John Nigh | M | 5.2 | No |  | returning | standard |
+| Team 5 | Matt Simon | M | 7.3 | Yes |  | returning | young |
+| Team 5 | Levi Taylor | M | 8.9 | Yes | Male leader B | returning | young |
+| Team 5 | Duncan Taylor | M | 4.7 | Yes |  | new | wise |
+| Team 5 | Caitlind Lusty | F | 9.4 | Yes | Female leader A | returning | standard |
+| Team 5 | Matthew Lynar | M | 5.5 | No |  | returning | standard |
+| Team 5 | David Tran | M | 7.4 | Yes | Male leader B | returning | standard |
+| Team 5 | Emilie Farr | F | 7.1 | No |  | returning | young |
+| Team 5 | Hailey Irwin | F | 6.3 | No |  | returning | young |
+| Team 5 | Brendan Irwin | M | 4.9 | No |  | new | young |
+| Team 5 | Nadine Leiper | F | 5.1 | No |  | returning | wise |
+| Team 5 | Alli Leiper | F | 2.6 | No |  | new | young |
+| Team 5 | Will Boaks | M | 6.0 | Yes |  | returning | standard |
+| Team 5 | Neil Bond | M | 5.1 | No |  | returning | standard |
+| Team 6 | David Humphrys | M | 4.4 | No |  | returning | wise |
+| Team 6 | Stephen Hawley | M | 6.6 | Yes | Male leader B | returning | standard |
+| Team 6 | Curtis Reason | M | 7.2 | Yes | Male leader B | returning | standard |
+| Team 6 | Niko Hoogeveen | M | 7.0 | Yes | Male leader B | returning | standard |
+| Team 6 | Adam Soos | M | 6.7 | Yes |  | returning | standard |
+| Team 6 | Amber Soos | F | 6.4 | No |  | returning | young |
+| Team 6 | Emma Hanney | F | 7.4 | Yes | Female leader B | returning | standard |
+| Team 6 | Shannon Wolochatiuk | F | 5.4 | No |  | returning | standard |
+| Team 6 | Scott Patrick | M | 6.8 | Yes |  | returning | standard |
+| Team 6 | Darren Brazier | M | 4.1 | No |  | returning | wise |
+| Team 6 | Maisy Brazier | F | 5.9 | No |  | returning | young |
+| Team 6 | Christian Mueller | M | 3.9 | No |  | returning | standard |
+| Team 6 | Emilie Brown | F | 2.8 | No |  | returning | standard |
+| Team 6 | Jamie Bonany | M | 5.5 | Yes |  | returning | standard |
+| Team 6 | Ben Kleiser | M | 5.1 | No |  | new | standard |
+| Team 7 | Mat MacLean | M | 4.3 | No |  | new | standard |
+| Team 7 | Matt Hofing | M | 7.7 | Yes | Male leader B | returning | standard |
+| Team 7 | Brad Mayer | M | 6.9 | Yes |  | returning | wise |
+| Team 7 | Rebecca Robitaille | F | 7.7 | Yes | Female leader A | returning | standard |
+| Team 7 | Aiden Courville | M | 6.4 | Yes |  | new | young |
+| Team 7 | Colton Courville | M | 5.0 | Yes | Male leader B | new | young |
+| Team 7 | Sarah Butt | F | 4.8 | No |  | new | young |
+| Team 7 | Brad Dempsey | M | 5.0 | No |  | returning | standard |
+| Team 7 | Ashish Mehra | M | 6.2 | No |  | returning | standard |
+| Team 7 | Ryan Sagermann | M | 6.3 | Yes |  | returning | standard |
+| Team 7 | Carly Sagermann | F | 4.4 | No |  | new | standard |
+| Team 7 | Brett Ormsby | M | 7.1 | No |  | returning | young |
+| Team 7 | Taylor Stanojev | F | 6.1 | No |  | returning | standard |
+| Team 7 | Stephen Fisher | M | 5.2 | Yes |  | returning | standard |
+| Team 7 | Julianna Lerch | F | 5.1 | No |  | returning | wise |
+| Team 8 | Charlie Tardif | M | 4.2 | No |  | returning | standard |
+| Team 8 | Kurtis Thomas | M | 8.7 | Yes | Male leader B | returning | standard |
+| Team 8 | Richmand Hogg | M | 8.2 | Yes | Male leader A, Male leader B | returning | standard |
+| Team 8 | Molly Douglas | F | 7.7 | Yes | Female leader A | returning | standard |
+| Team 8 | Sara Shakib | F | 3.4 | No |  | returning | standard |
+| Team 8 | Patrick Kirkwood | M | 7.7 | Yes | Male leader B | returning | standard |
+| Team 8 | Joseph Doran | M | 5.9 | Yes | Male leader B | returning | standard |
+| Team 8 | Chris Tillmanns | M | 4.9 | No |  | returning | wise |
+| Team 8 | Julie Tillmanns | F | 4.9 | No |  | returning | wise |
+| Team 8 | Charlee Tillmanns | F | 4.1 | No |  | returning | young |
+| Team 8 | Spencer Brown | M | 4.4 | No |  | returning | standard |
+| Team 8 | Cole Monteith | M | 4.5 | Yes |  | returning | standard |
+| Team 8 | Wesley Taggart | M | 6.1 | Yes |  | returning | standard |
+| Team 8 | Ryan Bridge | M | 5.1 | No |  | returning | standard |
 
 ## Variation 4
 
-- Nice-to-have requests honoured: 27/32 (84%)
+- Must-play groups: Kept together
+- Nice-to-have requests honoured: 24/29 (83%)
 - Female leaders: 8/8 teams
 - Male leaders: 8/8 teams
-- Skill spread: 1.73
-- Handler spread: 3
+- Skill spread: 0.46
+- Handler spread: 2
 
-### Team 1
+### Player rows
 
-- Players: 15 (10M / 5F)
-- Avg skill: 4.33
-- Handlers: 5
-- Nice requests honoured: 3
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Olivia Evans | F | 3.0 | No |  | returning | standard |
-| Brianna Hall | F | 4.0 | No | Female leader A | returning | standard |
-| Michael McConnell | M | 8.0 | Yes | Male leader B | returning | standard |
-| Robin Mennie | F | 3.0 | No |  | returning | standard |
-| Cody Sinkinson | M | 3.0 | No |  | returning | standard |
-| Aiden Courville | M | 6.0 | Yes |  | new | young |
-| Colton Courville | M | 3.0 | Yes | Male leader B | new | young |
-| Sarah Butt | F | 4.0 | No |  | new | young |
-| Shannon Wolochatiuk | F | 4.0 | No |  | returning | standard |
-| Scott Patrick | M | 7.0 | Yes |  | returning | standard |
-| Nate Smith | M | 5.0 | No |  | returning | young |
-| Frank Smith | M | 2.0 | No |  | returning | wise |
-| Wesley Taggart | M | 6.0 | Yes |  | returning | standard |
-| Ryan Bridge | M | 4.0 | No |  | returning | standard |
-| Charlie Tardif | M | 3.0 | No |  | returning | standard |
-
-### Team 2
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.80
-- Handlers: 7
-- Nice requests honoured: 1
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Stephen Fisher | M | 3.0 | Yes |  | returning | standard |
-| Carly Munce | F | 10.0 | Yes | Female leader A | returning | standard |
-| Thomas Black | M | 10.0 | Yes | Male leader A, Male leader B | returning | standard |
-| Pierce Munce | M | 9.0 | Yes | Male leader B | returning | standard |
-| Emma Hanney | F | 6.0 | Yes | Female leader B | returning | standard |
-| Geno Bornea | M | 3.0 | No | Male leader B | new | standard |
-| Kole O'C | M | 3.0 | Yes |  | new | young |
-| Scott O'Connor | M | 2.0 | No |  | new | wise |
-| Leah Potje | F | 4.0 | No |  | returning | young |
-| Lilyanna Padoin Lee | F | 5.0 | No |  | returning | young |
-| Spencer Brown | M | 2.0 | No |  | returning | standard |
-| Cole Monteith | M | 2.0 | Yes |  | returning | standard |
-| Taylor Stanojev | F | 6.0 | No |  | returning | standard |
-| Neil Bond | M | 4.0 | No |  | returning | standard |
-| Paul Marjin | M | 3.0 | No |  | returning | standard |
-
-### Team 3
-
-- Players: 14 (10M / 4F)
-- Avg skill: 5.14
-- Handlers: 6
-- Nice requests honoured: 3
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Mat MacLean | M | 3.0 | No |  | new | standard |
-| Stephen Hawley | M | 8.0 | Yes | Male leader B | returning | standard |
-| Curtis Reason | M | 8.0 | Yes | Male leader B | returning | standard |
-| Caitlind Lusty | F | 10.0 | Yes | Female leader A | returning | standard |
-| Matthew Lynar | M | 3.0 | No |  | returning | standard |
-| Kyle Stashuk | M | 6.0 | No |  | returning | wise |
-| Peter Rutkauskas | M | 3.0 | No |  | returning | wise |
-| Jamie Cable | M | 5.0 | Yes |  | returning | standard |
-| Marianne Auger | F | 3.0 | No |  | returning | wise |
-| Darren Brazier | M | 3.0 | No |  | returning | wise |
-| Maisy Brazier | F | 5.0 | No |  | returning | young |
-| Luke Mackey | M | 7.0 | Yes |  | returning | standard |
-| Jamie Bonany | M | 4.0 | Yes |  | returning | standard |
-| Julianna Lerch | F | 4.0 | No |  | returning | wise |
-
-### Team 4
-
-- Players: 15 (10M / 5F)
-- Avg skill: 4.73
-- Handlers: 6
-- Nice requests honoured: 3
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Ben Kleiser | M | 3.0 | No |  | new | standard |
-| John Nigh | M | 5.0 | No |  | returning | standard |
-| Matt Simon | M | 7.0 | Yes |  | returning | young |
-| Levi Taylor | M | 8.0 | Yes | Male leader B | returning | young |
-| Duncan Taylor | M | 3.0 | Yes |  | new | wise |
-| Kristy Robinson | F | 4.0 | No | Female leader A | returning | wise |
-| Andy Beecroft | M | 4.0 | No |  | returning | wise |
-| Patrick Kirkwood | M | 9.0 | Yes | Male leader B | returning | standard |
-| Chris Tillmanns | M | 3.0 | No |  | returning | wise |
-| Julie Tillmanns | F | 3.0 | No |  | returning | wise |
-| Charlee Tillmanns | F | 3.0 | No |  | returning | young |
-| Dayson Bress | M | 7.0 | No |  | returning | young |
-| Courtney Hough | F | 5.0 | Yes |  | returning | standard |
-| Xena Cochi | F | 4.0 | No |  | returning | standard |
-| David Pietrowski | M | 3.0 | Yes |  | returning | wise |
-
-### Team 5
-
-- Players: 15 (10M / 5F)
-- Avg skill: 5.67
-- Handlers: 5
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Brandon Canning | M | 2.0 | No |  | new | standard |
-| Matt Hofing | M | 9.0 | Yes | Male leader B | returning | standard |
-| Brad Mayer | M | 8.0 | Yes |  | returning | wise |
-| Rebecca Robitaille | F | 9.0 | Yes | Female leader A | returning | standard |
-| Niko Hoogeveen | M | 7.0 | Yes | Male leader B | returning | standard |
-| Adam Soos | M | 8.0 | Yes |  | returning | standard |
-| Amber Soos | F | 8.0 | No |  | returning | young |
-| Emilie Farr | F | 7.0 | No |  | returning | young |
-| Hailey Irwin | F | 7.0 | No |  | returning | young |
-| Brendan Irwin | M | 3.0 | No |  | new | young |
-| Christian Mueller | M | 3.0 | No |  | returning | standard |
-| Emilie Brown | F | 1.0 | No |  | returning | standard |
-| Brett Ormsby | M | 6.0 | No |  | returning | young |
-| Kyle Jones | M | 4.0 | No |  | returning | standard |
-| Billy Miller | M | 3.0 | No |  | returning | standard |
-
-### Team 6
-
-- Players: 15 (10M / 5F)
-- Avg skill: 3.93
-- Handlers: 7
-- Nice requests honoured: 3
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Joe Alamshah | M | 2.0 | No |  | new | standard |
-| James Callow | M | 7.0 | Yes | Male leader B | returning | wise |
-| Cale Holmes | M | 4.0 | Yes | Male leader B | returning | standard |
-| Tristan Callow | M | 2.0 | No |  | returning | young |
-| Tracy Penley | F | 4.0 | No | Female leader B | returning | standard |
-| Matt Tribe | M | 6.0 | Yes |  | returning | standard |
-| Pascale Clements | F | 2.0 | No |  | returning | standard |
-| Joseph Doran | M | 4.0 | Yes | Male leader B | returning | standard |
-| Ryan Sagermann | M | 7.0 | Yes |  | returning | standard |
-| Carly Sagermann | F | 4.0 | No |  | new | standard |
-| Nadine Leiper | F | 4.0 | No |  | returning | wise |
-| Alli Leiper | F | 1.0 | No |  | new | young |
-| Eric Bouchard | M | 6.0 | Yes |  | returning | wise |
-| Thomas Barnes | M | 3.0 | Yes |  | returning | wise |
-| Carden Vickers | M | 3.0 | No |  | returning | standard |
-
-### Team 7
-
-- Players: 14 (10M / 4F)
-- Avg skill: 5.21
-- Handlers: 7
-- Nice requests honoured: 5
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| Kurtis Thomas | M | 9.0 | Yes | Male leader B | returning | standard |
-| Richmand Hogg | M | 8.0 | Yes | Male leader A, Male leader B | returning | standard |
-| Molly Douglas | F | 8.0 | Yes | Female leader A | returning | standard |
-| Sara Shakib | F | 1.0 | No |  | returning | standard |
-| Andrew "Sundance" Black | M | 5.0 | Yes | Male leader B | returning | standard |
-| Lauren Grasse | F | 4.0 | Yes |  | returning | young |
-| Liam Crawford | M | 3.0 | No |  | returning | young |
-| Elly Switzer | F | 6.0 | Yes |  | returning | young |
-| Caleb Fisher | M | 4.0 | No |  | new | young |
-| Brad Dempsey | M | 3.0 | No |  | returning | standard |
-| Ashish Mehra | M | 7.0 | No |  | returning | standard |
-| Kevin Schuster | M | 7.0 | Yes |  | returning | standard |
-| Joseph Dunlop | M | 5.0 | No |  | returning | standard |
-| David Humphrys | M | 3.0 | No |  | returning | wise |
-
-### Team 8
-
-- Players: 15 (10M / 5F)
-- Avg skill: 5.00
-- Handlers: 8
-- Nice requests honoured: 4
-
-| Player | Gender | Skill | Handler | Leaders | Status | Age |
-|---|---:|---:|---:|---|---|---|
-| parker munce | F | 9.0 | Yes | Female leader A | returning | standard |
-| Kyra Frisina | F | 3.0 | Yes | Female leader A | returning | standard |
-| Cali Gurr | F | 3.0 | No |  | returning | standard |
-| Koral Freeman | F | 2.0 | No |  | new | standard |
-| Derek Davey | M | 2.0 | No |  | new | standard |
-| David Tran | M | 8.0 | Yes | Male leader B | returning | standard |
-| Jeff Cobbledick | M | 7.0 | Yes | Male leader B | returning | standard |
-| Sean Harrington | M | 8.0 | Yes |  | returning | young |
-| Kileigh Harrington | M | 5.0 | No |  | returning | standard |
-| Finn Montgomery | M | 6.0 | Yes |  | returning | young |
-| Tate Montgomery | M | 4.0 | No |  | returning | young |
-| Eric Good | M | 7.0 | Yes |  | returning | standard |
-| Will Boaks | M | 5.0 | Yes |  | returning | standard |
-| Jaclyn Kane | F | 3.0 | No |  | returning | standard |
-| Jeffery Hoover | M | 3.0 | No |  | returning | wise |
+| Team | Player | Gender | Skill | Handler | Leader | Status | Age |
+|---|---|---:|---:|---:|---|---|---|
+| Team 1 | Charlie Tardif | M | 4.2 | No |  | returning | standard |
+| Team 1 | John Nigh | M | 5.2 | No |  | returning | standard |
+| Team 1 | Matt Simon | M | 7.3 | Yes |  | returning | young |
+| Team 1 | Levi Taylor | M | 8.9 | Yes | Male leader B | returning | young |
+| Team 1 | Duncan Taylor | M | 4.7 | Yes |  | new | wise |
+| Team 1 | Kristy Robinson | F | 4.9 | No | Female leader A | returning | wise |
+| Team 1 | Andy Beecroft | M | 4.9 | No |  | returning | wise |
+| Team 1 | Patrick Kirkwood | M | 7.7 | Yes | Male leader B | returning | standard |
+| Team 1 | Brad Dempsey | M | 5.0 | No |  | returning | standard |
+| Team 1 | Ashish Mehra | M | 6.2 | No |  | returning | standard |
+| Team 1 | Luke Mackey | M | 7.3 | Yes |  | returning | standard |
+| Team 1 | Taylor Stanojev | F | 6.1 | No |  | returning | standard |
+| Team 1 | Xena Cochi | F | 5.8 | No |  | returning | standard |
+| Team 1 | Julianna Lerch | F | 5.1 | No |  | returning | wise |
+| Team 2 | Brandon Canning | M | 3.7 | No |  | new | standard |
+| Team 2 | Stephen Hawley | M | 6.6 | Yes | Male leader B | returning | standard |
+| Team 2 | Curtis Reason | M | 7.2 | Yes | Male leader B | returning | standard |
+| Team 2 | Tracy Penley | F | 4.9 | No | Female leader B | returning | standard |
+| Team 2 | Matt Tribe | M | 6.7 | Yes |  | returning | standard |
+| Team 2 | Pascale Clements | F | 3.2 | No |  | returning | standard |
+| Team 2 | Emma Hanney | F | 7.4 | Yes | Female leader B | returning | standard |
+| Team 2 | Chris Tillmanns | M | 4.9 | No |  | returning | wise |
+| Team 2 | Julie Tillmanns | F | 4.9 | No |  | returning | wise |
+| Team 2 | Charlee Tillmanns | F | 4.1 | No |  | returning | young |
+| Team 2 | Eric Good | M | 7.3 | Yes |  | returning | standard |
+| Team 2 | Kevin Schuster | M | 7.1 | Yes |  | returning | standard |
+| Team 2 | Jamie Bonany | M | 5.5 | Yes |  | returning | standard |
+| Team 2 | Kyle Jones | M | 4.5 | No |  | returning | standard |
+| Team 2 | Mat MacLean | M | 4.3 | No |  | new | standard |
+| Team 3 | Joe Alamshah | M | 3.1 | No |  | new | standard |
+| Team 3 | Carly Munce | F | 8.9 | Yes | Female leader A | returning | standard |
+| Team 3 | Thomas Black | M | 9.2 | Yes | Male leader A, Male leader B | returning | standard |
+| Team 3 | Pierce Munce | M | 7.9 | Yes | Male leader B | returning | standard |
+| Team 3 | Joseph Doran | M | 5.9 | Yes | Male leader B | returning | standard |
+| Team 3 | Kole O'C | M | 5.4 | Yes |  | new | young |
+| Team 3 | Scott O'Connor | M | 4.6 | No |  | new | wise |
+| Team 3 | Leah Potje | F | 4.1 | No |  | returning | young |
+| Team 3 | Lilyanna Padoin Lee | F | 6.0 | No |  | returning | young |
+| Team 3 | Darren Brazier | M | 4.1 | No |  | returning | wise |
+| Team 3 | Maisy Brazier | F | 5.9 | No |  | returning | young |
+| Team 3 | Eric Bouchard | M | 6.4 | Yes |  | returning | wise |
+| Team 3 | Billy Miller | M | 5.3 | No |  | returning | standard |
+| Team 3 | Neil Bond | M | 5.1 | No |  | returning | standard |
+| Team 3 | Jaclyn Kane | F | 4.9 | No |  | returning | standard |
+| Team 4 | Kurtis Thomas | M | 8.7 | Yes | Male leader B | returning | standard |
+| Team 4 | Richmand Hogg | M | 8.2 | Yes | Male leader A, Male leader B | returning | standard |
+| Team 4 | Molly Douglas | F | 7.7 | Yes | Female leader A | returning | standard |
+| Team 4 | Sara Shakib | F | 3.4 | No |  | returning | standard |
+| Team 4 | Andrew "Sundance" Black | M | 6.1 | Yes | Male leader B | returning | standard |
+| Team 4 | Kyle Stashuk | M | 5.4 | No |  | returning | wise |
+| Team 4 | Peter Rutkauskas | M | 5.1 | No |  | returning | wise |
+| Team 4 | Jamie Cable | M | 6.3 | Yes |  | returning | standard |
+| Team 4 | Marianne Auger | F | 3.1 | No |  | returning | wise |
+| Team 4 | Nate Smith | M | 5.4 | No |  | returning | young |
+| Team 4 | Frank Smith | M | 3.8 | No |  | returning | wise |
+| Team 4 | Courtney Hough | F | 6.1 | Yes |  | returning | standard |
+| Team 4 | Stephen Fisher | M | 5.2 | Yes |  | returning | standard |
+| Team 4 | Ben Kleiser | M | 5.1 | No |  | new | standard |
+| Team 4 | Olivia Evans | F | 4.6 | No |  | returning | standard |
+| Team 5 | parker munce | F | 7.6 | Yes | Female leader A | returning | standard |
+| Team 5 | Kyra Frisina | F | 6.0 | Yes | Female leader A | returning | standard |
+| Team 5 | Cali Gurr | F | 4.7 | No |  | returning | standard |
+| Team 5 | Koral Freeman | F | 2.4 | No |  | new | standard |
+| Team 5 | Derek Davey | M | 2.6 | No |  | new | standard |
+| Team 5 | David Tran | M | 7.4 | Yes | Male leader B | returning | standard |
+| Team 5 | Jeff Cobbledick | M | 7.3 | Yes | Male leader B | returning | standard |
+| Team 5 | Sean Harrington | M | 8.0 | Yes |  | returning | young |
+| Team 5 | Kileigh Harrington | M | 5.4 | No |  | returning | standard |
+| Team 5 | Spencer Brown | M | 4.4 | No |  | returning | standard |
+| Team 5 | Cole Monteith | M | 4.5 | Yes |  | returning | standard |
+| Team 5 | Brett Ormsby | M | 7.1 | No |  | returning | young |
+| Team 5 | Tate Montgomery | M | 6.1 | No |  | returning | young |
+| Team 5 | Carden Vickers | M | 4.5 | No |  | returning | standard |
+| Team 6 | Brianna Hall | F | 5.9 | No | Female leader A | returning | standard |
+| Team 6 | Michael McConnell | M | 7.8 | Yes | Male leader B | returning | standard |
+| Team 6 | Robin Mennie | F | 3.9 | No |  | returning | standard |
+| Team 6 | Cody Sinkinson | M | 3.9 | No |  | returning | standard |
+| Team 6 | Aiden Courville | M | 6.4 | Yes |  | new | young |
+| Team 6 | Colton Courville | M | 5.0 | Yes | Male leader B | new | young |
+| Team 6 | Sarah Butt | F | 4.8 | No |  | new | young |
+| Team 6 | Shannon Wolochatiuk | F | 5.4 | No |  | returning | standard |
+| Team 6 | Scott Patrick | M | 6.8 | Yes |  | returning | standard |
+| Team 6 | Ryan Sagermann | M | 6.3 | Yes |  | returning | standard |
+| Team 6 | Carly Sagermann | F | 4.4 | No |  | new | standard |
+| Team 6 | Dayson Bress | M | 7.0 | No |  | returning | young |
+| Team 6 | Wesley Taggart | M | 6.1 | Yes |  | returning | standard |
+| Team 6 | Paul Marjin | M | 4.7 | No |  | returning | standard |
+| Team 6 | David Humphrys | M | 4.4 | No |  | returning | wise |
+| Team 7 | Matt Hofing | M | 7.7 | Yes | Male leader B | returning | standard |
+| Team 7 | Brad Mayer | M | 6.9 | Yes |  | returning | wise |
+| Team 7 | Rebecca Robitaille | F | 7.7 | Yes | Female leader A | returning | standard |
+| Team 7 | Niko Hoogeveen | M | 7.0 | Yes | Male leader B | returning | standard |
+| Team 7 | Adam Soos | M | 6.7 | Yes |  | returning | standard |
+| Team 7 | Amber Soos | F | 6.4 | No |  | returning | young |
+| Team 7 | Geno Bornea | M | 5.1 | No | Male leader B | new | standard |
+| Team 7 | Emilie Farr | F | 7.1 | No |  | returning | young |
+| Team 7 | Hailey Irwin | F | 6.3 | No |  | returning | young |
+| Team 7 | Brendan Irwin | M | 4.9 | No |  | new | young |
+| Team 7 | Christian Mueller | M | 3.9 | No |  | returning | standard |
+| Team 7 | Emilie Brown | F | 2.8 | No |  | returning | standard |
+| Team 7 | Will Boaks | M | 6.0 | Yes |  | returning | standard |
+| Team 7 | Ryan Bridge | M | 5.1 | No |  | returning | standard |
+| Team 7 | Thomas Barnes | M | 4.9 | Yes |  | returning | wise |
+| Team 8 | James Callow | M | 7.0 | Yes | Male leader B | returning | wise |
+| Team 8 | Cale Holmes | M | 5.7 | Yes | Male leader B | returning | standard |
+| Team 8 | Tristan Callow | M | 4.5 | No |  | returning | young |
+| Team 8 | Caitlind Lusty | F | 9.4 | Yes | Female leader A | returning | standard |
+| Team 8 | Matthew Lynar | M | 5.5 | No |  | returning | standard |
+| Team 8 | Lauren Grasse | F | 6.1 | Yes |  | returning | young |
+| Team 8 | Liam Crawford | M | 4.4 | No |  | returning | young |
+| Team 8 | Elly Switzer | F | 7.4 | Yes |  | returning | young |
+| Team 8 | Caleb Fisher | M | 5.0 | No |  | new | young |
+| Team 8 | Nadine Leiper | F | 5.1 | No |  | returning | wise |
+| Team 8 | Alli Leiper | F | 2.6 | No |  | new | young |
+| Team 8 | Finn Montgomery | M | 6.9 | Yes |  | returning | young |
+| Team 8 | Joseph Dunlop | M | 5.5 | No |  | returning | standard |
+| Team 8 | David Pietrowski | M | 4.9 | Yes |  | returning | wise |
+| Team 8 | Jeffery Hoover | M | 4.8 | No |  | returning | wise |

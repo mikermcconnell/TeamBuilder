@@ -2,8 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const DEFAULT_JSON_PATH = 'output/summer-2026/pass-4-nice75/summer-outdoor-2026-exec-review.json';
-const DEFAULT_HTML_PATH = 'output/summer-2026/pass-4-nice75/summer-outdoor-2026-exec-review.html';
+const DEFAULT_JSON_PATH = 'output/summer-2026/pass-9-leader-variations/summer-outdoor-2026-july-3-exec-review.json';
+const DEFAULT_HTML_PATH = 'output/summer-2026/pass-9-leader-variations/summer-outdoor-2026-july-3-exec-review.html';
 const DEFAULT_PUBLIC_HTML_PATH = 'public/reports/summer-outdoor-2026-exec-review.html';
 
 function parseCliOptions(argv) {
@@ -113,7 +113,7 @@ function teamCard(team) {
         <header class="team-header">
           <div class="team-title-wrap">
             <h3>${escapeHtml(team.name)}</h3>
-            <p>${team.size} players • Avg skill ${Number(team.averageSkill).toFixed(2)}</p>
+            <p>${team.size} players • Avg skill ${Number(team.averageSkill).toFixed(1)}</p>
           </div>
           <div class="team-metrics">
             <div><span>F</span><b>${team.female}</b></div>
