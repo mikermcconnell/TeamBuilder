@@ -55,10 +55,10 @@ function pill(label, cls = 'slate') {
 
 function skillBadgeStyle(skill) {
   const normalized = Math.max(0, Math.min(1, Number(skill) / 10));
-  const saturation = Math.round(42 + normalized * 42);
-  const lightness = Math.round(90 - normalized * 52);
-  const borderLightness = Math.max(24, lightness - 10);
-  const textColor = normalized >= 0.55 ? '#ffffff' : '#064e3b';
+  const saturation = Math.round(30 + normalized * 58);
+  const lightness = Math.round(97 - normalized * 71);
+  const borderLightness = Math.max(20, lightness - 12);
+  const textColor = normalized >= 0.58 ? '#ffffff' : '#064e3b';
 
   return `background:hsl(150 ${saturation}% ${lightness}%);border-color:hsl(150 ${saturation}% ${borderLightness}%);color:${textColor};`;
 }
