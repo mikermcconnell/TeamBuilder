@@ -1,6 +1,6 @@
 {
   "seasonName": "Summer Outdoor 2026",
-  "generatedAt": "2026-07-03T15:31:48.610Z",
+  "generatedAt": "2026-07-03T15:54:19.484Z",
   "source": {
     "workbook": "output/summer-2026/pass-9-leader-variations/summer-outdoor-2026-july-3-draft-source.csv",
     "sheet": "Roster Self Rank",
@@ -83,6 +83,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.9,
+          "femaleAverageSkill": 4.6,
+          "maleAverageSkill": 6.5,
           "handlers": 7,
           "leaders": [
             "Stephen Hawley - male leader B",
@@ -269,6 +271,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.6,
+          "femaleAverageSkill": 6.1,
+          "maleAverageSkill": 5.3,
           "handlers": 7,
           "leaders": [
             "James Callow - male leader B",
@@ -458,6 +462,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.7,
+          "femaleAverageSkill": 5.7,
+          "maleAverageSkill": 5.7,
           "handlers": 7,
           "leaders": [
             "Levi Taylor - male leader B",
@@ -642,6 +648,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 6.1,
+          "femaleAverageSkill": 6.7,
+          "maleAverageSkill": 5.8,
           "handlers": 7,
           "leaders": [
             "Matt Hofing - male leader B",
@@ -828,6 +836,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.3,
+          "femaleAverageSkill": 5.2,
+          "maleAverageSkill": 5.4,
           "handlers": 7,
           "leaders": [
             "parker munce - female leader A",
@@ -1015,6 +1025,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.2,
+          "femaleAverageSkill": 4.5,
+          "maleAverageSkill": 5.5,
           "handlers": 4,
           "leaders": [
             "Brianna Hall - female leader A",
@@ -1203,6 +1215,8 @@
           "female": 4,
           "other": 0,
           "averageSkill": 5.9,
+          "femaleAverageSkill": 5.3,
+          "maleAverageSkill": 6.2,
           "handlers": 7,
           "leaders": [
             "Kurtis Thomas - male leader B",
@@ -1383,6 +1397,8 @@
           "female": 4,
           "other": 0,
           "averageSkill": 5.9,
+          "femaleAverageSkill": 5.5,
+          "maleAverageSkill": 6,
           "handlers": 5,
           "leaders": [
             "Carly Munce - female leader A",
@@ -1605,6 +1621,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.6,
+          "femaleAverageSkill": 4.8,
+          "maleAverageSkill": 6,
           "handlers": 6,
           "leaders": [
             "Brianna Hall - female leader A",
@@ -1789,6 +1807,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.7,
+          "femaleAverageSkill": 6.7,
+          "maleAverageSkill": 5.2,
           "handlers": 7,
           "leaders": [
             "James Callow - male leader B",
@@ -1978,6 +1998,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.6,
+          "femaleAverageSkill": 5.3,
+          "maleAverageSkill": 5.7,
           "handlers": 5,
           "leaders": [
             "parker munce - female leader A",
@@ -2165,6 +2187,8 @@
           "female": 4,
           "other": 0,
           "averageSkill": 5.5,
+          "femaleAverageSkill": 4.9,
+          "maleAverageSkill": 5.7,
           "handlers": 5,
           "leaders": [
             "Carly Munce - female leader A",
@@ -2347,6 +2371,8 @@
           "female": 4,
           "other": 0,
           "averageSkill": 6,
+          "femaleAverageSkill": 6.1,
+          "maleAverageSkill": 6,
           "handlers": 7,
           "leaders": [
             "Matt Hofing - male leader B",
@@ -2526,6 +2552,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.5,
+          "femaleAverageSkill": 4.9,
+          "maleAverageSkill": 5.8,
           "handlers": 8,
           "leaders": [
             "Levi Taylor - male leader B",
@@ -2713,6 +2741,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.7,
+          "femaleAverageSkill": 5.5,
+          "maleAverageSkill": 5.8,
           "handlers": 6,
           "leaders": [
             "Stephen Hawley - male leader B",
@@ -2897,6 +2927,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.9,
+          "femaleAverageSkill": 5.4,
+          "maleAverageSkill": 6.2,
           "handlers": 7,
           "leaders": [
             "Kurtis Thomas - male leader B",
@@ -3129,6 +3161,8 @@
           "female": 4,
           "other": 0,
           "averageSkill": 6,
+          "femaleAverageSkill": 6.8,
+          "maleAverageSkill": 5.6,
           "handlers": 6,
           "leaders": [
             "Carly Munce - female leader A",
@@ -3309,6 +3343,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.4,
+          "femaleAverageSkill": 5.3,
+          "maleAverageSkill": 5.5,
           "handlers": 7,
           "leaders": [
             "parker munce - female leader A",
@@ -3496,6 +3532,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.5,
+          "femaleAverageSkill": 4.5,
+          "maleAverageSkill": 6,
           "handlers": 4,
           "leaders": [
             "Brianna Hall - female leader A",
@@ -3680,6 +3718,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.4,
+          "femaleAverageSkill": 4.9,
+          "maleAverageSkill": 5.7,
           "handlers": 7,
           "leaders": [
             "James Callow - male leader B",
@@ -3865,6 +3905,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 6,
+          "femaleAverageSkill": 6.1,
+          "maleAverageSkill": 5.9,
           "handlers": 6,
           "leaders": [
             "Levi Taylor - male leader B",
@@ -4052,6 +4094,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.7,
+          "femaleAverageSkill": 5.6,
+          "maleAverageSkill": 5.7,
           "handlers": 7,
           "leaders": [
             "Stephen Hawley - male leader B",
@@ -4242,6 +4286,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.9,
+          "femaleAverageSkill": 5.6,
+          "maleAverageSkill": 6,
           "handlers": 7,
           "leaders": [
             "Matt Hofing - male leader B",
@@ -4426,6 +4472,8 @@
           "female": 4,
           "other": 0,
           "averageSkill": 5.7,
+          "femaleAverageSkill": 5,
+          "maleAverageSkill": 6,
           "handlers": 7,
           "leaders": [
             "Kurtis Thomas - male leader B",
@@ -4652,6 +4700,8 @@
           "female": 4,
           "other": 0,
           "averageSkill": 6,
+          "femaleAverageSkill": 5.5,
+          "maleAverageSkill": 6.1,
           "handlers": 5,
           "leaders": [
             "Levi Taylor - male leader B",
@@ -4825,6 +4875,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.5,
+          "femaleAverageSkill": 4.9,
+          "maleAverageSkill": 5.8,
           "handlers": 7,
           "leaders": [
             "Stephen Hawley - male leader B",
@@ -5009,6 +5061,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.8,
+          "femaleAverageSkill": 6,
+          "maleAverageSkill": 5.7,
           "handlers": 6,
           "leaders": [
             "Carly Munce - female leader A",
@@ -5196,6 +5250,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.6,
+          "femaleAverageSkill": 5,
+          "maleAverageSkill": 5.9,
           "handlers": 7,
           "leaders": [
             "Kurtis Thomas - male leader B",
@@ -5389,6 +5445,8 @@
           "female": 4,
           "other": 0,
           "averageSkill": 5.6,
+          "femaleAverageSkill": 5.2,
+          "maleAverageSkill": 5.7,
           "handlers": 6,
           "leaders": [
             "parker munce - female leader A",
@@ -5567,6 +5625,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.5,
+          "femaleAverageSkill": 4.9,
+          "maleAverageSkill": 5.8,
           "handlers": 6,
           "leaders": [
             "Brianna Hall - female leader A",
@@ -5755,6 +5815,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.9,
+          "femaleAverageSkill": 6.1,
+          "maleAverageSkill": 5.8,
           "handlers": 7,
           "leaders": [
             "Matt Hofing - male leader B",
@@ -5944,6 +6006,8 @@
           "female": 5,
           "other": 0,
           "averageSkill": 5.7,
+          "femaleAverageSkill": 6.1,
+          "maleAverageSkill": 5.4,
           "handlers": 7,
           "leaders": [
             "James Callow - male leader B",

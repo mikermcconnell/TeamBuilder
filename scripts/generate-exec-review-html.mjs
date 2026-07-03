@@ -63,6 +63,47 @@ function skillBadgeStyle(skill) {
   return `background:hsl(150 ${saturation}% ${lightness}%);border-color:hsl(150 ${saturation}% ${borderLightness}%);color:${textColor};`;
 }
 
+function formatAverage(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric.toFixed(1) : 'n/a';
+}
+
+function average(values) {
+  const numericValues = values.map(Number).filter(Number.isFinite);
+  if (numericValues.length === 0) return 0;
+  return numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length;
+}
+
+function leagueAverageSkill(variation) {
+  return average((variation.teams ?? []).flatMap(team => (team.roster ?? []).map(player => player.skill)));
+}
+
+const TEAM_STRIPES = ['#059669', '#2563eb', '#db2777', '#7c3aed', '#f59e0b', '#0891b2', '#dc2626', '#16a34a'];
+
+function teamStripe(index) {
+  return TEAM_STRIPES[index % TEAM_STRIPES.length] ?? '#059669';
+}
+
+function skillBalance(team, leagueAverage) {
+  const teamAverage = Number(team.averageSkill);
+  const league = Number(leagueAverage);
+  const teamPercent = Math.max(0, Math.min(100, teamAverage * 10));
+  const leaguePercent = Math.max(0, Math.min(100, league * 10));
+  const delta = teamAverage - league;
+  const deltaLabel = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} vs league`;
+
+  return `
+    <div class="skill-balance" aria-label="Team average skill ${formatAverage(teamAverage)}; league average ${formatAverage(league)}">
+      <div class="skill-balance__top"><span>Skill balance</span><span>${deltaLabel}</span></div>
+      <div class="skill-balance__track">
+        <div class="skill-balance__fill" style="width:${teamPercent.toFixed(0)}%;${skillBadgeStyle(teamAverage)}"></div>
+        <span class="skill-balance__marker" style="left:${leaguePercent.toFixed(0)}%"></span>
+      </div>
+      <div class="skill-balance__bottom"><span>Team ${formatAverage(teamAverage)}</span><span>League ${formatAverage(league)}</span></div>
+    </div>
+  `;
+}
+
 function bySkillDescThenName(a, b) {
   return Number(b.skill) - Number(a.skill) || String(a.name).localeCompare(String(b.name));
 }
@@ -101,19 +142,23 @@ function genderSection(label, players, team, cls) {
   `;
 }
 
-function teamCard(team) {
+function teamCard(team, index, leagueAverage) {
   const women = team.roster.filter(player => player.gender === 'F');
   const men = team.roster.filter(player => player.gender === 'M');
   const other = team.roster.filter(player => player.gender !== 'F' && player.gender !== 'M');
 
   return `
     <article class="team-card">
-      <div class="team-stripe"></div>
+      <div class="team-stripe" style="background:${teamStripe(index)};"></div>
       <div class="team-inner">
         <header class="team-header">
           <div class="team-title-wrap">
             <h3>${escapeHtml(team.name)}</h3>
-            <p>${team.size} players • Avg skill ${Number(team.averageSkill).toFixed(1)}</p>
+            <p>${team.size} players • <strong>Avg skill ${formatAverage(team.averageSkill)}</strong></p>
+            <div class="avg-breakdown">
+              <span>F avg <b>${formatAverage(team.femaleAverageSkill)}</b></span>
+              <span>M avg <b>${formatAverage(team.maleAverageSkill)}</b></span>
+            </div>
           </div>
           <div class="team-metrics">
             <div><span>F</span><b>${team.female}</b></div>
@@ -121,6 +166,7 @@ function teamCard(team) {
             <div><span>H</span><b>${team.handlers}</b></div>
           </div>
         </header>
+        ${skillBalance(team, leagueAverage)}
         ${genderSection('Women', women, team, 'women')}
         ${genderSection('Men', men, team, 'men')}
         ${genderSection('Other', other, team, 'men')}
@@ -149,7 +195,36 @@ function variationNav(report) {
   `;
 }
 
+function reportLegend() {
+  return `
+    <section class="report-legend-grid" aria-label="Report legend">
+      <div class="legend-card">
+        <h3>Skill scale</h3>
+        <div class="legend-row">
+          <span class="skill-swatch" style="${skillBadgeStyle(1)}">1</span>
+          <span class="skill-swatch" style="${skillBadgeStyle(5)}">5</span>
+          <span class="skill-swatch" style="${skillBadgeStyle(10)}">10</span>
+          <span>10 = strongest/darkest</span>
+        </div>
+        <div class="legend-note">Team average uses the normalized registration questions, shown to 1 decimal.</div>
+      </div>
+      <div class="legend-card">
+        <h3>Badges</h3>
+        <div class="legend-row">
+          <span class="legend-chip">H = handler</span>
+          <span class="legend-chip">FL-A / FL-B = female leader</span>
+          <span class="legend-chip">ML-A / ML-B = male leader</span>
+          <span class="legend-chip">Group = must-play group</span>
+          <span class="legend-chip">New = new player</span>
+        </div>
+        <div class="legend-note">Skill balance bars compare each team average against the variation's league average.</div>
+      </div>
+    </section>
+  `;
+}
+
 function variationSection(variation, index, total) {
+  const leagueAverage = leagueAverageSkill(variation);
   return `
     <section class="variation-section" id="${variationId(index)}">
       <div class="variation-heading">
@@ -164,7 +239,7 @@ function variationSection(variation, index, total) {
           ${pill(`${variation.summary.maleLeaderCoveredTeams}/8 teams have male leaders`, 'blue')}
         </div>
       </div>
-      <div class="snapshot-grid">${variation.teams.map(teamCard).join('')}</div>
+      <div class="snapshot-grid">${variation.teams.map((team, teamIndex) => teamCard(team, teamIndex, leagueAverage)).join('')}</div>
     </section>
   `;
 }
@@ -224,12 +299,20 @@ function buildHtml(report) {
     table { width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border:1px solid var(--line); border-radius:18px; font-size:14px; background:white; }
     th { background:#eef5fc; text-align:left; padding:12px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
     td { padding:11px 12px; border-top:1px solid var(--line); color:#24364f; }
-    .variation-nav { background:#071226; color:white; border-radius:28px; padding:20px; margin:0 0 28px; box-shadow:0 14px 36px rgba(7,18,38,.14); }
-    .variation-nav__label { font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.12em; color:#bfdbfe; margin-bottom:12px; }
-    .variation-nav__links { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-    .variation-nav a { display:block; text-decoration:none; color:white; border:1px solid rgba(255,255,255,.18); border-radius:18px; padding:12px; background:rgba(255,255,255,.08); }
-    .variation-nav a span { display:block; color:#93c5fd; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
-    .variation-nav a strong { display:block; margin-top:5px; font-size:14px; line-height:1.2; }
+    .variation-nav { position:sticky; top:12px; z-index:20; display:flex; align-items:center; gap:14px; background:rgba(255,255,255,.94); color:var(--ink); border:1px solid var(--line); border-radius:24px; padding:12px 14px; margin:0 0 24px; box-shadow:0 14px 36px rgba(15,23,42,.08); backdrop-filter:blur(12px); }
+    .variation-nav__label { flex:0 0 auto; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.12em; color:var(--green); white-space:nowrap; }
+    .variation-nav__links { display:flex; flex:1 1 auto; min-width:0; gap:8px; overflow-x:auto; scrollbar-width:thin; }
+    .variation-nav a { display:block; flex:1 1 0; min-width:130px; text-decoration:none; color:var(--ink); border:1px solid var(--line); border-radius:16px; padding:9px 11px; background:white; box-shadow:0 4px 14px rgba(15,23,42,.04); transition:background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+    .variation-nav a:hover { transform:translateY(-1px); background:#f8fafc; border-color:#bfdbfe; }
+    .variation-nav a span { display:block; color:var(--blue); font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+    .variation-nav a strong { display:block; margin-top:3px; font-size:13px; line-height:1.15; }
+    .report-legend-grid { display:grid; grid-template-columns:1fr 2fr; gap:12px; margin:0 0 28px; }
+    .legend-card { border:1px solid var(--line); border-radius:22px; padding:14px 16px; background:white; box-shadow:0 8px 24px rgba(15,23,42,.04); }
+    .legend-card h3 { margin:0 0 8px; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; color:#475569; }
+    .legend-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:#475569; font-size:12px; font-weight:700; }
+    .legend-note { margin-top:7px; color:#64748b; font-size:12px; }
+    .skill-swatch { display:inline-flex; min-width:30px; justify-content:center; border:1px solid; border-radius:999px; padding:5px 8px; font-size:12px; font-weight:900; }
+    .legend-chip { display:inline-flex; align-items:center; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; padding:4px 8px; color:#334155; font-size:11px; font-weight:900; }
     .variation-section { margin:34px 0 44px; break-before: page; }
     .variation-section:first-of-type { break-before:auto; }
     .variation-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:16px; border:2px solid #bfdbfe; border-radius:28px; padding:18px 20px; background:linear-gradient(135deg,#eff6ff,#fff); box-shadow:0 12px 28px rgba(37,99,235,.08); }
@@ -238,13 +321,17 @@ function buildHtml(report) {
     .variation-heading p { margin:0; color:var(--muted); }
     .variation-pills { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
     .snapshot-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; align-items:start; }
-    .team-card { border:1px solid #a7f3d0; border-radius:28px; background:linear-gradient(180deg,#ecfdf5 0%, #fff 18%, #fff 100%); overflow:hidden; box-shadow:0 12px 28px rgba(15,23,42,.06); break-inside:avoid; }
-    .team-stripe { height:5px; background:var(--green); }
+    .team-card { border:1px solid #cbd5e1; border-radius:28px; background:linear-gradient(180deg,#f8fafc 0%, #fff 16%, #fff 100%); overflow:hidden; box-shadow:0 12px 28px rgba(15,23,42,.06); break-inside:avoid; }
+    .team-stripe { height:6px; background:var(--green); }
     .team-inner { padding:16px; }
-    .team-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:18px; }
+    .team-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; }
     .team-title-wrap { min-width:0; }
     .team-header h3 { margin:0; font-size:19px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .team-header p { margin:5px 0 0; color:var(--muted); font-size:12px; }
+    .team-title-wrap p strong { color:#071226; font-size:13px; }
+    .avg-breakdown { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+    .avg-breakdown span { display:inline-flex; align-items:center; gap:4px; border:1px solid #e2e8f0; background:#f8fafc; color:#64748b; border-radius:999px; padding:3px 8px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+    .avg-breakdown b { color:#334155; font-size:11px; }
     .team-metrics { display:grid; grid-template-columns:repeat(3,44px); gap:6px; }
     .team-metrics div { border:1px solid var(--line); background:white; border-radius:16px; text-align:center; padding:7px 0; }
     .team-metrics span { display:block; font-size:10px; font-weight:900; color:#64748b; }
@@ -268,9 +355,15 @@ function buildHtml(report) {
     .player-stats { display:flex; flex-shrink:0; align-items:center; gap:7px; }
     .gender-badge { display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:999px; border:1px solid var(--line); background:#f8fafc; color:#475569; font-size:12px; font-weight:800; }
     .skill-badge { border:1px solid #047857; border-radius:999px; padding:7px 9px; font-size:12px; font-weight:800; }
-    @media (max-width: 1200px) { .snapshot-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .metrics, .variation-nav__links { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width: 720px) { .page { padding:16px; } h1 { font-size:34px; } .snapshot-grid, .variation-nav__links { grid-template-columns:1fr; } .variation-heading { display:block; } .variation-pills { justify-content:flex-start; margin-top:12px; } }
-    @media print { @page { size: 17in 11in; margin: .35in; } body { background:white; } .page { max-width:none; padding:0; } .hero, .summary-card, .team-card, .variation-heading { box-shadow:none; } .hero-inner { padding:20px; } .metrics { grid-template-columns:repeat(5,1fr) !important; } .variation-nav { display:none; } .variation-heading { padding:10px 12px; margin-bottom:10px; } .variation-kicker { font-size:8px; padding:4px 7px; margin-bottom:5px; } .snapshot-grid { grid-template-columns:repeat(4,1fr); gap:10px; } .team-inner { padding:10px; } .player-row { min-height:auto; padding:5px 7px; gap:6px; border-radius:10px; } .player-name { font-size:8px; } .team-header h3 { font-size:13px; } .team-header p, .section-head, .pill, .gender-badge, .skill-badge { font-size:7px; } .gender-badge { width:20px; height:20px; } .skill-badge { padding:4px 6px; } .badges { gap:3px; margin-top:3px; } .pill { padding:2px 5px; } .team-metrics { grid-template-columns:repeat(3,30px); } .team-metrics div { padding:4px 0; border-radius:10px; } .team-metrics b { font-size:11px; } .variation-section { break-before:page; } }
+    .skill-balance { margin:0 0 14px; border:1px solid #e2e8f0; border-radius:16px; background:#f8fafc; padding:9px 10px; }
+    .skill-balance__top { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#475569; font-size:11px; font-weight:800; }
+    .skill-balance__track { position:relative; height:8px; margin-top:6px; border-radius:999px; background:#e2e8f0; overflow:visible; }
+    .skill-balance__fill { height:100%; border-radius:999px; }
+    .skill-balance__marker { position:absolute; top:50%; width:3px; height:16px; transform:translate(-50%,-50%); border-radius:999px; background:#071226; box-shadow:0 0 0 2px white; }
+    .skill-balance__bottom { display:flex; justify-content:space-between; margin-top:5px; color:#64748b; font-size:10px; font-weight:700; }
+    @media (max-width: 1200px) { .snapshot-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .metrics { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width: 720px) { .page { padding:16px; } h1 { font-size:34px; } .snapshot-grid { grid-template-columns:1fr; } .variation-nav { align-items:flex-start; gap:10px; padding:10px; } .variation-nav__label { padding-top:8px; font-size:10px; } .variation-nav a { min-width:116px; } .report-legend-grid { grid-template-columns:1fr; } .variation-heading { display:block; } .variation-pills { justify-content:flex-start; margin-top:12px; } }
+    @media print { @page { size: 17in 11in; margin: .35in; } body { background:white; } .page { max-width:none; padding:0; } .hero, .summary-card, .team-card, .variation-heading, .legend-card { box-shadow:none; } .hero-inner { padding:20px; } .metrics { grid-template-columns:repeat(5,1fr) !important; } .variation-nav { display:none; } .report-legend-grid { grid-template-columns:1fr 2fr; gap:8px; margin-bottom:12px; } .legend-card { padding:8px 10px; border-radius:14px; } .legend-card h3, .legend-row, .legend-note, .skill-swatch, .legend-chip { font-size:7px; } .skill-swatch, .legend-chip { padding:2px 5px; } .variation-heading { padding:10px 12px; margin-bottom:10px; } .variation-kicker { font-size:8px; padding:4px 7px; margin-bottom:5px; } .snapshot-grid { grid-template-columns:repeat(4,1fr); gap:10px; } .team-inner { padding:10px; } .skill-balance { padding:5px 7px; margin-bottom:7px; border-radius:10px; } .skill-balance__top, .skill-balance__bottom { font-size:7px; } .skill-balance__track { height:5px; margin-top:3px; } .skill-balance__marker { height:10px; width:2px; } .avg-breakdown { gap:3px; margin-top:3px; } .avg-breakdown span, .avg-breakdown b { font-size:7px; padding:1px 4px; } .player-row { min-height:auto; padding:5px 7px; gap:6px; border-radius:10px; } .player-name { font-size:8px; } .team-header h3 { font-size:13px; } .team-header p, .section-head, .pill, .gender-badge, .skill-badge { font-size:7px; } .gender-badge { width:20px; height:20px; } .skill-badge { padding:4px 6px; } .badges { gap:3px; margin-top:3px; } .pill { padding:2px 5px; } .team-metrics { grid-template-columns:repeat(3,30px); } .team-metrics div { padding:4px 0; border-radius:10px; } .team-metrics b { font-size:11px; } .variation-section { break-before:page; } }
   </style>
 </head>
 <body>
@@ -291,6 +384,7 @@ function buildHtml(report) {
     </section>
     ${summaryTable(report)}
     ${variationNav(report)}
+    ${reportLegend()}
     ${report.variations.map((variation, index) => variationSection(variation, index, report.variations.length)).join('')}
   </main>
 </body>

@@ -1,6 +1,6 @@
 # Summer Outdoor 2026 Exec Draft Review
 
-Generated: 2026-07-03T15:31:48.610Z
+Generated: 2026-07-03T15:54:19.484Z
 
 ## Executive summary
 

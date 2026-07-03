@@ -52,6 +52,8 @@ interface ExecReviewTeam {
   female: number;
   other: number;
   averageSkill: number;
+  femaleAverageSkill: number;
+  maleAverageSkill: number;
   handlers: number;
   leaders: string[];
   newPlayers: number;
@@ -325,13 +327,18 @@ function buildExecReviewVariation(
       .filter(group => group.playerNames.every(name => team.players.some(player => namesEqual(player.name, name))))
       .map(group => group.playerNames);
 
+    const femalePlayers = team.players.filter(player => player.gender === 'F');
+    const malePlayers = team.players.filter(player => player.gender === 'M');
+
     return {
       name: team.name,
       size: team.players.length,
-      male: team.players.filter(player => player.gender === 'M').length,
-      female: team.players.filter(player => player.gender === 'F').length,
+      male: malePlayers.length,
+      female: femalePlayers.length,
       other: team.players.filter(player => player.gender === 'Other').length,
       averageSkill: round1(average(team.players.map(getEffectiveSkill))),
+      femaleAverageSkill: round1(average(femalePlayers.map(getEffectiveSkill))),
+      maleAverageSkill: round1(average(malePlayers.map(getEffectiveSkill))),
       handlers: team.players.filter(player => player.isHandler).length,
       leaders: team.players.flatMap(formatTeamLeaderLabels),
       newPlayers: team.players.filter(player => player.isNewPlayer === true).length,
@@ -343,7 +350,7 @@ function buildExecReviewVariation(
       roster: team.players.map(player => ({
         name: player.name,
         gender: player.gender,
-        skill: getEffectiveSkill(player),
+        skill: round1(getEffectiveSkill(player)),
         handler: player.isHandler,
         leaders: formatPlayerLeaderRoles(player),
         newReturning: player.isNewPlayer === true ? 'new' : player.isNewPlayer === false ? 'returning' : 'unknown',
