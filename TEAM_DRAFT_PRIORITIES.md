@@ -17,23 +17,27 @@ Use this sequence when generating teams:
 
 2. **Balance male and female counts**  
    - Distribute male and female players as evenly as possible across teams.
+   - The gender-count spread should be **no more than 1** for each gender whenever mathematically possible.
+   - Example: do not accept one team with 10 males and another with 8 males unless higher-priority hard constraints make that unavoidable.
 
 3. **Spread leaders**  
-   - Players with the heart label are female leaders.
+   - Players with the `leader-a-female` label are female Leader A players.
+   - Legacy `heart` labels still count as female leader coverage.
    - Spread female leaders as evenly as possible across teams.
-   - Target **at least 1 heart-labelled female leader per team** when there are enough.
+   - Target **at least 1 female Leader A per team** when there are enough.
    - Spread male leaders so each team has **either 1 Leader A male or 2 Leader B males** where possible.
    - If there are not enough leaders to cover every team, minimize the number of teams without leader coverage.
 
-4. **Balance skill level**  
+4. **Respect mutual nice-to-play requests**  
+   - Target honoring at least **75%** of mutual nice-to-play pairs.
+   - Prefer draft structures that keep mutual nice clusters together when this does not break higher-priority hard rules.
+   - A draft below 75% is not acceptable unless higher-priority constraints make the target impossible.
+
+5. **Balance skill level**  
    - Use available skill inputs, including exec ratings when present.
 
-5. **Balance handlers**  
+6. **Balance handlers**  
    - Spread handlers as evenly as possible after the higher priorities are satisfied.
-
-6. **Respect nice-to-play requests**  
-   - Use the nice-to-play column as a soft preference.
-   - Satisfy these requests when possible after the higher priorities are met.
 
 7. **Balance new vs. returning players**  
    - This is a soft preference, not a hard rule.
@@ -47,6 +51,7 @@ Use this sequence when generating teams:
 - Must-play group integrity always beats every other balancing goal.
 - Male/female balance outranks skill balance.
 - Leader spread outranks skill balance.
+- Mutual nice-to-play target outranks skill and handler balance.
 - Skill balance outranks handler balance.
 - Nice-to-play, new/returning, and young/wise balance are preferences only.
 
@@ -57,8 +62,9 @@ When generating AI teams:
 - first protect must-play groups
 - then balance gender counts
 - then spread female and male leaders
+- then hit the 75% mutual nice-to-play target
 - then balance skill
 - then balance handlers
-- then respect nice-to-play requests
+- then respect mutual nice-to-play requests
 - then improve new/returning spread
 - then improve young/wise spread

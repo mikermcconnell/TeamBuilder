@@ -1,0 +1,2390 @@
+{
+  "hardGroups": [
+    {
+      "id": "hard-group-1",
+      "playerNames": [
+        "Kristy Robinson",
+        "Andy Beecroft"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-2",
+      "playerNames": [
+        "Caitlind Lusty",
+        "Matthew Lynar"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-3",
+      "playerNames": [
+        "Carly Munce",
+        "Thomas Black"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-4",
+      "playerNames": [
+        "Nadine Leiper",
+        "Alli Leiper"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-5",
+      "playerNames": [
+        "Kyle Stashuk",
+        "Peter Rutkauskas"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-6",
+      "playerNames": [
+        "Shannon Wolochatiuk",
+        "Scott Patrick"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-7",
+      "playerNames": [
+        "Julie Tillmanns",
+        "Charlee Tillmanns"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-8",
+      "playerNames": [
+        "Brad Mayer",
+        "Rebecca Robitaille"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-9",
+      "playerNames": [
+        "Darren Brazier",
+        "Maisy Brazier"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-10",
+      "playerNames": [
+        "Stephen Hawley",
+        "Curtis Reason"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-11",
+      "playerNames": [
+        "Jamie Cable",
+        "Marianne Auger"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-12",
+      "playerNames": [
+        "Tracy Penley",
+        "Matt Tribe"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-13",
+      "playerNames": [
+        "Brianna Hall",
+        "Michael McConnell"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-14",
+      "playerNames": [
+        "James Callow",
+        "Tristan Callow"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-15",
+      "playerNames": [
+        "Ryan Sagermann",
+        "Carly Sagermann"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-16",
+      "playerNames": [
+        "parker munce",
+        "Kyra Frisina"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-17",
+      "playerNames": [
+        "Kurtis Thomas",
+        "Sara Shakib"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-18",
+      "playerNames": [
+        "John Nigh",
+        "Matt Simon"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-19",
+      "playerNames": [
+        "Richmand Hogg",
+        "Molly Douglas"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-20",
+      "playerNames": [
+        "Niko Hoogeveen",
+        "Adam Soos"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-21",
+      "playerNames": [
+        "Brad Dempsey",
+        "Ashish Mehra"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-22",
+      "playerNames": [
+        "Levi Taylor",
+        "Duncan Taylor"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-23",
+      "playerNames": [
+        "Kole O'C",
+        "Scott O'Connor"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-24",
+      "playerNames": [
+        "Robin Mennie",
+        "Cody Sinkinson"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-25",
+      "playerNames": [
+        "Sean Harrington",
+        "Kileigh Harrington"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-26",
+      "playerNames": [
+        "Aiden Courville",
+        "Sarah Butt"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-27",
+      "playerNames": [
+        "Christian Mueller",
+        "Emilie Brown"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-28",
+      "playerNames": [
+        "Lauren Grasse",
+        "Liam Crawford"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-29",
+      "playerNames": [
+        "Nate Smith",
+        "Frank Smith"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-30",
+      "playerNames": [
+        "Emilie Farr",
+        "Hailey Irwin"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-31",
+      "playerNames": [
+        "Leah Potje",
+        "Lilyanna Padoin Lee"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-32",
+      "playerNames": [
+        "Elly Switzer",
+        "Caleb Fisher"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-33",
+      "playerNames": [
+        "Spencer Brown",
+        "Cole Monteith"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-34",
+      "playerNames": [
+        "Koral Freeman",
+        "Derek Davey"
+      ],
+      "source": "mutual-request"
+    }
+  ],
+  "requestMatches": [
+    {
+      "playerName": "Kristy Robinson",
+      "sourceColumn": "Player Requests",
+      "inputName": "Andy Beecroft",
+      "status": "exact",
+      "matchedName": "Andy Beecroft",
+      "score": 1
+    },
+    {
+      "playerName": "Caitlind Lusty",
+      "sourceColumn": "Player Requests",
+      "inputName": "Matt Lynar",
+      "status": "nickname",
+      "matchedName": "Matthew Lynar",
+      "score": 1,
+      "candidates": [
+        "Matthew Lynar"
+      ]
+    },
+    {
+      "playerName": "Caitlind Lusty",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matt Hofing",
+      "status": "exact",
+      "matchedName": "Matt Hofing",
+      "score": 1
+    },
+    {
+      "playerName": "Andy Beecroft",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kristy robinson",
+      "status": "exact",
+      "matchedName": "Kristy Robinson",
+      "score": 1
+    },
+    {
+      "playerName": "Matt Hofing",
+      "sourceColumn": "Player Requests",
+      "inputName": "Rebecca Robitaille",
+      "status": "exact",
+      "matchedName": "Rebecca Robitaille",
+      "score": 1
+    },
+    {
+      "playerName": "Matt Hofing",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Brad Mayer",
+      "status": "exact",
+      "matchedName": "Brad Mayer",
+      "score": 1
+    },
+    {
+      "playerName": "Carly Munce",
+      "sourceColumn": "Player Requests",
+      "inputName": "Thomas Black",
+      "status": "exact",
+      "matchedName": "Thomas Black",
+      "score": 1
+    },
+    {
+      "playerName": "Thomas Black",
+      "sourceColumn": "Player Requests",
+      "inputName": "Carly Munce",
+      "status": "exact",
+      "matchedName": "Carly Munce",
+      "score": 1
+    },
+    {
+      "playerName": "Nadine Leiper",
+      "sourceColumn": "Player Requests",
+      "inputName": "Alli Leiper",
+      "status": "exact",
+      "matchedName": "Alli Leiper",
+      "score": 1
+    },
+    {
+      "playerName": "Nadine Leiper",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Julie Tillmanns",
+      "status": "exact",
+      "matchedName": "Julie Tillmanns",
+      "score": 1
+    },
+    {
+      "playerName": "Chris Tillmanns",
+      "sourceColumn": "Player Requests",
+      "inputName": "Charlee Tillmanns",
+      "status": "exact",
+      "matchedName": "Charlee Tillmanns",
+      "score": 1
+    },
+    {
+      "playerName": "Chris Tillmanns",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Julie Tillmanns",
+      "status": "exact",
+      "matchedName": "Julie Tillmanns",
+      "score": 1
+    },
+    {
+      "playerName": "David Tran",
+      "sourceColumn": "Player Requests",
+      "inputName": "Parker Munce",
+      "status": "exact",
+      "matchedName": "parker munce",
+      "score": 1
+    },
+    {
+      "playerName": "Kyle Stashuk",
+      "sourceColumn": "Player Requests",
+      "inputName": "Pete Rutkauskas",
+      "status": "nickname",
+      "matchedName": "Peter Rutkauskas",
+      "score": 1,
+      "candidates": [
+        "Peter Rutkauskas"
+      ]
+    },
+    {
+      "playerName": "Kyle Stashuk",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Jamie Cable",
+      "status": "exact",
+      "matchedName": "Jamie Cable",
+      "score": 1
+    },
+    {
+      "playerName": "Kyle Stashuk",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Marianne Auger",
+      "status": "exact",
+      "matchedName": "Marianne Auger",
+      "score": 1
+    },
+    {
+      "playerName": "Shannon Wolochatiuk",
+      "sourceColumn": "Player Requests",
+      "inputName": "Scott Patrick",
+      "status": "exact",
+      "matchedName": "Scott Patrick",
+      "score": 1
+    },
+    {
+      "playerName": "Jamie Bonany",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Luke Mackey",
+      "status": "exact",
+      "matchedName": "Luke Mackey",
+      "score": 1
+    },
+    {
+      "playerName": "Jamie Bonany",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Cali Gurr",
+      "status": "exact",
+      "matchedName": "Cali Gurr",
+      "score": 1
+    },
+    {
+      "playerName": "Julie Tillmanns",
+      "sourceColumn": "Player Requests",
+      "inputName": "Charlee Tillmanns",
+      "status": "exact",
+      "matchedName": "Charlee Tillmanns",
+      "score": 1
+    },
+    {
+      "playerName": "Julie Tillmanns",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Chris Tillmanns",
+      "status": "exact",
+      "matchedName": "Chris Tillmanns",
+      "score": 1
+    },
+    {
+      "playerName": "Brad Mayer",
+      "sourceColumn": "Player Requests",
+      "inputName": "Rebecca Robitaille",
+      "status": "exact",
+      "matchedName": "Rebecca Robitaille",
+      "score": 1
+    },
+    {
+      "playerName": "Brad Mayer",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matt Hoffing",
+      "status": "nickname",
+      "matchedName": "Matt Hofing",
+      "score": 0.96,
+      "candidates": [
+        "Matt Hofing"
+      ]
+    },
+    {
+      "playerName": "Brad Mayer",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Molly Douglas",
+      "status": "exact",
+      "matchedName": "Molly Douglas",
+      "score": 1
+    },
+    {
+      "playerName": "Kyle Jones",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Liam Crawford",
+      "status": "exact",
+      "matchedName": "Liam Crawford",
+      "score": 1
+    },
+    {
+      "playerName": "Kyle Jones",
+      "sourceColumn": "Would like to play with",
+      "inputName": "cam Knox",
+      "status": "unmatched",
+      "candidates": [
+        "Carly Munce",
+        "Adam Soos",
+        "Richmand Hogg",
+        "Cody Sinkinson",
+        "Cale Holmes"
+      ]
+    },
+    {
+      "playerName": "Darren Brazier",
+      "sourceColumn": "Player Requests",
+      "inputName": "Maisy Brazier",
+      "status": "exact",
+      "matchedName": "Maisy Brazier",
+      "score": 1
+    },
+    {
+      "playerName": "Scott Patrick",
+      "sourceColumn": "Player Requests",
+      "inputName": "Shannon wolochatiuk",
+      "status": "exact",
+      "matchedName": "Shannon Wolochatiuk",
+      "score": 1
+    },
+    {
+      "playerName": "Scott Patrick",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Jamie bonany",
+      "status": "exact",
+      "matchedName": "Jamie Bonany",
+      "score": 1
+    },
+    {
+      "playerName": "Peter Rutkauskas",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kyle Stashuk",
+      "status": "exact",
+      "matchedName": "Kyle Stashuk",
+      "score": 1
+    },
+    {
+      "playerName": "Peter Rutkauskas",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Jamie Cable",
+      "status": "exact",
+      "matchedName": "Jamie Cable",
+      "score": 1
+    },
+    {
+      "playerName": "Peter Rutkauskas",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Marianne Auger",
+      "status": "exact",
+      "matchedName": "Marianne Auger",
+      "score": 1
+    },
+    {
+      "playerName": "Stephen Hawley",
+      "sourceColumn": "Player Requests",
+      "inputName": "Curtis Reason",
+      "status": "exact",
+      "matchedName": "Curtis Reason",
+      "score": 1
+    },
+    {
+      "playerName": "Jamie Cable",
+      "sourceColumn": "Player Requests",
+      "inputName": "Marianne Auger",
+      "status": "exact",
+      "matchedName": "Marianne Auger",
+      "score": 1
+    },
+    {
+      "playerName": "Jamie Cable",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Kyle Stashuk",
+      "status": "exact",
+      "matchedName": "Kyle Stashuk",
+      "score": 1
+    },
+    {
+      "playerName": "Tracy Penley",
+      "sourceColumn": "Player Requests",
+      "inputName": "Matt Tribe",
+      "status": "exact",
+      "matchedName": "Matt Tribe",
+      "score": 1
+    },
+    {
+      "playerName": "Tracy Penley",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Pascale clement",
+      "status": "nickname",
+      "matchedName": "Pascale Clements",
+      "score": 0.96,
+      "candidates": [
+        "Pascale Clements"
+      ]
+    },
+    {
+      "playerName": "Courtney Hough",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kate Bromenshenkel",
+      "status": "unmatched",
+      "candidates": [
+        "Stephen Hawley",
+        "Robin Mennie",
+        "Caleb Fisher",
+        "Kristy Robinson",
+        "Kevin Schuster"
+      ]
+    },
+    {
+      "playerName": "Brianna Hall",
+      "sourceColumn": "Player Requests",
+      "inputName": "Michael Mcconnell",
+      "status": "exact",
+      "matchedName": "Michael McConnell",
+      "score": 1
+    },
+    {
+      "playerName": "Brianna Hall",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Cody sinkinson",
+      "status": "exact",
+      "matchedName": "Cody Sinkinson",
+      "score": 1
+    },
+    {
+      "playerName": "Brianna Hall",
+      "sourceColumn": "Would like to play with",
+      "inputName": "robin mennie",
+      "status": "exact",
+      "matchedName": "Robin Mennie",
+      "score": 1
+    },
+    {
+      "playerName": "Matt Tribe",
+      "sourceColumn": "Player Requests",
+      "inputName": "Tracey Penley",
+      "status": "nickname",
+      "matchedName": "Tracy Penley",
+      "score": 1,
+      "candidates": [
+        "Tracy Penley"
+      ]
+    },
+    {
+      "playerName": "Matt Tribe",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Pascal clements",
+      "status": "nickname",
+      "matchedName": "Pascale Clements",
+      "score": 1,
+      "candidates": [
+        "Pascale Clements"
+      ]
+    },
+    {
+      "playerName": "James Callow",
+      "sourceColumn": "Player Requests",
+      "inputName": "Tristan Callow",
+      "status": "exact",
+      "matchedName": "Tristan Callow",
+      "score": 1
+    },
+    {
+      "playerName": "James Callow",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Cale Holmes",
+      "status": "exact",
+      "matchedName": "Cale Holmes",
+      "score": 1
+    },
+    {
+      "playerName": "Ryan Sagermann",
+      "sourceColumn": "Player Requests",
+      "inputName": "Carly Sagermann",
+      "status": "exact",
+      "matchedName": "Carly Sagermann",
+      "score": 1
+    },
+    {
+      "playerName": "parker munce",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kyra Frisian",
+      "status": "nickname",
+      "matchedName": "Kyra Frisina",
+      "score": 0.91,
+      "candidates": [
+        "Kyra Frisina"
+      ]
+    },
+    {
+      "playerName": "Kurtis Thomas",
+      "sourceColumn": "Player Requests",
+      "inputName": "Sara Shakib",
+      "status": "exact",
+      "matchedName": "Sara Shakib",
+      "score": 1
+    },
+    {
+      "playerName": "Kurtis Thomas",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Richmand Hogg",
+      "status": "exact",
+      "matchedName": "Richmand Hogg",
+      "score": 1
+    },
+    {
+      "playerName": "Kurtis Thomas",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Molly Douglas",
+      "status": "exact",
+      "matchedName": "Molly Douglas",
+      "score": 1
+    },
+    {
+      "playerName": "John Nigh",
+      "sourceColumn": "Player Requests",
+      "inputName": "Matt Simon",
+      "status": "exact",
+      "matchedName": "Matt Simon",
+      "score": 1
+    },
+    {
+      "playerName": "John Nigh",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Sean Harrington",
+      "status": "exact",
+      "matchedName": "Sean Harrington",
+      "score": 1
+    },
+    {
+      "playerName": "Richmand Hogg",
+      "sourceColumn": "Player Requests",
+      "inputName": "Molly Douglas",
+      "status": "exact",
+      "matchedName": "Molly Douglas",
+      "score": 1
+    },
+    {
+      "playerName": "Richmand Hogg",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Kurtis Thomas",
+      "status": "exact",
+      "matchedName": "Kurtis Thomas",
+      "score": 1
+    },
+    {
+      "playerName": "Richmand Hogg",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Sarah Shakib",
+      "status": "nickname",
+      "matchedName": "Sara Shakib",
+      "score": 1,
+      "candidates": [
+        "Sara Shakib"
+      ]
+    },
+    {
+      "playerName": "Marianne Auger",
+      "sourceColumn": "Player Requests",
+      "inputName": "Jamie Cable",
+      "status": "exact",
+      "matchedName": "Jamie Cable",
+      "score": 1
+    },
+    {
+      "playerName": "Marianne Auger",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Peter Rutkauskas",
+      "status": "exact",
+      "matchedName": "Peter Rutkauskas",
+      "score": 1
+    },
+    {
+      "playerName": "Marianne Auger",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Kyle Stashuk",
+      "status": "exact",
+      "matchedName": "Kyle Stashuk",
+      "score": 1
+    },
+    {
+      "playerName": "Michael McConnell",
+      "sourceColumn": "Player Requests",
+      "inputName": "Brianna Hall",
+      "status": "exact",
+      "matchedName": "Brianna Hall",
+      "score": 1
+    },
+    {
+      "playerName": "Michael McConnell",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Robin Mennie",
+      "status": "exact",
+      "matchedName": "Robin Mennie",
+      "score": 1
+    },
+    {
+      "playerName": "Michael McConnell",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Cody Sinkinson",
+      "status": "exact",
+      "matchedName": "Cody Sinkinson",
+      "score": 1
+    },
+    {
+      "playerName": "Niko Hoogeveen",
+      "sourceColumn": "Player Requests",
+      "inputName": "Adam Soos",
+      "status": "exact",
+      "matchedName": "Adam Soos",
+      "score": 1
+    },
+    {
+      "playerName": "Niko Hoogeveen",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Amber Soos",
+      "status": "exact",
+      "matchedName": "Amber Soos",
+      "score": 1
+    },
+    {
+      "playerName": "Molly Douglas",
+      "sourceColumn": "Player Requests",
+      "inputName": "Richmand Hogg",
+      "status": "exact",
+      "matchedName": "Richmand Hogg",
+      "score": 1
+    },
+    {
+      "playerName": "Molly Douglas",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Beccs Robitaille",
+      "status": "nickname",
+      "matchedName": "Rebecca Robitaille",
+      "score": 1,
+      "candidates": [
+        "Rebecca Robitaille"
+      ]
+    },
+    {
+      "playerName": "Wesley Taggart",
+      "sourceColumn": "Player Requests",
+      "inputName": "Bryn Davis",
+      "status": "unmatched",
+      "candidates": [
+        "Brendan Irwin",
+        "Brandon Canning",
+        "Derek Davey",
+        "Brianna Hall",
+        "Brad Dempsey"
+      ]
+    },
+    {
+      "playerName": "Kyra Frisina",
+      "sourceColumn": "Player Requests",
+      "inputName": "Parker Munce",
+      "status": "exact",
+      "matchedName": "parker munce",
+      "score": 1
+    },
+    {
+      "playerName": "Kyra Frisina",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Cali Gurr",
+      "status": "exact",
+      "matchedName": "Cali Gurr",
+      "score": 1
+    },
+    {
+      "playerName": "Kyra Frisina",
+      "sourceColumn": "Would like to play with",
+      "inputName": "David Tran",
+      "status": "exact",
+      "matchedName": "David Tran",
+      "score": 1
+    },
+    {
+      "playerName": "Brad Dempsey",
+      "sourceColumn": "Player Requests",
+      "inputName": "Ashish mehra",
+      "status": "exact",
+      "matchedName": "Ashish Mehra",
+      "score": 1
+    },
+    {
+      "playerName": "Brad Dempsey",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matt hofing",
+      "status": "exact",
+      "matchedName": "Matt Hofing",
+      "score": 1
+    },
+    {
+      "playerName": "Brad Dempsey",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Christy hofing",
+      "status": "unmatched",
+      "candidates": [
+        "Matt Hofing",
+        "Kristy Robinson",
+        "Chris Tillmanns",
+        "Kurtis Thomas",
+        "Hailey Irwin"
+      ]
+    },
+    {
+      "playerName": "Ashish Mehra",
+      "sourceColumn": "Player Requests",
+      "inputName": "Brad Dempsey",
+      "status": "exact",
+      "matchedName": "Brad Dempsey",
+      "score": 1
+    },
+    {
+      "playerName": "Ashish Mehra",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matt Hofing",
+      "status": "exact",
+      "matchedName": "Matt Hofing",
+      "score": 1
+    },
+    {
+      "playerName": "Ashish Mehra",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Rebecca Robitaille",
+      "status": "exact",
+      "matchedName": "Rebecca Robitaille",
+      "score": 1
+    },
+    {
+      "playerName": "Matthew Lynar",
+      "sourceColumn": "Player Requests",
+      "inputName": "Caitland lusty",
+      "status": "nickname",
+      "matchedName": "Caitlind Lusty",
+      "score": 1,
+      "candidates": [
+        "Caitlind Lusty"
+      ]
+    },
+    {
+      "playerName": "Matthew Lynar",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matt hofing",
+      "status": "exact",
+      "matchedName": "Matt Hofing",
+      "score": 1
+    },
+    {
+      "playerName": "Cale Holmes",
+      "sourceColumn": "Player Requests",
+      "inputName": "James Callow",
+      "status": "exact",
+      "matchedName": "James Callow",
+      "score": 1
+    },
+    {
+      "playerName": "Curtis Reason",
+      "sourceColumn": "Player Requests",
+      "inputName": "Stephen Hawley",
+      "status": "exact",
+      "matchedName": "Stephen Hawley",
+      "score": 1
+    },
+    {
+      "playerName": "Charlie Tardif",
+      "sourceColumn": "Player Requests",
+      "inputName": "Cody Sinkinson",
+      "status": "exact",
+      "matchedName": "Cody Sinkinson",
+      "score": 1
+    },
+    {
+      "playerName": "Carly Sagermann",
+      "sourceColumn": "Player Requests",
+      "inputName": "Ryan Sagermann",
+      "status": "exact",
+      "matchedName": "Ryan Sagermann",
+      "score": 1
+    },
+    {
+      "playerName": "Maisy Brazier",
+      "sourceColumn": "Player Requests",
+      "inputName": "Darren brazier",
+      "status": "exact",
+      "matchedName": "Darren Brazier",
+      "score": 1
+    },
+    {
+      "playerName": "Maisy Brazier",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Sean Harrington",
+      "status": "exact",
+      "matchedName": "Sean Harrington",
+      "score": 1
+    },
+    {
+      "playerName": "Maisy Brazier",
+      "sourceColumn": "Do_Not_Play",
+      "inputName": "Please email bulconvenor@gmail.com with the player. Reason disclosure not required.",
+      "status": "unmatched",
+      "candidates": [
+        "Lilyanna Padoin Lee",
+        "Pascale Clements",
+        "Kileigh Harrington",
+        "Shannon Wolochatiuk",
+        "Scott O'Connor"
+      ]
+    },
+    {
+      "playerName": "Matt Simon",
+      "sourceColumn": "Player Requests",
+      "inputName": "John Nigh",
+      "status": "exact",
+      "matchedName": "John Nigh",
+      "score": 1
+    },
+    {
+      "playerName": "Matt Simon",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Sean Harrington",
+      "status": "exact",
+      "matchedName": "Sean Harrington",
+      "score": 1
+    },
+    {
+      "playerName": "Matt Simon",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Levi Taylor",
+      "status": "exact",
+      "matchedName": "Levi Taylor",
+      "score": 1
+    },
+    {
+      "playerName": "Charlee Tillmanns",
+      "sourceColumn": "Player Requests",
+      "inputName": "Julie Tillmanns",
+      "status": "exact",
+      "matchedName": "Julie Tillmanns",
+      "score": 1
+    },
+    {
+      "playerName": "Charlee Tillmanns",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Chris Tillmanns",
+      "status": "exact",
+      "matchedName": "Chris Tillmanns",
+      "score": 1
+    },
+    {
+      "playerName": "Alli Leiper",
+      "sourceColumn": "Player Requests",
+      "inputName": "Nadine Leiper",
+      "status": "exact",
+      "matchedName": "Nadine Leiper",
+      "score": 1
+    },
+    {
+      "playerName": "Alli Leiper",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Charlee Tillmanns",
+      "status": "exact",
+      "matchedName": "Charlee Tillmanns",
+      "score": 1
+    },
+    {
+      "playerName": "Levi Taylor",
+      "sourceColumn": "Player Requests",
+      "inputName": "Duncan Taylor",
+      "status": "exact",
+      "matchedName": "Duncan Taylor",
+      "score": 1
+    },
+    {
+      "playerName": "Levi Taylor",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Sean Harrington",
+      "status": "exact",
+      "matchedName": "Sean Harrington",
+      "score": 1
+    },
+    {
+      "playerName": "Levi Taylor",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matt Simon",
+      "status": "exact",
+      "matchedName": "Matt Simon",
+      "score": 1
+    },
+    {
+      "playerName": "Kole O'C",
+      "sourceColumn": "Player Requests",
+      "inputName": "Scott OâConnor",
+      "status": "exact",
+      "matchedName": "Scott O'Connor",
+      "score": 1
+    },
+    {
+      "playerName": "Kole O'C",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Lily Padoin-Lee",
+      "status": "nickname",
+      "matchedName": "Lilyanna Padoin Lee",
+      "score": 1,
+      "candidates": [
+        "Lilyanna Padoin Lee"
+      ]
+    },
+    {
+      "playerName": "Scott O'Connor",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kole OâConnor",
+      "status": "partial",
+      "matchedName": "Kole O'C",
+      "score": 0.95
+    },
+    {
+      "playerName": "Scott O'Connor",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Lily Padoin Lee",
+      "status": "nickname",
+      "matchedName": "Lilyanna Padoin Lee",
+      "score": 1,
+      "candidates": [
+        "Lilyanna Padoin Lee"
+      ]
+    },
+    {
+      "playerName": "Duncan Taylor",
+      "sourceColumn": "Player Requests",
+      "inputName": "Levi Taylor",
+      "status": "exact",
+      "matchedName": "Levi Taylor",
+      "score": 1
+    },
+    {
+      "playerName": "Adam Soos",
+      "sourceColumn": "Player Requests",
+      "inputName": "Niko Hoogeveen",
+      "status": "exact",
+      "matchedName": "Niko Hoogeveen",
+      "score": 1
+    },
+    {
+      "playerName": "Adam Soos",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Amber Soos",
+      "status": "exact",
+      "matchedName": "Amber Soos",
+      "score": 1
+    },
+    {
+      "playerName": "Amber Soos",
+      "sourceColumn": "Player Requests",
+      "inputName": "Adam Soos",
+      "status": "exact",
+      "matchedName": "Adam Soos",
+      "score": 1
+    },
+    {
+      "playerName": "Amber Soos",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Niko Hoogeveen",
+      "status": "exact",
+      "matchedName": "Niko Hoogeveen",
+      "score": 1
+    },
+    {
+      "playerName": "Finn Montgomery",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Tate Montgomery",
+      "status": "exact",
+      "matchedName": "Tate Montgomery",
+      "score": 1
+    },
+    {
+      "playerName": "Tate Montgomery",
+      "sourceColumn": "Player Requests",
+      "inputName": "Finn Montgomery",
+      "status": "exact",
+      "matchedName": "Finn Montgomery",
+      "score": 1
+    },
+    {
+      "playerName": "Tate Montgomery",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Finn Montgomery",
+      "status": "exact",
+      "matchedName": "Finn Montgomery",
+      "score": 1
+    },
+    {
+      "playerName": "Rebecca Robitaille",
+      "sourceColumn": "Player Requests",
+      "inputName": "Brad Mayer",
+      "status": "exact",
+      "matchedName": "Brad Mayer",
+      "score": 1
+    },
+    {
+      "playerName": "Rebecca Robitaille",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matt hofing",
+      "status": "exact",
+      "matchedName": "Matt Hofing",
+      "score": 1
+    },
+    {
+      "playerName": "Rebecca Robitaille",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Molly Douglas",
+      "status": "exact",
+      "matchedName": "Molly Douglas",
+      "score": 1
+    },
+    {
+      "playerName": "Robin Mennie",
+      "sourceColumn": "Player Requests",
+      "inputName": "Cody Sinkinson",
+      "status": "exact",
+      "matchedName": "Cody Sinkinson",
+      "score": 1
+    },
+    {
+      "playerName": "Robin Mennie",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Mike McConnell",
+      "status": "nickname",
+      "matchedName": "Michael McConnell",
+      "score": 1,
+      "candidates": [
+        "Michael McConnell"
+      ]
+    },
+    {
+      "playerName": "Robin Mennie",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Brianna Hall",
+      "status": "exact",
+      "matchedName": "Brianna Hall",
+      "score": 1
+    },
+    {
+      "playerName": "Cody Sinkinson",
+      "sourceColumn": "Player Requests",
+      "inputName": "Robin Mennie",
+      "status": "exact",
+      "matchedName": "Robin Mennie",
+      "score": 1
+    },
+    {
+      "playerName": "Cali Gurr",
+      "sourceColumn": "Player Requests",
+      "inputName": "Koral Freeman",
+      "status": "exact",
+      "matchedName": "Koral Freeman",
+      "score": 1
+    },
+    {
+      "playerName": "Cali Gurr",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Derek Davey",
+      "status": "exact",
+      "matchedName": "Derek Davey",
+      "score": 1
+    },
+    {
+      "playerName": "Cali Gurr",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Kyra Frisina",
+      "status": "exact",
+      "matchedName": "Kyra Frisina",
+      "score": 1
+    },
+    {
+      "playerName": "Luke Mackey",
+      "sourceColumn": "Player Requests",
+      "inputName": "Derek Davey",
+      "status": "exact",
+      "matchedName": "Derek Davey",
+      "score": 1
+    },
+    {
+      "playerName": "Luke Mackey",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Koral Freeman",
+      "status": "exact",
+      "matchedName": "Koral Freeman",
+      "score": 1
+    },
+    {
+      "playerName": "Luke Mackey",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Cali Gurr",
+      "status": "exact",
+      "matchedName": "Cali Gurr",
+      "score": 1
+    },
+    {
+      "playerName": "Sean Harrington",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kileigh Harrington",
+      "status": "exact",
+      "matchedName": "Kileigh Harrington",
+      "score": 1
+    },
+    {
+      "playerName": "Sean Harrington",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matt Simon",
+      "status": "exact",
+      "matchedName": "Matt Simon",
+      "score": 1
+    },
+    {
+      "playerName": "Sean Harrington",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Levi Taylor",
+      "status": "exact",
+      "matchedName": "Levi Taylor",
+      "score": 1
+    },
+    {
+      "playerName": "Brett Ormsby",
+      "sourceColumn": "Player Requests",
+      "inputName": "Hailey Irwin",
+      "status": "exact",
+      "matchedName": "Hailey Irwin",
+      "score": 1
+    },
+    {
+      "playerName": "Brett Ormsby",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Erik Vurma",
+      "status": "unmatched",
+      "candidates": [
+        "Eric Bouchard",
+        "Peter Rutkauskas",
+        "Kurtis Thomas",
+        "Eric Good",
+        "Derek Davey"
+      ]
+    },
+    {
+      "playerName": "Brett Ormsby",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Sean Harrington",
+      "status": "exact",
+      "matchedName": "Sean Harrington",
+      "score": 1
+    },
+    {
+      "playerName": "Aiden Courville",
+      "sourceColumn": "Player Requests",
+      "inputName": "Sarah Butt",
+      "status": "exact",
+      "matchedName": "Sarah Butt",
+      "score": 1
+    },
+    {
+      "playerName": "Aiden Courville",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Colton Courville",
+      "status": "exact",
+      "matchedName": "Colton Courville",
+      "score": 1
+    },
+    {
+      "playerName": "Christian Mueller",
+      "sourceColumn": "Player Requests",
+      "inputName": "Emilie Brown",
+      "status": "exact",
+      "matchedName": "Emilie Brown",
+      "score": 1
+    },
+    {
+      "playerName": "Emilie Brown",
+      "sourceColumn": "Player Requests",
+      "inputName": "Christian Mueller",
+      "status": "exact",
+      "matchedName": "Christian Mueller",
+      "score": 1
+    },
+    {
+      "playerName": "Jeffery Hoover",
+      "sourceColumn": "Player Requests",
+      "inputName": "Would like to play with Thomas Black",
+      "status": "exact",
+      "matchedName": "Thomas Black",
+      "score": 1
+    },
+    {
+      "playerName": "Carden Vickers",
+      "sourceColumn": "Player Requests",
+      "inputName": "Rebecca Robitaille",
+      "status": "exact",
+      "matchedName": "Rebecca Robitaille",
+      "score": 1
+    },
+    {
+      "playerName": "Lauren Grasse",
+      "sourceColumn": "Player Requests",
+      "inputName": "Liam Crawford",
+      "status": "exact",
+      "matchedName": "Liam Crawford",
+      "score": 1
+    },
+    {
+      "playerName": "Lauren Grasse",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Elly Switzer",
+      "status": "exact",
+      "matchedName": "Elly Switzer",
+      "score": 1
+    },
+    {
+      "playerName": "Lauren Grasse",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Caleb Fisher",
+      "status": "exact",
+      "matchedName": "Caleb Fisher",
+      "score": 1
+    },
+    {
+      "playerName": "Liam Crawford",
+      "sourceColumn": "Player Requests",
+      "inputName": "Lauren Grasse",
+      "status": "exact",
+      "matchedName": "Lauren Grasse",
+      "score": 1
+    },
+    {
+      "playerName": "Liam Crawford",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Elly Switzer",
+      "status": "exact",
+      "matchedName": "Elly Switzer",
+      "score": 1
+    },
+    {
+      "playerName": "Nate Smith",
+      "sourceColumn": "Player Requests",
+      "inputName": "Frank Smith",
+      "status": "exact",
+      "matchedName": "Frank Smith",
+      "score": 1
+    },
+    {
+      "playerName": "Frank Smith",
+      "sourceColumn": "Player Requests",
+      "inputName": "Nathan   Smith",
+      "status": "nickname",
+      "matchedName": "Nate Smith",
+      "score": 1,
+      "candidates": [
+        "Nate Smith"
+      ]
+    },
+    {
+      "playerName": "Emilie Farr",
+      "sourceColumn": "Player Requests",
+      "inputName": "Hailey Irwin",
+      "status": "exact",
+      "matchedName": "Hailey Irwin",
+      "score": 1
+    },
+    {
+      "playerName": "Leah Potje",
+      "sourceColumn": "Player Requests",
+      "inputName": "Lilyanna Padoin Lee",
+      "status": "exact",
+      "matchedName": "Lilyanna Padoin Lee",
+      "score": 1
+    },
+    {
+      "playerName": "Lilyanna Padoin Lee",
+      "sourceColumn": "Player Requests",
+      "inputName": "Leah Potje",
+      "status": "exact",
+      "matchedName": "Leah Potje",
+      "score": 1
+    },
+    {
+      "playerName": "Lilyanna Padoin Lee",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Kole O'Connor",
+      "status": "partial",
+      "matchedName": "Kole O'C",
+      "score": 0.95
+    },
+    {
+      "playerName": "Pascale Clements",
+      "sourceColumn": "Player Requests",
+      "inputName": "Matt Tribe",
+      "status": "exact",
+      "matchedName": "Matt Tribe",
+      "score": 1
+    },
+    {
+      "playerName": "Pascale Clements",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Tracy Penley",
+      "status": "exact",
+      "matchedName": "Tracy Penley",
+      "score": 1
+    },
+    {
+      "playerName": "Sara Shakib",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kurtis Thomas-Belisle",
+      "status": "partial",
+      "matchedName": "Kurtis Thomas",
+      "score": 0.95
+    },
+    {
+      "playerName": "Sara Shakib",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Molly Douglas",
+      "status": "exact",
+      "matchedName": "Molly Douglas",
+      "score": 1
+    },
+    {
+      "playerName": "Sara Shakib",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Richmand Hogg",
+      "status": "exact",
+      "matchedName": "Richmand Hogg",
+      "score": 1
+    },
+    {
+      "playerName": "Elly Switzer",
+      "sourceColumn": "Player Requests",
+      "inputName": "Caleb Fisher",
+      "status": "exact",
+      "matchedName": "Caleb Fisher",
+      "score": 1
+    },
+    {
+      "playerName": "Elly Switzer",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Lauren grasse",
+      "status": "exact",
+      "matchedName": "Lauren Grasse",
+      "score": 1
+    },
+    {
+      "playerName": "Elly Switzer",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Liam Crawford",
+      "status": "exact",
+      "matchedName": "Liam Crawford",
+      "score": 1
+    },
+    {
+      "playerName": "Hailey Irwin",
+      "sourceColumn": "Player Requests",
+      "inputName": "Emilie Farr",
+      "status": "exact",
+      "matchedName": "Emilie Farr",
+      "score": 1
+    },
+    {
+      "playerName": "Hailey Irwin",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Brendan Irwin",
+      "status": "exact",
+      "matchedName": "Brendan Irwin",
+      "score": 1
+    },
+    {
+      "playerName": "Kileigh Harrington",
+      "sourceColumn": "Player Requests",
+      "inputName": "Sean Harrington",
+      "status": "exact",
+      "matchedName": "Sean Harrington",
+      "score": 1
+    },
+    {
+      "playerName": "Kileigh Harrington",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matthew Simon",
+      "status": "nickname",
+      "matchedName": "Matt Simon",
+      "score": 1,
+      "candidates": [
+        "Matt Simon"
+      ]
+    },
+    {
+      "playerName": "Kileigh Harrington",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Levi Taylor",
+      "status": "exact",
+      "matchedName": "Levi Taylor",
+      "score": 1
+    },
+    {
+      "playerName": "Spencer Brown",
+      "sourceColumn": "Player Requests",
+      "inputName": "Cole monteith",
+      "status": "exact",
+      "matchedName": "Cole Monteith",
+      "score": 1
+    },
+    {
+      "playerName": "Spencer Brown",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Jeremey Blondell",
+      "status": "unmatched",
+      "candidates": [
+        "Michael McConnell",
+        "Jamie Bonany",
+        "Jeff Cobbledick",
+        "Neil Bond",
+        "Jeffery Hoover"
+      ]
+    },
+    {
+      "playerName": "Cole Monteith",
+      "sourceColumn": "Player Requests",
+      "inputName": "Spencer Brown",
+      "status": "exact",
+      "matchedName": "Spencer Brown",
+      "score": 1
+    },
+    {
+      "playerName": "Cole Monteith",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Jeremy Blondell",
+      "status": "unmatched",
+      "candidates": [
+        "Michael McConnell",
+        "Neil Bond",
+        "Jeffery Hoover",
+        "Rebecca Robitaille",
+        "Carly Munce"
+      ]
+    },
+    {
+      "playerName": "Dayson Bress",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Anyone on the spring team from team Netherlands",
+      "status": "unmatched",
+      "candidates": [
+        "Andrew \"Sundance\" Black",
+        "Ryan Sagermann",
+        "Sean Harrington",
+        "Chris Tillmanns",
+        "Peter Rutkauskas"
+      ]
+    },
+    {
+      "playerName": "Brendan Irwin",
+      "sourceColumn": "Player Requests",
+      "inputName": "Hailey Irwin",
+      "status": "exact",
+      "matchedName": "Hailey Irwin",
+      "score": 1
+    },
+    {
+      "playerName": "Caleb Fisher",
+      "sourceColumn": "Player Requests",
+      "inputName": "Elly Switzer",
+      "status": "exact",
+      "matchedName": "Elly Switzer",
+      "score": 1
+    },
+    {
+      "playerName": "Caleb Fisher",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Liam Crawford",
+      "status": "exact",
+      "matchedName": "Liam Crawford",
+      "score": 1
+    },
+    {
+      "playerName": "Caleb Fisher",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Lauren Grasse",
+      "status": "exact",
+      "matchedName": "Lauren Grasse",
+      "score": 1
+    },
+    {
+      "playerName": "Tristan Callow",
+      "sourceColumn": "Player Requests",
+      "inputName": "James Callow",
+      "status": "exact",
+      "matchedName": "James Callow",
+      "score": 1
+    },
+    {
+      "playerName": "Tristan Callow",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Cale Holmes",
+      "status": "exact",
+      "matchedName": "Cale Holmes",
+      "score": 1
+    },
+    {
+      "playerName": "Colton Courville",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Aiden courville",
+      "status": "exact",
+      "matchedName": "Aiden Courville",
+      "score": 1
+    },
+    {
+      "playerName": "Sarah Butt",
+      "sourceColumn": "Player Requests",
+      "inputName": "Aiden Courville",
+      "status": "exact",
+      "matchedName": "Aiden Courville",
+      "score": 1
+    },
+    {
+      "playerName": "Sarah Butt",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Colton Courville",
+      "status": "exact",
+      "matchedName": "Colton Courville",
+      "score": 1
+    },
+    {
+      "playerName": "Koral Freeman",
+      "sourceColumn": "Player Requests",
+      "inputName": "Derek Davey",
+      "status": "exact",
+      "matchedName": "Derek Davey",
+      "score": 1
+    },
+    {
+      "playerName": "Koral Freeman",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Luke Mackey",
+      "status": "exact",
+      "matchedName": "Luke Mackey",
+      "score": 1
+    },
+    {
+      "playerName": "Koral Freeman",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Cali Gurr",
+      "status": "exact",
+      "matchedName": "Cali Gurr",
+      "score": 1
+    },
+    {
+      "playerName": "Derek Davey",
+      "sourceColumn": "Player Requests",
+      "inputName": "Koral Freeman",
+      "status": "exact",
+      "matchedName": "Koral Freeman",
+      "score": 1
+    },
+    {
+      "playerName": "Derek Davey",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Luke Mackey",
+      "status": "exact",
+      "matchedName": "Luke Mackey",
+      "score": 1
+    },
+    {
+      "playerName": "Derek Davey",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Cali Gurr",
+      "status": "exact",
+      "matchedName": "Cali Gurr",
+      "score": 1
+    },
+    {
+      "playerName": "Ben Kleiser",
+      "sourceColumn": "Player Requests",
+      "inputName": "Niko Hoogeveen",
+      "status": "exact",
+      "matchedName": "Niko Hoogeveen",
+      "score": 1
+    }
+  ],
+  "autoMatchedRequests": [
+    {
+      "playerName": "Caitlind Lusty",
+      "sourceColumn": "Player Requests",
+      "inputName": "Matt Lynar",
+      "status": "nickname",
+      "matchedName": "Matthew Lynar",
+      "score": 1,
+      "candidates": [
+        "Matthew Lynar"
+      ]
+    },
+    {
+      "playerName": "Kyle Stashuk",
+      "sourceColumn": "Player Requests",
+      "inputName": "Pete Rutkauskas",
+      "status": "nickname",
+      "matchedName": "Peter Rutkauskas",
+      "score": 1,
+      "candidates": [
+        "Peter Rutkauskas"
+      ]
+    },
+    {
+      "playerName": "Brad Mayer",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matt Hoffing",
+      "status": "nickname",
+      "matchedName": "Matt Hofing",
+      "score": 0.96,
+      "candidates": [
+        "Matt Hofing"
+      ]
+    },
+    {
+      "playerName": "Tracy Penley",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Pascale clement",
+      "status": "nickname",
+      "matchedName": "Pascale Clements",
+      "score": 0.96,
+      "candidates": [
+        "Pascale Clements"
+      ]
+    },
+    {
+      "playerName": "Matt Tribe",
+      "sourceColumn": "Player Requests",
+      "inputName": "Tracey Penley",
+      "status": "nickname",
+      "matchedName": "Tracy Penley",
+      "score": 1,
+      "candidates": [
+        "Tracy Penley"
+      ]
+    },
+    {
+      "playerName": "Matt Tribe",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Pascal clements",
+      "status": "nickname",
+      "matchedName": "Pascale Clements",
+      "score": 1,
+      "candidates": [
+        "Pascale Clements"
+      ]
+    },
+    {
+      "playerName": "parker munce",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kyra Frisian",
+      "status": "nickname",
+      "matchedName": "Kyra Frisina",
+      "score": 0.91,
+      "candidates": [
+        "Kyra Frisina"
+      ]
+    },
+    {
+      "playerName": "Richmand Hogg",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Sarah Shakib",
+      "status": "nickname",
+      "matchedName": "Sara Shakib",
+      "score": 1,
+      "candidates": [
+        "Sara Shakib"
+      ]
+    },
+    {
+      "playerName": "Molly Douglas",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Beccs Robitaille",
+      "status": "nickname",
+      "matchedName": "Rebecca Robitaille",
+      "score": 1,
+      "candidates": [
+        "Rebecca Robitaille"
+      ]
+    },
+    {
+      "playerName": "Matthew Lynar",
+      "sourceColumn": "Player Requests",
+      "inputName": "Caitland lusty",
+      "status": "nickname",
+      "matchedName": "Caitlind Lusty",
+      "score": 1,
+      "candidates": [
+        "Caitlind Lusty"
+      ]
+    },
+    {
+      "playerName": "Kole O'C",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Lily Padoin-Lee",
+      "status": "nickname",
+      "matchedName": "Lilyanna Padoin Lee",
+      "score": 1,
+      "candidates": [
+        "Lilyanna Padoin Lee"
+      ]
+    },
+    {
+      "playerName": "Scott O'Connor",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kole OâConnor",
+      "status": "partial",
+      "matchedName": "Kole O'C",
+      "score": 0.95
+    },
+    {
+      "playerName": "Scott O'Connor",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Lily Padoin Lee",
+      "status": "nickname",
+      "matchedName": "Lilyanna Padoin Lee",
+      "score": 1,
+      "candidates": [
+        "Lilyanna Padoin Lee"
+      ]
+    },
+    {
+      "playerName": "Robin Mennie",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Mike McConnell",
+      "status": "nickname",
+      "matchedName": "Michael McConnell",
+      "score": 1,
+      "candidates": [
+        "Michael McConnell"
+      ]
+    },
+    {
+      "playerName": "Frank Smith",
+      "sourceColumn": "Player Requests",
+      "inputName": "Nathan   Smith",
+      "status": "nickname",
+      "matchedName": "Nate Smith",
+      "score": 1,
+      "candidates": [
+        "Nate Smith"
+      ]
+    },
+    {
+      "playerName": "Lilyanna Padoin Lee",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Kole O'Connor",
+      "status": "partial",
+      "matchedName": "Kole O'C",
+      "score": 0.95
+    },
+    {
+      "playerName": "Sara Shakib",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kurtis Thomas-Belisle",
+      "status": "partial",
+      "matchedName": "Kurtis Thomas",
+      "score": 0.95
+    },
+    {
+      "playerName": "Kileigh Harrington",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Matthew Simon",
+      "status": "nickname",
+      "matchedName": "Matt Simon",
+      "score": 1,
+      "candidates": [
+        "Matt Simon"
+      ]
+    }
+  ],
+  "reviewNeededRequests": [
+    {
+      "playerName": "Kyle Jones",
+      "sourceColumn": "Would like to play with",
+      "inputName": "cam Knox",
+      "status": "unmatched",
+      "candidates": [
+        "Carly Munce",
+        "Adam Soos",
+        "Richmand Hogg",
+        "Cody Sinkinson",
+        "Cale Holmes"
+      ]
+    },
+    {
+      "playerName": "Courtney Hough",
+      "sourceColumn": "Player Requests",
+      "inputName": "Kate Bromenshenkel",
+      "status": "unmatched",
+      "candidates": [
+        "Stephen Hawley",
+        "Robin Mennie",
+        "Caleb Fisher",
+        "Kristy Robinson",
+        "Kevin Schuster"
+      ]
+    },
+    {
+      "playerName": "Wesley Taggart",
+      "sourceColumn": "Player Requests",
+      "inputName": "Bryn Davis",
+      "status": "unmatched",
+      "candidates": [
+        "Brendan Irwin",
+        "Brandon Canning",
+        "Derek Davey",
+        "Brianna Hall",
+        "Brad Dempsey"
+      ]
+    },
+    {
+      "playerName": "Brad Dempsey",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Christy hofing",
+      "status": "unmatched",
+      "candidates": [
+        "Matt Hofing",
+        "Kristy Robinson",
+        "Chris Tillmanns",
+        "Kurtis Thomas",
+        "Hailey Irwin"
+      ]
+    },
+    {
+      "playerName": "Maisy Brazier",
+      "sourceColumn": "Do_Not_Play",
+      "inputName": "Please email bulconvenor@gmail.com with the player. Reason disclosure not required.",
+      "status": "unmatched",
+      "candidates": [
+        "Lilyanna Padoin Lee",
+        "Pascale Clements",
+        "Kileigh Harrington",
+        "Shannon Wolochatiuk",
+        "Scott O'Connor"
+      ]
+    },
+    {
+      "playerName": "Brett Ormsby",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Erik Vurma",
+      "status": "unmatched",
+      "candidates": [
+        "Eric Bouchard",
+        "Peter Rutkauskas",
+        "Kurtis Thomas",
+        "Eric Good",
+        "Derek Davey"
+      ]
+    },
+    {
+      "playerName": "Spencer Brown",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Jeremey Blondell",
+      "status": "unmatched",
+      "candidates": [
+        "Michael McConnell",
+        "Jamie Bonany",
+        "Jeff Cobbledick",
+        "Neil Bond",
+        "Jeffery Hoover"
+      ]
+    },
+    {
+      "playerName": "Cole Monteith",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Jeremy Blondell",
+      "status": "unmatched",
+      "candidates": [
+        "Michael McConnell",
+        "Neil Bond",
+        "Jeffery Hoover",
+        "Rebecca Robitaille",
+        "Carly Munce"
+      ]
+    },
+    {
+      "playerName": "Dayson Bress",
+      "sourceColumn": "Would like to play with",
+      "inputName": "Anyone on the spring team from team Netherlands",
+      "status": "unmatched",
+      "candidates": [
+        "Andrew \"Sundance\" Black",
+        "Ryan Sagermann",
+        "Sean Harrington",
+        "Chris Tillmanns",
+        "Peter Rutkauskas"
+      ]
+    }
+  ],
+  "niceToPlayMappings": [
+    {
+      "playerName": "Matt Hofing",
+      "requestedName": "Rebecca Robitaille",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Matt Hofing",
+      "requestedName": "Brad Mayer",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Chris Tillmanns",
+      "requestedName": "Charlee Tillmanns",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Chris Tillmanns",
+      "requestedName": "Julie Tillmanns",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Kyle Stashuk",
+      "requestedName": "Jamie Cable",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Kyle Stashuk",
+      "requestedName": "Marianne Auger",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Peter Rutkauskas",
+      "requestedName": "Marianne Auger",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Tracy Penley",
+      "requestedName": "Pascale Clements",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Brianna Hall",
+      "requestedName": "Robin Mennie",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Matt Tribe",
+      "requestedName": "Pascale Clements",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "James Callow",
+      "requestedName": "Cale Holmes",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Kurtis Thomas",
+      "requestedName": "Richmand Hogg",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Richmand Hogg",
+      "requestedName": "Sara Shakib",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Michael McConnell",
+      "requestedName": "Robin Mennie",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Niko Hoogeveen",
+      "requestedName": "Amber Soos",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Molly Douglas",
+      "requestedName": "Rebecca Robitaille",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Kyra Frisina",
+      "requestedName": "Cali Gurr",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Matt Simon",
+      "requestedName": "Sean Harrington",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Matt Simon",
+      "requestedName": "Levi Taylor",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Levi Taylor",
+      "requestedName": "Sean Harrington",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Kole O'C",
+      "requestedName": "Lilyanna Padoin Lee",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Adam Soos",
+      "requestedName": "Amber Soos",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Finn Montgomery",
+      "requestedName": "Tate Montgomery",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Cali Gurr",
+      "requestedName": "Koral Freeman",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Cali Gurr",
+      "requestedName": "Derek Davey",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Luke Mackey",
+      "requestedName": "Derek Davey",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Luke Mackey",
+      "requestedName": "Koral Freeman",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Aiden Courville",
+      "requestedName": "Colton Courville",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Lauren Grasse",
+      "requestedName": "Elly Switzer",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Lauren Grasse",
+      "requestedName": "Caleb Fisher",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Liam Crawford",
+      "requestedName": "Elly Switzer",
+      "sourceColumn": "Mutual nice-to-play"
+    },
+    {
+      "playerName": "Hailey Irwin",
+      "requestedName": "Brendan Irwin",
+      "sourceColumn": "Mutual nice-to-play"
+    }
+  ],
+  "ignoredOneWayNiceRequests": [
+    {
+      "playerName": "Caitlind Lusty",
+      "requestedName": "Matt Hofing",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Nadine Leiper",
+      "requestedName": "Julie Tillmanns",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Jamie Bonany",
+      "requestedName": "Luke Mackey",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Jamie Bonany",
+      "requestedName": "Cali Gurr",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Brad Mayer",
+      "requestedName": "Molly Douglas",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Kyle Jones",
+      "requestedName": "Liam Crawford",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Scott Patrick",
+      "requestedName": "Jamie Bonany",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Peter Rutkauskas",
+      "requestedName": "Jamie Cable",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Brianna Hall",
+      "requestedName": "Cody Sinkinson",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Kurtis Thomas",
+      "requestedName": "Molly Douglas",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "John Nigh",
+      "requestedName": "Sean Harrington",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Michael McConnell",
+      "requestedName": "Cody Sinkinson",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Kyra Frisina",
+      "requestedName": "David Tran",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Brad Dempsey",
+      "requestedName": "Matt Hofing",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Ashish Mehra",
+      "requestedName": "Matt Hofing",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Ashish Mehra",
+      "requestedName": "Rebecca Robitaille",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Matthew Lynar",
+      "requestedName": "Matt Hofing",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Maisy Brazier",
+      "requestedName": "Sean Harrington",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Alli Leiper",
+      "requestedName": "Charlee Tillmanns",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Scott O'Connor",
+      "requestedName": "Lilyanna Padoin Lee",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Luke Mackey",
+      "requestedName": "Cali Gurr",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Brett Ormsby",
+      "requestedName": "Sean Harrington",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Sara Shakib",
+      "requestedName": "Molly Douglas",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Kileigh Harrington",
+      "requestedName": "Matt Simon",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Kileigh Harrington",
+      "requestedName": "Levi Taylor",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Caleb Fisher",
+      "requestedName": "Liam Crawford",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Tristan Callow",
+      "requestedName": "Cale Holmes",
+      "sourceColumn": "Would like to play with"
+    },
+    {
+      "playerName": "Sarah Butt",
+      "requestedName": "Colton Courville",
+      "sourceColumn": "Would like to play with"
+    }
+  ]
+}

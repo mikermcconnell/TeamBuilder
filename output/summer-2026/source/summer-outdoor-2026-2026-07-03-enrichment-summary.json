@@ -1,0 +1,33 @@
+{
+  "rawPath": "C:\\Users\\Mike McConnell\\Downloads\\Summer Outdoor 2026_event-registrations_2026-07-03_09_03.csv",
+  "metadataPath": "C:\\Users\\Mike McConnell\\Documents\\mike_apps\\TeamBuilder\\.tmp-summer2026-metadata.json",
+  "players": 118,
+  "returning": 101,
+  "new": 17,
+  "captainLeaderB": 26,
+  "captainLeaderBByGender": {
+    "female": 9,
+    "male": 17
+  },
+  "metadataLeadersMatched": 16,
+  "handlers": 51,
+  "unmatchedNewNames": [
+    "Carly Sagermann",
+    "Alli Leiper",
+    "Kole O'C",
+    "Scott O'Connor",
+    "Duncan Taylor",
+    "Geno Bornea",
+    "Aiden Courville",
+    "Brendan Irwin",
+    "Caleb Fisher",
+    "Colton Courville",
+    "Mat MacLean",
+    "Sarah Butt",
+    "Koral Freeman",
+    "Derek Davey",
+    "Ben Kleiser",
+    "Brandon Canning",
+    "Joe Alamshah"
+  ]
+}

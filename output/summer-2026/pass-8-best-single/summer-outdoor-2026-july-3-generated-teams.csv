@@ -1,0 +1,119 @@
+Team,Name,Gender,Skill,Exec Skill Rating,Handler,Labels
+Team 1,Matt Hofing,M,9,,Yes,leader-b-male
+Team 1,Brad Mayer,M,8,,Yes,
+Team 1,Kurtis Thomas,M,9,,Yes,leader-b-male
+Team 1,Richmand Hogg,M,8,,Yes,leader-a-male; leader-b-male
+Team 1,Molly Douglas,F,8,,Yes,leader-a-female; leader-b-female
+Team 1,Rebecca Robitaille,F,9,,Yes,leader-a-female; leader-b-female
+Team 1,Sara Shakib,F,1,,No,
+Team 1,Ryan Sagermann,M,7,,Yes,
+Team 1,Carly Sagermann,F,4,,No,
+Team 1,Nate Smith,M,5,,No,
+Team 1,Frank Smith,M,2,,No,
+Team 1,Brett Ormsby,M,6,,No,
+Team 1,Ryan Bridge,M,4,,No,
+Team 1,Jaclyn Kane,F,3,,No,
+Team 1,Mat MacLean,M,3,,No,
+Team 2,parker munce,F,9,,Yes,leader-a-female; leader-b-female
+Team 2,Kyra Frisina,F,3,,Yes,leader-a-female; leader-b-female
+Team 2,Cali Gurr,F,3,,No,
+Team 2,Luke Mackey,M,7,,Yes,
+Team 2,Koral Freeman,F,2,,No,
+Team 2,Derek Davey,M,2,,No,
+Team 2,Joseph Doran,M,4,,Yes,leader-b-male
+Team 2,Brad Dempsey,M,3,,No,
+Team 2,Ashish Mehra,M,7,,No,
+Team 2,Kevin Schuster,M,7,,Yes,
+Team 2,Eric Good,M,7,,Yes,
+Team 2,Eric Bouchard,M,6,,Yes,
+Team 2,Neil Bond,M,4,,No,
+Team 2,Jeffery Hoover,M,3,,No,
+Team 3,Brianna Hall,F,4,,No,leader-a-female; leader-b-female
+Team 3,Michael McConnell,M,8,,Yes,leader-b-male
+Team 3,Robin Mennie,F,3,,No,
+Team 3,Cody Sinkinson,M,3,,No,
+Team 3,Stephen Hawley,M,8,,Yes,leader-b-male
+Team 3,Curtis Reason,M,8,,Yes,leader-b-male
+Team 3,Lauren Grasse,F,4,,Yes,
+Team 3,Liam Crawford,M,3,,No,
+Team 3,Elly Switzer,F,6,,Yes,
+Team 3,Caleb Fisher,M,4,,No,
+Team 3,Christian Mueller,M,3,,No,
+Team 3,Emilie Brown,F,1,,No,
+Team 3,Jamie Bonany,M,4,,Yes,
+Team 3,Charlie Tardif,M,3,,No,
+Team 3,Brandon Canning,M,2,,No,
+Team 4,James Callow,M,7,,Yes,leader-b-male
+Team 4,Cale Holmes,M,4,,Yes,leader-b-male
+Team 4,Tristan Callow,M,2,,No,
+Team 4,Patrick Kirkwood,M,9,,Yes,leader-b-male
+Team 4,Pierce Munce,M,9,,Yes,leader-b-male
+Team 4,Emma Hanney,F,6,,Yes,leader-b-female
+Team 4,Kole O'C,M,3,,Yes,
+Team 4,Scott O'Connor,M,2,,No,
+Team 4,Leah Potje,F,4,,No,
+Team 4,Lilyanna Padoin Lee,F,5,,No,
+Team 4,Dayson Bress,M,7,,No,
+Team 4,Courtney Hough,F,5,,Yes,
+Team 4,Xena Cochi,F,4,,No,
+Team 4,David Humphrys,M,3,,No,
+Team 4,Ben Kleiser,M,3,,No,
+Team 5,Carly Munce,F,10,,Yes,leader-a-female; leader-b-female
+Team 5,Thomas Black,M,10,,Yes,leader-a-male; leader-b-male
+Team 5,Niko Hoogeveen,M,7,,Yes,leader-b-male
+Team 5,Adam Soos,M,8,,Yes,
+Team 5,Amber Soos,F,8,,No,
+Team 5,"Andrew ""Sundance"" Black",M,5,,Yes,leader-b-male
+Team 5,Kyle Stashuk,M,6,,No,
+Team 5,Peter Rutkauskas,M,3,,No,
+Team 5,Jamie Cable,M,5,,Yes,
+Team 5,Marianne Auger,F,3,,No,
+Team 5,Nadine Leiper,F,4,,No,
+Team 5,Alli Leiper,F,1,,No,
+Team 5,Kyle Jones,M,4,,No,
+Team 5,Billy Miller,M,3,,No,
+Team 5,Stephen Fisher,M,3,,Yes,
+Team 6,John Nigh,M,5,,No,
+Team 6,Matt Simon,M,7,,Yes,
+Team 6,Levi Taylor,M,8,,Yes,leader-b-male
+Team 6,Duncan Taylor,M,3,,Yes,
+Team 6,Sean Harrington,M,8,,Yes,
+Team 6,Kileigh Harrington,M,5,,No,
+Team 6,Emilie Farr,F,7,,No,
+Team 6,Hailey Irwin,F,7,,No,
+Team 6,Brendan Irwin,M,3,,No,
+Team 6,Darren Brazier,M,3,,No,
+Team 6,Maisy Brazier,F,5,,No,
+Team 6,Joseph Dunlop,M,5,,No,
+Team 6,Julianna Lerch,F,4,,No,
+Team 6,David Pietrowski,M,3,,Yes,
+Team 6,Olivia Evans,F,3,,No,
+Team 7,Aiden Courville,M,6,,Yes,
+Team 7,Colton Courville,M,3,,Yes,leader-b-male
+Team 7,Sarah Butt,F,4,,No,
+Team 7,Kristy Robinson,F,4,,No,leader-a-female
+Team 7,Andy Beecroft,M,4,,No,
+Team 7,David Tran,M,8,,Yes,leader-b-male
+Team 7,Chris Tillmanns,M,3,,No,
+Team 7,Julie Tillmanns,F,3,,No,
+Team 7,Charlee Tillmanns,F,3,,No,
+Team 7,Finn Montgomery,M,6,,Yes,
+Team 7,Tate Montgomery,M,4,,No,
+Team 7,Taylor Stanojev,F,6,,No,
+Team 7,Will Boaks,M,5,,Yes,
+Team 7,Paul Marjin,M,3,,No,
+Team 7,Joe Alamshah,M,2,,No,
+Team 8,Tracy Penley,F,4,,No,leader-b-female
+Team 8,Matt Tribe,M,6,,Yes,
+Team 8,Pascale Clements,F,2,,No,
+Team 8,Caitlind Lusty,F,10,,Yes,leader-a-female; leader-b-female
+Team 8,Matthew Lynar,M,3,,No,
+Team 8,Jeff Cobbledick,M,7,,Yes,leader-b-male
+Team 8,Geno Bornea,M,3,,No,leader-b-male
+Team 8,Shannon Wolochatiuk,F,4,,No,
+Team 8,Scott Patrick,M,7,,Yes,
+Team 8,Spencer Brown,M,2,,No,
+Team 8,Cole Monteith,M,2,,Yes,
+Team 8,Wesley Taggart,M,6,,Yes,
+Team 8,Thomas Barnes,M,3,,Yes,
+Team 8,Carden Vickers,M,3,,No,

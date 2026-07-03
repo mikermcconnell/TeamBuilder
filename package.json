@@ -83,6 +83,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
+    "xlsx": "0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -104,9 +105,9 @@
     "postcss": "8.4.49",
     "tailwindcss": "v3.4.16",
     "terser": "^5.43.1",
+    "tsx": "^4.20.6",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.15.0",
-    "tsx": "^4.20.6",
     "vercel": "^50.33.1",
     "vite": "^6.0.1",
     "vitest": "^4.1.0"
