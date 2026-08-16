@@ -4,8 +4,9 @@ import type {
   SubLotteryPlayer,
   SubLotteryPool,
   SubLotteryScheduleEntry,
-} from './types';
-import { getSubLotteryCoins } from './workflow';
+} from './types.js';
+import { getSubLotteryCoins } from './workflow.js';
+import Papa from 'papaparse';
 
 interface EligibleSubsInput {
   requestId: string;
@@ -20,6 +21,28 @@ function slugify(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function uniqueSlug(baseValue: string, seenSlugs: Map<string, number>): string {
+  const baseSlug = slugify(baseValue);
+  const count = seenSlugs.get(baseSlug) ?? 0;
+  seenSlugs.set(baseSlug, count + 1);
+  return count === 0 ? baseSlug : `${baseSlug}-${count + 1}`;
+}
+
+function parseCsvRows(csvText: string): string[][] {
+  const parsed = Papa.parse<string[]>(csvText.trim(), {
+    skipEmptyLines: 'greedy',
+  });
+
+  const fatalError = parsed.errors.find(error => error.code !== 'UndetectableDelimiter');
+  if (fatalError) {
+    throw new Error(fatalError.message);
+  }
+
+  return parsed.data
+    .map(row => row.map(value => (value ?? '').trim()))
+    .filter(row => row.some(value => value.length > 0));
 }
 
 function normalizePool(value: string): SubLotteryPool | null {
@@ -140,27 +163,29 @@ export function drawWeightedSubWinners(
 }
 
 export function parseSubPlayerCsv(csvText: string): SubLotteryPlayer[] {
-  const lines = csvText
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(Boolean);
+  const rows = parseCsvRows(csvText);
 
-  if (lines.length <= 1) {
+  if (rows.length <= 1) {
     return [];
   }
 
-  return lines.slice(1).flatMap(line => {
-    const [rawName = '', rawPool = ''] = line.split(',').map(value => value.trim());
-    const pool = normalizePool(rawPool);
-    const name = rawName.trim();
+  const headers = rows[0]!;
+  const headerIndexes = new Map(headers.map((header, index) => [normalizeHeader(header), index]));
+  const seenSlugs = new Map<string, number>();
+
+  return rows.slice(1).flatMap(row => {
+    const name = getColumn(row, headerIndexes, ['Name', 'Player', 'Player Name']);
+    const email = getColumn(row, headerIndexes, ['Email', 'Email Address']);
+    const pool = normalizePool(getColumn(row, headerIndexes, ['Pool', 'Gender']));
 
     if (!name || !pool) {
       return [];
     }
 
     return [{
-      id: slugify(name),
+      id: uniqueSlug(name, seenSlugs),
       name,
+      ...(email ? { email } : {}),
       pool,
       seasonSubCount: 0,
       active: true,
@@ -169,33 +194,30 @@ export function parseSubPlayerCsv(csvText: string): SubLotteryPlayer[] {
 }
 
 export function parseSubScheduleCsv(csvText: string): SubLotteryScheduleEntry[] {
-  const lines = csvText
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(Boolean);
+  const rows = parseCsvRows(csvText);
 
-  if (lines.length <= 1) {
+  if (rows.length <= 1) {
     return [];
   }
 
-  const headers = lines[0]!.split(',').map(value => value.trim());
+  const headers = rows[0]!;
   const headerIndexes = new Map(headers.map((header, index) => [normalizeHeader(header), index]));
+  const seenSlugs = new Map<string, number>();
 
-  return lines.slice(1).flatMap(line => {
-    const row = line.split(',').map(value => value.trim());
+  return rows.slice(1).flatMap(row => {
     const weekLabel = getColumn(row, headerIndexes, ['Week']);
     const gameDate = getColumn(row, headerIndexes, ['Date', 'Game Date']);
     const captainName = getColumn(row, headerIndexes, ['Captain', 'Captain Name']);
     const teamName = getColumn(row, headerIndexes, ['Team', 'Team Name']);
     const gameLabel = getColumn(row, headerIndexes, ['Game Time', 'Time', 'Game']);
-    const pool = normalizePool(getColumn(row, headerIndexes, ['Pool', 'Gender']));
+    const pool = normalizePool(getColumn(row, headerIndexes, ['Pool', 'Gender'])) ?? 'open';
 
-    if (!weekLabel || !captainName || !teamName || !gameLabel || !pool) {
+    if (!weekLabel || !captainName || !teamName || !gameLabel) {
       return [];
     }
 
     return [{
-      id: slugify(`${weekLabel}-${gameDate ? `${gameDate}-` : ''}${captainName}-${teamName}-${gameLabel}`),
+      id: uniqueSlug(`${weekLabel}-${gameDate ? `${gameDate}-` : ''}${captainName}-${teamName}-${gameLabel}`, seenSlugs),
       weekLabel,
       ...(gameDate ? { gameDate } : {}),
       captainName,

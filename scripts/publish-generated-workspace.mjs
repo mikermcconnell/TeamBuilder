@@ -218,7 +218,40 @@ function parseNewPlayerFlag(value) {
   return undefined;
 }
 
+function parseBooleanFlag(value) {
+  const normalizedValue = String(value ?? '').trim().toLowerCase();
+  return ['y', 'yes', 'true', '1', 'handler', 'x'].includes(normalizedValue);
+}
+
+function parseDelimitedNames(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw || ['no', 'none', 'n/a', 'na'].includes(raw.toLowerCase())) {
+    return [];
+  }
+
+  const cleaned = raw.toLowerCase().startsWith('yes:')
+    ? raw.slice(raw.indexOf(':') + 1)
+    : raw;
+
+  return cleaned
+    .split(/[,;\n]+/)
+    .map(name => name.trim())
+    .filter(Boolean);
+}
+
+function parseLabels(value) {
+  return String(value ?? '')
+    .split(/[,;]/)
+    .map(label => label.trim().toLowerCase().replace(/\s+/g, '-'))
+    .filter(Boolean);
+}
+
 export function calculateRegistrationSkill(row) {
+  const explicitSkill = Number.parseFloat(getHeaderValue(row, ['skill rating']));
+  if (Number.isFinite(explicitSkill)) {
+    return explicitSkill;
+  }
+
   const componentColumns = [
     'Athletic ability',
     'Throwing',
@@ -232,7 +265,8 @@ export function calculateRegistrationSkill(row) {
     .filter(value => Number.isFinite(value));
 
   if (values.length === 0) {
-    return 5;
+    const fallbackSkill = Number.parseFloat(getHeaderValue(row, ['skill']));
+    return Number.isFinite(fallbackSkill) ? fallbackSkill : 5;
   }
 
   return Math.round(((values.reduce((sum, value) => sum + value, 0) / values.length) * 2) * 10) / 10;
@@ -491,16 +525,20 @@ export function parseAcceptedRosterRows(rows) {
         ? 'F'
         : 'Other';
 
-    const teammateRequests = Object.entries(row)
-      .filter(([key, value]) => key.toLowerCase().includes('player') && key.toLowerCase().includes('request') && String(value).trim())
-      .map(([, value]) => String(value).trim());
+    const legacyTeammateRequests = [
+      ...parseDelimitedNames(getHeaderValue(row, ['teammate requests'])),
+      ...parseDelimitedNames(getHeaderValue(row, ['player requests'])),
+    ];
+    const teammateRequests = legacyTeammateRequests.length > 0
+      ? legacyTeammateRequests
+      : Object.entries(row)
+        .filter(([key, value]) => key.toLowerCase().includes('player') && key.toLowerCase().includes('request') && String(value).trim())
+        .flatMap(([, value]) => parseDelimitedNames(value));
 
-    const doNotPlayRaw = getHeaderValue(row, ['do_not_play', 'do not play']);
-    const avoidRequests = doNotPlayRaw
-      && doNotPlayRaw.toLowerCase() !== 'no'
-      && !doNotPlayRaw.toLowerCase().startsWith('yes:')
-      ? doNotPlayRaw.split(/[,;]/).map(value => value.trim()).filter(Boolean)
-      : [];
+    const avoidRequests = [
+      ...parseDelimitedNames(getHeaderValue(row, ['do_not_play', 'do not play'])),
+      ...parseDelimitedNames(getHeaderValue(row, ['avoid requests'])),
+    ];
 
     const ageValue = getHeaderValue(row, ['age']);
     const parsedAge = ageValue ? Number.parseInt(ageValue, 10) : undefined;
@@ -511,17 +549,23 @@ export function parseAcceptedRosterRows(rows) {
     );
     const email = getHeaderValue(row, ['email']);
     const isNewPlayer = parseNewPlayerFlag(getHeaderValue(row, ['new player', 'is new player', 'new', 'rookie']));
+    const execSkillRaw = Number.parseFloat(getHeaderValue(row, ['exec skill rating', 'exec']));
+    const execSkillRating = Number.isFinite(execSkillRaw) ? execSkillRaw : null;
+    const isHandler = parseBooleanFlag(getHeaderValue(row, ['handler', 'is handler']));
+    const labels = parseLabels(getHeaderValue(row, ['labels']));
 
     return cleanUndefinedDeep({
       id: `player-${index + 1}-${crypto.randomUUID().slice(0, 8)}`,
       name,
       gender,
       skillRating: calculateRegistrationSkill(row),
-      execSkillRating: null,
+      execSkillRating,
       teammateRequests,
       avoidRequests,
       ...(email ? { email } : {}),
       ...(isNewPlayer !== undefined ? { isNewPlayer } : {}),
+      isHandler,
+      ...(labels.length > 0 ? { labels } : {}),
       profile: cleanUndefinedDeep({
         age,
         registrationInfo,

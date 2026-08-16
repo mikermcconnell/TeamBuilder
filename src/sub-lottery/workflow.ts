@@ -1,4 +1,4 @@
-import type { SubLotteryScheduleEntry } from './types';
+import type { SubLotteryScheduleEntry } from './types.js';
 
 export const SUB_LOTTERY_TIME_ZONE = 'America/Toronto';
 export const STARTING_LOTTERY_COINS = 5;

@@ -1,6 +1,7 @@
 import { parseSubPlayerCsv, parseSubScheduleCsv } from '../../sub-lottery/core.js';
-import { runSubLotteryDraw } from '../../sub-lottery/lifecycle.js';
+import { cancelCaptainSubRequest, runSubLotteryDrawCycle } from '../../sub-lottery/lifecycle.js';
 import type { CreateSubRequestRequest } from '../../sub-lottery/apiContracts.js';
+import type { DocumentData } from 'firebase-admin/firestore';
 import type {
   SubLotteryAssignment,
   SubLotteryAvailability,
@@ -8,8 +9,10 @@ import type {
   SubLotteryPublicState,
   SubLotteryRequest,
   SubLotteryScheduleEntry,
+  SubLotteryWinnerEmailNotification,
 } from '../../sub-lottery/types.js';
 import { getWorkflowDeadlinesForGameDate } from '../../sub-lottery/workflow.js';
+import { isWinnerEmailConfigured, sendWinnerEmail } from './email.js';
 import { getSubLotteryFirestore } from './firebaseAdmin.js';
 
 const COLLECTIONS = {
@@ -19,6 +22,7 @@ const COLLECTIONS = {
   availability: 'subLotteryAvailability',
   assignments: 'subLotteryAssignments',
   schedule: 'subLotterySchedule',
+  winnerEmails: 'subLotteryWinnerEmails',
 } as const;
 
 const DEFAULT_SEASON_ID = 'default-season';
@@ -46,7 +50,7 @@ function assertPinMatches(actual: string, expectedEnvName: 'SUB_LOTTERY_CAPTAIN_
   }
 }
 
-function dataWithId<T>(doc: { id: string; data: () => FirebaseFirestore.DocumentData }): T {
+function dataWithId<T>(doc: { id: string; data: () => DocumentData }): T {
   return { id: doc.id, ...doc.data() } as T;
 }
 
@@ -61,6 +65,12 @@ function sortState(state: SubLotteryPublicState): SubLotteryPublicState {
     )),
     assignments: [...state.assignments].sort((a, b) => b.assignedAt.localeCompare(a.assignedAt)),
   };
+}
+
+function toPublicPlayer(player: SubLotteryPlayer): SubLotteryPlayer {
+  const publicPlayer = { ...player };
+  delete publicPlayer.email;
+  return publicPlayer;
 }
 
 async function runReadyDraws(seasonId: string): Promise<void> {
@@ -88,7 +98,7 @@ export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise
   return sortState({
     seasonId,
     seasonName,
-    players: playersSnapshot.docs.map(doc => dataWithId<SubLotteryPlayer>(doc)),
+    players: playersSnapshot.docs.map(doc => toPublicPlayer(dataWithId<SubLotteryPlayer>(doc))),
     requests: requestsSnapshot.docs.map(doc => dataWithId<SubLotteryRequest>(doc)),
     availability: availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc)),
     scheduleEntries: scheduleSnapshot.docs.map(doc => dataWithId<SubLotteryScheduleEntry>(doc)),
@@ -114,10 +124,10 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
     throw new Error('Choose open matching or female matching.');
   }
   const requestedSlots = Number(input.slotsNeeded);
-  if (!Number.isFinite(requestedSlots) || requestedSlots < 1) {
-    throw new Error('Choose how many subs are needed.');
+  if (!Number.isInteger(requestedSlots) || requestedSlots < 1) {
+    throw new Error('Choose a whole number of subs needed.');
   }
-  const slotsNeeded = Math.floor(requestedSlots);
+  const slotsNeeded = requestedSlots;
   if (!scheduleEntry.gameDate) {
     throw new Error('Schedule entry needs a game date.');
   }
@@ -164,6 +174,32 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
   return loadPublicSubLotteryState(seasonId);
 }
 
+export async function cancelSubRequest(input: { requestId: string; captainPin: string }): Promise<SubLotteryPublicState> {
+  assertPinMatches(input.captainPin, 'SUB_LOTTERY_CAPTAIN_PIN');
+
+  const db = await getSubLotteryFirestore();
+  const requestRef = db.collection(COLLECTIONS.requests).doc(input.requestId);
+  let seasonId = getSeasonId();
+
+  await db.runTransaction(async transaction => {
+    const requestDoc = await transaction.get(requestRef);
+    if (!requestDoc.exists) {
+      throw new Error('Sub request not found.');
+    }
+
+    const request = dataWithId<SubLotteryRequest>(requestDoc);
+    seasonId = request.seasonId;
+    const cancelledRequest = cancelCaptainSubRequest({ request });
+
+    transaction.update(requestRef, {
+      status: cancelledRequest.status,
+      cancelledAt: cancelledRequest.cancelledAt,
+    });
+  });
+
+  return loadPublicSubLotteryState(seasonId);
+}
+
 export async function markPlayerAvailable(requestId: string, playerId: string): Promise<SubLotteryPublicState> {
   const db = await getSubLotteryFirestore();
   const requestRef = db.collection(COLLECTIONS.requests).doc(requestId);
@@ -207,68 +243,6 @@ export async function markPlayerAvailable(requestId: string, playerId: string): 
   return loadPublicSubLotteryState(seasonId);
 }
 
-export async function runDrawForRequest(requestId: string, now = new Date()): Promise<void> {
-  const db = await getSubLotteryFirestore();
-  const requestRef = db.collection(COLLECTIONS.requests).doc(requestId);
-  const requestDoc = await requestRef.get();
-
-  if (!requestDoc.exists) {
-    throw new Error('Sub request not found.');
-  }
-
-  const request = dataWithId<SubLotteryRequest>(requestDoc);
-  if (request.status !== 'open') {
-    return;
-  }
-  const [playersSnapshot, availabilitySnapshot] = await Promise.all([
-    db.collection(COLLECTIONS.players).where('seasonId', '==', request.seasonId).get(),
-    db.collection(COLLECTIONS.availability).where('requestId', '==', request.id).get(),
-  ]);
-  const players = playersSnapshot.docs.map(doc => dataWithId<SubLotteryPlayer>(doc));
-  const availability = availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc));
-  const draw = runSubLotteryDraw({
-    request,
-    players,
-    availability,
-    now,
-  });
-
-  if (draw.status === 'not-ready' || draw.status === 'already-assigned') {
-    return;
-  }
-
-  await db.runTransaction(async transaction => {
-    const latestRequest = await transaction.get(requestRef);
-    if (!latestRequest.exists) throw new Error('Sub request not found.');
-    const latestRequestData = dataWithId<SubLotteryRequest>(latestRequest);
-    if (latestRequestData.status === 'assigned') return;
-
-    const assignedAt = draw.status === 'assigned' ? draw.request.assignedAt : now.toISOString();
-    const assignedPlayerIds = draw.status === 'assigned' ? draw.request.assignedPlayerIds ?? [] : [];
-
-    transaction.update(requestRef, {
-      status: 'assigned',
-      assignedPlayerId: assignedPlayerIds[0] ?? '',
-      assignedPlayerIds,
-      assignedAt,
-    });
-
-    if (draw.status !== 'assigned') return;
-
-    draw.winners.forEach(winner => {
-      const winnerRef = db.collection(COLLECTIONS.players).doc(winner.id);
-      transaction.update(winnerRef, {
-        seasonSubCount: winner.seasonSubCount,
-      });
-    });
-
-    draw.assignments.forEach(assignment => {
-      const assignmentRef = db.collection(COLLECTIONS.assignments).doc(`${requestId}_${assignment.playerId}`);
-      transaction.set(assignmentRef, assignment);
-    });
-  });
-}
-
 export async function runDueDrawsForSeason(seasonIdInput?: string, now = new Date()): Promise<void> {
   const seasonId = getSeasonId(seasonIdInput);
   const db = await getSubLotteryFirestore();
@@ -282,9 +256,189 @@ export async function runDueDrawsForSeason(seasonIdInput?: string, now = new Dat
     .map(doc => dataWithId<SubLotteryRequest>(doc))
     .filter(request => request.drawAt && new Date(request.drawAt).getTime() <= now.getTime());
 
-  for (const request of dueRequests) {
-    await runDrawForRequest(request.id, now);
+  if (dueRequests.length === 0) {
+    return;
   }
+
+  const dueWeekLabels = new Set(dueRequests.map(request => request.weekLabel).filter(Boolean));
+  const [playersSnapshot, availabilitySnapshot, assignmentsSnapshot] = await Promise.all([
+    db.collection(COLLECTIONS.players).where('seasonId', '==', seasonId).get(),
+    db.collection(COLLECTIONS.availability).where('seasonId', '==', seasonId).get(),
+    db.collection(COLLECTIONS.assignments).where('seasonId', '==', seasonId).get(),
+  ]);
+
+  const players = playersSnapshot.docs.map(doc => dataWithId<SubLotteryPlayer>(doc));
+  const availability = availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc));
+  const existingAssignments = assignmentsSnapshot.docs.map(doc => dataWithId<SubLotteryAssignment>(doc));
+  const excludedPlayerIds = existingAssignments
+    .filter(assignment => assignment.weekLabel && dueWeekLabels.has(assignment.weekLabel))
+    .map(assignment => assignment.playerId);
+  const drawCycle = runSubLotteryDrawCycle({
+    requests: dueRequests,
+    players,
+    availability,
+    excludedPlayerIds,
+    now,
+  });
+
+  await db.runTransaction(async transaction => {
+    const updatedRequestIds = new Set<string>();
+    const requestRefs = drawCycle.requests.map(request => db.collection(COLLECTIONS.requests).doc(request.id));
+    const latestRequestDocs = await Promise.all(requestRefs.map(requestRef => transaction.get(requestRef)));
+
+    for (const [index, request] of drawCycle.requests.entries()) {
+      const requestRef = requestRefs[index]!;
+      const latestRequest = latestRequestDocs[index]!;
+      if (!latestRequest.exists) continue;
+      const latestRequestData = dataWithId<SubLotteryRequest>(latestRequest);
+      if (latestRequestData.status !== 'open') continue;
+
+      transaction.update(requestRef, {
+        status: request.status,
+        assignedPlayerId: request.assignedPlayerIds?.[0] ?? '',
+        assignedPlayerIds: request.assignedPlayerIds ?? [],
+        assignedAt: request.assignedAt,
+      });
+      updatedRequestIds.add(request.id);
+    }
+
+    for (const player of drawCycle.players) {
+      const originalPlayer = players.find(entry => entry.id === player.id);
+      const playerHasCommittedAssignment = drawCycle.assignments.some(assignment => (
+        assignment.playerId === player.id && updatedRequestIds.has(assignment.requestId)
+      ));
+      if (originalPlayer && playerHasCommittedAssignment && originalPlayer.seasonSubCount !== player.seasonSubCount) {
+        transaction.update(db.collection(COLLECTIONS.players).doc(player.id), {
+          seasonSubCount: player.seasonSubCount,
+        });
+      }
+    }
+
+    drawCycle.assignments.filter(assignment => updatedRequestIds.has(assignment.requestId)).forEach(assignment => {
+      const assignmentRef = db.collection(COLLECTIONS.assignments).doc(`${assignment.requestId}_${assignment.playerId}`);
+      transaction.set(assignmentRef, assignment);
+
+      const assignedPlayer = players.find(player => player.id === assignment.playerId);
+      const playerEmail = assignedPlayer?.email?.trim();
+      if (playerEmail) {
+        const notificationId = `${assignment.requestId}_${assignment.playerId}`;
+        const notification: SubLotteryWinnerEmailNotification = {
+          id: notificationId,
+          seasonId: assignment.seasonId ?? seasonId,
+          requestId: assignment.requestId,
+          playerId: assignment.playerId,
+          playerName: assignedPlayer.name,
+          playerEmail,
+          ...(assignment.teamName ? { teamName: assignment.teamName } : {}),
+          ...(assignment.gameLabel ? { gameLabel: assignment.gameLabel } : {}),
+          ...(assignment.weekLabel ? { weekLabel: assignment.weekLabel } : {}),
+          ...(assignment.captainName ? { captainName: assignment.captainName } : {}),
+          assignedAt: assignment.assignedAt,
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+          status: 'pending',
+          attempts: 0,
+        };
+        transaction.create(db.collection(COLLECTIONS.winnerEmails).doc(notificationId), notification);
+      }
+    });
+  });
+}
+
+async function claimWinnerEmail(notificationId: string): Promise<SubLotteryWinnerEmailNotification | null> {
+  const db = await getSubLotteryFirestore();
+  const notificationRef = db.collection(COLLECTIONS.winnerEmails).doc(notificationId);
+  const now = new Date();
+
+  return db.runTransaction(async transaction => {
+    const notificationDoc = await transaction.get(notificationRef);
+    if (!notificationDoc.exists) {
+      return null;
+    }
+
+    const notification = dataWithId<SubLotteryWinnerEmailNotification>(notificationDoc);
+    if (notification.status === 'sent' || notification.attempts >= 3) {
+      return null;
+    }
+
+    if (notification.status === 'sending' && notification.updatedAt) {
+      const sendingAgeMs = now.getTime() - new Date(notification.updatedAt).getTime();
+      if (sendingAgeMs < 10 * 60 * 1000) {
+        return null;
+      }
+    }
+
+    const claimedNotification: SubLotteryWinnerEmailNotification = {
+      ...notification,
+      status: 'sending',
+      attempts: notification.attempts + 1,
+      updatedAt: now.toISOString(),
+    };
+    transaction.update(notificationRef, {
+      status: claimedNotification.status,
+      attempts: claimedNotification.attempts,
+      updatedAt: claimedNotification.updatedAt,
+    });
+    return claimedNotification;
+  });
+}
+
+export async function sendPendingWinnerEmailsForSeason(seasonIdInput?: string): Promise<{
+  sent: number;
+  failed: number;
+  skipped: number;
+}> {
+  const seasonId = getSeasonId(seasonIdInput);
+  if (!isWinnerEmailConfigured()) {
+    return { sent: 0, failed: 0, skipped: 1 };
+  }
+
+  const db = await getSubLotteryFirestore();
+  const snapshot = await db.collection(COLLECTIONS.winnerEmails).where('seasonId', '==', seasonId).get();
+  const notifications = snapshot.docs
+    .map(doc => dataWithId<SubLotteryWinnerEmailNotification>(doc))
+    .filter(notification => notification.status !== 'sent' && notification.attempts < 3);
+
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const notification of notifications) {
+    const claimedNotification = await claimWinnerEmail(notification.id);
+    if (!claimedNotification) {
+      skipped += 1;
+      continue;
+    }
+
+    try {
+      const result = await sendWinnerEmail(claimedNotification);
+      if (result.status === 'sent') {
+        await db.collection(COLLECTIONS.winnerEmails).doc(notification.id).update({
+          status: 'sent',
+          sentAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          lastError: '',
+        });
+        sent += 1;
+      } else {
+        await db.collection(COLLECTIONS.winnerEmails).doc(notification.id).update({
+          status: 'pending',
+          lastError: result.message ?? 'Email skipped.',
+          updatedAt: new Date().toISOString(),
+        });
+        skipped += 1;
+      }
+    } catch (error) {
+      await db.collection(COLLECTIONS.winnerEmails).doc(notification.id).update({
+        status: 'failed',
+        lastError: error instanceof Error ? error.message : 'Email failed.',
+        updatedAt: new Date().toISOString(),
+      });
+      failed += 1;
+    }
+  }
+
+  return { sent, failed, skipped };
 }
 
 export async function runDueDrawsAndLoadState(seasonIdInput?: string): Promise<SubLotteryPublicState> {
@@ -293,11 +447,25 @@ export async function runDueDrawsAndLoadState(seasonIdInput?: string): Promise<S
   return loadPublicSubLotteryState(seasonId);
 }
 
+export async function runDueDrawsSendWinnerEmailsAndLoadState(seasonIdInput?: string): Promise<{
+  state: SubLotteryPublicState;
+  emails: Awaited<ReturnType<typeof sendPendingWinnerEmailsForSeason>>;
+}> {
+  const seasonId = getSeasonId(seasonIdInput);
+  await runDueDrawsForSeason(seasonId);
+  const emails = await sendPendingWinnerEmailsForSeason(seasonId);
+  const state = await loadPublicSubLotteryState(seasonId);
+  return { state, emails };
+}
+
 export async function runDrawAndLoadState(requestId: string): Promise<SubLotteryPublicState> {
-  await runDrawForRequest(requestId);
   const db = await getSubLotteryFirestore();
   const requestDoc = await db.collection(COLLECTIONS.requests).doc(requestId).get();
   const request = requestDoc.exists ? dataWithId<SubLotteryRequest>(requestDoc) : null;
+  if (request) {
+    await runDueDrawsForSeason(request.seasonId);
+    await sendPendingWinnerEmailsForSeason(request.seasonId);
+  }
   return loadPublicSubLotteryState(request?.seasonId);
 }
 
@@ -319,6 +487,13 @@ export async function importSubPlayers(input: {
     throw new Error('No valid players found. Use CSV headers: Name,Pool.');
   }
 
+  const duplicateNames = players
+    .map(player => player.name.trim().toLowerCase())
+    .filter((name, index, names) => names.indexOf(name) !== index);
+  if (duplicateNames.length > 0) {
+    throw new Error('Duplicate player names found. Please make each sub name unique before importing.');
+  }
+
   const db = await getSubLotteryFirestore();
   const existingPlayers = await db.collection(COLLECTIONS.players).where('seasonId', '==', seasonId).get();
   const batch = db.batch();
@@ -335,7 +510,10 @@ export async function importSubPlayers(input: {
   });
 
   players.forEach(player => {
-    batch.set(db.collection(COLLECTIONS.players).doc(player.id), player, { merge: true });
+    batch.set(db.collection(COLLECTIONS.players).doc(player.id), {
+      ...player,
+      email: player.email ?? '',
+    }, { merge: true });
   });
 
   await batch.commit();
@@ -357,7 +535,7 @@ export async function importSubSchedule(input: {
   }));
 
   if (scheduleEntries.length === 0) {
-    throw new Error('No valid schedule entries found. Use CSV headers: Week,Date,Captain,Team,Game Time,Pool.');
+    throw new Error('No valid schedule entries found. Use CSV headers: Week,Date,Captain,Team,Game Time. Pool is optional.');
   }
 
   const db = await getSubLotteryFirestore();

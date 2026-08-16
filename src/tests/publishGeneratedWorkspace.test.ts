@@ -47,6 +47,56 @@ describe('publish-generated-workspace', () => {
     expect(parsedBackup.data.teamIterations?.[0]?.name).toBe('AI Draft 1');
   });
 
+  it('preserves normalized roster skill, handlers, labels, and legacy request headers', () => {
+    const rosterCsv = [
+      'Name,Gender,Skill Rating,Exec Skill Rating,Teammate Requests,Avoid Requests,New Player,Age,Registration Notes,Handler,Labels',
+      'Alice Smith,F,8.5,,Bob Jones,,Yes,20,,Yes,heart',
+      'Bob Jones,M,6.25,7.5,Alice Smith,,No,45,,No,leader-a-male',
+      'Carla Ng,F,5,,,"Alice Smith",,31,,No,',
+    ].join('\n');
+
+    const teamsCsv = [
+      'Team,Name,Gender,Skill',
+      'Team 1,Alice Smith,F,8.5',
+      'Team 1,Bob Jones,M,7.5',
+      'Team 2,Carla Ng,F,5',
+    ].join('\n');
+
+    const result = createGeneratedWorkspaceFromCsvTexts({
+      rosterCsvText: rosterCsv,
+      teamCsvText: teamsCsv,
+      projectName: 'Summer Draft',
+      userId: 'user-123',
+      workspaceId: 'workspace-123',
+    });
+
+    expect(result.players).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        name: 'Alice Smith',
+        skillRating: 8.5,
+        execSkillRating: null,
+        teammateRequests: ['Bob Jones'],
+        isHandler: true,
+        isNewPlayer: true,
+        labels: ['heart'],
+      }),
+      expect.objectContaining({
+        name: 'Bob Jones',
+        skillRating: 6.25,
+        execSkillRating: 7.5,
+        teammateRequests: ['Alice Smith'],
+        isHandler: false,
+        isNewPlayer: false,
+        labels: ['leader-a-male'],
+      }),
+      expect.objectContaining({
+        name: 'Carla Ng',
+        avoidRequests: ['Alice Smith'],
+      }),
+    ]));
+    expect(result.workspace.teamIterations?.[0]?.teams[0]?.handlerCount).toBe(1);
+  });
+
   it('serializes nested workspace data into Firestore REST field values', () => {
     expect(toFirestoreValue({
       title: 'Draft',

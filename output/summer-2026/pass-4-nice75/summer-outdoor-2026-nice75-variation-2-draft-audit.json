@@ -1,0 +1,419 @@
+{
+  "seasonName": "Summer Outdoor 2026",
+  "variationName": "Nice 75 Variation 2",
+  "seed": 6,
+  "hardGroups": [
+    {
+      "id": "hard-group-1",
+      "playerNames": [
+        "Caitlind Lusty",
+        "Matthew Lynar"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-2",
+      "playerNames": [
+        "Kurtis Thomas",
+        "Sara Shakib"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-3",
+      "playerNames": [
+        "Thomas Black",
+        "Carly Munce"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-4",
+      "playerNames": [
+        "Levi Taylor",
+        "Duncan Taylor"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-5",
+      "playerNames": [
+        "Richmand Hogg",
+        "Molly Douglas"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-6",
+      "playerNames": [
+        "Michael McConnell",
+        "Brianna Hall"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-7",
+      "playerNames": [
+        "Sean Harrington",
+        "Kileigh Harrington"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-8",
+      "playerNames": [
+        "Niko Hoogeveen",
+        "Adam Soos"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-9",
+      "playerNames": [
+        "Elly Switzer",
+        "Caleb Fisher"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-10",
+      "playerNames": [
+        "Curtis Reason",
+        "Stephen Hawley"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-11",
+      "playerNames": [
+        "Brad Mayer",
+        "Rebecca Robitaille"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-12",
+      "playerNames": [
+        "Matt Simon",
+        "John Nigh"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-13",
+      "playerNames": [
+        "parker munce",
+        "Kyra Frisina"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-14",
+      "playerNames": [
+        "James Callow",
+        "Tristan Callow"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-15",
+      "playerNames": [
+        "Matt Tribe",
+        "Tracy Penley"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-16",
+      "playerNames": [
+        "Emilie Farr",
+        "Hailey Irwin"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-17",
+      "playerNames": [
+        "Scott Patrick",
+        "Shannon Wolochatiuk"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-18",
+      "playerNames": [
+        "Aiden Courville",
+        "Sarah Butt"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-19",
+      "playerNames": [
+        "Ryan Sagermann",
+        "Carly Sagermann"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-20",
+      "playerNames": [
+        "Lilyanna Padoin Lee",
+        "Leah Potje"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-21",
+      "playerNames": [
+        "Lauren Grasse",
+        "Liam Crawford"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-22",
+      "playerNames": [
+        "Nate Smith",
+        "Frank Smith"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-23",
+      "playerNames": [
+        "Kyle Stashuk",
+        "Peter Rutkauskas"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-24",
+      "playerNames": [
+        "Kole O'C",
+        "Scott O'Connor"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-25",
+      "playerNames": [
+        "Nadine Leiper",
+        "Alli Leiper"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-26",
+      "playerNames": [
+        "Kristy Robinson",
+        "Andy Beecroft"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-27",
+      "playerNames": [
+        "Julie Tillmanns",
+        "Charlee Tillmanns"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-28",
+      "playerNames": [
+        "Robin Mennie",
+        "Cody Sinkinson"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-29",
+      "playerNames": [
+        "Christian Mueller",
+        "Emilie Brown"
+      ],
+      "source": "mutual-request"
+    },
+    {
+      "id": "hard-group-30",
+      "playerNames": [
+        "Derek Davey",
+        "Koral Freeman"
+      ],
+      "source": "mutual-request"
+    }
+  ],
+  "metrics": {
+    "playerCount": 108,
+    "teamCount": 8,
+    "teamSizeSpread": 1,
+    "maleSpread": 1,
+    "femaleSpread": 1,
+    "genderSpreadViolations": 0,
+    "skillSpread": 1.14,
+    "handlerSpread": 2,
+    "femaleLeaderTeams": 6,
+    "maleLeaderCoveredTeams": 4,
+    "niceToPlayHonored": 28,
+    "niceToPlayBroken": 0,
+    "niceToPlayTotal": 28,
+    "niceToPlayHonorRate": 1,
+    "niceToPlayTargetMet": true,
+    "newPlayerSpread": 4,
+    "youngPlayerSpread": 5,
+    "wisePlayerSpread": 5,
+    "avoidViolations": 0,
+    "hardGroupViolations": 0
+  },
+  "teams": [
+    {
+      "name": "Team 1",
+      "players": [
+        "Ben Kleiser",
+        "Olivia Evans",
+        "Brandon Canning",
+        "Thomas Black",
+        "Carly Munce",
+        "Lilyanna Padoin Lee",
+        "Kole O'C",
+        "Scott O'Connor",
+        "Leah Potje",
+        "Nate Smith",
+        "Frank Smith",
+        "Emma Hanney",
+        "Eric Good",
+        "Will Boaks"
+      ]
+    },
+    {
+      "name": "Team 2",
+      "players": [
+        "Neil Bond",
+        "Carden Vickers",
+        "Marianne Auger",
+        "Michael McConnell",
+        "Brianna Hall",
+        "Robin Mennie",
+        "Cody Sinkinson",
+        "Patrick Kirkwood",
+        "Aiden Courville",
+        "Colton Courville",
+        "Sarah Butt",
+        "Jeff Cobbledick",
+        "Kevin Schuster",
+        "Xena Cochi"
+      ]
+    },
+    {
+      "name": "Team 3",
+      "players": [
+        "Geno Bornea",
+        "Kyle Jones",
+        "James Callow",
+        "Cale Holmes",
+        "Tristan Callow",
+        "Kristy Robinson",
+        "Andy Beecroft",
+        "David Tran",
+        "Matt Tribe",
+        "Tracy Penley",
+        "Pascale Clements",
+        "Christian Mueller",
+        "Emilie Brown",
+        "Courtney Hough"
+      ]
+    },
+    {
+      "name": "Team 4",
+      "players": [
+        "Julianna Lerch",
+        "Jeffery Hoover",
+        "Charlie Tardif",
+        "Caitlind Lusty",
+        "Matthew Lynar",
+        "Elly Switzer",
+        "Lauren Grasse",
+        "Caleb Fisher",
+        "Liam Crawford",
+        "Ryan Sagermann",
+        "Carly Sagermann",
+        "Brett Ormsby",
+        "Andrew \"Sundance\" Black",
+        "Joseph Doran"
+      ]
+    },
+    {
+      "name": "Team 5",
+      "players": [
+        "Ryan Bridge",
+        "Spencer Brown",
+        "Luke Mackey",
+        "parker munce",
+        "Kyra Frisina",
+        "Cali Gurr",
+        "Derek Davey",
+        "Koral Freeman",
+        "Curtis Reason",
+        "Stephen Hawley",
+        "Dayson Bress",
+        "Taylor Stanojev",
+        "Wesley Taggart"
+      ]
+    },
+    {
+      "name": "Team 6",
+      "players": [
+        "Thomas Barnes",
+        "David Humphrys",
+        "Niko Hoogeveen",
+        "Adam Soos",
+        "Amber Soos",
+        "Emilie Farr",
+        "Hailey Irwin",
+        "Brendan Irwin",
+        "Scott Patrick",
+        "Shannon Wolochatiuk",
+        "Eric Bouchard",
+        "Jamie Bonany",
+        "Stephen Fisher"
+      ]
+    },
+    {
+      "name": "Team 7",
+      "players": [
+        "David Pietrowski",
+        "Mat MacLean",
+        "Levi Taylor",
+        "Sean Harrington",
+        "Matt Simon",
+        "Kileigh Harrington",
+        "John Nigh",
+        "Duncan Taylor",
+        "Chris Tillmanns",
+        "Julie Tillmanns",
+        "Charlee Tillmanns",
+        "Nadine Leiper",
+        "Alli Leiper"
+      ]
+    },
+    {
+      "name": "Team 8",
+      "players": [
+        "Jaclyn Kane",
+        "Paul Marjin",
+        "Kurtis Thomas",
+        "Richmand Hogg",
+        "Matt Hofing",
+        "Molly Douglas",
+        "Brad Mayer",
+        "Rebecca Robitaille",
+        "Sara Shakib",
+        "Kyle Stashuk",
+        "Peter Rutkauskas",
+        "Joseph Dunlop",
+        "Billy Miller"
+      ]
+    }
+  ]
+}

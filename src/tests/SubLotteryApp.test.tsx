@@ -18,6 +18,7 @@ vi.mock('@/sub-lottery/api', () => ({
   loadSubLotteryState: vi.fn(async () => emptyState),
   createCaptainRequest: vi.fn(),
   markAvailable: vi.fn(),
+  cancelCaptainRequest: vi.fn(),
   runDraw: vi.fn(),
   adminImportPlayers: vi.fn(),
   adminImportSchedule: vi.fn(),
@@ -36,10 +37,11 @@ describe('SubLotteryApp', () => {
   test('autoloads sample subs and current-week captain schedule for testing', () => {
     render(<SubLotteryApp />);
 
-    expect(screen.getByText('Sub Squad')).toBeInTheDocument();
-    expect(screen.getByText('Workflow week: Week 2')).toBeInTheDocument();
-    expect(document.querySelector('#sub-player-suggestions option[value="Alice Green"]')).toBeInTheDocument();
-    expect(document.querySelector('#sub-player-suggestions option[value="Owen Orange"]')).toBeInTheDocument();
+    expect(screen.getByText('Demo data is showing. This is not the live sub lottery.')).toBeInTheDocument();
+    expect(screen.getByText('Are you a sub or a captain?')).toBeInTheDocument();
+    expect(screen.getByText('I’m a sub player')).toBeInTheDocument();
+    expect(screen.getByText('I’m a captain')).toBeInTheDocument();
+    expect(screen.getByText('Game week: Week 2')).toBeInTheDocument();
     expect(document.querySelector('#captain-name-suggestions option[value="Jamie"]')).toBeInTheDocument();
     expect(document.querySelector('#captain-name-suggestions option[value="Avery"]')).toBeInTheDocument();
   });

@@ -4,6 +4,7 @@ import { UploadCloud } from 'lucide-react';
 import {
   adminImportPlayers,
   adminImportSchedule,
+  cancelCaptainRequest,
   createCaptainRequest,
   loadSubLotteryState,
   markAvailable,
@@ -17,17 +18,17 @@ import { getWorkflowDeadlinesForGameDate } from './workflow';
 const DEFAULT_SEASON_ID = 'default-season';
 
 const samplePlayersCsv = [
-  'Name,Pool',
-  'Alice Green,Female',
-  'Bella Blue,Female',
-  'Cara Cloud,Female',
-  'Dina Dash,Female',
-  'Priya Pine,Female',
-  'Owen Orange,Open',
-  'Sam Spruce,Open',
-  'Noah Navy,Open',
-  'Liam Lime,Open',
-  'Jordan Jet,Open',
+  'Name,Pool,Email',
+  'Alice Green,Female,alice@example.com',
+  'Bella Blue,Female,bella@example.com',
+  'Cara Cloud,Female,cara@example.com',
+  'Dina Dash,Female,dina@example.com',
+  'Priya Pine,Female,priya@example.com',
+  'Owen Orange,Open,owen@example.com',
+  'Sam Spruce,Open,sam@example.com',
+  'Noah Navy,Open,noah@example.com',
+  'Liam Lime,Open,liam@example.com',
+  'Jordan Jet,Open,jordan@example.com',
 ].join('\n');
 
 function formatDateOnly(date: Date): string {
@@ -55,13 +56,13 @@ function getSampleScheduleCsv(referenceDate = new Date()): string {
   const weekTwoDate = formatDateOnly(addDays(getWeekStart(referenceDate), 9));
 
   return [
-    'Week,Date,Captain,Team,Game Time,Pool',
-    `Week 1,${weekOneDate},Morgan,Blue Team,Friday 8 PM,Female`,
-    `Week 1,${weekOneDate},Casey,Green Team,Friday 9 PM,Open`,
-    `Week 1,${weekOneDate},Taylor,Red Team,Thursday 7 PM,Female`,
-    `Week 1,${weekOneDate},Riley,Yellow Team,Thursday 8 PM,Open`,
-    `Week 2,${weekTwoDate},Jamie,Purple Team,Friday 8 PM,Female`,
-    `Week 2,${weekTwoDate},Avery,Orange Team,Friday 9 PM,Open`,
+    'Week,Date,Captain,Team,Game Time',
+    `Week 1,${weekOneDate},Morgan,Blue Team,Friday 8 PM`,
+    `Week 1,${weekOneDate},Casey,Green Team,Friday 9 PM`,
+    `Week 1,${weekOneDate},Taylor,Red Team,Thursday 7 PM`,
+    `Week 1,${weekOneDate},Riley,Yellow Team,Thursday 8 PM`,
+    `Week 2,${weekTwoDate},Jamie,Purple Team,Friday 8 PM`,
+    `Week 2,${weekTwoDate},Avery,Orange Team,Friday 9 PM`,
   ].join('\n');
 }
 
@@ -145,8 +146,8 @@ export function SubLotteryApp() {
       throw new Error('A sub need is already open for this scheduled game.');
     }
     const requestedSlots = Number(payload.slotsNeeded);
-    if (!Number.isFinite(requestedSlots) || requestedSlots < 1) {
-      throw new Error('Choose how many subs are needed.');
+    if (!Number.isInteger(requestedSlots) || requestedSlots < 1) {
+      throw new Error('Choose a whole number of subs needed.');
     }
 
     return {
@@ -159,7 +160,7 @@ export function SubLotteryApp() {
           teamName: scheduleEntry.teamName,
           gameLabel: scheduleEntry.gameLabel,
           pool: payload.pool,
-          slotsNeeded: Math.floor(requestedSlots),
+          slotsNeeded: requestedSlots,
           status: 'open',
           openedAt: new Date().toISOString(),
           closesAt: deadlines.availabilityClosesAt,
@@ -200,6 +201,27 @@ export function SubLotteryApp() {
     };
   };
 
+  const cancelDemoRequest = (requestId: string): SubLotteryPublicState => {
+    const request = state.requests.find(entry => entry.id === requestId);
+    if (!request) {
+      throw new Error('Sub request not found.');
+    }
+    if (request.status !== 'open') {
+      throw new Error('Only open requests can be cancelled.');
+    }
+    const drawAt = request.drawAt ?? request.closesAt;
+    if (Date.now() >= new Date(drawAt).getTime()) {
+      throw new Error('This draw already completed.');
+    }
+
+    return {
+      ...state,
+      requests: state.requests.map(entry => entry.id === requestId
+        ? { ...entry, status: 'void', cancelledAt: new Date().toISOString() }
+        : entry),
+    };
+  };
+
   const importDemoData = (seasonName: string, playersCsvText: string, scheduleCsvText: string): SubLotteryPublicState => ({
     seasonId: state.seasonId,
     seasonName: seasonName.trim() || 'Testing season',
@@ -220,6 +242,7 @@ export function SubLotteryApp() {
       <SubLotteryWorkspace
         state={state}
         isBusy={busy}
+        demoMode={demoMode}
         onCreateRequest={(payload) => {
           if (demoMode) {
             try {
@@ -251,6 +274,23 @@ export function SubLotteryApp() {
             void runAction(
               () => markAvailable({ requestId, playerId }),
               'You are entered. Good luck!',
+            );
+          }
+        }}
+        onCancelRequest={({ requestId, captainPin }) => {
+          if (demoMode) {
+            try {
+              setState(cancelDemoRequest(requestId));
+              setSuccess('Sub need cancelled.');
+              setError(null);
+            } catch (cancelError) {
+              setError(cancelError instanceof Error ? cancelError.message : 'Sub need could not be cancelled.');
+              setSuccess(null);
+            }
+          } else {
+            void runAction(
+              () => cancelCaptainRequest({ requestId, captainPin }),
+              'Sub need cancelled.',
             );
           }
         }}

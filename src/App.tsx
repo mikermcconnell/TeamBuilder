@@ -46,10 +46,11 @@ import { PlayerRoster } from '@/components/PlayerRoster';
 import { FullScreenTeamBuilder } from '@/components/FullScreenTeamBuilder';
 import { ExportPanel } from '@/components/ExportPanel';
 import { PlayerGroups } from '@/components/PlayerGroups';
+import { ExecReviewReport } from '@/components/teams/ExecReviewReport';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, BarChart3, Users, LayoutGrid, ArrowRight, FileText, ArrowLeft, AlertTriangle, FolderOpen, SquarePen, Loader2 } from 'lucide-react';
+import { FileSpreadsheet, BarChart3, Users, LayoutGrid, ArrowRight, FileText, ArrowLeft, AlertTriangle, FolderOpen, SquarePen, Loader2, ClipboardCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Analytics } from '@vercel/analytics/react';
@@ -160,7 +161,7 @@ function App() {
     toast.success('Redo successful');
   }, [historyStacks]);
 
-  const [teamsView, setTeamsView] = useState<'landing' | 'exports'>('landing'); // UI state for teams tab
+  const [teamsView, setTeamsView] = useState<'landing' | 'exports' | 'exec-review'>('landing'); // UI state for teams tab
 
   // Workspace Dialog State (UI only)
   const [isSaveWorkspaceDialogOpen, setIsSaveWorkspaceDialogOpen] = useState(false);
@@ -1063,7 +1064,7 @@ function App() {
                       </div>
                     ) : teamsView === 'landing' ? (
                         <div className="space-y-8 py-8">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
                           {/* Team Builder Card */}
                           <div
                             onClick={() => {
@@ -1104,6 +1105,23 @@ function App() {
                               VIEW EXPORTS <ArrowRight className="h-4 w-4 ml-2" />
                             </div>
                           </div>
+
+                          {/* Exec Review Card */}
+                          <div
+                            onClick={() => setTeamsView('exec-review')}
+                            className="group bg-white rounded-3xl p-8 border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-amber-200 hover:-translate-y-1 transition-all cursor-pointer flex flex-col items-center text-center"
+                          >
+                            <div className="h-20 w-20 bg-amber-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-amber-100 transition-colors">
+                              <ClipboardCheck className="h-10 w-10 text-amber-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-800 mb-3">Exec Review</h3>
+                            <p className="text-slate-500 mb-8 leading-relaxed">
+                              Review all Summer 2026 draft variations, rule checks, team summaries, and recommended option.
+                            </p>
+                            <div className="mt-auto font-bold text-amber-600 flex items-center group-hover:gap-2 transition-all">
+                              VIEW REVIEW <ArrowRight className="h-4 w-4 ml-2" />
+                            </div>
+                          </div>
                         </div>
 
                       </div>
@@ -1115,20 +1133,26 @@ function App() {
                             onClick={() => setTeamsView('landing')}
                             className="text-slate-500 hover:text-slate-800"
                           >
-                            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Workspace
+                            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Team Options
                           </Button>
-                          <h2 className="text-2xl font-extrabold text-slate-800">Exports & Reports</h2>
+                          <h2 className="text-2xl font-extrabold text-slate-800">
+                            {teamsView === 'exports' ? 'Exports & Reports' : 'Exec Review'}
+                          </h2>
                         </div>
 
-                        <ExportPanel
-                          teams={workspaceTeams}
-                          unassignedPlayers={workspaceUnassignedPlayers}
-                          stats={workspaceStats}
-                          config={appState.config}
-                          playerGroups={appState.playerGroups}
-                          leagueMemory={leagueMemory}
-                          activeIterationName={activeIteration?.name}
-                        />
+                        {teamsView === 'exports' ? (
+                          <ExportPanel
+                            teams={workspaceTeams}
+                            unassignedPlayers={workspaceUnassignedPlayers}
+                            stats={workspaceStats}
+                            config={appState.config}
+                            playerGroups={appState.playerGroups}
+                            leagueMemory={leagueMemory}
+                            activeIterationName={activeIteration?.name}
+                          />
+                        ) : (
+                          <ExecReviewReport />
+                        )}
                       </div>
                     )}
                   </div>
