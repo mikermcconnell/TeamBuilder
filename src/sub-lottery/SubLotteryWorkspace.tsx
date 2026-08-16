@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock, Crown, Trophy, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, CheckCircle2, Clock, Crown, GripVertical, Trash2, Trophy, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { formatCountdown, getSubLotteryCoins, getSubLotteryWorkflowState, getWorkflowScheduleWeekLabel, SUB_LOTTERY_TIME_ZONE } from './workflow';
@@ -18,12 +18,15 @@ interface CancelRequestPayload {
   requestId: string;
   captainPin: string;
 }
+interface UpdateRequestPayload extends CancelRequestPayload { pool: SubLotteryPool; slotsNeeded: number; confirmMerge?: boolean }
 
 interface SubLotteryWorkspaceProps {
   state: SubLotteryPublicState;
-  onCreateRequest?: (payload: CreateRequestPayload) => void;
+  onCreateRequest?: (payloads: CreateRequestPayload[]) => void;
   onMarkAvailable?: (requestId: string, playerId: string) => void;
+  onUpdatePreferences?: (playerId: string, requestIds: string[]) => void;
   onCancelRequest?: (payload: CancelRequestPayload) => void;
+  onUpdateRequest?: (payload: UpdateRequestPayload) => void;
   isBusy?: boolean;
   currentDate?: Date;
   demoMode?: boolean;
@@ -56,6 +59,10 @@ function getResultText(request: SubLotteryRequest, players: SubLotteryPlayer[]):
     return 'This request was cancelled before the draw.';
   }
 
+  if (request.status === 'pending-confirmation') {
+    const names = getPlayerNames(players, request.assignedPlayerIds ?? (request.assignedPlayerId ? [request.assignedPlayerId] : []));
+    return `${names} selected; awaiting acceptance.`;
+  }
   if (request.status !== 'assigned') {
     return 'Waiting for the draw.';
   }
@@ -135,7 +142,9 @@ export function SubLotteryWorkspace({
   state,
   onCreateRequest,
   onMarkAvailable,
+  onUpdatePreferences,
   onCancelRequest,
+  onUpdateRequest,
   isBusy = false,
   currentDate = new Date(),
   demoMode = false,
@@ -144,8 +153,11 @@ export function SubLotteryWorkspace({
   const [captainPin, setCaptainPin] = useState('');
   const [selectedCaptainName, setSelectedCaptainName] = useState('');
   const [selectedScheduleEntryId, setSelectedScheduleEntryId] = useState('');
-  const [selectedRequestPool, setSelectedRequestPool] = useState<SubLotteryPool | null>(null);
-  const [slotsNeeded, setSlotsNeeded] = useState('1');
+  const [selectedRequestPools, setSelectedRequestPools] = useState<SubLotteryPool[]>([]);
+  const [slotsNeededByPool, setSlotsNeededByPool] = useState<Record<SubLotteryPool, string>>({
+    open: '1',
+    female: '1',
+  });
   const [selectedAudience, setSelectedAudience] = useState<SubLotteryAudience | null>(null);
 
   const activePlayers = useMemo(
@@ -171,9 +183,6 @@ export function SubLotteryWorkspace({
     [scheduleEntriesForWeek, selectedCaptainName]
   );
   const selectedScheduleEntry = scheduleEntriesForCaptain.find(entry => entry.id === selectedScheduleEntryId) ?? null;
-  const existingOpenRequestForSchedule = selectedScheduleEntry
-    ? state.requests.find(request => request.scheduleEntryId === selectedScheduleEntry.id && request.pool === selectedRequestPool && request.status === 'open')
-    : null;
   const isCaptainPhase = workflow.phase === 'captain';
   const isPlayerPhase = workflow.phase === 'player';
   const openRequests = state.requests.filter(request => request.status === 'open');
@@ -182,8 +191,10 @@ export function SubLotteryWorkspace({
   const showCaptainForm = activeAudience === 'captain' && isCaptainPhase;
   const showSubEntry = activeAudience === 'sub' && isPlayerPhase;
   const showResults = workflow.phase === 'results';
-  const requestedSlots = Number(slotsNeeded);
-  const slotsAreValid = Number.isInteger(requestedSlots) && requestedSlots >= 1;
+  const slotsAreValid = selectedRequestPools.every(pool => {
+    const requestedSlots = Number(slotsNeededByPool[pool]);
+    return Number.isInteger(requestedSlots) && requestedSlots >= 1;
+  });
   const subCountdownLabel = isPlayerPhase ? 'Sub entries close in' : 'Sub lottery opens in';
   const subCountdownTarget = isPlayerPhase ? workflow.availabilityClosesAt : workflow.availabilityOpensAt;
 
@@ -202,6 +213,11 @@ export function SubLotteryWorkspace({
   const matchingOpenRequests = selectedPlayer
     ? openRequests.filter(request => request.pool === selectedPlayer.pool)
     : openRequests;
+  const rankedEntries = selectedPlayer ? state.availability
+    .filter(entry => entry.playerId === selectedPlayer.id && matchingOpenRequests.some(request => request.id === entry.requestId))
+    .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || a.enteredAt.localeCompare(b.enteredAt)) : [];
+  const rankedRequestIds = rankedEntries.map(entry => entry.requestId);
+  const saveRanked = (ids: string[]) => selectedPlayer && onUpdatePreferences?.(selectedPlayer.id, ids);
   const captainDisableReason = !isCaptainPhase
     ? 'Captain requests are closed for this week.'
     : !selectedCaptainName
@@ -210,26 +226,24 @@ export function SubLotteryWorkspace({
         ? 'Choose the exact scheduled game.'
       : !selectedScheduleEntry
         ? 'Choose your captain name to load your game.'
-      : !selectedRequestPool
-        ? 'Choose open matching or female matching.'
+      : selectedRequestPools.length === 0
+        ? 'Choose open matching, female matching, or both.'
         : !slotsAreValid
           ? 'Enter a whole number of 1 or more.'
-          : existingOpenRequestForSchedule
-            ? 'This need is already added.'
-            : '';
+          : '';
   const getEntryCount = (request: SubLotteryRequest) => state.availability
     .filter(entry => entry.requestId === request.id)
     .length;
 
   const handleCreateRequest = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedScheduleEntry || !selectedRequestPool || !slotsAreValid) return;
-    onCreateRequest?.({
+    if (!selectedScheduleEntry || selectedRequestPools.length === 0 || !slotsAreValid) return;
+    onCreateRequest?.(selectedRequestPools.map(pool => ({
       captainPin,
       scheduleEntryId: selectedScheduleEntry.id,
-      pool: selectedRequestPool,
-      slotsNeeded: requestedSlots,
-    });
+      pool,
+      slotsNeeded: Number(slotsNeededByPool[pool]),
+    })));
   };
 
   return (
@@ -237,7 +251,7 @@ export function SubLotteryWorkspace({
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {demoMode && (
           <div className="rounded-3xl border-2 border-amber-300 bg-amber-50 p-4 text-center text-sm font-black text-amber-900">
-            Demo data is showing. This is not the live sub lottery.
+            Firebase testing week: changes are saved week by week in a separate testing season and never mixed with the live lottery.
           </div>
         )}
         <WorkflowStepper workflow={workflow} />
@@ -292,8 +306,26 @@ export function SubLotteryWorkspace({
 
             <div className="space-y-3">
               <div className="rounded-2xl border-2 border-amber-100 bg-amber-50 p-3 text-xs font-bold text-amber-800">
-                Enter games in your preferred order. You can win only one game this week, and entries cannot be withdrawn online.
+                Rank every game you can play. Reorder or remove choices any time before entries close. You can win only one game this week.
               </div>
+              {selectedPlayer && rankedEntries.length > 0 && (
+                <div className="rounded-3xl border-2 border-emerald-200 bg-emerald-50 p-4">
+                  <h3 className="mb-2 font-black text-emerald-900">Your ranked choices</h3>
+                  <ol className="space-y-2">
+                    {rankedEntries.map((entry, index) => {
+                      const request = state.requests.find(item => item.id === entry.requestId);
+                      if (!request) return null;
+                      const move = (nextIndex: number) => { const ids = [...rankedRequestIds]; const [id] = ids.splice(index, 1); ids.splice(nextIndex, 0, id!); saveRanked(ids); };
+                      return <li key={entry.requestId} draggable onDragStart={event => event.dataTransfer.setData('text/plain', String(index))} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); const source = Number(event.dataTransfer.getData('text/plain')); const ids = [...rankedRequestIds]; const [id] = ids.splice(source, 1); if (id) { ids.splice(index, 0, id); saveRanked(ids); } }} className="flex items-center gap-2 rounded-2xl bg-white p-3 font-bold">
+                        <GripVertical className="h-4 w-4 text-zinc-400" /><span className="w-6 text-emerald-700">{index + 1}.</span><span className="min-w-0 flex-1">{request.teamName} · {request.gameLabel}</span>
+                        <button aria-label={`Move ${request.teamName} up`} disabled={index === 0 || isBusy} onClick={() => move(index - 1)} className="p-2 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                        <button aria-label={`Move ${request.teamName} down`} disabled={index === rankedEntries.length - 1 || isBusy} onClick={() => move(index + 1)} className="p-2 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                        <button aria-label={`Remove ${request.teamName}`} disabled={isBusy} onClick={() => saveRanked(rankedRequestIds.filter(id => id !== entry.requestId))} className="p-2 text-red-600"><Trash2 className="h-4 w-4" /></button>
+                      </li>;
+                    })}
+                  </ol>
+                </div>
+              )}
               {matchingOpenRequests.length === 0 ? (
                 <div className="rounded-3xl border-2 border-dashed border-zinc-200 bg-zinc-50 p-5 text-center font-bold text-zinc-500">
                   {selectedPlayer
@@ -321,7 +353,7 @@ export function SubLotteryWorkspace({
                       <button
                         type="button"
                         disabled={!isPlayerPhase || !selectedPlayer || entered || isBusy}
-                        onClick={() => selectedPlayer && onMarkAvailable?.(request.id, selectedPlayer.id)}
+                        onClick={() => selectedPlayer && (onUpdatePreferences ? saveRanked([...rankedRequestIds, request.id]) : onMarkAvailable?.(request.id, selectedPlayer.id))}
                         className={cn(
                           'rounded-2xl border-2 px-5 py-3 text-sm font-black transition disabled:cursor-not-allowed',
                           entered
@@ -397,15 +429,37 @@ export function SubLotteryWorkspace({
                 <ReadOnlyField label="Team name" value={selectedScheduleEntry?.teamName ?? ''} />
                 <ReadOnlyField label="Game time" value={selectedScheduleEntry?.gameLabel ?? ''} />
               </div>
-              <PoolCheckboxes selectedPool={selectedRequestPool} onChange={setSelectedRequestPool} />
-              <LabeledInput label="Number of subs needed" value={slotsNeeded} onChange={setSlotsNeeded} type="number" min={1} />
+              <PoolCheckboxes
+                selectedPools={selectedRequestPools}
+                onToggle={(pool) => setSelectedRequestPools(current => current.includes(pool)
+                  ? current.filter(selectedPool => selectedPool !== pool)
+                  : [...current, pool])}
+              />
+              {selectedRequestPools.length > 0 && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {selectedRequestPools.map(pool => (
+                    <LabeledInput
+                      key={pool}
+                      label={`Number of ${getPoolLabel(pool).toLowerCase()} subs needed`}
+                      value={slotsNeededByPool[pool]}
+                      onChange={(value) => setSlotsNeededByPool(current => ({ ...current, [pool]: value }))}
+                      type="number"
+                      min={1}
+                    />
+                  ))}
+                </div>
+              )}
 
               <button
                 type="submit"
-                disabled={isBusy || !isCaptainPhase || !selectedScheduleEntry || !selectedRequestPool || !slotsAreValid || Boolean(existingOpenRequestForSchedule)}
+                disabled={isBusy || !isCaptainPhase || !selectedScheduleEntry || selectedRequestPools.length === 0 || !slotsAreValid}
                 className="mt-1 rounded-2xl border-2 border-sky-700 bg-[#1cb0f6] px-5 py-4 text-base font-black text-white shadow-[0_4px_0_#1899d6] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none"
               >
-                {!isCaptainPhase ? 'Captain window closed' : existingOpenRequestForSchedule ? 'This need is already added' : 'Add sub need'}
+                {!isCaptainPhase
+                  ? 'Captain window closed'
+                  : selectedRequestPools.length > 1
+                      ? `Add ${selectedRequestPools.length} sub needs`
+                      : 'Add sub need'}
               </button>
               {captainDisableReason && (
                 <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-800">
@@ -427,14 +481,23 @@ export function SubLotteryWorkspace({
                           {request.weekLabel ? `${request.weekLabel} · ` : ''}{request.gameLabel} · {getPoolLabel(request.pool)} · {request.slotsNeeded ?? 1} needed
                         </div>
                         {canCancel && (
-                          <button
-                            type="button"
+                      <div className="flex gap-2">
+                      <button type="button" disabled={isBusy || !canCancel} onClick={() => {
+                        const quantity = Number(window.prompt('How many subs are needed?', String(request.slotsNeeded ?? 1)));
+                        if (!Number.isInteger(quantity) || quantity < 1) return;
+                        const pool = window.prompt('Pool: open or female', request.pool)?.toLowerCase();
+                        if (pool !== 'open' && pool !== 'female') return;
+                        onUpdateRequest?.({ requestId: request.id, captainPin, slotsNeeded: quantity, pool });
+                      }} className="rounded-xl border-2 border-sky-600 px-3 py-2 text-xs font-black text-sky-700">Edit</button>
+                      <button
+                        type="button"
                             disabled={isBusy || !captainPin}
                             onClick={() => onCancelRequest?.({ requestId: request.id, captainPin })}
                             className="mt-3 rounded-2xl border-2 border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            Cancel request
-                          </button>
+                        Cancel request
+                      </button>
+                      </div>
                         )}
                       </article>
                     );
@@ -488,8 +551,8 @@ export function SubLotteryWorkspace({
                   {request.status === 'assigned' ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Clock className="h-5 w-5 text-sky-600" />}
                 </div>
                 <div className="mt-3 rounded-2xl bg-white p-3 text-sm font-extrabold text-zinc-700">
-                  {request.status === 'assigned'
-                    ? getResultText(request, state.players)
+                      {request.status === 'assigned' || request.status === 'pending-confirmation'
+                        ? getResultText(request, state.players)
                     : request.status === 'void'
                       ? getResultText(request, state.players)
                       : `${getEntryCount(request)} sub player${getEntryCount(request) === 1 ? '' : 's'} entered. Waiting for the draw.`}
@@ -822,11 +885,11 @@ function WorkflowStepper({ workflow }: { workflow: ReturnType<typeof getSubLotte
 }
 
 function PoolCheckboxes({
-  selectedPool,
-  onChange,
+  selectedPools,
+  onToggle,
 }: {
-  selectedPool: SubLotteryPool | null;
-  onChange: (pool: SubLotteryPool) => void;
+  selectedPools: SubLotteryPool[];
+  onToggle: (pool: SubLotteryPool) => void;
 }) {
   const options: Array<{ pool: SubLotteryPool; label: string; help: string }> = [
     { pool: 'open', label: 'Open matching sub', help: 'Players listed as open matching can enter.' },
@@ -844,13 +907,13 @@ function PoolCheckboxes({
             key={option.pool}
             className={cn(
               'flex cursor-pointer gap-3 rounded-2xl border-2 bg-white p-4 transition',
-              selectedPool === option.pool ? 'border-sky-500 ring-4 ring-sky-100' : 'border-zinc-200'
+              selectedPools.includes(option.pool) ? 'border-sky-500 ring-4 ring-sky-100' : 'border-zinc-200'
             )}
           >
             <input
               type="checkbox"
-              checked={selectedPool === option.pool}
-              onChange={() => onChange(option.pool)}
+              checked={selectedPools.includes(option.pool)}
+              onChange={() => onToggle(option.pool)}
               className="mt-1 h-5 w-5 rounded border-zinc-300 text-sky-600 focus:ring-sky-400"
             />
             <span>

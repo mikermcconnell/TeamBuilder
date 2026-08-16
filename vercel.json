@@ -14,6 +14,38 @@
   ],
   "rewrites": [
     {
+      "source": "/api/sub-lottery/preferences",
+      "destination": "/api/sub-lottery/preferences.ts"
+    },
+    {
+      "source": "/api/sub-lottery/update-request",
+      "destination": "/api/sub-lottery/update-request.ts"
+    },
+    {
+      "source": "/api/sub-lottery/respond",
+      "destination": "/api/sub-lottery/respond.ts"
+    },
+    {
+      "source": "/api/sub-lottery/admin-login",
+      "destination": "/api/sub-lottery/admin-login.ts"
+    },
+    {
+      "source": "/api/sub-lottery/admin-operations",
+      "destination": "/api/sub-lottery/admin-operations.ts"
+    },
+    {
+      "source": "/api/sub-lottery/admin-replacement",
+      "destination": "/api/sub-lottery/admin-replacement.ts"
+    },
+    {
+      "source": "/api/sub-lottery/admin-retry-email",
+      "destination": "/api/sub-lottery/admin-retry-email.ts"
+    },
+    {
+      "source": "/api/sub-lottery/admin-test-email",
+      "destination": "/api/sub-lottery/admin-test-email.ts"
+    },
+    {
       "source": "/api/sub-lottery/public-state",
       "destination": "/api/sub-lottery/public-state.ts"
     },
@@ -28,6 +60,14 @@
     {
       "source": "/api/sub-lottery/run-draw",
       "destination": "/api/sub-lottery/run-draw.ts"
+    },
+    {
+      "source": "/api/sub-lottery/testing-state",
+      "destination": "/api/sub-lottery/testing-state.ts"
+    },
+    {
+      "source": "/api/sub-lottery/testing-run-draw",
+      "destination": "/api/sub-lottery/testing-run-draw.ts"
     },
     {
       "source": "/api/sub-lottery/run-due-draws",
@@ -62,7 +102,7 @@
       "destination": "/api/ai/team-draft.ts"
     },
     {
-      "source": "/((?!api/.*)(?!_next/.*)(?!static/.*)(?!reports/.*)(?!sitemap.xml)(?!robots.txt)(?!manifest.json).*)",
+      "source": "/((?!api/.*)(?!_next/.*)(?!static/.*)(?!sitemap.xml)(?!robots.txt)(?!manifest.json).*)",
       "destination": "/index.html"
     }
   ],

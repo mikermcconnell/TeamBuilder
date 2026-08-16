@@ -1,0 +1,4 @@
+import type { AdminLoginRequest } from '../../src/sub-lottery/apiContracts.js';
+import { assertAdminPin, createAdminSession } from '../../src/server/sub-lottery/adminAuth.js';
+import { allowOnlyPost, parseBody, sendFailure, sendSuccess, type SubLotteryServerlessRequest, type SubLotteryServerlessResponse } from '../../src/server/sub-lottery/http.js';
+export default async function handler(req: SubLotteryServerlessRequest, res: SubLotteryServerlessResponse) { if (!allowOnlyPost(req, res)) return; try { assertAdminPin(parseBody<AdminLoginRequest>(req.body).adminPin); const session = createAdminSession(); res.setHeader('Set-Cookie', session.cookie); sendSuccess(res, { authenticated: true, expiresAt: session.expiresAt }); } catch (error) { sendFailure(res, error instanceof Error ? error.message : 'Login failed.', 401); } }

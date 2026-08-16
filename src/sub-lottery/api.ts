@@ -10,10 +10,20 @@ import type {
   CreateSubRequestResponse,
   LoadPublicStateRequest,
   LoadPublicStateResponse,
+  LoadTestingWeekRequest,
+  LoadTestingWeekResponse,
   MarkAvailabilityRequest,
   MarkAvailabilityResponse,
   RunDrawRequest,
   RunDrawResponse,
+  RunTestingDrawRequest,
+  RunTestingDrawResponse,
+  UpdatePreferencesRequest,
+  UpdatePreferencesResponse,
+  UpdateSubRequestRequest,
+  UpdateSubRequestResponse,
+  RespondToAssignmentRequest,
+  AdminOperationsResponse,
 } from './apiContracts';
 
 async function postJson<TBody, TData>(url: string, body: TBody): Promise<TData> {
@@ -57,6 +67,14 @@ export function runDraw(body: RunDrawRequest): Promise<RunDrawResponse> {
   return postJson<RunDrawRequest, RunDrawResponse>('/api/sub-lottery/run-draw', body);
 }
 
+export function loadTestingWeek(body: LoadTestingWeekRequest = {}): Promise<LoadTestingWeekResponse> {
+  return postJson<LoadTestingWeekRequest, LoadTestingWeekResponse>('/api/sub-lottery/testing-state', body);
+}
+
+export function runTestingDraw(body: RunTestingDrawRequest): Promise<RunTestingDrawResponse> {
+  return postJson<RunTestingDrawRequest, RunTestingDrawResponse>('/api/sub-lottery/testing-run-draw', body);
+}
+
 export function cancelCaptainRequest(body: CancelSubRequestRequest): Promise<CancelSubRequestResponse> {
   return postJson<CancelSubRequestRequest, CancelSubRequestResponse>('/api/sub-lottery/cancel-request', body);
 }
@@ -68,3 +86,12 @@ export function adminImportPlayers(body: AdminImportPlayersRequest): Promise<Adm
 export function adminImportSchedule(body: AdminImportScheduleRequest): Promise<AdminImportScheduleResponse> {
   return postJson<AdminImportScheduleRequest, AdminImportScheduleResponse>('/api/sub-lottery/admin-import-schedule', body);
 }
+
+export function updatePreferences(body: UpdatePreferencesRequest): Promise<UpdatePreferencesResponse> { return postJson('/api/sub-lottery/preferences', body); }
+export function updateCaptainRequest(body: UpdateSubRequestRequest): Promise<UpdateSubRequestResponse> { return postJson('/api/sub-lottery/update-request', body); }
+export function respondToSelection(body: RespondToAssignmentRequest): Promise<{ status: string; message: string }> { return postJson('/api/sub-lottery/respond', body); }
+export function adminLogin(adminPin: string): Promise<{ authenticated: boolean; expiresAt: string }> { return postJson('/api/sub-lottery/admin-login', { adminPin }); }
+export function loadAdminOperations(seasonId?: string): Promise<AdminOperationsResponse> { return postJson('/api/sub-lottery/admin-operations', { seasonId }); }
+export function adminRunReplacement(assignmentId: string): Promise<void> { return postJson('/api/sub-lottery/admin-replacement', { assignmentId }); }
+export function adminRetryEmail(notificationId: string): Promise<void> { return postJson('/api/sub-lottery/admin-retry-email', { notificationId }); }
+export function adminSendTestEmail(template: string): Promise<{ to: string }> { return postJson('/api/sub-lottery/admin-test-email', { template }); }

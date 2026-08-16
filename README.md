@@ -83,6 +83,21 @@ FIREBASE_SERVICE_ACCOUNT_PATH=C:/secure/team-builder-service-account.json
 # or FIREBASE_SERVICE_ACCOUNT_JSON={...}
 ```
 
+Sub-lottery emails:
+
+```env
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
+SUB_LOTTERY_EMAIL_FROM="Sub Squad <barrieultimatesubs@gmail.com>"
+SUB_LOTTERY_PUBLIC_URL=https://teambuilder-mu.vercel.app/sub-lottery
+SUB_LOTTERY_TEST_EMAIL_TO=barrieultimatesubs@gmail.com
+SUB_LOTTERY_CAPTAIN_PIN=...
+SUB_LOTTERY_ADMIN_PIN=...
+CRON_SECRET=...
+```
+
 ## Common commands
 
 ```bash
@@ -119,6 +134,20 @@ Notes:
 - `Gender` accepts `M`, `F`, or `Other`; missing values default to `Other`.
 - `Skill Rating` and `Exec Skill Rating` use a 0-10 scale. Empty exec ratings mean N/A.
 - Registration exports with first/last name, status, request, skill component, exec, age, and notes columns are also supported.
+
+Sub-lottery player CSV:
+
+```csv
+Name,Pool,Email
+Alice Green,Female,alice@example.com
+Owen Orange,Open,owen@example.com
+```
+
+The `Email` column is required. Player history is matched by normalized email within the season, so roster re-imports preserve accepted-sub counts.
+
+Sub-lottery schedule CSVs require `Week,Date,Captain,Captain Email,Team,Game Time`. The app derives the active Monday week automatically from the game date in `America/Toronto`.
+
+Sub-lottery operations are available at `/sub-lottery/admin` through a short-lived secure admin session.
 
 ## AI routes
 

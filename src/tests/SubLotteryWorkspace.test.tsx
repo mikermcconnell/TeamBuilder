@@ -117,15 +117,77 @@ describe('SubLotteryWorkspace', () => {
     expect(screen.getByLabelText(/Female matching sub/)).not.toBeChecked();
     fireEvent.click(screen.getByLabelText(/Open matching sub/));
     expect(screen.queryByText(/does not match the scheduled game pool/i)).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Number of subs needed'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Number of open matching subs needed'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add sub need' }));
 
-    expect(onCreateRequest).toHaveBeenCalledWith({
+    expect(onCreateRequest).toHaveBeenCalledWith([{
       captainPin: '1234',
       scheduleEntryId: 'week-1-2026-06-24-morgan-blue-team-friday-8-pm',
       pool: 'open',
       slotsNeeded: 2,
-    });
+    }]);
+  });
+
+  test('adds open and female matching needs together with separate counts', () => {
+    const onCreateRequest = vi.fn();
+    const scheduleEntryId = 'week-1-2026-06-24-morgan-blue-team-friday-8-pm';
+
+    render(<SubLotteryWorkspace
+      state={state}
+      onCreateRequest={onCreateRequest}
+      currentDate={new Date('2026-06-21T12:00:00.000Z')}
+    />);
+
+    fireEvent.change(screen.getByLabelText('Captain PIN'), { target: { value: '1234' } });
+    fireEvent.change(screen.getByLabelText('Captain name'), { target: { value: 'Morgan' } });
+    fireEvent.change(screen.getByLabelText('Scheduled game'), { target: { value: scheduleEntryId } });
+    fireEvent.click(screen.getByLabelText(/Open matching sub/));
+    fireEvent.click(screen.getByLabelText(/Female matching sub/));
+    fireEvent.change(screen.getByLabelText('Number of open matching subs needed'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Number of female matching subs needed'), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add 2 sub needs' }));
+
+    expect(onCreateRequest).toHaveBeenCalledWith([
+      { captainPin: '1234', scheduleEntryId, pool: 'open', slotsNeeded: 2 },
+      { captainPin: '1234', scheduleEntryId, pool: 'female', slotsNeeded: 3 },
+    ]);
+  });
+
+  test('submits additional slots when a matching need already exists', () => {
+    const onCreateRequest = vi.fn();
+    const scheduleEntryId = 'week-1-2026-06-24-morgan-blue-team-friday-8-pm';
+    const stateWithExistingFemaleNeed: SubLotteryPublicState = {
+      ...state,
+      requests: [{
+        ...state.requests[0]!,
+        id: 'existing-female-need',
+        captainName: 'Morgan',
+        teamName: 'Blue Team',
+        scheduleEntryId,
+      }],
+    };
+
+    render(<SubLotteryWorkspace
+      state={stateWithExistingFemaleNeed}
+      onCreateRequest={onCreateRequest}
+      currentDate={new Date('2026-06-21T12:00:00.000Z')}
+    />);
+
+    fireEvent.change(screen.getByLabelText('Captain PIN'), { target: { value: '1234' } });
+    fireEvent.change(screen.getByLabelText('Captain name'), { target: { value: 'Morgan' } });
+    fireEvent.change(screen.getByLabelText('Scheduled game'), { target: { value: scheduleEntryId } });
+    fireEvent.click(screen.getByLabelText(/Female matching sub/));
+
+    expect(screen.getByLabelText('Number of female matching subs needed')).toHaveValue(1);
+    expect(screen.queryByText(/already added/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add sub need' }));
+
+    expect(onCreateRequest).toHaveBeenCalledWith([{
+      captainPin: '1234',
+      scheduleEntryId,
+      pool: 'female',
+      slotsNeeded: 1,
+    }]);
   });
 
   test('lets captains cancel open requests before the draw with a PIN', () => {

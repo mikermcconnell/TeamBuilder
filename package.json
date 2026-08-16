@@ -21,6 +21,7 @@
     "firebase:deploy:hosting": "firebase deploy --only hosting",
     "workspace:build": "tsx scripts/build-workspace-draft.ts",
     "workspace:publish": "node scripts/publish-generated-workspace.mjs",
+    "sub-lottery:migrate": "tsx scripts/migrate-sub-lottery.ts",
     "verify": "pnpm lint && pnpm test:run && pnpm test:rules && pnpm build"
   },
   "dependencies": {

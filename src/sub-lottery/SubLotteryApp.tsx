@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { UploadCloud } from 'lucide-react';
+import { TestTube2, UploadCloud } from 'lucide-react';
 
 import {
   adminImportPlayers,
@@ -7,15 +7,31 @@ import {
   cancelCaptainRequest,
   createCaptainRequest,
   loadSubLotteryState,
+  loadTestingWeek,
   markAvailable,
+  runTestingDraw,
+  updateCaptainRequest,
+  updatePreferences,
 } from './api';
 import { parseSubPlayerCsv, parseSubScheduleCsv } from './core';
 import { SubLotteryWorkspace } from './SubLotteryWorkspace';
 import type { CreateSubRequestRequest } from './apiContracts';
 import type { SubLotteryPublicState } from './types';
-import { getWorkflowDeadlinesForGameDate } from './workflow';
+import { getTestingPhaseDateForState, type SubLotteryTestingPhase } from './testingFixtures';
+import { SubLotteryAdmin } from './SubLotteryAdmin';
+import { SubLotteryRespond } from './SubLotteryRespond';
 
 const DEFAULT_SEASON_ID = 'default-season';
+
+const EMPTY_STATE: SubLotteryPublicState = {
+  seasonId: DEFAULT_SEASON_ID,
+  seasonName: 'Current season',
+  players: [],
+  requests: [],
+  availability: [],
+  scheduleEntries: [],
+  assignments: [],
+};
 
 const samplePlayersCsv = [
   'Name,Pool,Email',
@@ -56,60 +72,76 @@ function getSampleScheduleCsv(referenceDate = new Date()): string {
   const weekTwoDate = formatDateOnly(addDays(getWeekStart(referenceDate), 9));
 
   return [
-    'Week,Date,Captain,Team,Game Time',
-    `Week 1,${weekOneDate},Morgan,Blue Team,Friday 8 PM`,
-    `Week 1,${weekOneDate},Casey,Green Team,Friday 9 PM`,
-    `Week 1,${weekOneDate},Taylor,Red Team,Thursday 7 PM`,
-    `Week 1,${weekOneDate},Riley,Yellow Team,Thursday 8 PM`,
-    `Week 2,${weekTwoDate},Jamie,Purple Team,Friday 8 PM`,
-    `Week 2,${weekTwoDate},Avery,Orange Team,Friday 9 PM`,
+    'Week,Date,Captain,Captain Email,Team,Game Time',
+    `Week 1,${weekOneDate},Morgan,morgan@example.com,Blue Team,Friday 8 PM`,
+    `Week 1,${weekOneDate},Casey,casey@example.com,Green Team,Friday 9 PM`,
+    `Week 1,${weekOneDate},Taylor,taylor@example.com,Red Team,Thursday 7 PM`,
+    `Week 1,${weekOneDate},Riley,riley@example.com,Yellow Team,Thursday 8 PM`,
+    `Week 2,${weekTwoDate},Jamie,jamie@example.com,Purple Team,Friday 8 PM`,
+    `Week 2,${weekTwoDate},Avery,avery@example.com,Orange Team,Friday 9 PM`,
   ].join('\n');
 }
 
-function getSampleState(referenceDate = new Date()): SubLotteryPublicState {
-  return {
-    seasonId: DEFAULT_SEASON_ID,
-    seasonName: 'Testing season',
-    players: parseSubPlayerCsv(samplePlayersCsv),
-    requests: [],
-    availability: [],
-    scheduleEntries: parseSubScheduleCsv(getSampleScheduleCsv(referenceDate)),
-    assignments: [],
-  };
-}
-
-function hasLoadedTestingData(state: SubLotteryPublicState): boolean {
-  return state.players.length > 0 && state.scheduleEntries.length > 0;
-}
-
 export function SubLotteryApp() {
-  const [state, setState] = useState<SubLotteryPublicState>(() => getSampleState());
-  const [demoMode, setDemoMode] = useState(true);
+  if (window.location.pathname === '/sub-lottery/admin') return <SubLotteryAdmin />;
+  if (window.location.pathname === '/sub-lottery/respond') return <SubLotteryRespond />;
+  return <SubLotteryMainApp />;
+}
+
+function SubLotteryMainApp() {
+  const [state, setState] = useState<SubLotteryPublicState>(EMPTY_STATE);
+  const [demoMode, setDemoMode] = useState(false);
+  const [testingPhase, setTestingPhase] = useState<SubLotteryTestingPhase>('captain');
+  const [testingCurrentDate, setTestingCurrentDate] = useState<Date | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const showAdminTools = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('admin') === '1';
+  const showTestingTools = import.meta.env.DEV;
 
   const refresh = async () => {
     const nextState = await loadSubLotteryState();
-    if (hasLoadedTestingData(nextState)) {
-      setState(nextState);
-      setDemoMode(false);
-      return;
-    }
-
-    setState(getSampleState());
-    setDemoMode(true);
+    setState(nextState);
   };
 
   useEffect(() => {
     refresh()
       .catch(() => {
-        setState(getSampleState());
-        setDemoMode(true);
+        setState(EMPTY_STATE);
       });
   }, []);
+
+  const selectTestingPhase = (phase: SubLotteryTestingPhase, testingState = state) => {
+    setTestingPhase(phase);
+    setTestingCurrentDate(getTestingPhaseDateForState(testingState, phase));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const toggleTestingMode = async () => {
+    if (demoMode) {
+      setDemoMode(false);
+      setTestingCurrentDate(undefined);
+      setState(EMPTY_STATE);
+      void refresh().catch(() => setState(EMPTY_STATE));
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const nextState = await loadTestingWeek();
+      setState(nextState);
+      setDemoMode(true);
+      selectTestingPhase(nextState.assignments.length > 0 ? 'results' : 'player', nextState);
+      setSuccess('Saved Firebase testing week loaded.');
+    } catch (testingError) {
+      setError(testingError instanceof Error ? testingError.message : 'Testing week could not be loaded.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const runAction = async (action: () => Promise<SubLotteryPublicState>, successMessage: string) => {
     setBusy(true);
@@ -126,100 +158,36 @@ export function SubLotteryApp() {
     }
   };
 
-  const createDemoRequest = (payload: CreateSubRequestRequest): SubLotteryPublicState => {
-    const scheduleEntry = state.scheduleEntries.find(entry => entry.id === payload.scheduleEntryId);
-    if (!scheduleEntry) {
-      throw new Error('Schedule entry not found.');
+  const runSavedTestingDraw = async () => {
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const nextState = await runTestingDraw({ seasonId: state.seasonId });
+      setState(nextState);
+      selectTestingPhase('results', nextState);
+      setSuccess('Testing draw completed and winners were saved to Firebase.');
+    } catch (drawError) {
+      setError(drawError instanceof Error ? drawError.message : 'Testing draw could not be completed.');
+    } finally {
+      setBusy(false);
     }
-    if (!scheduleEntry.gameDate) {
-      throw new Error('Schedule entry needs a game date.');
-    }
-    const deadlines = getWorkflowDeadlinesForGameDate(scheduleEntry.gameDate);
-    if (Date.now() > new Date(deadlines.captainClosesAt).getTime()) {
-      throw new Error('Captain requests are closed for this week.');
-    }
-
-    const existingOpenRequest = state.requests.find(request => (
-      request.scheduleEntryId === scheduleEntry.id && request.pool === payload.pool && request.status === 'open'
-    ));
-    if (existingOpenRequest) {
-      throw new Error('A sub need is already open for this scheduled game.');
-    }
-    const requestedSlots = Number(payload.slotsNeeded);
-    if (!Number.isInteger(requestedSlots) || requestedSlots < 1) {
-      throw new Error('Choose a whole number of subs needed.');
-    }
-
-    return {
-      ...state,
-      requests: [
-        {
-          id: `demo-request-${Date.now()}`,
-          seasonId: state.seasonId,
-          captainName: scheduleEntry.captainName,
-          teamName: scheduleEntry.teamName,
-          gameLabel: scheduleEntry.gameLabel,
-          pool: payload.pool,
-          slotsNeeded: requestedSlots,
-          status: 'open',
-          openedAt: new Date().toISOString(),
-          closesAt: deadlines.availabilityClosesAt,
-          availabilityOpensAt: deadlines.availabilityOpensAt,
-          availabilityClosesAt: deadlines.availabilityClosesAt,
-          drawAt: deadlines.drawAt,
-          assignedPlayerIds: [],
-          scheduleEntryId: scheduleEntry.id,
-          weekLabel: scheduleEntry.weekLabel,
-        },
-        ...state.requests,
-      ],
-    };
   };
 
-  const markDemoAvailable = (requestId: string, playerId: string): SubLotteryPublicState => {
-    const request = state.requests.find(entry => entry.id === requestId);
-    const now = Date.now();
-    if (request?.availabilityOpensAt && now < new Date(request.availabilityOpensAt).getTime()) {
-      throw new Error('Player entries are not open yet.');
+  const resetSavedTestingWeek = async () => {
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const nextState = await loadTestingWeek({ reset: true });
+      setState(nextState);
+      selectTestingPhase('player', nextState);
+      setSuccess('Testing week reset in Firebase.');
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : 'Testing week could not be reset.');
+    } finally {
+      setBusy(false);
     }
-    if (request?.availabilityClosesAt && now > new Date(request.availabilityClosesAt).getTime()) {
-      throw new Error('Player entries are closed.');
-    }
-    const alreadyEntered = state.availability.some(entry => (
-      entry.requestId === requestId && entry.playerId === playerId
-    ));
-    if (alreadyEntered) {
-      return state;
-    }
-
-    return {
-      ...state,
-      availability: [
-        ...state.availability,
-        { requestId, playerId, enteredAt: new Date().toISOString() },
-      ],
-    };
-  };
-
-  const cancelDemoRequest = (requestId: string): SubLotteryPublicState => {
-    const request = state.requests.find(entry => entry.id === requestId);
-    if (!request) {
-      throw new Error('Sub request not found.');
-    }
-    if (request.status !== 'open') {
-      throw new Error('Only open requests can be cancelled.');
-    }
-    const drawAt = request.drawAt ?? request.closesAt;
-    if (Date.now() >= new Date(drawAt).getTime()) {
-      throw new Error('This draw already completed.');
-    }
-
-    return {
-      ...state,
-      requests: state.requests.map(entry => entry.id === requestId
-        ? { ...entry, status: 'void', cancelledAt: new Date().toISOString() }
-        : entry),
-    };
   };
 
   const importDemoData = (seasonName: string, playersCsvText: string, scheduleCsvText: string): SubLotteryPublicState => ({
@@ -239,63 +207,63 @@ export function SubLotteryApp() {
           {error ? <span className="text-red-600">{error}</span> : <span className="text-emerald-700">{success}</span>}
         </div>
       )}
+      <div className="absolute left-4 top-4 z-20"><a href="/sub-lottery/admin" className="rounded-xl border-2 border-zinc-300 bg-white px-3 py-2 text-xs font-black text-zinc-600 shadow-sm">Admin</a></div>
+      {showTestingTools && <TestingControls
+        enabled={demoMode}
+        phase={testingPhase}
+        busy={busy}
+        state={state}
+        onToggle={() => void toggleTestingMode()}
+        onSelectPhase={selectTestingPhase}
+        onRunDraw={() => void runSavedTestingDraw()}
+        onReset={() => void resetSavedTestingWeek()}
+      />}
       <SubLotteryWorkspace
         state={state}
         isBusy={busy}
         demoMode={demoMode}
-        onCreateRequest={(payload) => {
-          if (demoMode) {
-            try {
-              setState(createDemoRequest(payload));
-              setSuccess('Sub need added. Sub players can enter during the Monday lottery window.');
-              setError(null);
-            } catch (requestError) {
-              setError(requestError instanceof Error ? requestError.message : 'Sub need could not be opened.');
-              setSuccess(null);
-            }
-          } else {
-            void runAction(
-              () => createCaptainRequest({ ...payload, seasonId: state.seasonId } satisfies CreateSubRequestRequest),
-              'Sub need opened. Subs can enter now.',
-            );
-          }
+        currentDate={testingCurrentDate}
+        onCreateRequest={(payloads) => {
+          void runAction(
+            async () => {
+              let nextState = state;
+              for (const payload of payloads) {
+                nextState = await createCaptainRequest({
+                  ...payload,
+                  seasonId: state.seasonId,
+                } satisfies CreateSubRequestRequest);
+              }
+              return nextState;
+            },
+            `${payloads.length === 1 ? 'Sub need' : `${payloads.length} sub needs`} saved. Subs can enter during the Monday lottery window.`,
+          );
         }}
         onMarkAvailable={(requestId, playerId) => {
-          if (demoMode) {
-            try {
-              setState(markDemoAvailable(requestId, playerId));
-              setSuccess('You are in the lottery.');
-              setError(null);
-            } catch (availabilityError) {
-              setError(availabilityError instanceof Error ? availabilityError.message : 'Could not enter this request.');
-              setSuccess(null);
+          void runAction(
+            () => markAvailable({ requestId, playerId }),
+            demoMode ? 'Testing entry saved to Firebase.' : 'You are entered. Good luck!',
+          );
+        }}
+        onUpdatePreferences={(playerId, requestIds) => {
+          void runAction(() => updatePreferences({ playerId, requestIds }), 'Your ranked choices were saved.');
+        }}
+        onUpdateRequest={(payload) => {
+          void runAction(async () => {
+            try { return await updateCaptainRequest(payload); }
+            catch (editError) {
+              if (editError instanceof Error && editError.message === 'MERGE_CONFIRMATION_REQUIRED' && window.confirm('A request for that pool already exists. Merge the quantities?')) return updateCaptainRequest({ ...payload, confirmMerge: true });
+              throw editError;
             }
-          } else {
-            void runAction(
-              () => markAvailable({ requestId, playerId }),
-              'You are entered. Good luck!',
-            );
-          }
+          }, 'Sub need updated.');
         }}
         onCancelRequest={({ requestId, captainPin }) => {
-          if (demoMode) {
-            try {
-              setState(cancelDemoRequest(requestId));
-              setSuccess('Sub need cancelled.');
-              setError(null);
-            } catch (cancelError) {
-              setError(cancelError instanceof Error ? cancelError.message : 'Sub need could not be cancelled.');
-              setSuccess(null);
-            }
-          } else {
-            void runAction(
-              () => cancelCaptainRequest({ requestId, captainPin }),
-              'Sub need cancelled.',
-            );
-          }
+          void runAction(
+            () => cancelCaptainRequest({ requestId, captainPin }),
+            'Sub need cancelled.',
+          );
         }}
       />
-      {showAdminTools && (
+      {showAdminTools && !demoMode && (
         <AdminImportPanel
           seasonId={state.seasonId}
           onImport={(nextState) => setState(nextState)}
@@ -312,6 +280,106 @@ export function SubLotteryApp() {
         />
       )}
     </>
+  );
+}
+
+function TestingControls({
+  enabled,
+  phase,
+  busy,
+  state,
+  onToggle,
+  onSelectPhase,
+  onRunDraw,
+  onReset,
+}: {
+  enabled: boolean;
+  phase: SubLotteryTestingPhase;
+  busy: boolean;
+  state: SubLotteryPublicState;
+  onToggle: () => void;
+  onSelectPhase: (phase: SubLotteryTestingPhase) => void;
+  onRunDraw: () => void;
+  onReset: () => void;
+}) {
+  const phases: Array<{ value: SubLotteryTestingPhase; label: string; time: string }> = [
+    { value: 'captain', label: 'Captains ask', time: 'Friday noon' },
+    { value: 'player', label: 'Subs enter', time: 'Monday 9 AM' },
+  ];
+  const openRequestCount = state.requests.filter(request => request.status === 'open').length;
+  const hasResults = state.assignments.length > 0;
+
+  return (
+    <div className="flex w-full justify-end bg-[#f7f7f7] px-4 pt-4 sm:px-6">
+      <div className="flex max-w-full flex-col items-end gap-2">
+      <button
+        type="button"
+        aria-pressed={enabled}
+        disabled={busy}
+        onClick={onToggle}
+        className={`flex items-center gap-2 rounded-2xl border-2 px-4 py-3 text-sm font-black shadow-lg transition focus:outline-none focus:ring-4 focus:ring-purple-200 ${enabled
+          ? 'border-purple-700 bg-purple-600 text-white'
+          : 'border-zinc-300 bg-white text-zinc-700 hover:border-purple-400'}`}
+      >
+        <TestTube2 className="h-4 w-4" /> Testing {enabled ? 'on' : 'off'}
+      </button>
+      {enabled && (
+        <div className="w-[min(32rem,calc(100vw-1.5rem))] rounded-3xl border-2 border-purple-200 bg-white p-3 shadow-xl">
+          <div className="px-1 pb-2 text-xs font-bold text-zinc-600">
+            {state.seasonName} · saved separately in Firebase
+          </div>
+          <div className="grid grid-cols-2 gap-2" aria-label="Testing time window">
+            {phases.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={phase === option.value}
+                onClick={() => onSelectPhase(option.value)}
+                className={`rounded-2xl border-2 px-2 py-2 text-center transition ${phase === option.value
+                  ? 'border-purple-600 bg-purple-50 text-purple-900'
+                  : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-purple-300'}`}
+              >
+                <span className="block text-xs font-black sm:text-sm">{option.label}</span>
+                <span className="block text-[10px] font-bold sm:text-xs">{option.time}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={busy || openRequestCount === 0 || state.availability.length === 0}
+            onClick={onRunDraw}
+            className="mt-3 w-full rounded-2xl border-2 border-amber-700 bg-amber-400 px-4 py-3 text-sm font-black text-amber-950 shadow-[0_3px_0_#b45309] disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none"
+          >
+            {hasResults ? 'Draw already completed' : 'Run draw and show winners'}
+          </button>
+          {!hasResults && state.availability.length === 0 && (
+            <div className="mt-2 text-center text-xs font-bold text-amber-800">Enter at least one dummy sub before running the draw.</div>
+          )}
+          {hasResults && (
+            <button
+              type="button"
+              onClick={() => onSelectPhase('results')}
+              className="mt-2 w-full rounded-2xl border-2 border-emerald-600 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800"
+            >
+              Show saved results
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (window.confirm('Reset this Firebase testing week? All testing entries and winners for this week will be cleared.')) {
+                onReset();
+              }
+            }}
+            className="mt-3 w-full rounded-xl px-3 py-2 text-xs font-black text-zinc-500 underline decoration-zinc-300 underline-offset-2"
+          >
+            Reset this testing week
+          </button>
+        </div>
+      )}
+      </div>
+    </div>
   );
 }
 

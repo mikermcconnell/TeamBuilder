@@ -11,6 +11,7 @@ export interface SubLotteryWorkflowDeadlines {
   availabilityOpensAt: string;
   availabilityClosesAt: string;
   drawAt: string;
+  initialResponseClosesAt: string;
 }
 
 export interface SubLotteryWorkflowState extends SubLotteryWorkflowDeadlines {
@@ -116,7 +117,14 @@ export function getWorkflowDeadlinesForWeekStart(weekStartDate: string): SubLott
     availabilityOpensAt: zonedDateTimeToUtc({ ...weekStart, hour: 0, minute: 0, second: 0 }).toISOString(),
     availabilityClosesAt: zonedDateTimeToUtc({ ...weekStart, hour: 11, minute: 59, second: 59 }).toISOString(),
     drawAt: zonedDateTimeToUtc({ ...weekStart, hour: 12, minute: 1, second: 0 }).toISOString(),
+    initialResponseClosesAt: zonedDateTimeToUtc({ ...weekStart, hour: 17, minute: 0, second: 0 }).toISOString(),
   };
+}
+
+export function getWeekStartDateForGameDate(gameDate: string): string {
+  const [year = 0, month = 1, day = 1] = gameDate.split('-').map(Number);
+  const noon = zonedDateTimeToUtc({ year, month, day, hour: 12, minute: 0, second: 0 });
+  return dateOnlyFromParts(getMondayForLocalDate(getZonedParts(noon)));
 }
 
 export function getWorkflowDeadlinesForGameDate(gameDate: string): SubLotteryWorkflowDeadlines {

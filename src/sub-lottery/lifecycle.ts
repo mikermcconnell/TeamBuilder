@@ -8,6 +8,7 @@ import type {
 } from './types.js';
 import type { SubLotteryWorkflowDeadlines } from './workflow.js';
 import { getWorkflowDeadlinesForGameDate } from './workflow.js';
+import { getWeekStartDateForGameDate } from './workflow.js';
 
 interface CreateCaptainSubRequestInput {
   id: string;
@@ -92,6 +93,7 @@ export function createCaptainSubRequest({
   return {
     id,
     seasonId,
+    weekStartDate: gameDate ? getWeekStartDateForGameDate(gameDate) : openedAt.slice(0, 10),
     captainName: captainName.trim(),
     teamName: teamName.trim(),
     gameLabel: gameLabel.trim(),
@@ -243,7 +245,7 @@ export function runSubLotteryDrawCycle({
   const playerPreferences = new Map<string, SubLotteryAvailability[]>();
   availability
     .filter(entry => requestIds.has(entry.requestId))
-    .sort((a, b) => a.enteredAt.localeCompare(b.enteredAt))
+    .sort((a, b) => (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER) || a.enteredAt.localeCompare(b.enteredAt))
     .forEach(entry => {
       const entries = playerPreferences.get(entry.playerId) ?? [];
       entries.push(entry);

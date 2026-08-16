@@ -14,6 +14,8 @@ const notification: SubLotteryWinnerEmailNotification = {
   gameLabel: 'Friday 8 PM',
   weekLabel: 'Week 1',
   captainName: 'Morgan',
+  responseToken: 'test-token',
+  responseDeadlineAt: '2026-06-22T21:00:00.000Z',
   assignedAt: '2026-06-22T16:01:00.000Z',
   createdAt: '2026-06-22T16:01:00.000Z',
   status: 'pending',
@@ -36,7 +38,8 @@ describe('sub lottery winner email', () => {
     expect(email.to).toBe('alice@example.com');
     expect(email.subject).toContain('Blue Team');
     expect(email.text).toContain('You won the sub lottery');
-    expect(email.text).toContain('No confirmation is needed.');
+    expect(email.text).toContain('Please accept or decline');
+    expect(email.text).toContain('/sub-lottery/respond?token=test-token');
     expect(email.html).toContain('Week 1 · Blue Team · Friday 8 PM');
   });
 

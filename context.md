@@ -55,6 +55,10 @@ scripts/                          workspace build/publish and rules test scripts
 
 ## Current app workflow
 
+### Sub Lottery
+
+`/sub-lottery` runs a calendar-based weekly sub lottery backed by server-only Firestore APIs. Captains may create, edit, merge, or cancel open/female matching needs before the Sunday deadline. Subs create an explicit ranked list Monday morning. Draws use committed, deterministic secure randomness and store private audit records plus privacy-safe public receipts. Winners must respond by Monday 5:00 PM; accepted assignments increment the persistent season count and notify both winner and captain. Declines and expiries are handled through administrator-controlled one-hour replacement draws at `/sub-lottery/admin`.
+
 ### Data Source
 
 `CSVUploader` parses legacy roster CSVs and registration exports. It validates rows, detects mutual requests, can use AI name matching for unresolved request names, and sends structured warnings to the roster tab.

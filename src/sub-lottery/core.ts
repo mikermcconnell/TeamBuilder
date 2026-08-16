@@ -60,6 +60,10 @@ function normalizeHeader(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
+export function normalizeSubLotteryEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
 function getColumn(row: string[], headerIndexes: Map<string, number>, aliases: string[]): string {
   const index = aliases
     .map(alias => headerIndexes.get(normalizeHeader(alias)))
@@ -185,7 +189,7 @@ export function parseSubPlayerCsv(csvText: string): SubLotteryPlayer[] {
     return [{
       id: uniqueSlug(name, seenSlugs),
       name,
-      ...(email ? { email } : {}),
+      ...(email ? { email: normalizeSubLotteryEmail(email) } : {}),
       pool,
       seasonSubCount: 0,
       active: true,
@@ -208,6 +212,7 @@ export function parseSubScheduleCsv(csvText: string): SubLotteryScheduleEntry[] 
     const weekLabel = getColumn(row, headerIndexes, ['Week']);
     const gameDate = getColumn(row, headerIndexes, ['Date', 'Game Date']);
     const captainName = getColumn(row, headerIndexes, ['Captain', 'Captain Name']);
+    const captainEmail = getColumn(row, headerIndexes, ['Captain Email', 'CaptainEmail']);
     const teamName = getColumn(row, headerIndexes, ['Team', 'Team Name']);
     const gameLabel = getColumn(row, headerIndexes, ['Game Time', 'Time', 'Game']);
     const pool = normalizePool(getColumn(row, headerIndexes, ['Pool', 'Gender'])) ?? 'open';
@@ -221,6 +226,7 @@ export function parseSubScheduleCsv(csvText: string): SubLotteryScheduleEntry[] 
       weekLabel,
       ...(gameDate ? { gameDate } : {}),
       captainName,
+      ...(captainEmail ? { captainEmail: normalizeSubLotteryEmail(captainEmail) } : {}),
       teamName,
       gameLabel,
       pool,
