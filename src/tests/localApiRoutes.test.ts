@@ -29,7 +29,7 @@ describe('local API dev routes', () => {
     expect(vercelConfig.builds.map(build => build.src)).not.toContain('api/**/*.ts');
     expect(vercelConfig.rewrites).toContainEqual({
       source: '/api/sub-lottery/(.*)',
-      destination: '/api/sub-lottery-router?route=$1',
+      destination: '/api/sub-lottery-router.ts?route=$1',
     });
 
     readdirSync(apiDir)

@@ -19,7 +19,7 @@
   "rewrites": [
     {
       "source": "/api/sub-lottery/(.*)",
-      "destination": "/api/sub-lottery-router?route=$1"
+      "destination": "/api/sub-lottery-router.ts?route=$1"
     },
     {
       "source": "/api/ai/team-suggestions",
