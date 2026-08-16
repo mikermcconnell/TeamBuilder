@@ -5,8 +5,8 @@ import type {
   SubLotteryPublicState,
   SubLotteryRequest,
   SubLotteryScheduleEntry,
-} from './types';
-import { getWorkflowDeadlinesForWeekStart } from './workflow';
+} from './types.js';
+import { getWorkflowDeadlinesForWeekStart } from './workflow.js';
 
 export type SubLotteryTestingPhase = 'captain' | 'player' | 'results';
 

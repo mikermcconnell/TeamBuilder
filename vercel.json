@@ -1,7 +1,11 @@
 {
   "builds": [
     {
-      "src": "api/**/*.ts",
+      "src": "api/ai/*.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/sub-lottery-router.ts",
       "use": "@vercel/node"
     },
     {
@@ -14,76 +18,8 @@
   ],
   "rewrites": [
     {
-      "source": "/api/sub-lottery/preferences",
-      "destination": "/api/sub-lottery/preferences.ts"
-    },
-    {
-      "source": "/api/sub-lottery/update-request",
-      "destination": "/api/sub-lottery/update-request.ts"
-    },
-    {
-      "source": "/api/sub-lottery/respond",
-      "destination": "/api/sub-lottery/respond.ts"
-    },
-    {
-      "source": "/api/sub-lottery/admin-login",
-      "destination": "/api/sub-lottery/admin-login.ts"
-    },
-    {
-      "source": "/api/sub-lottery/admin-operations",
-      "destination": "/api/sub-lottery/admin-operations.ts"
-    },
-    {
-      "source": "/api/sub-lottery/admin-replacement",
-      "destination": "/api/sub-lottery/admin-replacement.ts"
-    },
-    {
-      "source": "/api/sub-lottery/admin-retry-email",
-      "destination": "/api/sub-lottery/admin-retry-email.ts"
-    },
-    {
-      "source": "/api/sub-lottery/admin-test-email",
-      "destination": "/api/sub-lottery/admin-test-email.ts"
-    },
-    {
-      "source": "/api/sub-lottery/public-state",
-      "destination": "/api/sub-lottery/public-state.ts"
-    },
-    {
-      "source": "/api/sub-lottery/create-request",
-      "destination": "/api/sub-lottery/create-request.ts"
-    },
-    {
-      "source": "/api/sub-lottery/availability",
-      "destination": "/api/sub-lottery/availability.ts"
-    },
-    {
-      "source": "/api/sub-lottery/run-draw",
-      "destination": "/api/sub-lottery/run-draw.ts"
-    },
-    {
-      "source": "/api/sub-lottery/testing-state",
-      "destination": "/api/sub-lottery/testing-state.ts"
-    },
-    {
-      "source": "/api/sub-lottery/testing-run-draw",
-      "destination": "/api/sub-lottery/testing-run-draw.ts"
-    },
-    {
-      "source": "/api/sub-lottery/run-due-draws",
-      "destination": "/api/sub-lottery/run-due-draws.ts"
-    },
-    {
-      "source": "/api/sub-lottery/cancel-request",
-      "destination": "/api/sub-lottery/cancel-request.ts"
-    },
-    {
-      "source": "/api/sub-lottery/admin-import-players",
-      "destination": "/api/sub-lottery/admin-import-players.ts"
-    },
-    {
-      "source": "/api/sub-lottery/admin-import-schedule",
-      "destination": "/api/sub-lottery/admin-import-schedule.ts"
+      "source": "/api/sub-lottery/(.*)",
+      "destination": "/api/sub-lottery-router?route=$1"
     },
     {
       "source": "/api/ai/team-suggestions",
