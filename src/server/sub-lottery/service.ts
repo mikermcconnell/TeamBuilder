@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { calculateLotteryEntries, drawWeightedSubWinner, normalizeSubLotteryEmail, parseSubPlayerCsv, parseSubScheduleCsv } from '../../sub-lottery/core.js';
 import { cancelCaptainSubRequest, runSubLotteryDrawCycle } from '../../sub-lottery/lifecycle.js';
 import type { CreateSubRequestRequest } from '../../sub-lottery/apiContracts.js';
-import type { DocumentData } from 'firebase-admin/firestore';
+import { FieldValue, type DocumentData } from 'firebase-admin/firestore';
 import type {
   SubLotteryAssignment,
   SubLotteryAvailability,
@@ -35,12 +35,6 @@ const DEFAULT_SEASON_ID = 'default-season';
 
 function isTestingSeason(seasonId: string): boolean {
   return /^testing-\d{4}-\d{2}-\d{2}$/.test(seasonId);
-}
-
-function assertLocalTestingEnabled(): void {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Firebase testing weeks can only be managed from local development.');
-  }
 }
 
 function getSeasonId(seasonId?: string): string {
@@ -135,9 +129,11 @@ export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise
 }
 
 export async function createSubRequest(input: CreateSubRequestRequest): Promise<SubLotteryPublicState> {
-  assertPinMatches(input.captainPin, 'SUB_LOTTERY_CAPTAIN_PIN');
-
   const seasonId = getSeasonId(input.seasonId);
+  if (!isTestingSeason(seasonId)) {
+    assertPinMatches(input.captainPin, 'SUB_LOTTERY_CAPTAIN_PIN');
+  }
+
   const db = await getSubLotteryFirestore();
   const scheduleDoc = await db.collection(COLLECTIONS.schedule).doc(input.scheduleEntryId).get();
   if (!scheduleDoc.exists) {
@@ -219,8 +215,6 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
 }
 
 export async function cancelSubRequest(input: { requestId: string; captainPin: string }): Promise<SubLotteryPublicState> {
-  assertPinMatches(input.captainPin, 'SUB_LOTTERY_CAPTAIN_PIN');
-
   const db = await getSubLotteryFirestore();
   const requestRef = db.collection(COLLECTIONS.requests).doc(input.requestId);
   let seasonId = getSeasonId();
@@ -233,6 +227,9 @@ export async function cancelSubRequest(input: { requestId: string; captainPin: s
 
     const request = dataWithId<SubLotteryRequest>(requestDoc);
     seasonId = request.seasonId;
+    if (!isTestingSeason(request.seasonId)) {
+      assertPinMatches(input.captainPin, 'SUB_LOTTERY_CAPTAIN_PIN');
+    }
     const captainDeadline = getWorkflowDeadlinesForWeekStart(request.weekStartDate).captainClosesAt;
     if (!isTestingSeason(request.seasonId) && Date.now() > new Date(captainDeadline).getTime()) throw new Error('Captain requests are closed for this week.');
     const cancelledRequest = cancelCaptainSubRequest({ request });
@@ -299,6 +296,9 @@ export async function runDueDrawsForSeason(
   await expireOverdueAssignments(seasonId, now);
   const db = await getSubLotteryFirestore();
   const seasonDoc = await db.collection(COLLECTIONS.seasons).doc(seasonId).get();
+  const seasonName = seasonDoc.exists && typeof seasonDoc.data()?.name === 'string'
+    ? String(seasonDoc.data()?.name)
+    : 'Current season';
   const activeWeekStartDate = isTestingSeason(seasonId) && seasonDoc.data()?.weekStartDate
     ? String(seasonDoc.data()?.weekStartDate)
     : getSubLotteryWorkflowState(now).targetWeekStartDate;
@@ -317,15 +317,19 @@ export async function runDueDrawsForSeason(
   }
 
   const dueWeekLabels = new Set(dueRequests.map(request => request.weekLabel).filter(Boolean));
-  const [playersSnapshot, availabilitySnapshot, assignmentsSnapshot] = await Promise.all([
+  const [playersSnapshot, availabilitySnapshot, assignmentsSnapshot, scheduleSnapshot] = await Promise.all([
     db.collection(COLLECTIONS.players).where('seasonId', '==', seasonId).get(),
     db.collection(COLLECTIONS.availability).where('seasonId', '==', seasonId).get(),
     db.collection(COLLECTIONS.assignments).where('seasonId', '==', seasonId).get(),
+    db.collection(COLLECTIONS.schedule).where('seasonId', '==', seasonId).get(),
   ]);
 
   const players = playersSnapshot.docs.map(doc => dataWithId<SubLotteryPlayer>(doc));
   const availability = availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc));
   const existingAssignments = assignmentsSnapshot.docs.map(doc => dataWithId<SubLotteryAssignment>(doc));
+  const scheduleById = new Map<string, SubLotteryScheduleEntry>(
+    scheduleSnapshot.docs.map(doc => [doc.id, dataWithId<SubLotteryScheduleEntry>(doc)]),
+  );
   const excludedPlayerIds = existingAssignments
     .filter(assignment => assignment.status !== 'declined' && assignment.status !== 'expired' && assignment.weekLabel && dueWeekLabels.has(assignment.weekLabel))
     .map(assignment => assignment.playerId);
@@ -359,7 +363,7 @@ export async function runDueDrawsForSeason(
       if (latestRequestData.status !== 'open') continue;
 
       transaction.update(requestRef, {
-        status: request.assignedPlayerIds?.length ? 'pending-confirmation' : request.status,
+        status: request.status,
         assignedPlayerId: request.assignedPlayerIds?.[0] ?? '',
         assignedPlayerIds: request.assignedPlayerIds ?? [],
         ...(request.assignedAt ? { assignedAt: request.assignedAt } : {}),
@@ -370,12 +374,14 @@ export async function runDueDrawsForSeason(
     drawCycle.assignments.filter(assignment => updatedRequestIds.has(assignment.requestId)).forEach(assignment => {
       const assignmentRef = db.collection(COLLECTIONS.assignments).doc(`${assignment.requestId}_${assignment.playerId}`);
       const request = drawCycle.requests.find(item => item.id === assignment.requestId)!;
-      const responseToken = randomBytes(32).toString('base64url');
-      const responseDeadlineAt = getWorkflowDeadlinesForWeekStart(request.weekStartDate).initialResponseClosesAt;
-      transaction.set(assignmentRef, { ...assignment, id: assignmentRef.id, weekStartDate: request.weekStartDate, status: 'pending', responseDeadlineAt, responseTokenHash: sha256(responseToken), replacementRound: 0, countApplied: false });
+      transaction.set(assignmentRef, { ...assignment, id: assignmentRef.id, weekStartDate: request.weekStartDate, status: 'accepted', replacementRound: 0, countApplied: true });
+      transaction.update(db.collection(COLLECTIONS.players).doc(assignment.playerId), {
+        seasonSubCount: FieldValue.increment(1),
+      });
 
       const assignedPlayer = players.find(player => player.id === assignment.playerId);
       const playerEmail = assignedPlayer?.email?.trim();
+      const captainEmail = request.scheduleEntryId ? scheduleById.get(request.scheduleEntryId)?.captainEmail?.trim() : undefined;
       if (playerEmail) {
         const notificationId = `${assignment.requestId}_${assignment.playerId}`;
         const notification: SubLotteryWinnerEmailNotification = {
@@ -385,13 +391,13 @@ export async function runDueDrawsForSeason(
           playerId: assignment.playerId,
           playerName: assignedPlayer.name,
           playerEmail,
+          seasonName,
           ...(assignment.teamName ? { teamName: assignment.teamName } : {}),
           ...(assignment.gameLabel ? { gameLabel: assignment.gameLabel } : {}),
           ...(assignment.weekLabel ? { weekLabel: assignment.weekLabel } : {}),
           ...(assignment.captainName ? { captainName: assignment.captainName } : {}),
+          ...(captainEmail ? { captainEmail } : {}),
           kind: 'winner',
-          responseToken,
-          responseDeadlineAt,
           assignedAt: assignment.assignedAt,
           createdAt: now.toISOString(),
           updatedAt: now.toISOString(),
@@ -400,6 +406,39 @@ export async function runDueDrawsForSeason(
         };
         transaction.create(db.collection(COLLECTIONS.winnerEmails).doc(notificationId), notification);
       }
+    });
+
+    drawCycle.requests.filter(request => updatedRequestIds.has(request.id)).forEach(request => {
+      const slotsNeeded = request.slotsNeeded ?? 1;
+      const slotsFilled = request.assignedPlayerIds?.length ?? 0;
+      if (slotsFilled >= slotsNeeded) return;
+      const captainEmail = request.scheduleEntryId ? scheduleById.get(request.scheduleEntryId)?.captainEmail?.trim() : undefined;
+      if (!captainEmail) return;
+      const notificationId = `${request.id}_captain-unfilled`;
+      const notification: SubLotteryWinnerEmailNotification = {
+        id: notificationId,
+        seasonId,
+        requestId: request.id,
+        playerId: '',
+        playerName: '',
+        playerEmail: captainEmail,
+        recipientEmail: captainEmail,
+        captainEmail,
+        captainName: request.captainName,
+        seasonName,
+        teamName: request.teamName,
+        gameLabel: request.gameLabel,
+        weekLabel: request.weekLabel,
+        slotsNeeded,
+        slotsFilled,
+        kind: 'captain-unfilled',
+        assignedAt: request.assignedAt ?? now.toISOString(),
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+        status: 'pending',
+        attempts: 0,
+      };
+      transaction.create(db.collection(COLLECTIONS.winnerEmails).doc(notificationId), notification);
     });
 
     drawCycle.requests.filter(request => updatedRequestIds.has(request.id)).forEach(request => {
@@ -467,6 +506,10 @@ export async function sendPendingWinnerEmailsForSeason(seasonIdInput?: string): 
 
   const db = await getSubLotteryFirestore();
   const snapshot = await db.collection(COLLECTIONS.winnerEmails).where('seasonId', '==', seasonId).get();
+  const seasonDoc = await db.collection(COLLECTIONS.seasons).doc(seasonId).get();
+  const seasonName = seasonDoc.exists && typeof seasonDoc.data()?.name === 'string'
+    ? String(seasonDoc.data()?.name)
+    : 'Current season';
   const notifications = snapshot.docs
     .map(doc => dataWithId<SubLotteryWinnerEmailNotification>(doc))
     .filter(notification => notification.status !== 'sent' && notification.attempts < 3);
@@ -483,7 +526,10 @@ export async function sendPendingWinnerEmailsForSeason(seasonIdInput?: string): 
     }
 
     try {
-      const result = await sendWinnerEmail(claimedNotification);
+      const result = await sendWinnerEmail({
+        ...claimedNotification,
+        seasonName: claimedNotification.seasonName ?? seasonName,
+      });
       if (result.status === 'sent') {
         await db.collection(COLLECTIONS.winnerEmails).doc(notification.id).update({
           status: 'sent',
@@ -604,20 +650,20 @@ export async function runReplacementDraw(assignmentId: string): Promise<void> {
     db.collection(COLLECTIONS.assignments).where('seasonId', '==', old.seasonId).get(),
   ]);
   const request = dataWithId<SubLotteryRequest>(requestDoc);
+  const scheduleDoc = request.scheduleEntryId ? await db.collection(COLLECTIONS.schedule).doc(request.scheduleEntryId).get() : null;
+  const captainEmail = scheduleDoc?.data()?.captainEmail as string | undefined;
   const excluded = new Set(assignmentsSnapshot.docs.map(doc => dataWithId<SubLotteryAssignment>(doc)).filter(item => item.weekStartDate === old.weekStartDate).map(item => item.playerId));
   const availableIds = new Set(availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc)).filter(item => item.requestId === old.requestId).map(item => item.playerId));
   const candidates = playersSnapshot.docs.map(doc => dataWithId<SubLotteryPlayer>(doc)).filter(player => player.active && player.pool === request.pool && availableIds.has(player.id) && !excluded.has(player.id));
   const seed = randomBytes(32).toString('hex');
   const winner = drawWeightedSubWinner(candidates, deterministicRandom(seed));
   if (!winner) throw new Error('No eligible replacement players remain.');
-  const token = randomBytes(32).toString('base64url');
   const now = new Date();
-  const deadline = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
   const round = (old.replacementRound ?? 0) + 1;
   const ref = db.collection(COLLECTIONS.assignments).doc(`${old.requestId}_${winner.id}_r${round}`);
-  const replacement: SubLotteryAssignment = { ...old, id: ref.id, playerId: winner.id, assignedAt: now.toISOString(), eligiblePlayerIds: candidates.map(item => item.id), status: 'pending', responseDeadlineAt: deadline, responseTokenHash: sha256(token), replacementRound: round, countApplied: false };
-  const notification: SubLotteryWinnerEmailNotification = { id: ref.id, seasonId: old.seasonId ?? request.seasonId, requestId: old.requestId, playerId: winner.id, playerName: winner.name, playerEmail: winner.email ?? '', kind: 'replacement', responseToken: token, responseDeadlineAt: deadline, captainName: request.captainName, teamName: request.teamName, gameLabel: request.gameLabel, weekLabel: request.weekLabel, assignedAt: now.toISOString(), createdAt: now.toISOString(), status: 'pending', attempts: 0 };
-  const batch = db.batch(); batch.set(ref, replacement); batch.set(db.collection(COLLECTIONS.winnerEmails).doc(notification.id), notification); batch.update(requestDoc.ref, { status: 'pending-confirmation', assignedPlayerIds: [...(request.assignedPlayerIds ?? []).filter(id => id !== old.playerId), winner.id], updatedAt: now.toISOString() });
+  const replacement: SubLotteryAssignment = { ...old, id: ref.id, playerId: winner.id, assignedAt: now.toISOString(), eligiblePlayerIds: candidates.map(item => item.id), status: 'accepted', responseDeadlineAt: '', responseTokenHash: '', replacementRound: round, countApplied: true };
+  const notification: SubLotteryWinnerEmailNotification = { id: ref.id, seasonId: old.seasonId ?? request.seasonId, requestId: old.requestId, playerId: winner.id, playerName: winner.name, playerEmail: winner.email ?? '', kind: 'replacement', captainName: request.captainName, ...(captainEmail?.trim() ? { captainEmail: captainEmail.trim() } : {}), teamName: request.teamName, gameLabel: request.gameLabel, weekLabel: request.weekLabel, assignedAt: now.toISOString(), createdAt: now.toISOString(), status: 'pending', attempts: 0 };
+  const batch = db.batch(); batch.set(ref, replacement); batch.set(db.collection(COLLECTIONS.winnerEmails).doc(notification.id), notification); batch.update(db.collection(COLLECTIONS.players).doc(winner.id), { seasonSubCount: FieldValue.increment(1) }); batch.update(requestDoc.ref, { status: 'assigned', assignedPlayerIds: [...(request.assignedPlayerIds ?? []).filter(id => id !== old.playerId), winner.id], updatedAt: now.toISOString() });
   const input = { eligiblePlayerIds: candidates.map(item => item.id), weights: Object.fromEntries(calculateLotteryEntries(candidates).map(item => [item.playerId, item.weight])), ranks: {}, requestOrder: [request.id], excludedPlayerIds: [...excluded] };
   const drawRef = db.collection(COLLECTIONS.draws).doc(`${request.id}_replacement_${round}`); batch.set(drawRef, { id: drawRef.id, seasonId: request.seasonId, weekStartDate: request.weekStartDate, requestId: request.id, algorithmVersion: 'weighted-ranked-v2', seedCommitment: sha256(seed), seedReveal: seed, inputHash: sha256(JSON.stringify(input)), ...input, winnerPlayerIds: [winner.id], createdAt: now.toISOString(), initiator: 'replacement' } satisfies SubLotteryDrawRecord); await batch.commit();
   await sendPendingWinnerEmailsForSeason(request.seasonId);
@@ -665,8 +711,7 @@ async function expireOverdueAssignments(seasonId: string, now = new Date()): Pro
 }
 
 export async function loadOrCreateTestingWeek(reset = false): Promise<SubLotteryPublicState> {
-  assertLocalTestingEnabled();
-  const fixture = getPersistedSubLotteryTestingFixture('player');
+  const fixture = getPersistedSubLotteryTestingFixture('captain');
   const { seasonId } = fixture.state;
   const db = await getSubLotteryFirestore();
   const seasonRef = db.collection(COLLECTIONS.seasons).doc(seasonId);
@@ -699,7 +744,6 @@ export async function loadOrCreateTestingWeek(reset = false): Promise<SubLottery
     seasonId,
   }));
   fixture.state.scheduleEntries.forEach(entry => batch.set(db.collection(COLLECTIONS.schedule).doc(entry.id), entry));
-  fixture.state.requests.forEach(request => batch.set(db.collection(COLLECTIONS.requests).doc(request.id), request));
   await batch.commit();
 
   return loadPublicSubLotteryState(seasonId);
@@ -731,13 +775,15 @@ export async function updatePlayerPreferences(input: { playerId: string; request
 }
 
 export async function updateSubRequest(input: { requestId: string; captainPin: string; pool: 'open' | 'female'; slotsNeeded: number; confirmMerge?: boolean }): Promise<SubLotteryPublicState> {
-  assertPinMatches(input.captainPin, 'SUB_LOTTERY_CAPTAIN_PIN');
   if (!Number.isInteger(input.slotsNeeded) || input.slotsNeeded < 1) throw new Error('Choose a whole number of subs needed.');
   const db = await getSubLotteryFirestore();
   const ref = db.collection(COLLECTIONS.requests).doc(input.requestId);
   const doc = await ref.get();
   if (!doc.exists) throw new Error('Sub request not found.');
   const request = dataWithId<SubLotteryRequest>(doc);
+  if (!isTestingSeason(request.seasonId)) {
+    assertPinMatches(input.captainPin, 'SUB_LOTTERY_CAPTAIN_PIN');
+  }
   if (request.status !== 'open') throw new Error('Only open requests can be edited.');
   const deadline = getWorkflowDeadlinesForWeekStart(request.weekStartDate).captainClosesAt;
   if (!isTestingSeason(request.seasonId) && Date.now() > new Date(deadline).getTime()) throw new Error('Captain requests are closed for this week.');
@@ -756,7 +802,6 @@ export async function updateSubRequest(input: { requestId: string; captainPin: s
 }
 
 export async function runTestingWeekDraw(seasonId: string): Promise<SubLotteryPublicState> {
-  assertLocalTestingEnabled();
   if (!isTestingSeason(seasonId)) {
     throw new Error('Only a saved testing week can be drawn manually.');
   }

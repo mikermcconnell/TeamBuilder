@@ -19,7 +19,8 @@ import type { CreateSubRequestRequest } from './apiContracts';
 import type { SubLotteryPublicState } from './types';
 import { getTestingPhaseDateForState, type SubLotteryTestingPhase } from './testingFixtures';
 import { SubLotteryAdmin } from './SubLotteryAdmin';
-import { SubLotteryRespond } from './SubLotteryRespond';
+import { SubLotteryBrandHeader } from './SubLotteryBrandHeader';
+import { SubLotteryLearnMore } from './SubLotteryLearnMore';
 
 const DEFAULT_SEASON_ID = 'default-season';
 
@@ -84,7 +85,6 @@ function getSampleScheduleCsv(referenceDate = new Date()): string {
 
 export function SubLotteryApp() {
   if (window.location.pathname === '/sub-lottery/admin') return <SubLotteryAdmin />;
-  if (window.location.pathname === '/sub-lottery/respond') return <SubLotteryRespond />;
   return <SubLotteryMainApp />;
 }
 
@@ -98,7 +98,7 @@ function SubLotteryMainApp() {
   const [success, setSuccess] = useState<string | null>(null);
   const showAdminTools = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('admin') === '1';
-  const showTestingTools = import.meta.env.DEV;
+  const showTestingTools = true;
 
   const refresh = async () => {
     const nextState = await loadSubLotteryState();
@@ -134,7 +134,7 @@ function SubLotteryMainApp() {
       const nextState = await loadTestingWeek();
       setState(nextState);
       setDemoMode(true);
-      selectTestingPhase(nextState.assignments.length > 0 ? 'results' : 'player', nextState);
+      selectTestingPhase(nextState.assignments.length > 0 ? 'results' : 'captain', nextState);
       setSuccess('Saved Firebase testing week loaded.');
     } catch (testingError) {
       setError(testingError instanceof Error ? testingError.message : 'Testing week could not be loaded.');
@@ -181,7 +181,7 @@ function SubLotteryMainApp() {
     try {
       const nextState = await loadTestingWeek({ reset: true });
       setState(nextState);
-      selectTestingPhase('player', nextState);
+      selectTestingPhase('captain', nextState);
       setSuccess('Testing week reset in Firebase.');
     } catch (resetError) {
       setError(resetError instanceof Error ? resetError.message : 'Testing week could not be reset.');
@@ -202,12 +202,25 @@ function SubLotteryMainApp() {
 
   return (
     <>
+      <SubLotteryBrandHeader
+        seasonName={state.seasonName}
+        utility={(
+          <>
+            <SubLotteryLearnMore />
+            <a
+              href="/sub-lottery/admin"
+              className="rounded-lg border border-[#0071bb] bg-white px-3 py-2 text-xs font-black text-[#005288] transition hover:bg-[#eef8ff] focus:outline-none focus:ring-4 focus:ring-[#bfe6ff]"
+            >
+              Admin
+            </a>
+          </>
+        )}
+      />
       {(error || success) && (
         <div className="fixed inset-x-0 top-3 z-50 mx-auto w-[min(92vw,36rem)] rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-center text-sm font-black shadow-lg">
           {error ? <span className="text-red-600">{error}</span> : <span className="text-emerald-700">{success}</span>}
         </div>
       )}
-      <div className="absolute left-4 top-4 z-20"><a href="/sub-lottery/admin" className="rounded-xl border-2 border-zinc-300 bg-white px-3 py-2 text-xs font-black text-zinc-600 shadow-sm">Admin</a></div>
       {showTestingTools && <TestingControls
         enabled={demoMode}
         phase={testingPhase}
@@ -219,6 +232,7 @@ function SubLotteryMainApp() {
         onReset={() => void resetSavedTestingWeek()}
       />}
       <SubLotteryWorkspace
+        key={demoMode ? `${state.seasonId}:${testingPhase}` : 'live'}
         state={state}
         isBusy={busy}
         demoMode={demoMode}
@@ -310,21 +324,21 @@ function TestingControls({
   const hasResults = state.assignments.length > 0;
 
   return (
-    <div className="flex w-full justify-end bg-[#f7f7f7] px-4 pt-4 sm:px-6">
+    <div className="flex w-full justify-end bg-[#f8f8f8] px-4 pt-4 sm:px-6">
       <div className="flex max-w-full flex-col items-end gap-2">
       <button
         type="button"
         aria-pressed={enabled}
         disabled={busy}
         onClick={onToggle}
-        className={`flex items-center gap-2 rounded-2xl border-2 px-4 py-3 text-sm font-black shadow-lg transition focus:outline-none focus:ring-4 focus:ring-purple-200 ${enabled
-          ? 'border-purple-700 bg-purple-600 text-white'
-          : 'border-zinc-300 bg-white text-zinc-700 hover:border-purple-400'}`}
+        className={`flex items-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-black shadow-md transition focus:outline-none focus:ring-4 focus:ring-[#bfe6ff] ${enabled
+          ? 'border-[#005288] bg-[#0071bb] text-white'
+          : 'border-zinc-300 bg-white text-zinc-700 hover:border-[#0071bb]'}`}
       >
         <TestTube2 className="h-4 w-4" /> Testing {enabled ? 'on' : 'off'}
       </button>
       {enabled && (
-        <div className="w-[min(32rem,calc(100vw-1.5rem))] rounded-3xl border-2 border-purple-200 bg-white p-3 shadow-xl">
+        <div className="w-[min(32rem,calc(100vw-1.5rem))] rounded-2xl border-2 border-[#bfe6ff] bg-white p-3 shadow-xl">
           <div className="px-1 pb-2 text-xs font-bold text-zinc-600">
             {state.seasonName} · saved separately in Firebase
           </div>
@@ -336,14 +350,15 @@ function TestingControls({
                 aria-pressed={phase === option.value}
                 onClick={() => onSelectPhase(option.value)}
                 className={`rounded-2xl border-2 px-2 py-2 text-center transition ${phase === option.value
-                  ? 'border-purple-600 bg-purple-50 text-purple-900'
-                  : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-purple-300'}`}
+                  ? 'border-[#0071bb] bg-[#eef8ff] text-[#005288]'
+                  : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#7cc8f5]'}`}
               >
                 <span className="block text-xs font-black sm:text-sm">{option.label}</span>
                 <span className="block text-[10px] font-bold sm:text-xs">{option.time}</span>
               </button>
             ))}
           </div>
+          <TestingEmailPreview state={state} />
           <button
             type="button"
             disabled={busy || openRequestCount === 0 || state.availability.length === 0}
@@ -379,6 +394,65 @@ function TestingControls({
         </div>
       )}
       </div>
+    </div>
+  );
+}
+
+function TestingEmailPreview({ state }: { state: SubLotteryPublicState }) {
+  const schedule = state.scheduleEntries[0];
+  const request = state.requests.find(item => item.scheduleEntryId === schedule?.id);
+  const assignment = state.assignments.find(item => item.requestId === request?.id);
+  const player = state.players.find(item => item.id === assignment?.playerId)
+    ?? state.players.find(item => item.pool === schedule?.pool)
+    ?? state.players[0];
+  const playerName = player?.name ?? 'Owen Orange';
+  const playerEmail = player?.email ?? 'testing-player@example.test';
+  const captainName = schedule?.captainName ?? 'Morgan Lee';
+  const captainEmail = schedule?.captainEmail ?? 'morgan.lee@example.test';
+  const teamName = schedule?.teamName ?? 'Blue Team';
+  const gameLabel = schedule?.gameLabel ?? 'Wednesday 7:00 PM';
+  const weekLabel = schedule?.weekLabel ?? 'Testing week';
+  const gameLine = `${weekLabel} · ${teamName} · ${gameLabel}`;
+
+  return (
+    <div className="mt-3 rounded-2xl border-2 border-[#bfe6ff] bg-[#f8fbfd] p-3 text-left">
+      <div className="text-xs font-black uppercase tracking-wide text-[#005288]">Email samples</div>
+      <p className="mt-1 text-xs font-bold text-zinc-600">These previews use the current dummy player and captain. No sample email is sent.</p>
+
+      <details className="mt-3 rounded-xl border border-zinc-200 bg-white" open>
+        <summary className="cursor-pointer px-3 py-2 text-sm font-black text-[#005288]">Winner email</summary>
+        <div className="border-t border-zinc-200 p-3 text-xs text-zinc-700">
+          <div><strong>To:</strong> {playerEmail}</div>
+          <div><strong>CC:</strong> {captainEmail}</div>
+          <div className="mt-1"><strong>Subject:</strong> Barrie Ultimate League: you won the sub lottery for {teamName}</div>
+          <div className="mt-3 overflow-hidden rounded-xl border border-zinc-200 border-t-4 border-t-[#0071bb] bg-white shadow-sm">
+            <div className="border-b border-zinc-200 p-3">
+              <img src="/barrie-ultimate-logo.jpg" alt="" className="h-auto w-40" />
+              <div className="mt-2 text-base font-black text-zinc-800">Sub Lottery · {state.seasonName}</div>
+            </div>
+            <div className="space-y-3 p-3 text-sm leading-6">
+              <p>Hi {playerName},</p>
+              <p>You won the sub lottery for <strong>{gameLine}</strong>.</p>
+              <p>Captain: <strong>{captainName}</strong>.</p>
+              <p><strong>You are assigned to this game. No response is required.</strong></p>
+              <p>Have a great game!</p>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details className="mt-2 rounded-xl border border-zinc-200 bg-white">
+        <summary className="cursor-pointer px-3 py-2 text-sm font-black text-[#005288]">No available sub email</summary>
+        <div className="border-t border-zinc-200 p-3 text-xs text-zinc-700">
+          <div><strong>To:</strong> {captainEmail}</div>
+          <div className="mt-1"><strong>Subject:</strong> Barrie Ultimate League: no sub available for {teamName}</div>
+          <div className="mt-3 rounded-xl border border-zinc-200 border-t-4 border-t-[#0071bb] bg-white p-3 text-sm leading-6 shadow-sm">
+            <p>Hi {captainName},</p>
+            <p className="mt-3">The sub lottery has finished for <strong>{gameLine}</strong>.</p>
+            <p className="mt-3"><strong>No eligible sub was available for the requested spot.</strong></p>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }
@@ -426,7 +500,7 @@ function AdminImportPanel({ seasonId, demoMode, disabled, onImport, onDemoImport
   };
 
   return (
-    <aside className="bg-[#f7f7f7] px-4 pb-8">
+    <aside className="bg-[#f8f8f8] px-4 pb-8">
       <div className="mx-auto max-w-6xl rounded-[2rem] border-2 border-dashed border-zinc-300 bg-white p-4 shadow-sm">
         <button
           type="button"
@@ -467,7 +541,7 @@ function AdminImportPanel({ seasonId, demoMode, disabled, onImport, onDemoImport
             <button
               type="submit"
               disabled={disabled}
-              className="rounded-2xl border-2 border-emerald-700 bg-[#58cc02] px-5 py-3 font-black text-white shadow-[0_4px_0_#58a700] disabled:opacity-60"
+              className="rounded-xl border-2 border-[#005288] bg-[#0071bb] px-5 py-3 font-black text-white shadow-[0_4px_0_#005288] disabled:opacity-60"
             >
               Import players and schedule
             </button>

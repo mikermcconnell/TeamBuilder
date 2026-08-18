@@ -61,7 +61,7 @@ function getResultText(request: SubLotteryRequest, players: SubLotteryPlayer[]):
 
   if (request.status === 'pending-confirmation') {
     const names = getPlayerNames(players, request.assignedPlayerIds ?? (request.assignedPlayerId ? [request.assignedPlayerId] : []));
-    return `${names} selected; awaiting acceptance.`;
+    return `${names} won the draw.`;
   }
   if (request.status !== 'assigned') {
     return 'Waiting for the draw.';
@@ -183,6 +183,7 @@ export function SubLotteryWorkspace({
     [scheduleEntriesForWeek, selectedCaptainName]
   );
   const selectedScheduleEntry = scheduleEntriesForCaptain.find(entry => entry.id === selectedScheduleEntryId) ?? null;
+  const effectiveCaptainPin = demoMode ? 'testing' : captainPin;
   const isCaptainPhase = workflow.phase === 'captain';
   const isPlayerPhase = workflow.phase === 'player';
   const openRequests = state.requests.filter(request => request.status === 'open');
@@ -220,6 +221,8 @@ export function SubLotteryWorkspace({
   const saveRanked = (ids: string[]) => selectedPlayer && onUpdatePreferences?.(selectedPlayer.id, ids);
   const captainDisableReason = !isCaptainPhase
     ? 'Captain requests are closed for this week.'
+    : !demoMode && !captainPin
+      ? 'Enter the captain PIN.'
     : !selectedCaptainName
       ? 'Choose your captain name to load your game.'
       : scheduleEntriesForCaptain.length > 1 && !selectedScheduleEntryId
@@ -239,7 +242,7 @@ export function SubLotteryWorkspace({
     event.preventDefault();
     if (!selectedScheduleEntry || selectedRequestPools.length === 0 || !slotsAreValid) return;
     onCreateRequest?.(selectedRequestPools.map(pool => ({
-      captainPin,
+      captainPin: effectiveCaptainPin,
       scheduleEntryId: selectedScheduleEntry.id,
       pool,
       slotsNeeded: Number(slotsNeededByPool[pool]),
@@ -247,7 +250,7 @@ export function SubLotteryWorkspace({
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f7f7] text-[#3c3c3c]">
+    <main className="min-h-[calc(100vh-6rem)] bg-[#f8f8f8] text-[#333333]">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {demoMode && (
           <div className="rounded-3xl border-2 border-amber-300 bg-amber-50 p-4 text-center text-sm font-black text-amber-900">
@@ -290,18 +293,31 @@ export function SubLotteryWorkspace({
             </div>
 
             <div className="mb-5">
-              <LabeledTypeahead
-                label="Pick your name"
-                listId="sub-player-suggestions"
-                value={selectedPlayerName}
-                onChange={setSelectedPlayerName}
-                placeholder="Start typing your name"
-                options={activePlayers.map(player => ({
-                  value: player.name,
-                  label: getPoolLabel(player.pool),
-                }))}
-                focusColor="emerald"
-              />
+              {demoMode ? (
+                <LabeledSelect
+                  label="Dummy player"
+                  value={selectedPlayerName}
+                  onChange={setSelectedPlayerName}
+                  placeholder="Choose a dummy player"
+                  options={activePlayers.map(player => ({
+                    value: player.name,
+                    label: `${player.name} · ${getPoolLabel(player.pool)}`,
+                  }))}
+                />
+              ) : (
+                <LabeledTypeahead
+                  label="Pick your name"
+                  listId="sub-player-suggestions"
+                  value={selectedPlayerName}
+                  onChange={setSelectedPlayerName}
+                  placeholder="Start typing your name"
+                  options={activePlayers.map(player => ({
+                    value: player.name,
+                    label: getPoolLabel(player.pool),
+                  }))}
+                  focusColor="emerald"
+                />
+              )}
             </div>
 
             <div className="space-y-3">
@@ -358,7 +374,7 @@ export function SubLotteryWorkspace({
                           'rounded-2xl border-2 px-5 py-3 text-sm font-black transition disabled:cursor-not-allowed',
                           entered
                             ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                            : 'border-emerald-700 bg-[#58cc02] text-white shadow-[0_4px_0_#58a700] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none',
+                            : 'border-[#005288] bg-[#0071bb] text-white shadow-[0_4px_0_#005288] hover:-translate-y-0.5 hover:bg-[#0062a2] active:translate-y-0 active:shadow-none',
                           (!isPlayerPhase || !selectedPlayer) && 'opacity-50'
                         )}
                       >
@@ -401,19 +417,35 @@ export function SubLotteryWorkspace({
             </div>
 
             <form className="grid gap-4" onSubmit={handleCreateRequest}>
-              <LabeledInput label="Captain PIN" value={captainPin} onChange={setCaptainPin} />
+              {demoMode ? (
+                <div className="rounded-2xl border-2 border-purple-200 bg-purple-50 p-4 text-sm font-black text-purple-800">
+                  Testing uses dummy captains, so no captain PIN is required.
+                </div>
+              ) : (
+                <LabeledInput label="Captain PIN" value={captainPin} onChange={setCaptainPin} />
+              )}
               <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-4 text-sm font-black text-emerald-800">
                 Game week: {currentWeekLabel ?? 'No games found for this week'}
               </div>
-              <LabeledTypeahead
-                label="Captain name"
-                listId="captain-name-suggestions"
-                value={selectedCaptainName}
-                onChange={setSelectedCaptainName}
-                placeholder="Start typing captain name"
-                options={captainOptions.map(name => ({ value: name }))}
-                focusColor="sky"
-              />
+              {demoMode ? (
+                <LabeledSelect
+                  label="Dummy captain"
+                  value={selectedCaptainName}
+                  onChange={setSelectedCaptainName}
+                  placeholder="Choose a dummy captain"
+                  options={captainOptions.map(name => ({ value: name, label: name }))}
+                />
+              ) : (
+                <LabeledTypeahead
+                  label="Captain name"
+                  listId="captain-name-suggestions"
+                  value={selectedCaptainName}
+                  onChange={setSelectedCaptainName}
+                  placeholder="Start typing captain name"
+                  options={captainOptions.map(name => ({ value: name }))}
+                  focusColor="sky"
+                />
+              )}
               {scheduleEntriesForCaptain.length > 1 && (
                 <LabeledSelect
                   label="Scheduled game"
@@ -452,8 +484,8 @@ export function SubLotteryWorkspace({
 
               <button
                 type="submit"
-                disabled={isBusy || !isCaptainPhase || !selectedScheduleEntry || selectedRequestPools.length === 0 || !slotsAreValid}
-                className="mt-1 rounded-2xl border-2 border-sky-700 bg-[#1cb0f6] px-5 py-4 text-base font-black text-white shadow-[0_4px_0_#1899d6] transition hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none"
+                disabled={isBusy || !isCaptainPhase || (!demoMode && !captainPin) || !selectedScheduleEntry || selectedRequestPools.length === 0 || !slotsAreValid}
+                className="mt-1 rounded-2xl border-2 border-[#005288] bg-[#0071bb] px-5 py-4 text-base font-black text-white shadow-[0_4px_0_#005288] transition hover:-translate-y-0.5 hover:bg-[#0062a2] active:translate-y-0 active:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none"
               >
                 {!isCaptainPhase
                   ? 'Captain window closed'
@@ -470,7 +502,9 @@ export function SubLotteryWorkspace({
             {openRequests.length > 0 && (
               <div className="mt-6 rounded-3xl border-2 border-zinc-200 bg-zinc-50 p-4">
                 <h3 className="text-lg font-black text-zinc-800">Open sub needs</h3>
-                <p className="mb-3 text-sm font-bold text-zinc-500">Use your captain PIN above if you need to cancel a request before the draw.</p>
+                <p className="mb-3 text-sm font-bold text-zinc-500">
+                  {demoMode ? 'Testing requests can be edited or cancelled without the live captain PIN.' : 'Use your captain PIN above if you need to cancel a request before the draw.'}
+                </p>
                 <div className="grid gap-3 md:grid-cols-2">
                   {openRequests.map(request => {
                     const canCancel = !request.drawAt || currentDate.getTime() < new Date(request.drawAt).getTime();
@@ -487,12 +521,12 @@ export function SubLotteryWorkspace({
                         if (!Number.isInteger(quantity) || quantity < 1) return;
                         const pool = window.prompt('Pool: open or female', request.pool)?.toLowerCase();
                         if (pool !== 'open' && pool !== 'female') return;
-                        onUpdateRequest?.({ requestId: request.id, captainPin, slotsNeeded: quantity, pool });
+                        onUpdateRequest?.({ requestId: request.id, captainPin: effectiveCaptainPin, slotsNeeded: quantity, pool });
                       }} className="rounded-xl border-2 border-sky-600 px-3 py-2 text-xs font-black text-sky-700">Edit</button>
                       <button
                         type="button"
-                            disabled={isBusy || !captainPin}
-                            onClick={() => onCancelRequest?.({ requestId: request.id, captainPin })}
+                            disabled={isBusy || !effectiveCaptainPin}
+                            onClick={() => onCancelRequest?.({ requestId: request.id, captainPin: effectiveCaptainPin })}
                             className="mt-3 rounded-2xl border-2 border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                         Cancel request
@@ -566,8 +600,8 @@ export function SubLotteryWorkspace({
                 {canCancel && (
                   <button
                     type="button"
-                    disabled={isBusy || !captainPin}
-                    onClick={() => onCancelRequest?.({ requestId: request.id, captainPin })}
+                    disabled={isBusy || !effectiveCaptainPin}
+                    onClick={() => onCancelRequest?.({ requestId: request.id, captainPin: effectiveCaptainPin })}
                     className="mt-3 rounded-2xl border-2 border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel request
@@ -671,19 +705,19 @@ function RoleChooser({
       : 'The lottery/results window is active.';
 
   return (
-    <section className="rounded-[2rem] border-2 border-emerald-300 bg-white p-5 shadow-md ring-4 ring-emerald-50 sm:p-6">
+    <section className="rounded-[2rem] border-2 border-[#7cc8f5] bg-white p-5 shadow-md ring-4 ring-[#eef8ff] sm:p-6">
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="mb-2 inline-flex rounded-full border-2 border-emerald-600 bg-emerald-100 px-4 py-2 text-sm font-black uppercase tracking-wide text-emerald-800">
+          <div className="mb-2 inline-flex rounded-full border-2 border-[#0071bb] bg-[#eef8ff] px-4 py-2 text-sm font-black uppercase tracking-wide text-[#005288]">
             Part 1 · Start here
           </div>
           <h2 className="text-3xl font-black text-zinc-900">Are you a sub or a captain?</h2>
           <p className="mt-1 font-semibold text-zinc-500">{nowText} Choose your role and we’ll only show the useful action.</p>
         </div>
-        <div className="rounded-3xl border-2 border-emerald-200 bg-emerald-50 px-5 py-3 text-center">
-          <div className="text-xs font-black uppercase tracking-wide text-emerald-700">{nextDeadlineLabel}</div>
-          <div className="text-2xl font-black text-emerald-800">{formatCountdown(nextDeadlineAt)}</div>
-          <div className="text-xs font-bold text-emerald-700">{formatDeadline(nextDeadlineAt)}</div>
+        <div className="rounded-3xl border-2 border-[#bfe6ff] bg-[#eef8ff] px-5 py-3 text-center">
+          <div className="text-xs font-black uppercase tracking-wide text-[#0071bb]">{nextDeadlineLabel}</div>
+          <div className="text-2xl font-black text-[#005288]">{formatCountdown(nextDeadlineAt)}</div>
+          <div className="text-xs font-bold text-[#0071bb]">{formatDeadline(nextDeadlineAt)}</div>
         </div>
       </div>
 
@@ -739,14 +773,14 @@ function AudienceButton({
   const isActive = activeAudience === audience;
   const colorClasses = tone === 'emerald'
     ? {
-      active: 'border-emerald-500 bg-emerald-50 ring-4 ring-emerald-100',
-      icon: 'bg-emerald-100 text-emerald-700',
-      pill: 'bg-emerald-100 text-emerald-800',
+      active: 'border-[#0071bb] bg-[#eef8ff] ring-4 ring-[#bfe6ff]',
+      icon: 'bg-[#dff2ff] text-[#005288]',
+      pill: 'bg-[#dff2ff] text-[#005288]',
     }
     : {
-      active: 'border-sky-500 bg-sky-50 ring-4 ring-sky-100',
-      icon: 'bg-sky-100 text-sky-700',
-      pill: 'bg-sky-100 text-sky-800',
+      active: 'border-[#0071bb] bg-[#eef8ff] ring-4 ring-[#bfe6ff]',
+      icon: 'bg-[#bfe6ff] text-[#0071bb]',
+      pill: 'bg-[#bfe6ff] text-[#005288]',
     };
 
   return (
@@ -754,7 +788,7 @@ function AudienceButton({
       type="button"
       onClick={() => onSelect(audience)}
       className={cn(
-        'rounded-3xl border-2 p-4 text-left transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-sky-100',
+        'rounded-3xl border-2 p-4 text-left transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-[#bfe6ff]',
         isActive ? colorClasses.active : 'border-zinc-200 bg-zinc-50',
       )}
     >
@@ -830,12 +864,12 @@ function WorkflowStepper({ workflow }: { workflow: ReturnType<typeof getSubLotte
   return (
     <section
       aria-label="This week's timeline"
-      className="sticky top-0 z-30 rounded-none border-y-2 border-sky-200 bg-white/95 px-3 py-2 shadow-md backdrop-blur sm:rounded-2xl sm:border-2 sm:px-4"
+      className="sticky top-0 z-30 rounded-none border-y-2 border-[#bfe6ff] bg-white/95 px-3 py-2 shadow-md backdrop-blur sm:rounded-2xl sm:border-2 sm:px-4"
     >
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <div className="flex shrink-0 items-center justify-between gap-3 lg:w-52 lg:justify-start">
           <div>
-            <div className="text-xs font-black uppercase tracking-wide text-sky-700">This week's timeline</div>
+            <div className="text-xs font-black uppercase tracking-wide text-[#0071bb]">This week's timeline</div>
             <div className="text-sm font-black text-zinc-900">Sub lottery</div>
           </div>
           <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 px-3 py-1 text-right lg:hidden">
@@ -853,7 +887,7 @@ function WorkflowStepper({ workflow }: { workflow: ReturnType<typeof getSubLotte
               key={step.title}
               className={cn(
                 'min-w-[11rem] flex-1 rounded-xl border-2 px-3 py-2',
-                isActive && 'border-sky-600 bg-sky-50 ring-2 ring-sky-100',
+                isActive && 'border-[#0071bb] bg-[#eef8ff] ring-2 ring-[#bfe6ff]',
                 isComplete && 'border-emerald-200 bg-emerald-50',
                 !isActive && !isComplete && 'border-zinc-200 bg-zinc-50'
               )}
@@ -861,11 +895,11 @@ function WorkflowStepper({ workflow }: { workflow: ReturnType<typeof getSubLotte
               <div className="mb-1 flex items-center justify-between">
                 <div className={cn(
                   'text-xs font-black uppercase tracking-wide',
-                  isActive ? 'text-sky-800' : 'text-zinc-500',
+                  isActive ? 'text-[#005288]' : 'text-zinc-500',
                 )}>
                   Part {index + 1}
                 </div>
-                {isComplete ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Clock className="h-4 w-4 text-sky-600" />}
+                {isComplete ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Clock className="h-4 w-4 text-[#0071bb]" />}
               </div>
               <div className="truncate text-sm font-black text-zinc-800">{step.title}</div>
               <div className="text-xs font-bold text-zinc-500">{step.detail}</div>
@@ -948,7 +982,7 @@ function LabeledInput({ label, value, onChange, placeholder, type = 'text', min 
         min={min}
         placeholder={placeholder}
         onChange={event => onChange(event.target.value)}
-        className="h-12 w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 text-base font-bold outline-none transition placeholder:text-zinc-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+        className="h-12 w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 text-base font-bold outline-none transition placeholder:text-zinc-300 focus:border-[#0071bb] focus:ring-4 focus:ring-[#bfe6ff]"
       />
     </div>
   );
@@ -969,11 +1003,13 @@ function LabeledSelect({
   value,
   options,
   onChange,
+  placeholder = 'Choose a game',
 }: {
   label: string;
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   return (
@@ -983,9 +1019,9 @@ function LabeledSelect({
         id={id}
         value={value}
         onChange={event => onChange(event.target.value)}
-        className="h-12 w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 text-base font-bold outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+        className="h-12 w-full rounded-2xl border-2 border-zinc-200 bg-white px-4 text-base font-bold outline-none transition focus:border-[#0071bb] focus:ring-4 focus:ring-[#bfe6ff]"
       >
-        <option value="">Choose a game</option>
+        <option value="">{placeholder}</option>
         {options.map(option => (
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
@@ -1016,7 +1052,7 @@ function LabeledTypeahead({
   const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const focusClasses = focusColor === 'emerald'
     ? 'focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100'
-    : 'focus:border-sky-400 focus:ring-4 focus:ring-sky-100';
+    : 'focus:border-[#0071bb] focus:ring-4 focus:ring-[#bfe6ff]';
 
   return (
     <div>

@@ -57,7 +57,7 @@ export interface AdminOperationsRequest { seasonId?: string; weekStartDate?: str
 export interface AdminReplacementRequest { assignmentId: string }
 export interface AdminRetryEmailRequest { notificationId: string }
 export interface AdminTestEmailRequest {
-  template: 'winner' | 'winner-confirmation' | 'captain-confirmation' | 'decline' | 'replacement';
+  template: 'winner' | 'captain-unfilled' | 'winner-confirmation' | 'captain-confirmation' | 'decline' | 'replacement';
 }
 export interface AdminOperationsResponse {
   state: SubLotteryPublicState;
