@@ -12,6 +12,7 @@ export interface SendWinnerEmailResult {
 
 export interface WinnerEmailMessage {
   to: string;
+  cc?: string;
   subject: string;
   text: string;
   html: string;
@@ -24,6 +25,29 @@ function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function buildBrandedHtml(content: string, notification: SubLotteryWinnerEmailNotification, publicUrl: string): string {
+  const logoUrl = new URL('/barrie-ultimate-logo.jpg', publicUrl).toString();
+  const seasonName = notification.seasonName?.trim();
+
+  return [
+    '<div style="margin:0;background:#f8f8f8;padding:24px;font-family:Arial,sans-serif;color:#333333">',
+    '<div style="margin:0 auto;max-width:620px;overflow:hidden;border:1px solid #eeeeee;border-top:5px solid #0071bb;background:#ffffff">',
+    '<div style="padding:20px 24px;border-bottom:1px solid #eeeeee">',
+    `<img src="${escapeHtml(logoUrl)}" alt="Barrie Ultimate League" width="260" style="display:block;max-width:100%;height:auto"/>`,
+    '<div style="margin-top:12px;font-size:12px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:#005288">Barrie Ultimate League</div>',
+    `<div style="margin-top:3px;font-size:22px;font-weight:bold;color:#333333">Sub Lottery${seasonName ? ` · ${escapeHtml(seasonName)}` : ''}</div>`,
+    '</div>',
+    `<div style="padding:24px;font-size:16px;line-height:1.55">${content}</div>`,
+    '<div style="padding:16px 24px;background:#eef8ff;font-size:13px;font-weight:bold;color:#005288">Barrie Ultimate League · Sub Squad</div>',
+    '</div>',
+    '</div>',
+  ].join('');
+}
+
+function buildSignature(notification: SubLotteryWinnerEmailNotification): string {
+  return ['Barrie Ultimate League', notification.seasonName?.trim(), 'Sub Squad'].filter(Boolean).join('\n');
 }
 
 export function isWinnerEmailConfigured(): boolean {
@@ -42,46 +66,65 @@ export function buildWinnerEmail(notification: SubLotteryWinnerEmailNotification
   ].filter(Boolean);
   const gameLine = gameParts.join(' · ') || 'your game';
   const publicUrl = (process.env.SUB_LOTTERY_PUBLIC_URL ?? 'http://localhost:5173/sub-lottery').replace(/\/$/, '');
-  const responseUrl = notification.responseToken ? `${publicUrl}/respond?token=${encodeURIComponent(notification.responseToken)}` : '';
   const kind = notification.kind ?? 'winner';
+  if (kind === 'captain-unfilled') {
+    const slotsNeeded = Math.max(1, notification.slotsNeeded ?? 1);
+    const slotsFilled = Math.max(0, notification.slotsFilled ?? 0);
+    const shortfall = Math.max(1, slotsNeeded - slotsFilled);
+    const subject = `${prefix}Barrie Ultimate League: ${shortfall === slotsNeeded ? 'no sub available' : 'sub request partially filled'} for ${notification.teamName ?? 'your game'}`;
+    const resultLine = shortfall === slotsNeeded
+      ? `No eligible sub was available for ${shortfall === 1 ? 'the requested spot' : `the ${shortfall} requested spots`}.`
+      : `${slotsFilled} of ${slotsNeeded} requested spots were filled. ${shortfall} ${shortfall === 1 ? 'spot remains' : 'spots remain'} unfilled.`;
+    const text = `Hi ${notification.captainName ?? 'Captain'},\n\nThe sub lottery has finished for ${gameLine}. ${resultLine}\n\n${buildSignature(notification)}`;
+    const content = `<p>Hi ${escapeHtml(notification.captainName ?? 'Captain')},</p><p>The sub lottery has finished for <strong>${escapeHtml(gameLine)}</strong>.</p><p><strong>${escapeHtml(resultLine)}</strong></p>`;
+    return { to: notification.recipientEmail ?? notification.captainEmail ?? notification.playerEmail, subject, text, html: buildBrandedHtml(content, notification, publicUrl) };
+  }
   if (kind === 'captain-confirmation') {
-    const subject = `${prefix}Sub confirmed for ${notification.teamName ?? 'your game'}`;
-    const text = `Hi ${notification.captainName ?? 'Captain'},\n\n${notification.playerName} (${notification.playerEmail}) has accepted and will sub for ${gameLine}.\n\nSub Squad`;
-    return { to: notification.recipientEmail ?? notification.captainEmail ?? notification.playerEmail, subject, text, html: `<p>${escapeHtml(text).replace(/\n/g, '<br/>')}</p>` };
+    const subject = `${prefix}Barrie Ultimate League: sub confirmed for ${notification.teamName ?? 'your game'}`;
+    const text = `Hi ${notification.captainName ?? 'Captain'},\n\n${notification.playerName} (${notification.playerEmail}) has accepted and will sub for ${gameLine}.\n\n${buildSignature(notification)}`;
+    const content = `<p>Hi ${escapeHtml(notification.captainName ?? 'Captain')},</p><p><strong>${escapeHtml(notification.playerName)}</strong> (${escapeHtml(notification.playerEmail)}) has accepted and will sub for ${escapeHtml(gameLine)}.</p>`;
+    return { to: notification.recipientEmail ?? notification.captainEmail ?? notification.playerEmail, subject, text, html: buildBrandedHtml(content, notification, publicUrl) };
   }
   if (kind === 'winner-confirmation') {
-    const subject = `${prefix}Confirmed: ${notification.teamName ?? 'your sub game'}`;
-    const text = `Hi ${notification.playerName},\n\nYou are confirmed for ${gameLine}. Captain contact: ${notification.captainContact ?? notification.captainName ?? 'see the league schedule'}.\n\nSub Squad`;
-    return { to: notification.recipientEmail ?? notification.playerEmail, subject, text, html: `<p>${escapeHtml(text).replace(/\n/g, '<br/>')}</p>` };
+    const subject = `${prefix}Barrie Ultimate League: confirmed for ${notification.teamName ?? 'your sub game'}`;
+    const captainContact = notification.captainContact ?? notification.captainName ?? 'see the league schedule';
+    const text = `Hi ${notification.playerName},\n\nYou are confirmed for ${gameLine}. Captain contact: ${captainContact}.\n\n${buildSignature(notification)}`;
+    const content = `<p>Hi ${escapeHtml(notification.playerName)},</p><p>You are confirmed for <strong>${escapeHtml(gameLine)}</strong>.</p><p>Captain contact: ${escapeHtml(captainContact)}.</p>`;
+    return { to: notification.recipientEmail ?? notification.playerEmail, subject, text, html: buildBrandedHtml(content, notification, publicUrl) };
   }
   if (kind === 'decline') {
-    const subject = `${prefix}Decline received for ${notification.teamName ?? 'your sub game'}`;
-    const text = `Hi ${notification.playerName},\n\nYour decline for ${gameLine} was received. You will not be selected again this week.\n\nSub Squad`;
-    return { to: notification.recipientEmail ?? notification.playerEmail, subject, text, html: `<p>${escapeHtml(text).replace(/\n/g, '<br/>')}</p>` };
+    const subject = `${prefix}Barrie Ultimate League: decline received for ${notification.teamName ?? 'your sub game'}`;
+    const text = `Hi ${notification.playerName},\n\nYour decline for ${gameLine} was received. You will not be selected again this week.\n\n${buildSignature(notification)}`;
+    const content = `<p>Hi ${escapeHtml(notification.playerName)},</p><p>Your decline for <strong>${escapeHtml(gameLine)}</strong> was received. You will not be selected again this week.</p>`;
+    return { to: notification.recipientEmail ?? notification.playerEmail, subject, text, html: buildBrandedHtml(content, notification, publicUrl) };
   }
-  const subject = `${prefix}${kind === 'replacement' ? 'Replacement spot available' : 'You won the sub lottery'} for ${notification.teamName ?? 'your sub game'}`;
+  const subject = `${prefix}Barrie Ultimate League: ${kind === 'replacement' ? 'replacement spot available' : 'you won the sub lottery'} for ${notification.teamName ?? 'your sub game'}`;
   const text = [
     `Hi ${notification.playerName},`,
     '',
     `${kind === 'replacement' ? 'You were selected as a replacement' : 'You won the sub lottery'} for ${gameLine}.`,
-    `Please accept or decline by ${notification.responseDeadlineAt ?? 'the response deadline'}.`,
-    responseUrl,
+    notification.captainName ? `Captain: ${notification.captainName}.` : '',
+    'You are assigned to this game. No response is required.',
     '',
     'Have a great game!',
-    'Sub Squad',
+    buildSignature(notification),
   ].join('\n');
-  const html = [
+  const content = [
     `<p>Hi ${escapeHtml(notification.playerName)},</p>`,
     `<p>${kind === 'replacement' ? 'You were selected as a replacement' : 'You won the sub lottery'} for <strong>${escapeHtml(gameLine)}</strong>.</p>`,
-    `<p>Please <a href="${escapeHtml(responseUrl)}">accept or decline</a> by ${escapeHtml(notification.responseDeadlineAt ?? 'the response deadline')}.</p>`,
-    '<p>Have a great game!<br/>Sub Squad</p>',
+    notification.captainName ? `<p>Captain: <strong>${escapeHtml(notification.captainName)}</strong>.</p>` : '',
+    '<p><strong>You are assigned to this game. No response is required.</strong></p>',
+    '<p>Have a great game!</p>',
   ].join('');
 
+  const to = notification.recipientEmail ?? notification.playerEmail;
+  const captainCc = notification.captainEmail?.trim();
   return {
-    to: notification.recipientEmail ?? notification.playerEmail,
+    to,
+    ...(captainCc && captainCc.toLowerCase() !== to.trim().toLowerCase() ? { cc: captainCc } : {}),
     subject,
     text,
-    html,
+    html: buildBrandedHtml(content, notification, publicUrl),
   };
 }
 
@@ -131,6 +174,7 @@ async function sendWinnerEmailWithSmtp(notification: SubLotteryWinnerEmailNotifi
   await transporter.sendMail({
     from,
     to: message.to,
+    ...(message.cc ? { cc: message.cc } : {}),
     subject: message.subject,
     text: message.text,
     html: message.html,
@@ -160,6 +204,7 @@ async function sendWinnerEmailWithResend(notification: SubLotteryWinnerEmailNoti
     body: JSON.stringify({
       from,
       to: [message.to],
+      ...(message.cc ? { cc: [message.cc] } : {}),
       subject: message.subject,
       text: message.text,
       html: message.html,

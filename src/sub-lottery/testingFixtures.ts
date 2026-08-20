@@ -27,11 +27,11 @@ const playerNames = [
 ];
 
 const captainGames = [
-  { captainName: 'Morgan Lee', teamName: 'Blue Team', gameLabel: 'Wednesday 7:00 PM', dayOffset: 2, pool: 'open' as const, slotsNeeded: 2 },
-  { captainName: 'Casey Smith', teamName: 'Green Team', gameLabel: 'Wednesday 8:30 PM', dayOffset: 2, pool: 'female' as const, slotsNeeded: 1 },
-  { captainName: 'Taylor Brown', teamName: 'Red Team', gameLabel: 'Thursday 7:00 PM', dayOffset: 3, pool: 'open' as const, slotsNeeded: 1 },
-  { captainName: 'Riley Wilson', teamName: 'Yellow Team', gameLabel: 'Thursday 8:30 PM', dayOffset: 3, pool: 'female' as const, slotsNeeded: 1 },
-  { captainName: 'Jamie Chen', teamName: 'Purple Team', gameLabel: 'Friday 8:00 PM', dayOffset: 4, pool: 'open' as const, slotsNeeded: 1 },
+  { captainName: 'Morgan Lee', captainEmail: 'morgan.lee@example.test', teamName: 'Blue Team', gameLabel: 'Wednesday 7:00 PM', dayOffset: 2, pool: 'open' as const, slotsNeeded: 2 },
+  { captainName: 'Casey Smith', captainEmail: 'casey.smith@example.test', teamName: 'Green Team', gameLabel: 'Wednesday 8:30 PM', dayOffset: 2, pool: 'female' as const, slotsNeeded: 1 },
+  { captainName: 'Taylor Brown', captainEmail: 'taylor.brown@example.test', teamName: 'Red Team', gameLabel: 'Thursday 7:00 PM', dayOffset: 3, pool: 'open' as const, slotsNeeded: 1 },
+  { captainName: 'Riley Wilson', captainEmail: 'riley.wilson@example.test', teamName: 'Yellow Team', gameLabel: 'Thursday 8:30 PM', dayOffset: 3, pool: 'female' as const, slotsNeeded: 1 },
+  { captainName: 'Jamie Chen', captainEmail: 'jamie.chen@example.test', teamName: 'Purple Team', gameLabel: 'Friday 8:00 PM', dayOffset: 4, pool: 'open' as const, slotsNeeded: 1 },
 ];
 
 function addDays(date: Date, days: number): Date {
@@ -84,6 +84,7 @@ function buildSchedule(weekStart: Date): SubLotteryScheduleEntry[] {
     weekLabel: 'Testing week',
     gameDate: formatDateOnly(addDays(weekStart, game.dayOffset)),
     captainName: game.captainName,
+    captainEmail: game.captainEmail,
     teamName: game.teamName,
     gameLabel: game.gameLabel,
     pool: game.pool,

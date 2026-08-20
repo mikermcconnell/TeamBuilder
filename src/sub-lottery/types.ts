@@ -117,7 +117,8 @@ export interface SubLotteryWinnerEmailNotification {
   playerId: string;
   playerName: string;
   playerEmail: string;
-  kind?: 'winner' | 'captain-confirmation' | 'winner-confirmation' | 'decline' | 'replacement';
+  seasonName?: string;
+  kind?: 'winner' | 'captain-unfilled' | 'captain-confirmation' | 'winner-confirmation' | 'decline' | 'replacement';
   recipientEmail?: string;
   captainEmail?: string;
   captainContact?: string;
@@ -128,6 +129,8 @@ export interface SubLotteryWinnerEmailNotification {
   gameLabel?: string;
   weekLabel?: string;
   captainName?: string;
+  slotsNeeded?: number;
+  slotsFilled?: number;
   assignedAt: string;
   createdAt: string;
   status: 'pending' | 'sending' | 'sent' | 'failed';

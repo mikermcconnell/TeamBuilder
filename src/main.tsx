@@ -1,13 +1,34 @@
-import { StrictMode } from 'react'
+import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { Toaster } from '@/components/ui/sonner'
-import { AuthProvider } from '@/contexts/AuthContext'
-import { WorkspaceProvider } from '@/contexts/WorkspaceContext'
-import { SubLotteryApp } from '@/sub-lottery/SubLotteryApp'
 import { shouldRenderSubLotteryApp } from '@/appVariant'
 import './index.css'
-import App from './App.tsx'
+
+const SubLotteryApp = lazy(() =>
+  import('@/sub-lottery/SubLotteryApp').then(module => ({ default: module.SubLotteryApp })),
+)
+
+const TeamBuilderApp = lazy(async () => {
+  const [{ AuthProvider }, { WorkspaceProvider }, { default: App }] = await Promise.all([
+    import('@/contexts/AuthContext'),
+    import('@/contexts/WorkspaceContext'),
+    import('./App.tsx'),
+  ])
+
+  return {
+    default: function TeamBuilderRoot() {
+      return (
+        <AuthProvider>
+          <WorkspaceProvider>
+            <App />
+            <Toaster />
+          </WorkspaceProvider>
+        </AuthProvider>
+      )
+    },
+  }
+})
 
 const isSubLotteryApp = shouldRenderSubLotteryApp(
   window.location.pathname,
@@ -17,19 +38,16 @@ const isSubLotteryApp = shouldRenderSubLotteryApp(
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      {isSubLotteryApp ? (
-        <>
-          <SubLotteryApp />
-          <Toaster />
-        </>
-      ) : (
-        <AuthProvider>
-          <WorkspaceProvider>
-            <App />
+      <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+        {isSubLotteryApp ? (
+          <>
+            <SubLotteryApp />
             <Toaster />
-          </WorkspaceProvider>
-        </AuthProvider>
-      )}
+          </>
+        ) : (
+          <TeamBuilderApp />
+        )}
+      </Suspense>
     </ErrorBoundary>
   </StrictMode>,
 )
