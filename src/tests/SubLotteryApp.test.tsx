@@ -120,7 +120,8 @@ describe('SubLotteryApp', () => {
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Run draw and show winners' })));
 
     expect(runTestingDraw).toHaveBeenCalledWith(expect.objectContaining({ seasonId: expect.stringMatching(/^testing-/) }));
-    expect(screen.getByText('Lottery results are posted')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Results' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Results' })).toBeInTheDocument();
     expect(screen.getByText('Testing draw completed and winners were saved to Firebase.')).toBeInTheDocument();
   });
 });

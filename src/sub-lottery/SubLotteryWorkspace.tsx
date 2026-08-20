@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { formatCountdown, getSubLotteryCoins, getSubLotteryWorkflowState, getWorkflowScheduleWeekLabel, SUB_LOTTERY_TIME_ZONE } from './workflow';
 import type { SubLotteryPlayer, SubLotteryPool, SubLotteryPublicState, SubLotteryRequest } from './types';
 
-type SubLotteryAudience = 'sub' | 'captain';
+type SubLotteryTab = 'captain' | 'sub' | 'results';
 
 interface CreateRequestPayload {
   captainPin: string;
@@ -88,56 +88,6 @@ function formatDeadline(iso: string | undefined): string {
   }).format(new Date(iso));
 }
 
-function CountdownBadge({
-  label,
-  targetIso,
-  tone = 'sky',
-}: {
-  label: string;
-  targetIso?: string;
-  tone?: 'sky' | 'emerald' | 'amber' | 'purple';
-}) {
-  const toneClasses = {
-    sky: 'border-sky-200 bg-sky-50 text-sky-800',
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    amber: 'border-amber-200 bg-amber-50 text-amber-800',
-    purple: 'border-purple-200 bg-purple-50 text-purple-800',
-  }[tone];
-
-  return (
-    <div className={cn('rounded-2xl border-2 px-4 py-3', toneClasses)}>
-      <div className="text-xs font-black uppercase tracking-wide">{label}</div>
-      <div className="text-xl font-black">{formatCountdown(targetIso)}</div>
-    </div>
-  );
-}
-
-function StaticStatusBadge({
-  label,
-  value,
-  detail,
-  tone = 'emerald',
-}: {
-  label: string;
-  value: string;
-  detail?: string;
-  tone?: 'emerald' | 'amber' | 'purple';
-}) {
-  const toneClasses = {
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    amber: 'border-amber-200 bg-amber-50 text-amber-800',
-    purple: 'border-purple-200 bg-purple-50 text-purple-800',
-  }[tone];
-
-  return (
-    <div className={cn('rounded-3xl border-2 px-5 py-4 text-center', toneClasses)}>
-      <div className="text-xs font-black uppercase tracking-wide">{label}</div>
-      <div className="text-2xl font-black">{value}</div>
-      {detail && <div className="text-xs font-bold">{detail}</div>}
-    </div>
-  );
-}
-
 export function SubLotteryWorkspace({
   state,
   onCreateRequest,
@@ -158,7 +108,7 @@ export function SubLotteryWorkspace({
     open: '1',
     female: '1',
   });
-  const [selectedAudience, setSelectedAudience] = useState<SubLotteryAudience | null>(null);
+  const [selectedTab, setSelectedTab] = useState<SubLotteryTab | null>(null);
 
   const activePlayers = useMemo(
     () => state.players.filter(player => player.active).sort((a, b) => a.name.localeCompare(b.name)),
@@ -187,18 +137,18 @@ export function SubLotteryWorkspace({
   const isCaptainPhase = workflow.phase === 'captain';
   const isPlayerPhase = workflow.phase === 'player';
   const openRequests = state.requests.filter(request => request.status === 'open');
-  const recommendedAudience: SubLotteryAudience = isCaptainPhase ? 'captain' : 'sub';
-  const activeAudience = selectedAudience ?? recommendedAudience;
-  const showCaptainForm = activeAudience === 'captain' && isCaptainPhase;
-  const showSubEntry = activeAudience === 'sub' && isPlayerPhase;
-  const showResults = workflow.phase === 'results';
+  const recommendedTab: SubLotteryTab = isCaptainPhase
+    ? 'captain'
+    : isPlayerPhase
+      ? 'sub'
+      : 'results';
+  const activeTab = selectedTab ?? recommendedTab;
+  const showCaptainForm = activeTab === 'captain' && isCaptainPhase;
+  const showSubEntry = activeTab === 'sub' && isPlayerPhase;
   const slotsAreValid = selectedRequestPools.every(pool => {
     const requestedSlots = Number(slotsNeededByPool[pool]);
     return Number.isInteger(requestedSlots) && requestedSlots >= 1;
   });
-  const subCountdownLabel = isPlayerPhase ? 'Sub entries close in' : 'Sub lottery opens in';
-  const subCountdownTarget = isPlayerPhase ? workflow.availabilityClosesAt : workflow.availabilityOpensAt;
-
   useEffect(() => {
     if (scheduleEntriesForCaptain.length === 1) {
       setSelectedScheduleEntryId(scheduleEntriesForCaptain[0]!.id);
@@ -251,31 +201,26 @@ export function SubLotteryWorkspace({
 
   return (
     <main className="min-h-[calc(100vh-6rem)] bg-[#f8f8f8] text-[#333333]">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-3 py-4 sm:px-6 sm:py-6">
         {demoMode && (
           <div className="rounded-3xl border-2 border-amber-300 bg-amber-50 p-4 text-center text-sm font-black text-amber-900">
             Firebase testing week: changes are saved week by week in a separate testing season and never mixed with the live lottery.
           </div>
         )}
-        <WorkflowStepper workflow={workflow} />
+        <SubLotteryTabs
+          activeTab={activeTab}
+          workflow={workflow}
+          onSelect={setSelectedTab}
+        />
 
-        {showResults ? (
-          <ResultsHero requestCount={state.requests.length} />
-        ) : (
-          <RoleChooser
-            activeAudience={activeAudience}
-            selectedAudience={selectedAudience}
-            isCaptainPhase={isCaptainPhase}
-            isPlayerPhase={isPlayerPhase}
-            nextDeadlineLabel={workflow.nextDeadlineLabel}
-            nextDeadlineAt={workflow.nextDeadlineAt}
-            onSelect={setSelectedAudience}
-          />
-        )}
-
-        {!showResults && (
-        <div className="grid gap-6">
-          {activeAudience === 'sub' && (showSubEntry ? (
+        {activeTab !== 'results' && (
+        <div
+          id={`sub-lottery-panel-${activeTab}`}
+          role="tabpanel"
+          aria-labelledby={`sub-lottery-tab-${activeTab}`}
+          className="grid gap-6"
+        >
+          {activeTab === 'sub' && (showSubEntry ? (
           <section className="rounded-[2rem] border-2 border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-3">
@@ -289,7 +234,6 @@ export function SubLotteryWorkspace({
                 </p>
               </div>
               </div>
-              <CountdownBadge label={subCountdownLabel} targetIso={subCountdownTarget} tone="emerald" />
             </div>
 
             <div className="mb-5">
@@ -395,13 +339,10 @@ export function SubLotteryWorkspace({
                 : workflow.phase === 'lottery'
                   ? 'The lottery is running now. Results will post shortly.'
                   : 'This week’s results are posted below.'}
-              countdownLabel={subCountdownLabel}
-              countdownTarget={subCountdownTarget}
-              tone="emerald"
             />
           ))}
 
-          {activeAudience === 'captain' && (showCaptainForm ? (
+          {activeTab === 'captain' && (showCaptainForm ? (
           <section className="rounded-[2rem] border-2 border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-3">
@@ -413,7 +354,6 @@ export function SubLotteryWorkspace({
                 </p>
               </div>
               </div>
-              <CountdownBadge label="Requests close in" targetIso={workflow.captainClosesAt} tone="sky" />
             </div>
 
             <form className="grid gap-4" onSubmit={handleCreateRequest}>
@@ -549,26 +489,32 @@ export function SubLotteryWorkspace({
                 : workflow.phase === 'lottery'
                   ? 'The draw is running now. Results will post shortly.'
                   : 'This week’s draw is complete. Use the results list below.'}
-              countdownLabel="Requests close in"
-              countdownTarget={workflow.captainClosesAt}
-              tone="sky"
             />
           ))}
         </div>
         )}
 
-        {showResults && (
-        <section className="rounded-[2rem] border-2 border-amber-200 bg-white p-5 shadow-md ring-4 ring-amber-50 sm:p-6" aria-labelledby="sub-lottery-results-heading">
+        {activeTab === 'results' && (
+        <section
+          id="sub-lottery-panel-results"
+          role="tabpanel"
+          aria-labelledby="sub-lottery-tab-results"
+          className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6"
+        >
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-amber-100 p-3 text-amber-700"><Trophy className="h-7 w-7" /></div>
             <div>
-              <div className="text-sm font-black uppercase tracking-wide text-amber-700">Part 3 · Results</div>
-              <h2 id="sub-lottery-results-heading" className="text-3xl font-black text-zinc-950">Draw results</h2>
-              <p className="font-semibold text-zinc-500">See which subs were picked after the Monday draw.</p>
+              <h2 id="sub-lottery-results-heading" className="text-2xl font-black text-zinc-950">Results</h2>
+              <p className="font-semibold text-zinc-500">
+                {workflow.phase === 'results'
+                  ? 'See which subs were assigned after the Monday draw.'
+                  : workflow.phase === 'lottery'
+                    ? 'The draw is running now. Results will appear here shortly.'
+                    : 'Results will appear here after the Monday draw.'}
+              </p>
             </div>
             </div>
-            <StaticStatusBadge label="Draw status" value="Complete" detail={formatDeadline(workflow.drawAt)} tone="amber" />
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {state.requests.map(request => {
@@ -617,7 +563,7 @@ export function SubLotteryWorkspace({
         </section>
         )}
 
-        <details className="rounded-[2rem] border-2 border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+        {activeTab === 'results' && <details className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
           <summary className="cursor-pointer text-2xl font-black">Sub history</summary>
           <p className="mb-4 mt-2 font-semibold text-zinc-500">See who has subbed this season and how many lottery coins they have left.</p>
           <div className="grid gap-3 md:grid-cols-2">
@@ -636,180 +582,65 @@ export function SubLotteryWorkspace({
               </div>
             ))}
           </div>
-        </details>
+        </details>}
       </div>
     </main>
   );
 }
 
-function ResultsHero({ requestCount }: { requestCount: number }) {
-  return (
-    <section className="rounded-[2rem] border-2 border-amber-300 bg-gradient-to-br from-amber-50 via-white to-emerald-50 p-6 shadow-lg ring-4 ring-amber-100 sm:p-8">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-start gap-4">
-          <div className="rounded-3xl bg-amber-100 p-4 text-amber-700 shadow-inner">
-            <Trophy className="h-9 w-9" />
-          </div>
-          <div>
-            <div className="mb-2 inline-flex rounded-full border-2 border-amber-500 bg-amber-100 px-4 py-2 text-sm font-black uppercase tracking-wide text-amber-800">
-              Part 3 · Draw complete
-            </div>
-            <h1 className="text-4xl font-black tracking-tight text-zinc-950 sm:text-5xl">
-              Lottery results are posted
-            </h1>
-            <p className="mt-2 max-w-2xl text-lg font-semibold text-zinc-600">
-              The sub entry window is closed and the draw has run. Check the cards below to see who was selected.
-            </p>
-          </div>
-        </div>
-        <StaticStatusBadge
-          label={requestCount === 1 ? 'Game request' : 'Game requests'}
-          value={String(requestCount)}
-          detail="Results below"
-          tone="emerald"
-        />
-      </div>
-      <div className="mt-5 grid gap-3 text-sm font-bold text-zinc-600 md:grid-cols-2">
-        <div className="rounded-2xl border-2 border-zinc-100 bg-white/80 p-3">
-          Captains: use the results list below for your team’s selected subs.
-        </div>
-        <div className="rounded-2xl border-2 border-zinc-100 bg-white/80 p-3">
-          Subs: winners are listed below. If your email is on file, you may also receive a winner email.
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function RoleChooser({
-  activeAudience,
-  selectedAudience,
-  isCaptainPhase,
-  isPlayerPhase,
-  nextDeadlineLabel,
-  nextDeadlineAt,
+function SubLotteryTabs({
+  activeTab,
+  workflow,
   onSelect,
 }: {
-  activeAudience: SubLotteryAudience;
-  selectedAudience: SubLotteryAudience | null;
-  isCaptainPhase: boolean;
-  isPlayerPhase: boolean;
-  nextDeadlineLabel: string;
-  nextDeadlineAt?: string;
-  onSelect: (audience: SubLotteryAudience) => void;
+  activeTab: SubLotteryTab;
+  workflow: ReturnType<typeof getSubLotteryWorkflowState>;
+  onSelect: (tab: SubLotteryTab) => void;
 }) {
-  const nowText = isCaptainPhase
-    ? 'Captains are up now.'
-    : isPlayerPhase
-      ? 'Sub players are up now.'
-      : 'The lottery/results window is active.';
+  const tabs: Array<{ id: SubLotteryTab; label: string; icon: typeof Crown }> = [
+    { id: 'captain', label: 'Need a sub', icon: Crown },
+    { id: 'sub', label: 'Can sub', icon: Users },
+    { id: 'results', label: 'Results', icon: Trophy },
+  ];
 
   return (
-    <section className="rounded-[2rem] border-2 border-[#7cc8f5] bg-white p-5 shadow-md ring-4 ring-[#eef8ff] sm:p-6">
-      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="mb-2 inline-flex rounded-full border-2 border-[#0071bb] bg-[#eef8ff] px-4 py-2 text-sm font-black uppercase tracking-wide text-[#005288]">
-            Part 1 · Start here
-          </div>
-          <h2 className="text-3xl font-black text-zinc-900">Are you a sub or a captain?</h2>
-          <p className="mt-1 font-semibold text-zinc-500">{nowText} Choose your role and we’ll only show the useful action.</p>
+    <section className="sticky top-0 z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white/95 shadow-sm backdrop-blur" aria-label="Sub lottery navigation">
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-zinc-700">{workflow.nextDeadlineLabel}</p>
+          <p className="text-xs font-semibold text-zinc-500">{formatDeadline(workflow.nextDeadlineAt)}</p>
         </div>
-        <div className="rounded-3xl border-2 border-[#bfe6ff] bg-[#eef8ff] px-5 py-3 text-center">
-          <div className="text-xs font-black uppercase tracking-wide text-[#0071bb]">{nextDeadlineLabel}</div>
-          <div className="text-2xl font-black text-[#005288]">{formatCountdown(nextDeadlineAt)}</div>
-          <div className="text-xs font-bold text-[#0071bb]">{formatDeadline(nextDeadlineAt)}</div>
+        <div className="shrink-0 rounded-lg bg-[#eef8ff] px-3 py-2 text-right text-[#005288]">
+          <p className="text-xs font-bold">Time remaining</p>
+          <p className="text-base font-black leading-tight">{formatCountdown(workflow.nextDeadlineAt)}</p>
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <AudienceButton
-          audience="sub"
-          activeAudience={activeAudience}
-          selectedAudience={selectedAudience}
-          onSelect={onSelect}
-          icon={<Users className="h-6 w-6" />}
-          title="I’m a sub player"
-          detail={isPlayerPhase ? 'Enter the lottery for games you can play.' : 'Check when the sub entry window opens.'}
-          status={isPlayerPhase ? 'Open now' : 'Not open now'}
-          tone="emerald"
-        />
-        <AudienceButton
-          audience="captain"
-          activeAudience={activeAudience}
-          selectedAudience={selectedAudience}
-          onSelect={onSelect}
-          icon={<Crown className="h-6 w-6" />}
-          title="I’m a captain"
-          detail={isCaptainPhase ? 'Add the sub needs for your scheduled game.' : 'Your request window is closed.'}
-          status={isCaptainPhase ? 'Open now' : 'Closed'}
-          tone="sky"
-        />
+      <div className="grid grid-cols-3" role="tablist" aria-label="Choose a sub lottery task">
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              id={`sub-lottery-tab-${tab.id}`}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`sub-lottery-panel-${tab.id}`}
+              onClick={() => onSelect(tab.id)}
+              className={cn(
+                'relative flex min-h-14 items-center justify-center gap-1.5 border-r border-zinc-200 px-2 py-3 text-sm font-bold transition last:border-r-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0071bb]',
+                isActive ? 'bg-[#0071bb] text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50',
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
     </section>
-  );
-}
-
-function AudienceButton({
-  audience,
-  activeAudience,
-  selectedAudience,
-  onSelect,
-  icon,
-  title,
-  detail,
-  status,
-  tone,
-}: {
-  audience: SubLotteryAudience;
-  activeAudience: SubLotteryAudience;
-  selectedAudience: SubLotteryAudience | null;
-  onSelect: (audience: SubLotteryAudience) => void;
-  icon: React.ReactNode;
-  title: string;
-  detail: string;
-  status: string;
-  tone: 'emerald' | 'sky';
-}) {
-  const isActive = activeAudience === audience;
-  const colorClasses = tone === 'emerald'
-    ? {
-      active: 'border-[#0071bb] bg-[#eef8ff] ring-4 ring-[#bfe6ff]',
-      icon: 'bg-[#dff2ff] text-[#005288]',
-      pill: 'bg-[#dff2ff] text-[#005288]',
-    }
-    : {
-      active: 'border-[#0071bb] bg-[#eef8ff] ring-4 ring-[#bfe6ff]',
-      icon: 'bg-[#bfe6ff] text-[#0071bb]',
-      pill: 'bg-[#bfe6ff] text-[#005288]',
-    };
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(audience)}
-      className={cn(
-        'rounded-3xl border-2 p-4 text-left transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-[#bfe6ff]',
-        isActive ? colorClasses.active : 'border-zinc-200 bg-zinc-50',
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <div className={cn('rounded-2xl p-3', colorClasses.icon)}>{icon}</div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-xl font-black text-zinc-900">{title}</div>
-            <span className={cn('rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide', colorClasses.pill)}>
-              {status}
-            </span>
-            {!selectedAudience && isActive && (
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-wide text-zinc-500">
-                Suggested
-              </span>
-            )}
-          </div>
-          <p className="mt-1 font-semibold text-zinc-600">{detail}</p>
-        </div>
-      </div>
-    </button>
   );
 }
 
@@ -817,23 +648,17 @@ function ClosedRolePanel({
   audience,
   title,
   message,
-  countdownLabel,
-  countdownTarget,
-  tone,
 }: {
-  audience: SubLotteryAudience;
+  audience: Exclude<SubLotteryTab, 'results'>;
   title: string;
   message: string;
-  countdownLabel: string;
-  countdownTarget?: string;
-  tone: 'emerald' | 'sky';
 }) {
   const Icon = audience === 'sub' ? Users : Crown;
   const iconClasses = audience === 'sub' ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700';
 
   return (
     <section className="rounded-[2rem] border-2 border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex items-start gap-3">
         <div className="flex items-center gap-3">
           <div className={cn('rounded-2xl p-3', iconClasses)}><Icon className="h-6 w-6" /></div>
           <div>
@@ -841,77 +666,6 @@ function ClosedRolePanel({
             <h2 className="text-2xl font-black">{title}</h2>
             <p className="mt-1 font-semibold text-zinc-500">{message}</p>
           </div>
-        </div>
-        <CountdownBadge label={countdownLabel} targetIso={countdownTarget} tone={tone} />
-      </div>
-    </section>
-  );
-}
-
-function WorkflowStepper({ workflow }: { workflow: ReturnType<typeof getSubLotteryWorkflowState> }) {
-  const displayStepIndex = Math.min(workflow.activeStepIndex, 2);
-  const steps = [
-    { title: 'Captains ask', detail: `Until ${formatDeadline(workflow.captainClosesAt)}` },
-    { title: 'Subs enter', detail: `${formatDeadline(workflow.availabilityOpensAt)}–${formatDeadline(workflow.availabilityClosesAt)}` },
-    {
-      title: 'Drawn results',
-      detail: workflow.phase === 'results'
-        ? 'Visible until Monday 11:59 PM'
-        : `Revealed in ${formatCountdown(workflow.drawAt)}`,
-    },
-  ];
-
-  return (
-    <section
-      aria-label="This week's timeline"
-      className="sticky top-0 z-30 rounded-none border-y-2 border-[#bfe6ff] bg-white/95 px-3 py-2 shadow-md backdrop-blur sm:rounded-2xl sm:border-2 sm:px-4"
-    >
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-        <div className="flex shrink-0 items-center justify-between gap-3 lg:w-52 lg:justify-start">
-          <div>
-            <div className="text-xs font-black uppercase tracking-wide text-[#0071bb]">This week's timeline</div>
-            <div className="text-sm font-black text-zinc-900">Sub lottery</div>
-          </div>
-          <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 px-3 py-1 text-right lg:hidden">
-            <div className="text-[10px] font-black uppercase tracking-wide text-emerald-700">{workflow.nextDeadlineLabel}</div>
-            <div className="text-base font-black text-emerald-800">{formatCountdown(workflow.nextDeadlineAt)}</div>
-          </div>
-        </div>
-
-        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 lg:pb-0">
-        {steps.map((step, index) => {
-          const isActive = displayStepIndex === index;
-          const isComplete = displayStepIndex > index;
-          return (
-            <div
-              key={step.title}
-              className={cn(
-                'min-w-[11rem] flex-1 rounded-xl border-2 px-3 py-2',
-                isActive && 'border-[#0071bb] bg-[#eef8ff] ring-2 ring-[#bfe6ff]',
-                isComplete && 'border-emerald-200 bg-emerald-50',
-                !isActive && !isComplete && 'border-zinc-200 bg-zinc-50'
-              )}
-            >
-              <div className="mb-1 flex items-center justify-between">
-                <div className={cn(
-                  'text-xs font-black uppercase tracking-wide',
-                  isActive ? 'text-[#005288]' : 'text-zinc-500',
-                )}>
-                  Part {index + 1}
-                </div>
-                {isComplete ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Clock className="h-4 w-4 text-[#0071bb]" />}
-              </div>
-              <div className="truncate text-sm font-black text-zinc-800">{step.title}</div>
-              <div className="text-xs font-bold text-zinc-500">{step.detail}</div>
-            </div>
-          );
-        })}
-        </div>
-
-        <div className="hidden shrink-0 rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-2 text-center lg:block">
-          <div className="text-[10px] font-black uppercase tracking-wide text-emerald-700">{workflow.nextDeadlineLabel}</div>
-          <div className="text-lg font-black leading-tight text-emerald-800">{formatCountdown(workflow.nextDeadlineAt)}</div>
-          <div className="text-[10px] font-bold text-emerald-700">{formatDeadline(workflow.nextDeadlineAt)}</div>
         </div>
       </div>
     </section>

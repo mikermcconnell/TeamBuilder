@@ -62,12 +62,15 @@ const state: SubLotteryPublicState = {
 };
 
 describe('SubLotteryWorkspace', () => {
-  test('shows a friendly captain and sub landing page', () => {
+  test('shows three compact task tabs and defaults to the current phase', () => {
     render(<SubLotteryWorkspace state={state} currentDate={new Date('2026-06-21T12:00:00.000Z')} />);
 
-    expect(screen.getByText('Are you a sub or a captain?')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: "This week's timeline" })).toBeInTheDocument();
-    expect(screen.queryByText('Part 3 · Results')).not.toBeInTheDocument();
+    expect(screen.getByRole('tablist', { name: 'Choose a sub lottery task' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Need a sub' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Can sub' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tab', { name: 'Results' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.queryByText('Are you a sub or a captain?')).not.toBeInTheDocument();
+    expect(screen.queryByText("This week's timeline")).not.toBeInTheDocument();
     expect(screen.getByText('Captains: add a sub need')).toBeInTheDocument();
     expect(screen.queryByText('Sub players: join a draw')).not.toBeInTheDocument();
     expect(screen.getAllByText('Green Team').length).toBeGreaterThan(0);
@@ -202,40 +205,43 @@ describe('SubLotteryWorkspace', () => {
   });
 
 
-  test('shows draw and results as one timeline step', () => {
+  test('lets users open results before the draw without hiding the other tasks', () => {
     render(<SubLotteryWorkspace state={state} currentDate={new Date('2026-06-21T12:00:00.000Z')} />);
 
-    expect(screen.getAllByText('Drawn results').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Results shared')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Results' }));
+
+    expect(screen.getByRole('tab', { name: 'Results' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Results' })).toBeInTheDocument();
+    expect(screen.getByText('Results will appear here after the Monday draw.')).toBeInTheDocument();
+    expect(screen.getByText(/Waiting for the draw/)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Need a sub' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Can sub' })).toBeInTheDocument();
   });
 
 
-  test('pins the sticky week timeline at the top of the workspace', () => {
+  test('pins the compact task navigation at the top of the workspace', () => {
     render(<SubLotteryWorkspace state={state} currentDate={new Date('2026-06-21T12:00:00.000Z')} />);
 
-    const roleStart = screen.getByText('Part 1 · Start here');
-    const weekTimeline = screen.getByRole('region', { name: "This week's timeline" });
+    const navigation = screen.getByRole('region', { name: 'Sub lottery navigation' });
 
-    expect(weekTimeline.compareDocumentPosition(roleStart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(weekTimeline).toHaveClass('sticky');
-    expect(screen.getByText("This week's timeline")).toBeInTheDocument();
+    expect(navigation).toHaveClass('sticky');
+    expect(screen.getAllByText('Time remaining')).toHaveLength(1);
     expect(screen.queryByText('Sub players: join a draw')).not.toBeInTheDocument();
   });
 
-  test('only shows Part 3 results after the Monday draw until Monday ends', () => {
+  test('defaults to Results during the draw window and returns to the captain tab next week', () => {
     const { rerender } = render(<SubLotteryWorkspace state={state} currentDate={new Date('2026-06-22T15:59:00.000Z')} />);
-    expect(screen.queryByText('Part 3 · Results')).not.toBeInTheDocument();
-    expect(screen.queryByText('Lottery results are posted')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Can sub' })).toHaveAttribute('aria-selected', 'true');
 
     rerender(<SubLotteryWorkspace state={state} currentDate={new Date('2026-06-22T16:02:00.000Z')} />);
-    expect(screen.getByText('Lottery results are posted')).toBeInTheDocument();
-    expect(screen.getByText('Part 3 · Draw complete')).toBeInTheDocument();
-    expect(screen.getByText('Part 3 · Results')).toBeInTheDocument();
-    expect(screen.queryByText('Part 1 · Start here')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Results' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Results' })).toBeInTheDocument();
+    expect(screen.getByText('See which subs were assigned after the Monday draw.')).toBeInTheDocument();
     expect(screen.queryByText('Sub players: your entry window is closed')).not.toBeInTheDocument();
 
     rerender(<SubLotteryWorkspace state={state} currentDate={new Date('2026-06-23T04:01:00.000Z')} />);
-    expect(screen.queryByText('Part 3 · Results')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Need a sub' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('Captains: add a sub need')).toBeInTheDocument();
   });
 
 });
