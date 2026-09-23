@@ -109,6 +109,7 @@ export function SubLotteryAdmin() {
           <header>
             <h1 className="text-3xl font-black">Operations dashboard</h1>
             <p className="font-bold text-zinc-500">Week {data?.state?.weekStartDate ?? '—'} · {data?.state?.seasonName}</p>
+            <a href="/sub-lottery?testing=1" className="mt-2 inline-block font-bold text-[#005288] underline">Open sample lottery and testing controls</a>
           </header>
           {error ? <div className="rounded-xl bg-red-50 p-3 font-bold text-red-700">{error}</div> : null}
 

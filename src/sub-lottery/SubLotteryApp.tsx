@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { TestTube2, UploadCloud } from 'lucide-react';
 
 import {
@@ -21,6 +21,7 @@ import { getTestingPhaseDateForState, type SubLotteryTestingPhase } from './test
 import { SubLotteryAdmin } from './SubLotteryAdmin';
 import { SubLotteryBrandHeader } from './SubLotteryBrandHeader';
 import { SubLotteryLearnMore } from './SubLotteryLearnMore';
+import { getSubLotteryWorkflowState } from './workflow';
 
 const DEFAULT_SEASON_ID = 'default-season';
 
@@ -94,23 +95,56 @@ function SubLotteryMainApp() {
   const [testingPhase, setTestingPhase] = useState<SubLotteryTestingPhase>('captain');
   const [testingCurrentDate, setTestingCurrentDate] = useState<Date | undefined>();
   const [busy, setBusy] = useState(false);
+  const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [liveNow, setLiveNow] = useState(() => new Date());
+  const demoModeRef = useRef(false);
+  const initialWorkflow = getSubLotteryWorkflowState();
+  const lastWorkflowRef = useRef(`${initialWorkflow.phase}:${initialWorkflow.targetWeekStartDate}`);
+  const lastPollAtRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const showAdminTools = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('admin') === '1';
-  const showTestingTools = true;
+  const showTestingTools = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('testing') === '1';
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const nextState = await loadSubLotteryState();
-    setState(nextState);
-  };
+    if (!demoModeRef.current) {
+      setState(nextState);
+      setLoadStatus('ready');
+      setError(null);
+    }
+  }, []);
 
   useEffect(() => {
     refresh()
-      .catch(() => {
-        setState(EMPTY_STATE);
+      .catch((loadError) => {
+        setError(loadError instanceof Error ? loadError.message : 'Lottery could not be loaded.');
+        setLoadStatus('error');
       });
-  }, []);
+  }, [refresh]);
+
+  useEffect(() => {
+    const tick = (force = false) => {
+      const now = new Date();
+      setLiveNow(now);
+      const workflow = getSubLotteryWorkflowState(now);
+      const key = `${workflow.phase}:${workflow.targetWeekStartDate}`;
+      const phaseChanged = key !== lastWorkflowRef.current;
+      lastWorkflowRef.current = key;
+      const drawPollDue = (workflow.phase === 'lottery' || workflow.phase === 'results')
+        && now.getTime() - lastPollAtRef.current >= 60_000;
+      if (document.visibilityState === 'visible' && !demoModeRef.current && (force || phaseChanged || drawPollDue)) {
+        lastPollAtRef.current = now.getTime();
+        void refresh().catch(() => setError('Lottery could not be refreshed. Use Refresh to try again.'));
+      }
+    };
+    const timer = window.setInterval(() => tick(), 30_000);
+    const onVisibility = () => { if (document.visibilityState === 'visible') tick(true); };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisibility); };
+  }, [refresh]);
 
   const selectTestingPhase = (phase: SubLotteryTestingPhase, testingState = state) => {
     setTestingPhase(phase);
@@ -121,10 +155,14 @@ function SubLotteryMainApp() {
 
   const toggleTestingMode = async () => {
     if (demoMode) {
+      demoModeRef.current = false;
       setDemoMode(false);
       setTestingCurrentDate(undefined);
-      setState(EMPTY_STATE);
-      void refresh().catch(() => setState(EMPTY_STATE));
+      setLoadStatus('loading');
+      void refresh().catch((loadError) => {
+        setError(loadError instanceof Error ? loadError.message : 'Lottery could not be loaded.');
+        setLoadStatus('error');
+      });
       return;
     }
 
@@ -132,6 +170,7 @@ function SubLotteryMainApp() {
     setError(null);
     try {
       const nextState = await loadTestingWeek();
+      demoModeRef.current = true;
       setState(nextState);
       setDemoMode(true);
       selectTestingPhase(nextState.assignments.length > 0 ? 'results' : 'captain', nextState);
@@ -143,7 +182,7 @@ function SubLotteryMainApp() {
     }
   };
 
-  const runAction = async (action: () => Promise<SubLotteryPublicState>, successMessage: string) => {
+  const runAction = async (action: () => Promise<SubLotteryPublicState>, successMessage: string): Promise<boolean> => {
     setBusy(true);
     setError(null);
     setSuccess(null);
@@ -151,8 +190,10 @@ function SubLotteryMainApp() {
       const nextState = await action();
       setState(nextState);
       setSuccess(successMessage);
+      return true;
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Something went wrong.');
+      return false;
     } finally {
       setBusy(false);
     }
@@ -217,10 +258,13 @@ function SubLotteryMainApp() {
         )}
       />
       {(error || success) && (
-        <div className="fixed inset-x-0 top-3 z-50 mx-auto w-[min(92vw,36rem)] rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-center text-sm font-black shadow-lg">
+        <div role={error ? 'alert' : 'status'} className="fixed inset-x-0 top-3 z-50 mx-auto w-[min(92vw,36rem)] rounded-2xl border-2 border-zinc-200 bg-white px-4 py-3 text-center text-sm font-black shadow-lg">
           {error ? <span className="text-red-600">{error}</span> : <span className="text-emerald-700">{success}</span>}
+          <button type="button" onClick={() => { setError(null); setSuccess(null); }} className="ml-3 underline" aria-label="Dismiss message">Dismiss</button>
         </div>
       )}
+      {!demoMode && loadStatus === 'loading' && <main className="mx-auto max-w-3xl p-6" role="status">Loading this week’s lottery…</main>}
+      {!demoMode && loadStatus === 'error' && <main className="mx-auto max-w-3xl p-6"><p className="font-bold">The lottery could not be loaded.</p><button type="button" onClick={() => { setLoadStatus('loading'); void refresh().catch((loadError) => { setError(loadError instanceof Error ? loadError.message : 'Lottery could not be loaded.'); setLoadStatus('error'); }); }} className="mt-3 rounded-xl bg-[#0071bb] px-4 py-3 font-bold text-white">Retry</button></main>}
       {showTestingTools && <TestingControls
         enabled={demoMode}
         phase={testingPhase}
@@ -231,25 +275,17 @@ function SubLotteryMainApp() {
         onRunDraw={() => void runSavedTestingDraw()}
         onReset={() => void resetSavedTestingWeek()}
       />}
-      <SubLotteryWorkspace
+      {(demoMode || loadStatus === 'ready') && <SubLotteryWorkspace
         key={demoMode ? `${state.seasonId}:${testingPhase}` : 'live'}
         state={state}
         isBusy={busy}
         demoMode={demoMode}
-        currentDate={testingCurrentDate}
-        onCreateRequest={(payloads) => {
-          void runAction(
-            async () => {
-              let nextState = state;
-              for (const payload of payloads) {
-                nextState = await createCaptainRequest({
-                  ...payload,
-                  seasonId: state.seasonId,
-                } satisfies CreateSubRequestRequest);
-              }
-              return nextState;
-            },
-            `${payloads.length === 1 ? 'Sub need' : `${payloads.length} sub needs`} saved. Subs can enter during the Monday lottery window.`,
+        currentDate={demoMode ? testingCurrentDate : liveNow}
+        onRefresh={() => void refresh().catch(() => setError('Lottery could not be refreshed. Please try again.'))}
+        onCreateRequest={(payload) => {
+          return runAction(
+            () => createCaptainRequest({ ...payload, seasonId: state.seasonId } satisfies CreateSubRequestRequest),
+            `${payload.needs.length === 1 ? 'Sub need' : `${payload.needs.length} sub needs`} saved. Subs can enter during the Monday lottery window.`,
           );
         }}
         onMarkAvailable={(requestId, playerId) => {
@@ -262,7 +298,7 @@ function SubLotteryMainApp() {
           void runAction(() => updatePreferences({ playerId, requestIds }), 'Your ranked choices were saved.');
         }}
         onUpdateRequest={(payload) => {
-          void runAction(async () => {
+          return runAction(async () => {
             try { return await updateCaptainRequest(payload); }
             catch (editError) {
               if (editError instanceof Error && editError.message === 'MERGE_CONFIRMATION_REQUIRED' && window.confirm('A request for that pool already exists. Merge the quantities?')) return updateCaptainRequest({ ...payload, confirmMerge: true });
@@ -276,7 +312,7 @@ function SubLotteryMainApp() {
             'Sub need cancelled.',
           );
         }}
-      />
+      />}
       {showAdminTools && !demoMode && (
         <AdminImportPanel
           seasonId={state.seasonId}

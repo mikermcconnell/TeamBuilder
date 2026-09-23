@@ -1,8 +1,14 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 
 import { SubLotteryWorkspace } from '@/sub-lottery/SubLotteryWorkspace';
 import type { SubLotteryPublicState } from '@/sub-lottery/types';
+
+vi.mock('@/sub-lottery/api', () => ({
+  loadAccessStatus: vi.fn(async () => ({ verified: true })),
+  requestAccessCode: vi.fn(async () => ({ sent: true })),
+  verifyAccessCode: vi.fn(async () => ({ verified: true })),
+}));
 
 const state: SubLotteryPublicState = {
   seasonId: 'season-2026',
@@ -73,32 +79,41 @@ describe('SubLotteryWorkspace', () => {
     expect(screen.queryByText("This week's timeline")).not.toBeInTheDocument();
     expect(screen.getByText('Captains: add a sub need')).toBeInTheDocument();
     expect(screen.queryByText('Sub players: join a draw')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Green Team').length).toBeGreaterThan(0);
+    expect(screen.getByText('Game week: Week 1')).toBeInTheDocument();
   });
 
-  test('lets a sub pick their name and enter an open matching pool request', () => {
+  test('lets a sub pick their name and enter an open matching pool request', async () => {
     const onMarkAvailable = vi.fn();
 
     render(<SubLotteryWorkspace state={state} onMarkAvailable={onMarkAvailable} currentDate={new Date('2026-06-22T13:00:00.000Z')} />);
 
     const nameInput = screen.getByLabelText('Pick your name');
-    expect(nameInput.tagName).toBe('INPUT');
-    expect(nameInput).toHaveAttribute('list', 'sub-player-suggestions');
-    expect(document.querySelector('#sub-player-suggestions option[value="Alice Green"]')).toBeInTheDocument();
+    expect(nameInput.tagName).toBe('SELECT');
+    expect(screen.getByRole('option', { name: 'Alice Green · Female matching' })).toBeInTheDocument();
 
-    fireEvent.change(nameInput, { target: { value: 'Alice Green' } });
+    fireEvent.change(nameInput, { target: { value: 'alice' } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Enter lottery' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Enter lottery' }));
 
     expect(onMarkAvailable).toHaveBeenCalledWith('req-1', 'alice');
   });
 
-  test('lets a captain select their weekly schedule entry and autofills team and game time', () => {
-    const onCreateRequest = vi.fn();
+  test('does not require an email code from a sub player', () => {
+    render(<SubLotteryWorkspace state={state} currentDate={new Date('2026-06-22T13:00:00.000Z')} />);
+    fireEvent.change(screen.getByLabelText('Pick your name'), { target: { value: 'alice' } });
+    expect(screen.queryByText('Verify your player email')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enter lottery' })).toBeEnabled();
+    expect(screen.getByText(/Your entry and rankings will be saved under that name/)).toBeInTheDocument();
+    expect(screen.getByText(/If you win, you are assigned to that game/)).toBeInTheDocument();
+  });
+
+  test('lets a verified captain select their weekly schedule entry and autofills team and game time', async () => {
+    const onCreateRequest = vi.fn(async () => true);
 
     render(<SubLotteryWorkspace state={state} onCreateRequest={onCreateRequest} currentDate={new Date('2026-06-21T12:00:00.000Z')} />);
 
     const captainPinInput = screen.getByLabelText('Captain PIN');
-    expect(captainPinInput).toHaveAttribute('type', 'text');
+    expect(captainPinInput).toHaveAttribute('type', 'password');
     fireEvent.change(captainPinInput, { target: { value: '1234' } });
     expect(screen.queryByLabelText('Week')).not.toBeInTheDocument();
     expect(screen.getByText('Game week: Week 1')).toBeInTheDocument();
@@ -121,18 +136,19 @@ describe('SubLotteryWorkspace', () => {
     fireEvent.click(screen.getByLabelText(/Open matching sub/));
     expect(screen.queryByText(/does not match the scheduled game pool/i)).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Number of open matching subs needed'), { target: { value: '2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add sub need' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add sub need' })).toBeEnabled());
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Add sub need' })));
 
-    expect(onCreateRequest).toHaveBeenCalledWith([{
+    expect(onCreateRequest).toHaveBeenCalledWith(expect.objectContaining({
       captainPin: '1234',
       scheduleEntryId: 'week-1-2026-06-24-morgan-blue-team-friday-8-pm',
-      pool: 'open',
-      slotsNeeded: 2,
-    }]);
+      needs: [{ pool: 'open', slotsNeeded: 2 }],
+      submissionId: expect.any(String),
+    }));
   });
 
-  test('adds open and female matching needs together with separate counts', () => {
-    const onCreateRequest = vi.fn();
+  test('adds open and female matching needs together with separate counts', async () => {
+    const onCreateRequest = vi.fn(async () => true);
     const scheduleEntryId = 'week-1-2026-06-24-morgan-blue-team-friday-8-pm';
 
     render(<SubLotteryWorkspace
@@ -148,16 +164,17 @@ describe('SubLotteryWorkspace', () => {
     fireEvent.click(screen.getByLabelText(/Female matching sub/));
     fireEvent.change(screen.getByLabelText('Number of open matching subs needed'), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText('Number of female matching subs needed'), { target: { value: '3' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add 2 sub needs' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add 2 sub needs' })).toBeEnabled());
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Add 2 sub needs' })));
 
-    expect(onCreateRequest).toHaveBeenCalledWith([
-      { captainPin: '1234', scheduleEntryId, pool: 'open', slotsNeeded: 2 },
-      { captainPin: '1234', scheduleEntryId, pool: 'female', slotsNeeded: 3 },
-    ]);
+    expect(onCreateRequest).toHaveBeenCalledWith(expect.objectContaining({
+      captainPin: '1234', scheduleEntryId, submissionId: expect.any(String),
+      needs: [{ pool: 'open', slotsNeeded: 2 }, { pool: 'female', slotsNeeded: 3 }],
+    }));
   });
 
-  test('submits additional slots when a matching need already exists', () => {
-    const onCreateRequest = vi.fn();
+  test('submits additional slots when a matching need already exists', async () => {
+    const onCreateRequest = vi.fn(async () => true);
     const scheduleEntryId = 'week-1-2026-06-24-morgan-blue-team-friday-8-pm';
     const stateWithExistingFemaleNeed: SubLotteryPublicState = {
       ...state,
@@ -183,25 +200,32 @@ describe('SubLotteryWorkspace', () => {
 
     expect(screen.getByLabelText('Number of female matching subs needed')).toHaveValue(1);
     expect(screen.queryByText(/already added/i)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add sub need' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add sub need' })).toBeEnabled());
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Add sub need' })));
 
-    expect(onCreateRequest).toHaveBeenCalledWith([{
+    expect(onCreateRequest).toHaveBeenCalledWith(expect.objectContaining({
       captainPin: '1234',
       scheduleEntryId,
-      pool: 'female',
-      slotsNeeded: 1,
-    }]);
+      needs: [{ pool: 'female', slotsNeeded: 1 }],
+      submissionId: expect.any(String),
+    }));
   });
 
-  test('lets captains cancel open requests before the draw with a PIN', () => {
+  test('confirms cancellation for the verified captain game', async () => {
     const onCancelRequest = vi.fn();
-
-    render(<SubLotteryWorkspace state={state} onCancelRequest={onCancelRequest} currentDate={new Date('2026-06-21T12:00:00.000Z')} />);
+    const ownState = { ...state, requests: [{ ...state.requests[0]!, scheduleEntryId: state.scheduleEntries[0]!.id }] };
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<SubLotteryWorkspace state={ownState} onCancelRequest={onCancelRequest} currentDate={new Date('2026-06-21T12:00:00.000Z')} />);
 
     fireEvent.change(screen.getByLabelText('Captain PIN'), { target: { value: '1234' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel request' }));
+    fireEvent.change(screen.getByLabelText('Captain name'), { target: { value: 'Morgan' } });
+    fireEvent.change(screen.getByLabelText('Scheduled game'), { target: { value: state.scheduleEntries[0]!.id } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel need' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel need' }));
 
     expect(onCancelRequest).toHaveBeenCalledWith({ requestId: 'req-1', captainPin: '1234' });
+    expect(confirm).toHaveBeenCalled();
+    confirm.mockRestore();
   });
 
 
@@ -216,6 +240,18 @@ describe('SubLotteryWorkspace', () => {
     expect(screen.getByText(/Waiting for the draw/)).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Need a sub' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Can sub' })).toBeInTheDocument();
+  });
+
+  test('shows the latest completed draw after the next captain week starts', () => {
+    const recentState: SubLotteryPublicState = {
+      ...state,
+      recentWeekStartDate: '2026-06-22',
+      recentRequests: [{ ...state.requests[0]!, id: 'previous-request', weekStartDate: '2026-06-22', status: 'assigned', assignedPlayerIds: ['alice'] }],
+    };
+    render(<SubLotteryWorkspace state={recentState} currentDate={new Date('2026-06-23T13:00:00.000Z')} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Results' }));
+    expect(screen.getByText(/Latest completed draw: week of June 22, 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Alice Green won the draw/)).toBeInTheDocument();
   });
 
 

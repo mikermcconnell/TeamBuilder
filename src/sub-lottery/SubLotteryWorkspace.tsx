@@ -1,17 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, CheckCircle2, Clock, Crown, GripVertical, Trash2, Trophy, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { formatCountdown, getSubLotteryCoins, getSubLotteryWorkflowState, getWorkflowScheduleWeekLabel, SUB_LOTTERY_TIME_ZONE } from './workflow';
 import type { SubLotteryPlayer, SubLotteryPool, SubLotteryPublicState, SubLotteryRequest } from './types';
+import { loadAccessStatus, requestAccessCode, verifyAccessCode } from './api';
+import type { SubLotteryIdentityKind } from './apiContracts';
+import { SubLotteryWeekWindows } from './SubLotteryWeekWindows';
 
 type SubLotteryTab = 'captain' | 'sub' | 'results';
 
 interface CreateRequestPayload {
   captainPin: string;
   scheduleEntryId: string;
-  pool: SubLotteryPool;
-  slotsNeeded: number;
+  submissionId: string;
+  needs: Array<{ pool: SubLotteryPool; slotsNeeded: number }>;
 }
 
 interface CancelRequestPayload {
@@ -22,11 +25,12 @@ interface UpdateRequestPayload extends CancelRequestPayload { pool: SubLotteryPo
 
 interface SubLotteryWorkspaceProps {
   state: SubLotteryPublicState;
-  onCreateRequest?: (payloads: CreateRequestPayload[]) => void;
+  onCreateRequest?: (payload: CreateRequestPayload) => Promise<boolean>;
   onMarkAvailable?: (requestId: string, playerId: string) => void;
   onUpdatePreferences?: (playerId: string, requestIds: string[]) => void;
   onCancelRequest?: (payload: CancelRequestPayload) => void;
-  onUpdateRequest?: (payload: UpdateRequestPayload) => void;
+  onUpdateRequest?: (payload: UpdateRequestPayload) => Promise<boolean>;
+  onRefresh?: () => void;
   isBusy?: boolean;
   currentDate?: Date;
   demoMode?: boolean;
@@ -88,6 +92,12 @@ function formatDeadline(iso: string | undefined): string {
   }).format(new Date(iso));
 }
 
+function formatWeekStart(date: string | undefined): string {
+  if (!date) return 'the previous week';
+  return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' })
+    .format(new Date(`${date}T12:00:00Z`));
+}
+
 export function SubLotteryWorkspace({
   state,
   onCreateRequest,
@@ -95,11 +105,12 @@ export function SubLotteryWorkspace({
   onUpdatePreferences,
   onCancelRequest,
   onUpdateRequest,
+  onRefresh,
   isBusy = false,
   currentDate = new Date(),
   demoMode = false,
 }: SubLotteryWorkspaceProps) {
-  const [selectedPlayerName, setSelectedPlayerName] = useState('');
+  const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [captainPin, setCaptainPin] = useState('');
   const [selectedCaptainName, setSelectedCaptainName] = useState('');
   const [selectedScheduleEntryId, setSelectedScheduleEntryId] = useState('');
@@ -109,6 +120,12 @@ export function SubLotteryWorkspace({
     female: '1',
   });
   const [selectedTab, setSelectedTab] = useState<SubLotteryTab | null>(null);
+  const [authorizedCaptainEntryId, setAuthorizedCaptainEntryId] = useState('');
+  const [editingRequestId, setEditingRequestId] = useState('');
+  const [editPool, setEditPool] = useState<SubLotteryPool>('open');
+  const [editSlots, setEditSlots] = useState('1');
+  const submissionRef = useRef({ id: crypto.randomUUID(), fingerprint: '' });
+  const authorizeCaptain = useCallback((id: string, verified: boolean) => setAuthorizedCaptainEntryId(verified ? id : ''), []);
 
   const activePlayers = useMemo(
     () => state.players.filter(player => player.active).sort((a, b) => a.name.localeCompare(b.name)),
@@ -133,10 +150,16 @@ export function SubLotteryWorkspace({
     [scheduleEntriesForWeek, selectedCaptainName]
   );
   const selectedScheduleEntry = scheduleEntriesForCaptain.find(entry => entry.id === selectedScheduleEntryId) ?? null;
+  const captainVerified = demoMode || Boolean(selectedScheduleEntry && authorizedCaptainEntryId === selectedScheduleEntry.id);
   const effectiveCaptainPin = demoMode ? 'testing' : captainPin;
   const isCaptainPhase = workflow.phase === 'captain';
   const isPlayerPhase = workflow.phase === 'player';
   const openRequests = state.requests.filter(request => request.status === 'open');
+  const ownOpenRequests = openRequests.filter(request => request.scheduleEntryId === selectedScheduleEntry?.id);
+  const hasCurrentResults = state.requests.some(request => request.status === 'assigned')
+    || (workflow.phase === 'results' && state.requests.some(request => request.status === 'void'));
+  const showingRecentResults = !hasCurrentResults && Boolean(state.recentRequests?.length);
+  const resultRequests = showingRecentResults ? state.recentRequests ?? [] : state.requests;
   const recommendedTab: SubLotteryTab = isCaptainPhase
     ? 'captain'
     : isPlayerPhase
@@ -160,7 +183,7 @@ export function SubLotteryWorkspace({
     }
   }, [scheduleEntriesForCaptain, selectedScheduleEntryId]);
 
-  const selectedPlayer = activePlayers.find(player => normalizeName(player.name) === normalizeName(selectedPlayerName));
+  const selectedPlayer = activePlayers.find(player => player.id === selectedPlayerId);
   const matchingOpenRequests = selectedPlayer
     ? openRequests.filter(request => request.pool === selectedPlayer.pool)
     : openRequests;
@@ -179,6 +202,8 @@ export function SubLotteryWorkspace({
         ? 'Choose the exact scheduled game.'
       : !selectedScheduleEntry
         ? 'Choose your captain name to load your game.'
+      : !captainVerified
+        ? 'Verify the email on your scheduled game before adding a need.'
       : selectedRequestPools.length === 0
         ? 'Choose open matching, female matching, or both.'
         : !slotsAreValid
@@ -188,16 +213,26 @@ export function SubLotteryWorkspace({
     .filter(entry => entry.requestId === request.id)
     .length;
 
-  const handleCreateRequest = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateRequest = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedScheduleEntry || selectedRequestPools.length === 0 || !slotsAreValid) return;
-    onCreateRequest?.(selectedRequestPools.map(pool => ({
+    if (!selectedScheduleEntry || !captainVerified || selectedRequestPools.length === 0 || !slotsAreValid) return;
+    const needs = selectedRequestPools.map(pool => ({ pool, slotsNeeded: Number(slotsNeededByPool[pool]) }));
+    const fingerprint = JSON.stringify([selectedScheduleEntry.id, needs]);
+    if (submissionRef.current.fingerprint !== fingerprint) submissionRef.current = { id: crypto.randomUUID(), fingerprint };
+    const saved = await onCreateRequest?.({
       captainPin: effectiveCaptainPin,
       scheduleEntryId: selectedScheduleEntry.id,
-      pool,
-      slotsNeeded: Number(slotsNeededByPool[pool]),
-    })));
+      submissionId: submissionRef.current.id,
+      needs,
+    });
+    if (saved) {
+      submissionRef.current = { id: crypto.randomUUID(), fingerprint: '' };
+      setSelectedRequestPools([]);
+      setSlotsNeededByPool({ open: '1', female: '1' });
+    }
   };
+
+  useEffect(() => { setSelectedTab(null); }, [workflow.phase, workflow.targetWeekStartDate]);
 
   return (
     <main className="min-h-[calc(100vh-6rem)] bg-[#f8f8f8] text-[#333333]">
@@ -210,8 +245,11 @@ export function SubLotteryWorkspace({
         <SubLotteryTabs
           activeTab={activeTab}
           workflow={workflow}
+          currentDate={currentDate}
           onSelect={setSelectedTab}
         />
+        <SubLotteryWeekWindows workflow={workflow} currentDate={currentDate} />
+        {!demoMode && onRefresh && <button type="button" onClick={onRefresh} className="self-end text-sm font-bold text-[#005288] underline">Refresh lottery</button>}
 
         {activeTab !== 'results' && (
         <div
@@ -237,36 +275,22 @@ export function SubLotteryWorkspace({
             </div>
 
             <div className="mb-5">
-              {demoMode ? (
-                <LabeledSelect
-                  label="Dummy player"
-                  value={selectedPlayerName}
-                  onChange={setSelectedPlayerName}
-                  placeholder="Choose a dummy player"
-                  options={activePlayers.map(player => ({
-                    value: player.name,
-                    label: `${player.name} · ${getPoolLabel(player.pool)}`,
-                  }))}
-                />
-              ) : (
-                <LabeledTypeahead
-                  label="Pick your name"
-                  listId="sub-player-suggestions"
-                  value={selectedPlayerName}
-                  onChange={setSelectedPlayerName}
-                  placeholder="Start typing your name"
-                  options={activePlayers.map(player => ({
-                    value: player.name,
-                    label: getPoolLabel(player.pool),
-                  }))}
-                  focusColor="emerald"
-                />
-              )}
+              <LabeledSelect
+                label={demoMode ? 'Dummy player' : 'Pick your name'}
+                value={selectedPlayerId}
+                onChange={setSelectedPlayerId}
+                placeholder={demoMode ? 'Choose a dummy player' : 'Choose your name'}
+                options={activePlayers.map(player => ({
+                  value: player.id,
+                  label: `${player.name} · ${getPoolLabel(player.pool)}`,
+                }))}
+              />
             </div>
+            <p className="mb-5 text-sm font-semibold text-zinc-600">Choose your own name. Your entry and rankings will be saved under that name.</p>
 
             <div className="space-y-3">
               <div className="rounded-2xl border-2 border-amber-100 bg-amber-50 p-3 text-xs font-bold text-amber-800">
-                Rank every game you can play. Reorder or remove choices any time before entries close. You can win only one game this week.
+                Rank every game you can play. Reorder or remove choices before entries close. You can win only one game this week. If you win, you are assigned to that game and emailed; there is no acceptance step.
               </div>
               {selectedPlayer && rankedEntries.length > 0 && (
                 <div className="rounded-3xl border-2 border-emerald-200 bg-emerald-50 p-4">
@@ -278,9 +302,9 @@ export function SubLotteryWorkspace({
                       const move = (nextIndex: number) => { const ids = [...rankedRequestIds]; const [id] = ids.splice(index, 1); ids.splice(nextIndex, 0, id!); saveRanked(ids); };
                       return <li key={entry.requestId} draggable onDragStart={event => event.dataTransfer.setData('text/plain', String(index))} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); const source = Number(event.dataTransfer.getData('text/plain')); const ids = [...rankedRequestIds]; const [id] = ids.splice(source, 1); if (id) { ids.splice(index, 0, id); saveRanked(ids); } }} className="flex items-center gap-2 rounded-2xl bg-white p-3 font-bold">
                         <GripVertical className="h-4 w-4 text-zinc-400" /><span className="w-6 text-emerald-700">{index + 1}.</span><span className="min-w-0 flex-1">{request.teamName} · {request.gameLabel}</span>
-                        <button aria-label={`Move ${request.teamName} up`} disabled={index === 0 || isBusy} onClick={() => move(index - 1)} className="p-2 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
-                        <button aria-label={`Move ${request.teamName} down`} disabled={index === rankedEntries.length - 1 || isBusy} onClick={() => move(index + 1)} className="p-2 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
-                        <button aria-label={`Remove ${request.teamName}`} disabled={isBusy} onClick={() => saveRanked(rankedRequestIds.filter(id => id !== entry.requestId))} className="p-2 text-red-600"><Trash2 className="h-4 w-4" /></button>
+                        <button type="button" aria-label={`Move ${request.teamName} up`} disabled={index === 0 || isBusy} onClick={() => move(index - 1)} className="p-2 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                        <button type="button" aria-label={`Move ${request.teamName} down`} disabled={index === rankedEntries.length - 1 || isBusy} onClick={() => move(index + 1)} className="p-2 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                        <button type="button" aria-label={`Remove ${request.teamName}`} disabled={isBusy} onClick={() => saveRanked(rankedRequestIds.filter(id => id !== entry.requestId))} className="p-2 text-red-600 disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>
                       </li>;
                     })}
                   </ol>
@@ -362,7 +386,7 @@ export function SubLotteryWorkspace({
                   Testing uses dummy captains, so no captain PIN is required.
                 </div>
               ) : (
-                <LabeledInput label="Captain PIN" value={captainPin} onChange={setCaptainPin} />
+                <LabeledInput label="Captain PIN" value={captainPin} onChange={setCaptainPin} type="password" />
               )}
               <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-4 text-sm font-black text-emerald-800">
                 Game week: {currentWeekLabel ?? 'No games found for this week'}
@@ -371,7 +395,7 @@ export function SubLotteryWorkspace({
                 <LabeledSelect
                   label="Dummy captain"
                   value={selectedCaptainName}
-                  onChange={setSelectedCaptainName}
+                  onChange={(value) => { setSelectedCaptainName(value); setAuthorizedCaptainEntryId(''); }}
                   placeholder="Choose a dummy captain"
                   options={captainOptions.map(name => ({ value: name, label: name }))}
                 />
@@ -380,7 +404,7 @@ export function SubLotteryWorkspace({
                   label="Captain name"
                   listId="captain-name-suggestions"
                   value={selectedCaptainName}
-                  onChange={setSelectedCaptainName}
+                  onChange={(value) => { setSelectedCaptainName(value); setAuthorizedCaptainEntryId(''); }}
                   placeholder="Start typing captain name"
                   options={captainOptions.map(name => ({ value: name }))}
                   focusColor="sky"
@@ -390,7 +414,7 @@ export function SubLotteryWorkspace({
                 <LabeledSelect
                   label="Scheduled game"
                   value={selectedScheduleEntryId}
-                  onChange={setSelectedScheduleEntryId}
+                  onChange={(value) => { setSelectedScheduleEntryId(value); setAuthorizedCaptainEntryId(''); }}
                   options={scheduleEntriesForCaptain.map(entry => ({
                     value: entry.id,
                     label: `${entry.teamName} · ${entry.gameLabel}`,
@@ -401,6 +425,9 @@ export function SubLotteryWorkspace({
                 <ReadOnlyField label="Team name" value={selectedScheduleEntry?.teamName ?? ''} />
                 <ReadOnlyField label="Game time" value={selectedScheduleEntry?.gameLabel ?? ''} />
               </div>
+              {!demoMode && selectedScheduleEntry && captainPin && (
+                <IdentityVerification kind="captain" subjectId={selectedScheduleEntry.id} captainPin={captainPin} onVerified={authorizeCaptain} />
+              )}
               <PoolCheckboxes
                 selectedPools={selectedRequestPools}
                 onToggle={(pool) => setSelectedRequestPools(current => current.includes(pool)
@@ -410,21 +437,25 @@ export function SubLotteryWorkspace({
               {selectedRequestPools.length > 0 && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {selectedRequestPools.map(pool => (
-                    <LabeledInput
-                      key={pool}
-                      label={`Number of ${getPoolLabel(pool).toLowerCase()} subs needed`}
-                      value={slotsNeededByPool[pool]}
-                      onChange={(value) => setSlotsNeededByPool(current => ({ ...current, [pool]: value }))}
-                      type="number"
-                      min={1}
-                    />
+                    <div key={pool}>
+                      <LabeledInput
+                        label={`Number of ${getPoolLabel(pool).toLowerCase()} subs needed`}
+                        value={slotsNeededByPool[pool]}
+                        onChange={(value) => setSlotsNeededByPool(current => ({ ...current, [pool]: value }))}
+                        type="number"
+                        min={1}
+                      />
+                      {ownOpenRequests.some(request => request.pool === pool) && (
+                        <p className="mt-2 text-sm font-semibold text-sky-800">This game already has {ownOpenRequests.find(request => request.pool === pool)?.slotsNeeded ?? 1} {getPoolLabel(pool).toLowerCase()} requested. Submitting adds more spots.</p>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
 
               <button
                 type="submit"
-                disabled={isBusy || !isCaptainPhase || (!demoMode && !captainPin) || !selectedScheduleEntry || selectedRequestPools.length === 0 || !slotsAreValid}
+                disabled={isBusy || !isCaptainPhase || !captainVerified || !selectedScheduleEntry || selectedRequestPools.length === 0 || !slotsAreValid}
                 className="mt-1 rounded-2xl border-2 border-[#005288] bg-[#0071bb] px-5 py-4 text-base font-black text-white shadow-[0_4px_0_#005288] transition hover:-translate-y-0.5 hover:bg-[#0062a2] active:translate-y-0 active:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none"
               >
                 {!isCaptainPhase
@@ -439,14 +470,14 @@ export function SubLotteryWorkspace({
                 </div>
               )}
             </form>
-            {openRequests.length > 0 && (
+            {selectedScheduleEntry && ownOpenRequests.length > 0 && (
               <div className="mt-6 rounded-3xl border-2 border-zinc-200 bg-zinc-50 p-4">
-                <h3 className="text-lg font-black text-zinc-800">Open sub needs</h3>
+                <h3 className="text-lg font-black text-zinc-800">Sub needs for this game</h3>
                 <p className="mb-3 text-sm font-bold text-zinc-500">
-                  {demoMode ? 'Testing requests can be edited or cancelled without the live captain PIN.' : 'Use your captain PIN above if you need to cancel a request before the draw.'}
+                  {demoMode ? 'Testing requests can be edited or cancelled.' : 'Verify your game email above to edit or cancel before the captain deadline.'}
                 </p>
                 <div className="grid gap-3 md:grid-cols-2">
-                  {openRequests.map(request => {
+                  {ownOpenRequests.map(request => {
                     const canCancel = !request.drawAt || currentDate.getTime() < new Date(request.drawAt).getTime();
                     return (
                       <article key={request.id} className="rounded-2xl border-2 border-zinc-200 bg-white p-3">
@@ -455,23 +486,39 @@ export function SubLotteryWorkspace({
                           {request.weekLabel ? `${request.weekLabel} · ` : ''}{request.gameLabel} · {getPoolLabel(request.pool)} · {request.slotsNeeded ?? 1} needed
                         </div>
                         {canCancel && (
-                      <div className="flex gap-2">
-                      <button type="button" disabled={isBusy || !canCancel} onClick={() => {
-                        const quantity = Number(window.prompt('How many subs are needed?', String(request.slotsNeeded ?? 1)));
-                        if (!Number.isInteger(quantity) || quantity < 1) return;
-                        const pool = window.prompt('Pool: open or female', request.pool)?.toLowerCase();
-                        if (pool !== 'open' && pool !== 'female') return;
-                        onUpdateRequest?.({ requestId: request.id, captainPin: effectiveCaptainPin, slotsNeeded: quantity, pool });
-                      }} className="rounded-xl border-2 border-sky-600 px-3 py-2 text-xs font-black text-sky-700">Edit</button>
-                      <button
-                        type="button"
-                            disabled={isBusy || !effectiveCaptainPin}
-                            onClick={() => onCancelRequest?.({ requestId: request.id, captainPin: effectiveCaptainPin })}
-                            className="mt-3 rounded-2xl border-2 border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                        Cancel request
-                      </button>
-                      </div>
+                          <div className="mt-3 space-y-3">
+                            <div className="flex gap-2">
+                              <button type="button" disabled={isBusy || !captainVerified} onClick={() => {
+                                setEditingRequestId(request.id); setEditPool(request.pool); setEditSlots(String(request.slotsNeeded ?? 1));
+                              }} className="rounded-xl border-2 border-sky-600 px-3 py-2 text-sm font-black text-sky-700 disabled:opacity-40">Edit need</button>
+                              <button type="button" disabled={isBusy || !captainVerified} onClick={() => {
+                                if (window.confirm(`Cancel the ${getPoolLabel(request.pool).toLowerCase()} need for ${request.teamName} at ${request.gameLabel}?`)) {
+                                  onCancelRequest?.({ requestId: request.id, captainPin: effectiveCaptainPin });
+                                }
+                              }} className="rounded-xl border-2 border-red-200 px-3 py-2 text-sm font-black text-red-700 disabled:opacity-40">Cancel need</button>
+                            </div>
+                            {editingRequestId === request.id && (
+                              <form onSubmit={async event => {
+                                event.preventDefault();
+                                const slotsNeeded = Number(editSlots);
+                                if (!Number.isInteger(slotsNeeded) || slotsNeeded < 1) return;
+                                if (await onUpdateRequest?.({ requestId: request.id, captainPin: effectiveCaptainPin, pool: editPool, slotsNeeded })) setEditingRequestId('');
+                              }} className="grid gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3 sm:grid-cols-2">
+                                <label className="text-sm font-bold">Matching pool
+                                  <select value={editPool} onChange={event => setEditPool(event.target.value as SubLotteryPool)} className="mt-1 block w-full rounded-lg border p-2">
+                                    <option value="open">Open matching</option><option value="female">Female matching</option>
+                                  </select>
+                                </label>
+                                <label className="text-sm font-bold">Subs needed
+                                  <input type="number" min="1" step="1" value={editSlots} onChange={event => setEditSlots(event.target.value)} className="mt-1 block w-full rounded-lg border p-2" />
+                                </label>
+                                <div className="flex gap-2 sm:col-span-2">
+                                  <button type="submit" disabled={isBusy || !captainVerified || !Number.isInteger(Number(editSlots)) || Number(editSlots) < 1} className="rounded-lg bg-[#0071bb] px-3 py-2 font-bold text-white disabled:opacity-40">Save change</button>
+                                  <button type="button" onClick={() => setEditingRequestId('')} className="rounded-lg border px-3 py-2 font-bold">Keep current need</button>
+                                </div>
+                              </form>
+                            )}
+                          </div>
                         )}
                       </article>
                     );
@@ -507,7 +554,9 @@ export function SubLotteryWorkspace({
             <div>
               <h2 id="sub-lottery-results-heading" className="text-2xl font-black text-zinc-950">Results</h2>
               <p className="font-semibold text-zinc-500">
-                {workflow.phase === 'results'
+                {showingRecentResults
+                  ? `Latest completed draw: week of ${formatWeekStart(state.recentWeekStartDate)}. New requests appear in the captain and sub tabs.`
+                  : workflow.phase === 'results'
                   ? 'See which subs were assigned after the Monday draw.'
                   : workflow.phase === 'lottery'
                     ? 'The draw is running now. Results will appear here shortly.'
@@ -517,8 +566,7 @@ export function SubLotteryWorkspace({
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            {state.requests.map(request => {
-              const canCancel = request.status === 'open' && (!request.drawAt || currentDate.getTime() < new Date(request.drawAt).getTime());
+            {resultRequests.map(request => {
               return (
               <article key={request.id} className="rounded-3xl border-2 border-zinc-200 bg-zinc-50 p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -543,22 +591,13 @@ export function SubLotteryWorkspace({
                     <div className="mt-1 text-xs font-bold text-zinc-500">Cancelled {formatDeadline(request.cancelledAt)}</div>
                   )}
                 </div>
-                {canCancel && (
-                  <button
-                    type="button"
-                    disabled={isBusy || !effectiveCaptainPin}
-                    onClick={() => onCancelRequest?.({ requestId: request.id, captainPin: effectiveCaptainPin })}
-                    className="mt-3 rounded-2xl border-2 border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Cancel request
-                  </button>
-                )}
               </article>
               );
             })}
           </div>
+          {resultRequests.length === 0 && <p className="rounded-2xl bg-zinc-50 p-4 font-semibold text-zinc-600">No draw results are available yet. Check back after Monday’s draw.</p>}
           <p className="mt-4 rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
-            Lottery note: every sub player starts with 5 coins. Each time they sub, they use 1 coin. Everyone always keeps at least 1 coin, so everyone still has a chance.
+            Lottery note: every sub player starts with 5 coins. Each draw they win uses 1 coin. Everyone always keeps at least 1 coin, so everyone still has a chance.
           </p>
         </section>
         )}
@@ -591,10 +630,12 @@ export function SubLotteryWorkspace({
 function SubLotteryTabs({
   activeTab,
   workflow,
+  currentDate,
   onSelect,
 }: {
   activeTab: SubLotteryTab;
   workflow: ReturnType<typeof getSubLotteryWorkflowState>;
+  currentDate: Date;
   onSelect: (tab: SubLotteryTab) => void;
 }) {
   const tabs: Array<{ id: SubLotteryTab; label: string; icon: typeof Crown }> = [
@@ -612,7 +653,7 @@ function SubLotteryTabs({
         </div>
         <div className="shrink-0 rounded-lg bg-[#eef8ff] px-3 py-2 text-right text-[#005288]">
           <p className="text-xs font-bold">Time remaining</p>
-          <p className="text-base font-black leading-tight">{formatCountdown(workflow.nextDeadlineAt)}</p>
+          <p className="text-base font-black leading-tight">{formatCountdown(workflow.nextDeadlineAt, currentDate)}</p>
         </div>
       </div>
 
@@ -641,6 +682,59 @@ function SubLotteryTabs({
         })}
       </div>
     </section>
+  );
+}
+
+function IdentityVerification({ kind, subjectId, captainPin, onVerified }: {
+  kind: SubLotteryIdentityKind;
+  subjectId: string;
+  captainPin?: string;
+  onVerified: (subjectId: string, verified: boolean) => void;
+}) {
+  const [verified, setVerified] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    setVerified(false);
+    setSent(false);
+    setCode('');
+    setError('');
+    void loadAccessStatus({ kind, subjectId }).then(result => {
+      if (active) { setVerified(result.verified); onVerified(subjectId, result.verified); }
+    }).catch(() => { if (active) setError('Could not check your verification. You can request a new code.'); });
+    return () => { active = false; };
+  }, [kind, subjectId, onVerified]);
+
+  const label = kind === 'player' ? 'player' : 'captain';
+  return (
+    <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4 text-sm" aria-live="polite">
+      <div className="font-black">{verified ? `Your ${label} email is verified for this session` : `Verify your ${label} email`}</div>
+      {!verified && <>
+        <p className="mt-1 font-semibold">We will send a six-digit code to the email on file for this {label}. Verification is needed before you can change lottery entries.</p>
+        <button type="button" disabled={busy} onClick={async () => {
+          setBusy(true); setError('');
+          try { await requestAccessCode({ kind, subjectId, captainPin }); setSent(true); }
+          catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Code could not be sent.'); }
+          finally { setBusy(false); }
+        }} className="mt-3 rounded-xl border-2 border-emerald-700 bg-white px-3 py-2 font-black text-emerald-800 disabled:opacity-40">{sent ? 'Send a new code' : 'Email me a code'}</button>
+        {sent && <form onSubmit={async event => {
+          event.preventDefault(); setBusy(true); setError('');
+          try { await verifyAccessCode({ kind, subjectId, code }); setVerified(true); onVerified(subjectId, true); }
+          catch (verifyError) { setError(verifyError instanceof Error ? verifyError.message : 'Code could not be verified.'); }
+          finally { setBusy(false); }
+        }} className="mt-3 flex flex-wrap items-end gap-2">
+          <label className="font-bold">Email code
+            <input value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" className="mt-1 block w-36 rounded-lg border p-2" />
+          </label>
+          <button type="submit" disabled={busy || code.length !== 6} className="rounded-xl bg-emerald-700 px-3 py-2 font-black text-white disabled:opacity-40">Verify code</button>
+        </form>}
+      </>}
+      {error && <p role="alert" className="mt-2 font-bold text-red-700">{error}</p>}
+    </div>
   );
 }
 

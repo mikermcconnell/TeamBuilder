@@ -95,6 +95,7 @@ SUB_LOTTERY_PUBLIC_URL=https://teambuilder-mu.vercel.app/sub-lottery
 SUB_LOTTERY_TEST_EMAIL_TO=barrieultimatesubs@gmail.com
 SUB_LOTTERY_CAPTAIN_PIN=...
 SUB_LOTTERY_ADMIN_PIN=...
+SUB_LOTTERY_SESSION_SECRET=... # optional; defaults to SUB_LOTTERY_ADMIN_PIN for signed player/captain sessions
 CRON_SECRET=...
 ```
 
@@ -148,6 +149,7 @@ The `Email` column is required. Player history is matched by normalized email wi
 Sub-lottery schedule CSVs require `Week,Date,Captain,Captain Email,Team,Game Time`. The app derives the active Monday week automatically from the game date in `America/Toronto`.
 
 Sub-lottery operations are available at `/sub-lottery/admin` through a short-lived secure admin session.
+Sub players choose their roster name to enter and rank games; no email code is needed. Captains verify the email on their scheduled game before changing live sub needs. Captain verification codes expire after 10 minutes. The page keeps the most recent completed week's results visible while the next week opens. Saved testing controls are linked from the admin dashboard.
 
 ## AI routes
 

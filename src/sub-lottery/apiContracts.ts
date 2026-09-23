@@ -20,9 +20,14 @@ export interface CreateSubRequestRequest {
   seasonId?: string;
   captainPin: string;
   scheduleEntryId: string;
-  pool: SubLotteryPool;
-  slotsNeeded: number;
+  submissionId: string;
+  needs: Array<{ pool: SubLotteryPool; slotsNeeded: number }>;
 }
+
+export type SubLotteryIdentityKind = 'player' | 'captain';
+export interface RequestAccessCodeRequest { kind: SubLotteryIdentityKind; subjectId: string; captainPin?: string }
+export interface VerifyAccessCodeRequest { kind: SubLotteryIdentityKind; subjectId: string; code: string }
+export interface AccessStatusRequest { kind: SubLotteryIdentityKind; subjectId: string }
 
 export interface MarkAvailabilityRequest {
   requestId: string;

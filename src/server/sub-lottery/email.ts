@@ -136,6 +136,30 @@ export async function sendWinnerEmail(notification: SubLotteryWinnerEmailNotific
   return sendWinnerEmailWithResend(notification);
 }
 
+export async function sendAccessCodeEmail(to: string, code: string): Promise<void> {
+  const from = process.env.SUB_LOTTERY_EMAIL_FROM?.trim();
+  if (!from) throw new Error('Email verification is unavailable. Contact the league administrator.');
+  const subject = 'Barrie Ultimate League sub lottery sign-in code';
+  const text = `Your sub lottery verification code is ${code}. It expires in 10 minutes. If you did not request it, ignore this email.`;
+  if (isSmtpConfigured()) {
+    const port = Number(process.env.SMTP_PORT);
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST, port, secure: port === 465,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+    await transporter.sendMail({ from, to, subject, text });
+    return;
+  }
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) throw new Error('Email verification is unavailable. Contact the league administrator.');
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, to: [to], subject, text }),
+  });
+  if (!response.ok) throw new Error('Verification email could not be sent. Please try again.');
+}
+
 function isSmtpConfigured(): boolean {
   return Boolean(
     process.env.SMTP_HOST?.trim()

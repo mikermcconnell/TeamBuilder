@@ -24,6 +24,9 @@ import type {
   UpdateSubRequestResponse,
   RespondToAssignmentRequest,
   AdminOperationsResponse,
+  AccessStatusRequest,
+  RequestAccessCodeRequest,
+  VerifyAccessCodeRequest,
 } from './apiContracts';
 
 async function postJson<TBody, TData>(url: string, body: TBody): Promise<TData> {
@@ -53,6 +56,18 @@ async function postJson<TBody, TData>(url: string, body: TBody): Promise<TData> 
 
 export function loadSubLotteryState(body: LoadPublicStateRequest = {}): Promise<LoadPublicStateResponse> {
   return postJson<LoadPublicStateRequest, LoadPublicStateResponse>('/api/sub-lottery/public-state', body);
+}
+
+export function requestAccessCode(body: RequestAccessCodeRequest): Promise<{ sent: true }> {
+  return postJson('/api/sub-lottery/request-access-code', body);
+}
+
+export function verifyAccessCode(body: VerifyAccessCodeRequest): Promise<{ verified: true }> {
+  return postJson('/api/sub-lottery/verify-access-code', body);
+}
+
+export function loadAccessStatus(body: AccessStatusRequest): Promise<{ verified: boolean }> {
+  return postJson('/api/sub-lottery/access-status', body);
 }
 
 export function createCaptainRequest(body: CreateSubRequestRequest): Promise<CreateSubRequestResponse> {

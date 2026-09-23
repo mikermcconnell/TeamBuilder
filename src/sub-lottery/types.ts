@@ -146,6 +146,8 @@ export interface SubLotteryPublicState {
   weekStartDate?: string;
   players: SubLotteryPlayer[];
   requests: SubLotteryRequest[];
+  recentRequests?: SubLotteryRequest[];
+  recentWeekStartDate?: string;
   availability: SubLotteryAvailability[];
   scheduleEntries: SubLotteryScheduleEntry[];
   assignments: SubLotteryAssignment[];

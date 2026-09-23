@@ -29,6 +29,7 @@ const COLLECTIONS = {
   winnerEmails: 'subLotteryWinnerEmails',
   draws: 'subLotteryDraws',
   audit: 'subLotteryAudit',
+  submissions: 'subLotterySubmissions',
 } as const;
 
 const DEFAULT_SEASON_ID = 'default-season';
@@ -69,6 +70,7 @@ function sortState(state: SubLotteryPublicState): SubLotteryPublicState {
     ...state,
     players: [...state.players].sort((a, b) => a.name.localeCompare(b.name)),
     requests: [...state.requests].sort((a, b) => b.openedAt.localeCompare(a.openedAt)),
+    recentRequests: [...(state.recentRequests ?? [])].sort((a, b) => b.openedAt.localeCompare(a.openedAt)),
     availability: [...state.availability].sort((a, b) => a.enteredAt.localeCompare(b.enteredAt)),
     scheduleEntries: [...state.scheduleEntries].sort((a, b) => (
       `${a.weekLabel} ${a.gameLabel} ${a.captainName}`.localeCompare(`${b.weekLabel} ${b.gameLabel} ${b.captainName}`)
@@ -111,6 +113,10 @@ export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise
   const storedWeek = seasonDoc.data()?.weekStartDate as string | undefined;
   const weekStartDate = isTestingSeason(seasonId) && storedWeek ? storedWeek : getSubLotteryWorkflowState().targetWeekStartDate;
   const requests = requestsSnapshot.docs.map(doc => dataWithId<SubLotteryRequest>(doc)).filter(request => !request.weekStartDate || request.weekStartDate === weekStartDate);
+  const completedPastRequests = requestsSnapshot.docs.map(doc => dataWithId<SubLotteryRequest>(doc))
+    .filter(request => request.weekStartDate && request.weekStartDate < weekStartDate && request.status !== 'open');
+  const recentWeekStartDate = completedPastRequests.map(request => request.weekStartDate).sort().at(-1);
+  const recentRequests = completedPastRequests.filter(request => request.weekStartDate === recentWeekStartDate);
   const requestIds = new Set(requests.map(request => request.id));
   const receipts: SubLotteryPublicReceipt[] = drawsSnapshot.docs.map(doc => dataWithId<SubLotteryDrawRecord>(doc))
     .filter(draw => draw.weekStartDate === weekStartDate)
@@ -121,6 +127,8 @@ export async function loadPublicSubLotteryState(seasonIdInput?: string): Promise
     weekStartDate,
     players: playersSnapshot.docs.map(doc => toPublicPlayer(dataWithId<SubLotteryPlayer>(doc))),
     requests,
+    recentRequests,
+    recentWeekStartDate,
     availability: availabilitySnapshot.docs.map(doc => dataWithId<SubLotteryAvailability>(doc)).filter(entry => requestIds.has(entry.requestId)),
     scheduleEntries: scheduleSnapshot.docs.map(doc => dataWithId<SubLotteryScheduleEntry>(doc)).filter(entry => !entry.weekStartDate || entry.weekStartDate === weekStartDate),
     assignments: assignmentsSnapshot.docs.map(doc => dataWithId<SubLotteryAssignment>(doc)).filter(entry => !entry.weekStartDate || entry.weekStartDate === weekStartDate),
@@ -144,14 +152,11 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
   if (scheduleEntry.seasonId !== seasonId || !scheduleEntry.active) {
     throw new Error('Schedule entry is not active for this season.');
   }
-  if (input.pool !== 'open' && input.pool !== 'female') {
-    throw new Error('Choose open matching or female matching.');
-  }
-  const requestedSlots = Number(input.slotsNeeded);
-  if (!Number.isInteger(requestedSlots) || requestedSlots < 1) {
-    throw new Error('Choose a whole number of subs needed.');
-  }
-  const slotsNeeded = requestedSlots;
+  if (!input.submissionId || !/^[a-zA-Z0-9-]{8,80}$/.test(input.submissionId)) throw new Error('Invalid submission. Please try again.');
+  if (!Array.isArray(input.needs) || input.needs.length < 1 || input.needs.length > 2) throw new Error('Choose the kinds of subs you need.');
+  const pools = input.needs.map(need => need.pool);
+  if (new Set(pools).size !== pools.length || pools.some(pool => pool !== 'open' && pool !== 'female')) throw new Error('Choose each matching pool once.');
+  if (input.needs.some(need => !Number.isInteger(need.slotsNeeded) || need.slotsNeeded < 1)) throw new Error('Choose a whole number of subs needed.');
   if (!scheduleEntry.gameDate) {
     throw new Error('Schedule entry needs a game date.');
   }
@@ -160,57 +165,44 @@ export async function createSubRequest(input: CreateSubRequestRequest): Promise<
     throw new Error('Captain requests are closed for this week.');
   }
 
-  const existingRequest = await db
-    .collection(COLLECTIONS.requests)
+  const existing = await Promise.all(input.needs.map(need => db.collection(COLLECTIONS.requests)
     .where('seasonId', '==', seasonId)
     .where('scheduleEntryId', '==', scheduleEntry.id)
-    .where('pool', '==', input.pool)
+    .where('pool', '==', need.pool)
     .where('status', '==', 'open')
-    .limit(1)
-    .get();
-
-  if (!existingRequest.empty) {
-    const existingRequestRef = existingRequest.docs[0]!.ref;
-    await db.runTransaction(async transaction => {
-      const latestRequestDoc = await transaction.get(existingRequestRef);
-      if (!latestRequestDoc.exists) {
-        throw new Error('The existing sub need could not be found. Please try again.');
+    .limit(1).get()));
+  const refs = input.needs.map((need, index) => existing[index]!.docs[0]?.ref
+    ?? db.collection(COLLECTIONS.requests).doc(seasonScopedId(seasonId, `${scheduleEntry.id}:${need.pool}`)));
+  const submissionRef = db.collection(COLLECTIONS.submissions).doc(seasonScopedId(seasonId, input.submissionId));
+  await db.runTransaction(async transaction => {
+    const [submissionDoc, ...requestDocs] = await Promise.all([
+      transaction.get(submissionRef),
+      ...refs.map(ref => transaction.get(ref)),
+    ]);
+    if (submissionDoc.exists) return;
+    const now = new Date().toISOString();
+    input.needs.forEach((need, index) => {
+      const requestDoc = requestDocs[index]!;
+      const ref = refs[index]!;
+      if (requestDoc.exists) {
+        const latest = dataWithId<SubLotteryRequest>(requestDoc);
+        if (latest.status !== 'open') throw new Error('This sub need is no longer open. Refresh and try again.');
+        transaction.update(ref, { slotsNeeded: (latest.slotsNeeded ?? 1) + need.slotsNeeded, updatedAt: now });
+      } else {
+        const request: SubLotteryRequest = {
+          id: ref.id, seasonId, weekStartDate: getWeekStartDateForGameDate(scheduleEntry.gameDate!),
+          captainName: scheduleEntry.captainName, teamName: scheduleEntry.teamName,
+          gameLabel: scheduleEntry.gameLabel, pool: need.pool, slotsNeeded: need.slotsNeeded,
+          status: 'open', openedAt: now, closesAt: deadlines.availabilityClosesAt,
+          availabilityOpensAt: deadlines.availabilityOpensAt,
+          availabilityClosesAt: deadlines.availabilityClosesAt, drawAt: deadlines.drawAt,
+          assignedPlayerIds: [], scheduleEntryId: scheduleEntry.id, weekLabel: scheduleEntry.weekLabel, updatedAt: now,
+        };
+        transaction.set(ref, request);
       }
-      const latestRequest = dataWithId<SubLotteryRequest>(latestRequestDoc);
-      if (latestRequest.status !== 'open') {
-        throw new Error('The existing sub need is no longer open. Please refresh and try again.');
-      }
-      transaction.update(existingRequestRef, {
-        slotsNeeded: (latestRequest.slotsNeeded ?? 1) + slotsNeeded,
-      });
     });
-    return loadPublicSubLotteryState(seasonId);
-  }
-
-  const requestRef = db.collection(COLLECTIONS.requests).doc();
-  const now = new Date().toISOString();
-  const request: SubLotteryRequest = {
-    id: requestRef.id,
-    seasonId,
-    weekStartDate: getWeekStartDateForGameDate(scheduleEntry.gameDate),
-    captainName: scheduleEntry.captainName,
-    teamName: scheduleEntry.teamName,
-    gameLabel: scheduleEntry.gameLabel,
-    pool: input.pool,
-    slotsNeeded,
-    status: 'open',
-    openedAt: now,
-    closesAt: deadlines.availabilityClosesAt,
-    availabilityOpensAt: deadlines.availabilityOpensAt,
-    availabilityClosesAt: deadlines.availabilityClosesAt,
-    drawAt: deadlines.drawAt,
-    assignedPlayerIds: [],
-    scheduleEntryId: scheduleEntry.id,
-    weekLabel: scheduleEntry.weekLabel,
-    updatedAt: now,
-  };
-
-  await requestRef.set(request);
+    transaction.set(submissionRef, { seasonId, submissionId: input.submissionId, scheduleEntryId: scheduleEntry.id, createdAt: now });
+  });
   return loadPublicSubLotteryState(seasonId);
 }
 
@@ -262,7 +254,7 @@ export async function markPlayerAvailable(requestId: string, playerId: string): 
     if (availabilityDoc.exists) return;
 
     const request = dataWithId<SubLotteryRequest>(requestDoc);
-    const player = dataWithId<SubLotteryPlayer>(playerDoc);
+    const player = dataWithId<SubLotteryPlayer & { seasonId: string }>(playerDoc);
     seasonId = request.seasonId;
 
     if (request.status !== 'open') throw new Error('This request is no longer open.');
@@ -273,7 +265,9 @@ export async function markPlayerAvailable(requestId: string, playerId: string): 
     if (!isTestingSeason(request.seasonId) && request.availabilityClosesAt && now.getTime() > new Date(request.availabilityClosesAt).getTime()) {
       throw new Error('Player entries are closed.');
     }
-    if (!player.active || player.pool !== request.pool) throw new Error('This player is not eligible for this request.');
+    if (!player.active || player.pool !== request.pool || player.seasonId !== request.seasonId) {
+      throw new Error('This player is not eligible for this request.');
+    }
 
     transaction.set(availabilityRef, {
       requestId,
@@ -754,21 +748,36 @@ export async function updatePlayerPreferences(input: { playerId: string; request
   const playerDoc = await db.collection(COLLECTIONS.players).doc(input.playerId).get();
   if (!playerDoc.exists) throw new Error('Player not found.');
   const player = dataWithId<SubLotteryPlayer & { seasonId: string }>(playerDoc);
-  const uniqueIds = [...new Set(input.requestIds)];
-  const requestDocs = await Promise.all(uniqueIds.map(id => db.collection(COLLECTIONS.requests).doc(id).get()));
+  if (!player.active) throw new Error('This player is no longer active. Refresh the page.');
   const now = new Date();
-  requestDocs.forEach(doc => {
-    const request = doc.exists ? dataWithId<SubLotteryRequest>(doc) : null;
-    if (!request || request.seasonId !== player.seasonId || request.status !== 'open' || request.pool !== player.pool) throw new Error('One or more preferences are not eligible.');
-    if (!isTestingSeason(request.seasonId) && request.availabilityClosesAt && now > new Date(request.availabilityClosesAt)) throw new Error('Player entries are closed.');
-  });
+  const testing = isTestingSeason(player.seasonId);
+  const workflow = getSubLotteryWorkflowState(now);
+  if (!testing && workflow.phase !== 'player') throw new Error('Player entries are closed.');
+  const weekStartDate = testing ? player.seasonId.slice('testing-'.length) : workflow.targetWeekStartDate;
+  const uniqueIds = [...new Set(input.requestIds)];
   const existing = await db.collection(COLLECTIONS.availability).where('seasonId', '==', player.seasonId).get();
   const own = existing.docs.filter(doc => doc.data().playerId === input.playerId);
+  const requestIdsToLoad = [...new Set([...uniqueIds, ...own.map(doc => String(doc.data().requestId))])];
+  const requestDocs = await Promise.all(requestIdsToLoad.map(id => db.collection(COLLECTIONS.requests).doc(id).get()));
+  const requestsById = new Map(requestDocs.filter(doc => doc.exists).map(doc => [doc.id, dataWithId<SubLotteryRequest>(doc)]));
+  const isEditable = (request: SubLotteryRequest | undefined) => Boolean(
+    request
+    && request.seasonId === player.seasonId
+    && request.weekStartDate === weekStartDate
+    && request.status === 'open'
+    && request.pool === player.pool
+    && (testing || (
+      (!request.availabilityOpensAt || now >= new Date(request.availabilityOpensAt))
+      && (!request.availabilityClosesAt || now <= new Date(request.availabilityClosesAt))
+    ))
+  );
+  if (uniqueIds.some(id => !isEditable(requestsById.get(id)))) throw new Error('One or more preferences are not eligible.');
+  const editableOwn = own.filter(doc => isEditable(requestsById.get(String(doc.data().requestId))));
   const batch = db.batch();
-  own.filter(doc => !uniqueIds.includes(String(doc.data().requestId))).forEach(doc => batch.delete(doc.ref));
+  editableOwn.filter(doc => !uniqueIds.includes(String(doc.data().requestId))).forEach(doc => batch.delete(doc.ref));
   uniqueIds.forEach((requestId, index) => batch.set(db.collection(COLLECTIONS.availability).doc(`${requestId}_${input.playerId}`), {
     requestId, playerId: input.playerId, seasonId: player.seasonId, rank: index + 1,
-    enteredAt: own.find(doc => doc.data().requestId === requestId)?.data().enteredAt ?? now.toISOString(),
+    enteredAt: editableOwn.find(doc => doc.data().requestId === requestId)?.data().enteredAt ?? now.toISOString(),
   }, { merge: true }));
   await batch.commit();
   return loadPublicSubLotteryState(player.seasonId);

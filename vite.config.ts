@@ -4,6 +4,9 @@ import react from "@vitejs/plugin-react"
 import { defineConfig, loadEnv, type Connect, type Plugin, type ViteDevServer } from "vite"
 
 const localApiModules: Record<string, string> = {
+  '/api/sub-lottery/access-status': '/api/sub-lottery/access-status.ts',
+  '/api/sub-lottery/request-access-code': '/api/sub-lottery/request-access-code.ts',
+  '/api/sub-lottery/verify-access-code': '/api/sub-lottery/verify-access-code.ts',
   '/api/sub-lottery/public-state': '/api/sub-lottery/public-state.ts',
   '/api/sub-lottery/create-request': '/api/sub-lottery/create-request.ts',
   '/api/sub-lottery/availability': '/api/sub-lottery/availability.ts',

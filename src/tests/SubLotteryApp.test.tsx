@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { createCaptainRequest, loadTestingWeek, runTestingDraw, updatePreferences } from '@/sub-lottery/api';
+import { createCaptainRequest, loadSubLotteryState, loadTestingWeek, runTestingDraw, updatePreferences } from '@/sub-lottery/api';
 import { SubLotteryApp } from '@/sub-lottery/SubLotteryApp';
 import { getPersistedSubLotteryTestingFixture } from '@/sub-lottery/testingFixtures';
 import type { SubLotteryPublicState } from '@/sub-lottery/types';
@@ -34,6 +34,9 @@ vi.mock('@/sub-lottery/api', () => ({
   adminRetryEmail: vi.fn(),
   adminSendTestEmail: vi.fn(),
   respondToSelection: vi.fn(),
+  loadAccessStatus: vi.fn(async () => ({ verified: false })),
+  requestAccessCode: vi.fn(),
+  verifyAccessCode: vi.fn(),
 }));
 
 describe('SubLotteryApp', () => {
@@ -58,6 +61,16 @@ describe('SubLotteryApp', () => {
     expect(screen.getByRole('img', { name: 'Barrie Ultimate League' })).toHaveAttribute('src', '/barrie-ultimate-logo.jpg');
     expect(screen.getByText('Barrie Ultimate League')).toBeInTheDocument();
     expect(await screen.findByText('Summer Outdoor 2026')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Testing off' })).not.toBeInTheDocument();
+  });
+
+  test('explains a failed initial load and provides a retry', async () => {
+    vi.mocked(loadSubLotteryState).mockRejectedValueOnce(new Error('Network unavailable'));
+    render(<SubLotteryApp />);
+    expect(await screen.findByText('The lottery could not be loaded.')).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('tablist', { name: 'Choose a sub lottery task' })).toBeInTheDocument();
   });
 
   test('explains the complete lottery process from the header', async () => {
@@ -75,6 +88,7 @@ describe('SubLotteryApp', () => {
   });
 
   test('runs the complete testing workflow with selectable dummy captains and players', async () => {
+    window.history.replaceState({}, '', '/sub-lottery?testing=1');
     render(<SubLotteryApp />);
 
     const testingToggle = screen.getByRole('button', { name: 'Testing off' });
@@ -105,14 +119,15 @@ describe('SubLotteryApp', () => {
       seasonId: expect.stringMatching(/^testing-/),
       captainPin: 'testing',
       scheduleEntryId: expect.stringContaining('testing-game-1'),
-      pool: 'open',
+      needs: [{ pool: 'open', slotsNeeded: 1 }],
     }));
 
     fireEvent.click(screen.getByRole('button', { name: /^Subs enter/ }));
     expect(screen.getByText('Sub players: join a draw')).toBeInTheDocument();
     const playerSelect = screen.getByRole('combobox', { name: 'Dummy player' });
     expect(playerSelect.querySelectorAll('option')).toHaveLength(21);
-    fireEvent.change(playerSelect, { target: { value: 'Owen Orange' } });
+    const owenId = getPersistedSubLotteryTestingFixture('player', new Date('2026-06-24T12:00:00.000Z')).state.players.find(player => player.name === 'Owen Orange')!.id;
+    fireEvent.change(playerSelect, { target: { value: owenId } });
     await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'Enter lottery' })[0]!));
 
     expect(updatePreferences).toHaveBeenCalledTimes(1);
@@ -123,5 +138,6 @@ describe('SubLotteryApp', () => {
     expect(screen.getByRole('tab', { name: 'Results' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('heading', { name: 'Results' })).toBeInTheDocument();
     expect(screen.getByText('Testing draw completed and winners were saved to Firebase.')).toBeInTheDocument();
+    window.history.replaceState({}, '', '/sub-lottery');
   });
 });
